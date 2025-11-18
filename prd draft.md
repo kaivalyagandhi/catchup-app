@@ -140,7 +140,6 @@ Users face several key challenges in maintaining friendships:
 - 4.3.1.1. Empty calendar slot detected (e.g., free evening, weekend afternoon)
 - 4.3.1.2. Relevant event on calendar with potential for inviting friends nearby
 - 4.3.1.3. Time threshold exceeded (haven't connected with friend in X weeks based on individual frequency preference)
-- 4.3.1.4. Shared availability window (mutual friends with overlapping free time)
 
 **4.3.2. Matching Logic**
 

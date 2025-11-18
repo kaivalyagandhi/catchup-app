@@ -7,19 +7,20 @@ CatchUp is an AI-powered relationship management application designed to help us
 ## Glossary
 
 - **CatchUp System**: The complete AI-powered relationship management application including web interface, integrations, and notification services
-- **Contact**: A person in the user's relationship network with associated metadata (name, groups, tags, preferences)
+- **Contact**: A person in the user's relationship network with associated metadata (name, groups, tags, preferences, location, timezone)
+- **Location**: A geographic location (city, region, or country) associated with a contact used for timezone inference and proximity calculations
+- **Timezone**: The time zone associated with a contact's location, automatically inferred from the location field
 - **Group**: A user-defined or AI-promoted category for organizing contacts (e.g., Close Friends, College Friends)
 - **Tag**: A 1-3 word AI-generated descriptor representing a contact's interests or attributes
 - **Voice Note**: An audio recording captured by the user containing context about friends
 - **Suggestion**: An AI-generated recommendation to connect with a specific contact at a specific time
 - **Interaction Log**: A record of past communications or meetups with contacts
 - **Calendar Feed**: An iCal or Google Calendar subscription containing catchup suggestions
-- **Recently Met Status**: A boolean flag indicating whether a contact was recently connected with
 - **Frequency Preference**: User-configured cadence for connection reminders (Daily/Weekly/Monthly/Yearly/Flexible)
 - **Availability Parameters**: User-configured settings including manual availability specification, commute times, and nighttime patterns
 - **Batch Notification**: Scheduled digest of suggestions sent at user-configured time (default: Sunday 9am)
 - **Real-time Notification**: Immediate notification for suggestions tied to calendar events
-- **Trigger Type**: Classification of suggestion reasoning (Shared Activity, Shared Interest, Time-bound)
+- **Trigger Type**: Classification of suggestion reasoning (Shared Activity, Time-bound)
 
 ## Requirements
 
@@ -29,11 +30,13 @@ CatchUp is an AI-powered relationship management application designed to help us
 
 #### Acceptance Criteria
 
-1. WHEN a user creates a contact THEN the CatchUp System SHALL store name, phone, email, LinkedIn profile, Instagram handle, X handle, other social media handles, location, timezone, and custom notes
-2. WHEN a user assigns a contact to groups THEN the CatchUp System SHALL support multiple group memberships per contact
-3. WHEN a user views a contact profile THEN the CatchUp System SHALL display all associated metadata including AI-generated tags, last contact date, Recently Met status, and frequency preference
-4. WHEN a user updates contact information THEN the CatchUp System SHALL persist changes immediately
-5. WHEN a user deletes a contact THEN the CatchUp System SHALL remove the contact and all associated data
+1. WHEN a user creates a contact THEN the CatchUp System SHALL store name, phone, email, LinkedIn profile, Instagram handle, X handle, other social media handles, location, and custom notes
+2. WHEN a user specifies a location for a contact THEN the CatchUp System SHALL automatically infer and store the timezone based on the location
+3. WHEN a user updates a contact's location THEN the CatchUp System SHALL recalculate and update the inferred timezone
+4. WHEN a user assigns a contact to groups THEN the CatchUp System SHALL support multiple group memberships per contact
+5. WHEN a user views a contact profile THEN the CatchUp System SHALL display all associated metadata including location, inferred timezone, AI-generated tags, last contact date, and frequency preference
+6. WHEN a user updates contact information THEN the CatchUp System SHALL persist changes immediately
+7. WHEN a user deletes a contact THEN the CatchUp System SHALL remove the contact and all associated data
 
 ### Requirement 2: Group Organization
 
@@ -69,7 +72,7 @@ CatchUp is an AI-powered relationship management application designed to help us
 2. WHEN a user removes a tag THEN the CatchUp System SHALL delete the tag association from that contact
 3. WHEN a user updates a tag THEN the CatchUp System SHALL modify the tag text while preserving the association
 4. WHEN multiple similar tags exist THEN the CatchUp System SHALL deduplicate based on semantic similarity
-5. WHEN a tag is associated with a contact THEN the CatchUp System SHALL track the source (voice memo, email integration, or Instagram integration)
+5. WHEN a tag is associated with a contact THEN the CatchUp System SHALL track the source (voice memo or manual entry)
 
 ### Requirement 5: Interaction Logging
 
@@ -79,8 +82,7 @@ CatchUp is an AI-powered relationship management application designed to help us
 
 1. WHEN a user accepts a suggestion THEN the CatchUp System SHALL create an interaction log entry with date, time, and type
 2. WHEN an interaction is logged THEN the CatchUp System SHALL update the contact's last contact date
-3. WHEN an interaction is logged THEN the CatchUp System SHALL update the contact's Recently Met status to true
-4. WHEN a user manually logs an interaction THEN the CatchUp System SHALL accept date, time, type (hangout, call, text), and notes
+3. WHEN a user manually logs an interaction THEN the CatchUp System SHALL accept date, time, type (hangout, call, text), and notes
 5. WHEN the system detects a calendar event with a contact THEN the CatchUp System SHALL optionally create an interaction log entry
 
 ### Requirement 6: Frequency Preference Configuration
@@ -131,19 +133,7 @@ CatchUp is an AI-powered relationship management application designed to help us
 4. WHEN generating a Shared Activity suggestion THEN the CatchUp System SHALL include event details and reasoning in the suggestion
 5. WHEN a Shared Activity suggestion is created THEN the CatchUp System SHALL mark the trigger type as Shared Activity
 
-### Requirement 10: Suggestion Generation - Shared Interest Trigger
-
-**User Story:** As a user, I want suggestions to connect with friends over mutual interests, so that conversations are meaningful and relevant.
-
-#### Acceptance Criteria
-
-1. WHEN the CatchUp System identifies contacts with overlapping AI-generated tags THEN the CatchUp System SHALL generate Shared Interest suggestions
-2. WHEN generating a Shared Interest suggestion THEN the CatchUp System SHALL prioritize contacts with URL preferred tag for phone/video calls
-3. WHEN generating a Shared Interest suggestion THEN the CatchUp System SHALL include shared interest tags in the reasoning
-4. WHEN a Shared Interest suggestion is created THEN the CatchUp System SHALL mark the trigger type as Shared Interest
-5. WHEN multiple contacts share interests THEN the CatchUp System SHALL rank suggestions by time since last contact and frequency preference
-
-### Requirement 11: Suggestion Generation - Time-bound Trigger
+### Requirement 10: Suggestion Generation - Time-bound Trigger
 
 **User Story:** As a user, I want suggestions based on how long it's been since I connected with someone, so that I maintain consistent relationships.
 
@@ -155,7 +145,7 @@ CatchUp is an AI-powered relationship management application designed to help us
 4. WHEN a contact has URL preferred tag THEN the CatchUp System SHALL suggest phone or video calls
 5. WHEN a Time-bound suggestion is created THEN the CatchUp System SHALL mark the trigger type as Time-bound
 
-### Requirement 12: Suggestion Matching Logic
+### Requirement 11: Suggestion Matching Logic
 
 **User Story:** As a user, I want suggestions to be intelligently matched to my availability and relationship context, so that recommendations are actionable and relevant.
 
@@ -163,11 +153,10 @@ CatchUp is an AI-powered relationship management application designed to help us
 
 1. WHEN calculating suggestion priority THEN the CatchUp System SHALL apply recency decay based on time since last contact relative to frequency preference
 2. WHEN matching suggestions to timeslots THEN the CatchUp System SHALL consider user-configured availability parameters
-3. WHEN a contact has Recently Met status true THEN the CatchUp System SHALL deprioritize that contact in suggestion ranking
-4. WHEN multiple contacts match a timeslot THEN the CatchUp System SHALL prioritize Close Friends group members
-5. WHEN generating suggestions THEN the CatchUp System SHALL respect communication preferences (IRL preferred vs URL preferred)
+3. WHEN multiple contacts match a timeslot THEN the CatchUp System SHALL prioritize Close Friends group members
+4. WHEN generating suggestions THEN the CatchUp System SHALL respect communication preferences (IRL preferred vs URL preferred)
 
-### Requirement 13: Batch Notification Delivery
+### Requirement 12: Batch Notification Delivery
 
 **User Story:** As a user, I want to receive a scheduled digest of catchup suggestions, so that I can plan connections at a convenient time.
 
@@ -179,7 +168,7 @@ CatchUp is an AI-powered relationship management application designed to help us
 4. WHEN sending batch notifications THEN the CatchUp System SHALL deliver via SMS as primary channel
 5. WHEN sending batch notifications THEN the CatchUp System SHALL optionally deliver via email as alternative channel
 
-### Requirement 14: Real-time Notification Delivery
+### Requirement 13: Real-time Notification Delivery
 
 **User Story:** As a user, I want immediate notifications for time-sensitive suggestions, so that I can act on opportunities tied to specific events.
 
@@ -191,7 +180,7 @@ CatchUp is an AI-powered relationship management application designed to help us
 4. WHEN sending real-time notifications THEN the CatchUp System SHALL optionally deliver via email as alternative channel
 5. WHEN a real-time notification is sent THEN the CatchUp System SHALL also publish the suggestion to the in-app feed
 
-### Requirement 15: Notification Content
+### Requirement 14: Notification Content
 
 **User Story:** As a user, I want notifications to include context and reasoning, so that I can make informed decisions about suggestions.
 
@@ -203,7 +192,23 @@ CatchUp is an AI-powered relationship management application designed to help us
 4. WHEN generating notification text THEN the CatchUp System SHALL include action options (accept, dismiss, snooze)
 5. WHEN generating notification text THEN the CatchUp System SHALL format messages concisely for SMS delivery
 
-### Requirement 16: Suggestion Feed Display
+### Requirement 22: Notification Reply Processing
+
+**User Story:** As a user, I want to reply to notification messages with additional context, so that I can enrich contact metadata and update suggestions without opening the app.
+
+#### Acceptance Criteria
+
+1. WHEN a user replies to an SMS notification THEN the CatchUp System SHALL parse the reply text to extract contact metadata
+2. WHEN a user replies to an email notification THEN the CatchUp System SHALL parse the reply text to extract contact metadata
+3. WHEN reply text is parsed THEN the CatchUp System SHALL use natural language processing to identify entities and attributes
+4. WHEN entities are extracted from a reply THEN the CatchUp System SHALL associate them with the contact referenced in the original notification
+5. WHEN a reply contains suggestion action keywords THEN the CatchUp System SHALL update the suggestion state accordingly
+6. WHEN a reply indicates acceptance THEN the CatchUp System SHALL mark the suggestion as accepted and create an interaction log entry
+7. WHEN a reply indicates dismissal THEN the CatchUp System SHALL mark the suggestion as dismissed and optionally extract dismissal reasoning
+8. WHEN contact metadata is enriched from a reply THEN the CatchUp System SHALL persist the updates immediately
+9. WHEN a reply is successfully processed THEN the CatchUp System SHALL send a confirmation message to the user
+
+### Requirement 15: Suggestion Feed Display
 
 **User Story:** As a user, I want to view all suggestions in a web-based feed, so that I can review and act on recommendations at my convenience.
 
@@ -215,7 +220,7 @@ CatchUp is an AI-powered relationship management application designed to help us
 4. WHEN a suggestion is accepted or dismissed THEN the CatchUp System SHALL remove it from the pending feed
 5. WHEN a suggestion is snoozed THEN the CatchUp System SHALL temporarily hide it and resurface after a configured delay
 
-### Requirement 17: Suggestion Acceptance
+### Requirement 16: Suggestion Acceptance
 
 **User Story:** As a user, I want to accept suggestions with minimal friction, so that I can quickly act on connection opportunities.
 
@@ -223,71 +228,51 @@ CatchUp is an AI-powered relationship management application designed to help us
 
 1. WHEN a user accepts a suggestion THEN the CatchUp System SHALL generate a draft message personalized with contact name and context
 2. WHEN a user accepts a suggestion THEN the CatchUp System SHALL add the suggestion to the published calendar feed
-3. WHEN a user accepts a suggestion THEN the CatchUp System SHALL update the contact's Recently Met status to true
-4. WHEN a user accepts a suggestion THEN the CatchUp System SHALL create an interaction log entry
-5. WHEN a user accepts a suggestion and frequency preference is not configured THEN the CatchUp System SHALL send a follow-up notification requesting frequency preference
+3. WHEN a user accepts a suggestion THEN the CatchUp System SHALL create an interaction log entry
+4. WHEN a user accepts a suggestion and frequency preference is not configured THEN the CatchUp System SHALL send a follow-up notification requesting frequency preference
 
-### Requirement 18: Suggestion Dismissal
+### Requirement 17: Suggestion Dismissal
 
 **User Story:** As a user, I want to dismiss suggestions with reasons, so that the system learns my preferences and improves future recommendations.
 
 #### Acceptance Criteria
 
 1. WHEN a user dismisses a suggestion THEN the CatchUp System SHALL prompt for a dismissal reason
-2. WHEN a user selects "met too recently" as dismissal reason THEN the CatchUp System SHALL prompt for frequency preference specification
-3. WHEN a dismissal reason is provided THEN the CatchUp System SHALL store the reason with the suggestion record
-4. WHEN a user dismisses a suggestion THEN the CatchUp System SHALL remove it from the pending feed
-5. WHEN dismissal patterns emerge THEN the CatchUp System SHALL adjust future suggestion matching logic
+2. WHEN a user provides a dismissal reason THEN the CatchUp System SHALL generate AI-powered reason templates based on the contact's metadata
+3. WHEN AI-generated templates are presented THEN the CatchUp System SHALL display multiple template options for the user to select
+4. WHEN a user views dismissal reason templates THEN the CatchUp System SHALL provide an option to write a custom reason instead
+5. WHEN a user selects "met too recently" as dismissal reason THEN the CatchUp System SHALL update the contact's last contact date and prompt for frequency preference specification
+6. WHEN a dismissal reason is provided THEN the CatchUp System SHALL store the reason with the suggestion record
+7. WHEN a user dismisses a suggestion THEN the CatchUp System SHALL remove it from the pending feed
+8. WHEN dismissal patterns emerge THEN the CatchUp System SHALL adjust future suggestion matching logic
 
-### Requirement 19: Initial Setup Flow
+### Requirement 18: Initial Setup Flow
 
 **User Story:** As a new user, I want a guided setup process, so that I can quickly configure the system for my needs.
 
 #### Acceptance Criteria
 
-1. WHEN a user creates an account THEN the CatchUp System SHALL prompt for contact import or manual entry
+1. WHEN a user creates an account THEN the CatchUp System SHALL prompt for Google Contacts import or manual entry
 2. WHEN contacts are imported THEN the CatchUp System SHALL guide the user to categorize contacts into groups
-3. WHEN setup continues THEN the CatchUp System SHALL prompt for availability parameters (manual specification, commute times, nighttime patterns)
-4. WHEN setup continues THEN the CatchUp System SHALL prompt for notification preferences (SMS, email, batch timing)
-5. WHEN setup completes THEN the CatchUp System SHALL optionally offer email and Instagram integration for tag enrichment
+3. WHEN setup continues THEN the CatchUp System SHALL prompt for Google Calendar connection
+4. WHEN setup continues THEN the CatchUp System SHALL prompt for availability parameters (manual specification, commute times, nighttime patterns)
+5. WHEN setup continues THEN the CatchUp System SHALL prompt for notification preferences (SMS, email, batch timing)
 
-### Requirement 20: Contact Import
+### Requirement 19: Contact Import
 
-**User Story:** As a user, I want to import contacts from existing sources, so that I can quickly populate my relationship network.
-
-#### Acceptance Criteria
-
-1. WHEN a user chooses to import contacts THEN the CatchUp System SHALL support phone and email contact sync
-2. WHEN contacts are imported THEN the CatchUp System SHALL extract name, phone, and email fields
-3. WHEN the user has not imported contacts THEN the CatchUp System SHALL fully support manual contact entry
-4. WHEN analyzing imported data THEN the CatchUp System SHALL optionally identify friends based on frequency in calendar events
-5. WHEN analyzing imported data THEN the CatchUp System SHALL optionally identify friends based on Gmail message frequency
-
-### Requirement 21: Metadata Enrichment via Email
-
-**User Story:** As a user, I want the system to analyze my email history, so that contact metadata is enriched with communication patterns.
+**User Story:** As a user, I want to import contacts from Google Contacts, so that I can quickly populate my relationship network.
 
 #### Acceptance Criteria
 
-1. WHEN a user connects Gmail THEN the CatchUp System SHALL request read-only permissions
-2. WHEN Gmail access is granted THEN the CatchUp System SHALL analyze message frequency per contact
-3. WHEN email patterns are detected THEN the CatchUp System SHALL update last contact dates based on recent emails
-4. WHEN email content contains relevant information THEN the CatchUp System SHALL optionally generate tags from email context
-5. WHEN email integration is not connected THEN the CatchUp System SHALL function fully without email enrichment
+1. WHEN a user chooses to import contacts THEN the CatchUp System SHALL support Google Contacts sync via OAuth
+2. WHEN Google Contacts access is granted THEN the CatchUp System SHALL extract name, phone, email, and other available fields
+3. WHEN contacts are imported THEN the CatchUp System SHALL deduplicate contacts based on email and phone number
+4. WHEN the user has not imported contacts THEN the CatchUp System SHALL fully support manual contact entry
+5. WHEN analyzing imported data THEN the CatchUp System SHALL optionally identify friends based on frequency in calendar events
 
-### Requirement 22: Metadata Enrichment via Instagram
 
-**User Story:** As a user, I want to import Instagram data, so that I can expand my contact list with social connections.
 
-#### Acceptance Criteria
-
-1. WHEN a user uploads Instagram data dump THEN the CatchUp System SHALL parse the data for contact information
-2. WHEN Instagram contacts are identified THEN the CatchUp System SHALL add them to the contact database
-3. WHEN Instagram data contains interaction history THEN the CatchUp System SHALL optionally generate tags based on shared content
-4. WHEN Instagram integration is not used THEN the CatchUp System SHALL function fully without Instagram enrichment
-5. WHEN Instagram contacts are imported THEN the CatchUp System SHALL deduplicate against existing contacts
-
-### Requirement 23: Availability Parameter Configuration
+### Requirement 20: Availability Parameter Configuration
 
 **User Story:** As a user, I want to specify my availability preferences, so that suggestions align with my actual free time.
 
@@ -299,19 +284,7 @@ CatchUp is an AI-powered relationship management application designed to help us
 4. WHEN availability parameters are set THEN the CatchUp System SHALL apply them to filter calendar free slots
 5. WHEN a user updates availability parameters THEN the CatchUp System SHALL recalculate availability predictions
 
-### Requirement 24: Recently Met Status Management
-
-**User Story:** As a user, I want the system to track who I've recently connected with, so that suggestions avoid redundant recommendations.
-
-#### Acceptance Criteria
-
-1. WHEN a user accepts a suggestion THEN the CatchUp System SHALL set the contact's Recently Met status to true
-2. WHEN time passes after an interaction THEN the CatchUp System SHALL dynamically update Recently Met status based on frequency preference
-3. WHEN a contact has Recently Met status true THEN the CatchUp System SHALL deprioritize that contact in suggestion generation
-4. WHEN a user dismisses a suggestion with "met too recently" THEN the CatchUp System SHALL set Recently Met status to true
-5. WHEN Recently Met status changes THEN the CatchUp System SHALL immediately affect suggestion ranking
-
-### Requirement 25: Data Persistence
+### Requirement 21: Data Persistence
 
 **User Story:** As a user, I want all my data to be reliably stored, so that I don't lose relationship context or configuration.
 
