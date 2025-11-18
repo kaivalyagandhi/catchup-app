@@ -2,18 +2,18 @@
 
 ## Introduction
 
-CatchUp is an AI-powered relationship management application designed to help users maintain meaningful connections with friends by identifying and prioritizing catchup opportunities, reducing coordination friction, and facilitating connection through intelligent scheduling and suggestion capabilities. The system integrates with Google Calendar, provides voice note capture for context enrichment, manages rich contact profiles with AI-generated tags, and delivers intelligent connection suggestions via SMS/email notifications and a web-based feed.
+CatchUp is a relationship management application designed to help users maintain meaningful connections with friends by identifying and prioritizing catchup opportunities, reducing coordination friction, and facilitating connection through intelligent scheduling and suggestion capabilities. The system integrates with Google Calendar, provides voice note capture for context enrichment, manages rich contact profiles with automatically generated tags, and delivers intelligent connection suggestions via SMS/email notifications and a web-based feed.
 
 ## Glossary
 
-- **CatchUp System**: The complete AI-powered relationship management application including web interface, integrations, and notification services
+- **CatchUp System**: The complete relationship management application including web interface, integrations, and notification services
 - **Contact**: A person in the user's relationship network with associated metadata (name, groups, tags, preferences, location, timezone)
 - **Location**: A geographic location (city, region, or country) associated with a contact used for timezone inference and proximity calculations
 - **Timezone**: The time zone associated with a contact's location, automatically inferred from the location field
-- **Group**: A user-defined or AI-promoted category for organizing contacts (e.g., Close Friends, College Friends)
-- **Tag**: A 1-3 word AI-generated descriptor representing a contact's interests or attributes
+- **Group**: A user-defined or system-promoted category for organizing contacts (e.g., Close Friends, College Friends)
+- **Tag**: A 1-3 word automatically generated descriptor representing a contact's interests or attributes
 - **Voice Note**: An audio recording captured by the user containing context about friends
-- **Suggestion**: An AI-generated recommendation to connect with a specific contact at a specific time
+- **Suggestion**: A system-generated recommendation to connect with a specific contact at a specific time
 - **Interaction Log**: A record of past communications or meetups with contacts
 - **Calendar Feed**: An iCal or Google Calendar subscription containing catchup suggestions
 - **Frequency Preference**: User-configured cadence for connection reminders (Daily/Weekly/Monthly/Yearly/Flexible)
@@ -34,7 +34,7 @@ CatchUp is an AI-powered relationship management application designed to help us
 2. WHEN a user specifies a location for a contact THEN the CatchUp System SHALL automatically infer and store the timezone based on the location
 3. WHEN a user updates a contact's location THEN the CatchUp System SHALL recalculate and update the inferred timezone
 4. WHEN a user assigns a contact to groups THEN the CatchUp System SHALL support multiple group memberships per contact
-5. WHEN a user views a contact profile THEN the CatchUp System SHALL display all associated metadata including location, inferred timezone, AI-generated tags, last contact date, and frequency preference
+5. WHEN a user views a contact profile THEN the CatchUp System SHALL display all associated metadata including location, inferred timezone, automatically generated tags, last contact date, and frequency preference
 6. WHEN a user updates contact information THEN the CatchUp System SHALL persist changes immediately
 7. WHEN a user deletes a contact THEN the CatchUp System SHALL remove the contact and all associated data
 
@@ -48,7 +48,7 @@ CatchUp is an AI-powered relationship management application designed to help us
 2. WHEN a user edits a group name THEN the CatchUp System SHALL update the group name across all associated contacts
 3. WHEN a user archives a group THEN the CatchUp System SHALL mark the group as archived without deleting member contacts
 4. WHEN the system initializes for a new user THEN the CatchUp System SHALL create default groups (Close Friends, Friends, Remote Friends, College Friends, High School Friends)
-5. WHEN a user promotes a tag to a group THEN the CatchUp System SHALL create a new group and mark it as promoted from tags
+5. WHEN a user promotes a tag to a group THEN the CatchUp System SHALL create a new group and mark it as system-promoted from tags
 
 ### Requirement 3: Voice Note Capture and Processing
 
@@ -57,18 +57,24 @@ CatchUp is an AI-powered relationship management application designed to help us
 #### Acceptance Criteria
 
 1. WHEN a user records a voice note THEN the CatchUp System SHALL transcribe the audio to text
-2. WHEN a voice note is transcribed THEN the CatchUp System SHALL use AI to disambiguate which contact the note refers to
+2. WHEN a voice note is transcribed THEN the CatchUp System SHALL disambiguate which contact the note refers to
 3. WHEN a contact is identified from a voice note THEN the CatchUp System SHALL extract entities and attributes using natural language parsing
-4. WHEN entities are extracted THEN the CatchUp System SHALL generate AI tags (1-3 words each) and associate them with the identified contact
-5. WHEN tags are generated THEN the CatchUp System SHALL categorize and deduplicate tags based on similarity
+4. WHEN entities are extracted THEN the CatchUp System SHALL present a confirmation interface displaying the proposed enrichment data in concise format
+5. WHEN the confirmation interface is displayed THEN the CatchUp System SHALL show which contact fields will be updated, which tags will be added, and which group memberships will change
+6. WHEN the user reviews the confirmation interface THEN the CatchUp System SHALL provide options to accept all changes, reject all changes, or modify individual enrichment items
+7. WHEN the user modifies an enrichment item THEN the CatchUp System SHALL allow editing of field values, tag text, and group assignments before application
+8. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL update any existing contact fields including location, last contact date, social media handles, custom notes, and other metadata
+9. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL generate tags (1-3 words each) and associate them with the identified contact
+10. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL update group memberships for the identified contact
+11. WHEN tags are generated THEN the CatchUp System SHALL categorize and deduplicate tags based on similarity
 
 ### Requirement 4: Tag Management
 
-**User Story:** As a user, I want to manage AI-generated tags on contact profiles, so that I can ensure accuracy and relevance.
+**User Story:** As a user, I want to manage automatically generated tags on contact profiles, so that I can ensure accuracy and relevance.
 
 #### Acceptance Criteria
 
-1. WHEN AI generates tags for a contact THEN the CatchUp System SHALL display tags on the contact profile
+1. WHEN the system generates tags for a contact THEN the CatchUp System SHALL display tags on the contact profile
 2. WHEN a user removes a tag THEN the CatchUp System SHALL delete the tag association from that contact
 3. WHEN a user updates a tag THEN the CatchUp System SHALL modify the tag text while preserving the association
 4. WHEN multiple similar tags exist THEN the CatchUp System SHALL deduplicate based on semantic similarity
@@ -202,11 +208,18 @@ CatchUp is an AI-powered relationship management application designed to help us
 2. WHEN a user replies to an email notification THEN the CatchUp System SHALL parse the reply text to extract contact metadata
 3. WHEN reply text is parsed THEN the CatchUp System SHALL use natural language processing to identify entities and attributes
 4. WHEN entities are extracted from a reply THEN the CatchUp System SHALL associate them with the contact referenced in the original notification
-5. WHEN a reply contains suggestion action keywords THEN the CatchUp System SHALL update the suggestion state accordingly
-6. WHEN a reply indicates acceptance THEN the CatchUp System SHALL mark the suggestion as accepted and create an interaction log entry
-7. WHEN a reply indicates dismissal THEN the CatchUp System SHALL mark the suggestion as dismissed and optionally extract dismissal reasoning
-8. WHEN contact metadata is enriched from a reply THEN the CatchUp System SHALL persist the updates immediately
-9. WHEN a reply is successfully processed THEN the CatchUp System SHALL send a confirmation message to the user
+5. WHEN entities are extracted from a reply THEN the CatchUp System SHALL send a confirmation message presenting the proposed enrichment data in concise format
+6. WHEN the confirmation message is sent THEN the CatchUp System SHALL show which contact fields will be updated, which tags will be added, and which group memberships will change
+7. WHEN the user receives the confirmation message THEN the CatchUp System SHALL provide reply options to accept all changes, reject all changes, or request modification of specific items
+8. WHEN the user requests modifications THEN the CatchUp System SHALL allow the user to specify which enrichment items to change via follow-up reply
+9. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL update any existing contact fields including location, last contact date, social media handles, custom notes, and other metadata
+10. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL generate tags (1-3 words each) and associate them with the identified contact
+11. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL update group memberships for the identified contact
+12. WHEN a reply contains suggestion action keywords THEN the CatchUp System SHALL update the suggestion state accordingly
+13. WHEN a reply indicates acceptance THEN the CatchUp System SHALL mark the suggestion as accepted and create an interaction log entry
+14. WHEN a reply indicates dismissal THEN the CatchUp System SHALL mark the suggestion as dismissed and optionally extract dismissal reasoning
+15. WHEN contact metadata is enriched from a reply THEN the CatchUp System SHALL persist the updates immediately
+16. WHEN a reply is successfully processed THEN the CatchUp System SHALL send a confirmation message to the user
 
 ### Requirement 15: Suggestion Feed Display
 
@@ -238,8 +251,8 @@ CatchUp is an AI-powered relationship management application designed to help us
 #### Acceptance Criteria
 
 1. WHEN a user dismisses a suggestion THEN the CatchUp System SHALL prompt for a dismissal reason
-2. WHEN a user provides a dismissal reason THEN the CatchUp System SHALL generate AI-powered reason templates based on the contact's metadata
-3. WHEN AI-generated templates are presented THEN the CatchUp System SHALL display multiple template options for the user to select
+2. WHEN a user provides a dismissal reason THEN the CatchUp System SHALL generate reason templates based on the contact's metadata
+3. WHEN system-generated templates are presented THEN the CatchUp System SHALL display multiple template options for the user to select
 4. WHEN a user views dismissal reason templates THEN the CatchUp System SHALL provide an option to write a custom reason instead
 5. WHEN a user selects "met too recently" as dismissal reason THEN the CatchUp System SHALL update the contact's last contact date and prompt for frequency preference specification
 6. WHEN a dismissal reason is provided THEN the CatchUp System SHALL store the reason with the suggestion record
@@ -253,10 +266,13 @@ CatchUp is an AI-powered relationship management application designed to help us
 #### Acceptance Criteria
 
 1. WHEN a user creates an account THEN the CatchUp System SHALL prompt for Google Contacts import or manual entry
-2. WHEN contacts are imported THEN the CatchUp System SHALL guide the user to categorize contacts into groups
-3. WHEN setup continues THEN the CatchUp System SHALL prompt for Google Calendar connection
-4. WHEN setup continues THEN the CatchUp System SHALL prompt for availability parameters (manual specification, commute times, nighttime patterns)
-5. WHEN setup continues THEN the CatchUp System SHALL prompt for notification preferences (SMS, email, batch timing)
+2. WHEN contacts are imported THEN the CatchUp System SHALL display the full list of imported contacts with checkboxes
+3. WHEN the user views imported contacts THEN the CatchUp System SHALL allow the user to mark contacts as not relevant by unchecking them
+4. WHEN a user marks a contact as not relevant THEN the CatchUp System SHALL archive the contact while preserving the record to prevent duplicate imports
+5. WHEN a user marks a contact as not relevant THEN the CatchUp System SHALL hide the contact from active use while maintaining the ability to restore it if the user changes their mind
+6. WHEN setup continues THEN the CatchUp System SHALL prompt for Google Calendar connection
+7. WHEN setup continues THEN the CatchUp System SHALL prompt for availability parameters (manual specification, commute times, nighttime patterns)
+8. WHEN setup continues THEN the CatchUp System SHALL prompt for notification preferences (SMS, email, batch timing)
 
 ### Requirement 19: Contact Import
 
