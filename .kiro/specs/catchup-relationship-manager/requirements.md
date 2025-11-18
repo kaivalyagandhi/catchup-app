@@ -29,7 +29,7 @@ CatchUp is an AI-powered relationship management application designed to help us
 
 #### Acceptance Criteria
 
-1. WHEN a user creates a contact THEN the CatchUp System SHALL store name, phone, email, location, timezone, and custom notes
+1. WHEN a user creates a contact THEN the CatchUp System SHALL store name, phone, email, LinkedIn profile, Instagram handle, X handle, other social media handles, location, timezone, and custom notes
 2. WHEN a user assigns a contact to groups THEN the CatchUp System SHALL support multiple group memberships per contact
 3. WHEN a user views a contact profile THEN the CatchUp System SHALL display all associated metadata including AI-generated tags, last contact date, Recently Met status, and frequency preference
 4. WHEN a user updates contact information THEN the CatchUp System SHALL persist changes immediately
