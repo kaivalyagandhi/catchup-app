@@ -107,6 +107,8 @@ interface ContactService {
   updateGroup(id: string, name: string): Promise<Group>
   archiveGroup(id: string): Promise<void>
   assignContactToGroup(contactId: string, groupId: string): Promise<void>
+  bulkAssignContactsToGroup(contactIds: string[], groupId: string): Promise<void>
+  bulkRemoveContactsFromGroup(contactIds: string[], groupId: string): Promise<void>
   
   // Tag management
   addTag(contactId: string, tag: Tag): Promise<void>
@@ -124,6 +126,9 @@ interface ContactService {
   
   // Import
   importFromGoogleContacts(accessToken: string): Promise<ImportResult>
+  
+  // Account management
+  deleteUserAccount(userId: string): Promise<void>
 }
 ```
 
@@ -156,6 +161,8 @@ interface SuggestionEngine {
 interface CalendarService {
   // OAuth integration
   connectGoogleCalendar(authCode: string): Promise<CalendarConnection>
+  listUserCalendars(userId: string): Promise<GoogleCalendar[]>
+  setSelectedCalendars(userId: string, calendarIds: string[]): Promise<void>
   refreshCalendarData(userId: string): Promise<void>
   
   // Availability detection
@@ -200,12 +207,13 @@ interface VoiceProcessingService {
   transcribeAudio(audioData: Buffer): Promise<string>
   
   // Entity extraction
-  disambiguateContact(transcript: string, userContacts: Contact[]): Promise<Contact>
+  disambiguateContact(transcript: string, userContacts: Contact[]): Promise<Contact | null>
   extractEntities(transcript: string): Promise<ExtractedEntities>
   
   // Enrichment workflow
-  generateEnrichmentConfirmation(entities: ExtractedEntities, contact: Contact): EnrichmentProposal
+  generateEnrichmentConfirmation(entities: ExtractedEntities, contact: Contact | null, userContacts: Contact[]): EnrichmentProposal
   applyEnrichment(contactId: string, proposal: EnrichmentProposal): Promise<Contact>
+  preferExistingTags(newTags: string[], existingTags: Tag[], similarityThreshold: number): string[]
 }
 ```
 
@@ -308,6 +316,23 @@ interface InteractionLog {
   notes?: string
   suggestionId?: string  // If created from accepting a suggestion
   createdAt: Date
+  // Note: Only stores catchup-related communications, not all messages
+}
+```
+
+### GoogleCalendar
+
+```typescript
+interface GoogleCalendar {
+  id: string
+  userId: string
+  calendarId: string  // Google Calendar ID
+  name: string
+  description?: string
+  selected: boolean  // Whether this calendar is used for suggestions
+  isPrimary: boolean
+  createdAt: Date
+  updatedAt: Date
 }
 ```
 
@@ -330,6 +355,21 @@ interface ExtractedEntities {
   tags: string[]
   groups: string[]
   lastContactDate?: Date
+}
+
+interface EnrichmentProposal {
+  contactId: string | null  // null if contact needs manual selection
+  items: EnrichmentItem[]  // Atomic items for individual review
+  requiresContactSelection: boolean
+}
+
+interface EnrichmentItem {
+  id: string
+  type: 'field' | 'tag' | 'group' | 'lastContactDate'
+  action: 'add' | 'update' | 'remove'
+  field?: string  // For field updates
+  value: any
+  accepted: boolean
 }
 ```
 
@@ -405,13 +445,21 @@ interface NotificationPreferences {
 *For any* group with associated contacts, updating the group name should result in all contacts reflecting the new group name.
 **Validates: Requirements 2.2**
 
+**Property 7.1: Bulk group assignment**
+*For any* set of contacts and a group, bulk adding the contacts to the group should result in all contacts being members of that group.
+**Validates: Requirements 2.3**
+
+**Property 7.2: Bulk group removal**
+*For any* set of contacts and a group, bulk removing the contacts from the group should result in none of the contacts being members of that group.
+**Validates: Requirements 2.4**
+
 **Property 8: Group archival preserves contacts**
 *For any* group with member contacts, archiving the group should mark it as archived while preserving all member contacts in the system.
-**Validates: Requirements 2.3**
+**Validates: Requirements 2.5**
 
 **Property 9: Tag to group promotion**
 *For any* tag text, promoting it to a group should create a new group with that name and mark it as system-promoted from tags.
-**Validates: Requirements 2.5**
+**Validates: Requirements 2.7**
 
 ### Voice Note Processing Properties
 
@@ -420,28 +468,44 @@ interface NotificationPreferences {
 **Validates: Requirements 3.1**
 
 **Property 11: Contact disambiguation**
-*For any* voice note transcript mentioning a contact, the system should identify which contact in the user's network is being referenced.
+*For any* voice note transcript mentioning a contact, the system should attempt to identify which contact in the user's network is being referenced, returning null if no match is found.
 **Validates: Requirements 3.2**
+
+**Property 11.1: Contact selection on failed disambiguation**
+*For any* voice note where contact disambiguation returns null, the system should continue processing and present the user's contact list for manual selection in the confirmation interface.
+**Validates: Requirements 3.3**
 
 **Property 12: Entity extraction**
 *For any* transcript, the system should extract entities and attributes using natural language parsing.
-**Validates: Requirements 3.3**
+**Validates: Requirements 3.4**
 
 **Property 13: Enrichment confirmation generation**
 *For any* extracted entities, the system should generate a confirmation interface showing which contact fields will be updated, which tags will be added, and which group memberships will change.
-**Validates: Requirements 3.4, 3.5**
+**Validates: Requirements 3.5, 3.6**
+
+**Property 13.1: Contact editing in confirmation**
+*For any* enrichment confirmation interface, the user should be able to edit the selected contact.
+**Validates: Requirements 3.7**
+
+**Property 13.2: Atomic enrichment item presentation**
+*For any* enrichment proposal, each item (field update, tag addition, group membership) should be presented atomically for individual selection, editing, acceptance, or removal.
+**Validates: Requirements 3.8**
 
 **Property 14: Enrichment modification**
 *For any* enrichment proposal, the user should be able to edit field values, tag text, and group assignments before application.
-**Validates: Requirements 3.7**
+**Validates: Requirements 3.9**
 
 **Property 15: Enrichment application**
 *For any* accepted enrichment proposal (from voice notes or notification replies), all proposed changes should be applied: contact fields updated, tags generated and associated (1-3 words each), and group memberships updated.
-**Validates: Requirements 3.8, 3.9, 3.10, 22.9, 22.10, 22.11**
+**Validates: Requirements 3.10, 3.11, 3.12, 22.9, 22.10, 22.11**
+
+**Property 15.1: Existing tag preference**
+*For any* set of new tags being generated, when existing tags have similar meaning within a similarity threshold, the system should prefer existing tags over creating new tags.
+**Validates: Requirements 3.13**
 
 **Property 16: Tag deduplication**
 *For any* set of similar tags, the system should deduplicate based on semantic similarity.
-**Validates: Requirements 3.11, 4.4**
+**Validates: Requirements 3.14, 4.4**
 
 ### Tag Management Properties
 
@@ -467,6 +531,10 @@ interface NotificationPreferences {
 *For any* manually logged interaction with date, time, type (hangout, call, text), and notes, all fields should be persisted and the contact's last contact date should be updated.
 **Validates: Requirements 5.3**
 
+**Property 21.1: Interaction log scope**
+*For any* interaction log, the system should record only catchup-related communications, not all messages between the user and the contact.
+**Validates: Requirements 5.4**
+
 **Property 22: Calendar event interaction logging**
 *For any* calendar event associated with a contact, the system should optionally create an interaction log entry.
 **Validates: Requirements 5.5**
@@ -487,21 +555,33 @@ interface NotificationPreferences {
 
 ### Calendar Integration Properties
 
-**Property 26: Free time slot detection**
-*For any* calendar with existing events, the system should identify free time slots by analyzing gaps between events.
+**Property 26: Calendar listing**
+*For any* user with Google Calendar access granted, the system should display all calendars associated with the user's Google account.
 **Validates: Requirements 7.2**
+
+**Property 26.1: Calendar selection**
+*For any* user viewing available calendars, the system should allow selection of multiple calendars for suggestion generation.
+**Validates: Requirements 7.3**
+
+**Property 26.2: Calendar configuration editing**
+*For any* user with selected calendars, the system should allow editing which calendars are used for availability calculations.
+**Validates: Requirements 7.4**
+
+**Property 26.3: Free time slot detection**
+*For any* calendar with existing events in selected calendars, the system should identify free time slots by analyzing gaps between events.
+**Validates: Requirements 7.5**
 
 **Property 27: Availability parameter configuration**
 *For any* user, the system should accept and store availability parameters including manual time blocks, commute times, and nighttime patterns.
-**Validates: Requirements 7.3, 20.1, 20.2, 20.3**
+**Validates: Requirements 7.6, 20.1, 20.2, 20.3**
 
 **Property 28: Availability parameter application**
 *For any* set of free time slots and configured availability parameters, the system should filter slots to identify true available time according to the parameters.
-**Validates: Requirements 7.4, 20.4**
+**Validates: Requirements 7.7, 20.4**
 
 **Property 29: Availability recalculation on changes**
 *For any* calendar data change or availability parameter update, the system should refresh and recalculate availability predictions.
-**Validates: Requirements 7.5, 20.5**
+**Validates: Requirements 7.8, 20.5**
 
 ### Calendar Feed Properties
 
@@ -655,9 +735,13 @@ interface NotificationPreferences {
 *For any* imported contacts, the system should deduplicate based on email and phone number.
 **Validates: Requirements 19.3**
 
+**Property 63.1: Automatic contact creation from integrations**
+*For any* data integration added by the user, the system should create contacts on behalf of the user from the integrated data source.
+**Validates: Requirements 19.4**
+
 **Property 64: Calendar-based friend identification**
 *For any* imported calendar data, the system should optionally identify friends based on frequency in calendar events.
-**Validates: Requirements 19.5**
+**Validates: Requirements 19.6**
 
 ### Setup Flow Properties
 
@@ -686,6 +770,26 @@ interface NotificationPreferences {
 **Property 70: Session data restoration**
 *For any* user session, logging out and logging back in should restore all data without loss (round-trip property for system state).
 **Validates: Requirements 21.5**
+
+### Account Management Properties
+
+**Property 71: Complete account deletion**
+*For any* user requesting account deletion, the system should remove all user data including contacts, groups, tags, suggestions, interaction logs, voice notes, and configuration data.
+**Validates: Requirements 23.1, 23.2**
+
+**Property 72: Account deletion confirmation**
+*For any* completed account deletion, the system should confirm removal to the user.
+**Validates: Requirements 23.3**
+
+### Test User Properties
+
+**Property 73: Test user functionality**
+*For any* test user, the system should support all standard user functionality.
+**Validates: Requirements 24.1**
+
+**Property 74: Test user isolation**
+*For any* test user, the system should allow validation of product features in isolation from production users.
+**Validates: Requirements 24.2**
 
 ## Error Handling
 
@@ -795,7 +899,7 @@ The system will use property-based testing to verify universal properties across
 
 **Property Test Coverage:**
 
-The property-based tests will verify all 70 correctness properties defined above, including:
+The property-based tests will verify all 74 correctness properties defined above, including:
 
 - Contact field persistence across all field combinations
 - Timezone inference for all valid locations
@@ -889,18 +993,26 @@ The property-based tests will verify all 70 correctness properties defined above
 - Use signed URLs with expiration for security
 - Update feeds asynchronously when suggestions change
 - Support both iCal and Google Calendar subscription formats
+- Allow users to select which Google Calendars to sync (store selection in GoogleCalendar table)
+- Only scan selected calendars for availability and event detection
+- Provide UI for managing calendar selection preferences
 
 **Voice Processing Pipeline**
 - Async processing: upload → transcribe → extract → confirm
 - Store audio files in object storage (S3 or similar)
 - Queue transcription jobs for batch processing
 - Cache transcriptions to avoid reprocessing
+- Handle failed contact disambiguation by continuing processing and prompting for manual selection
+- Present enrichment items atomically for individual review
+- Implement tag similarity matching to prefer existing tags (e.g., cosine similarity with threshold of 0.85)
 
 **Data Privacy**
 - Encrypt sensitive data at rest (contact info, notes)
 - Use secure OAuth flows for third-party integrations
-- Implement data export and deletion for GDPR compliance
+- Implement complete data export and deletion for GDPR compliance
+- Account deletion should cascade to all related entities (contacts, groups, tags, suggestions, interactions, voice notes, calendar connections)
 - Audit log for sensitive operations
+- Support test user creation with isolated data for validation
 
 ### Scalability Considerations
 
