@@ -6,7 +6,7 @@
         "mcp-server-fetch"
       ],
       "env": {},
-      "disabled": true,
+      "disabled": false,
       "autoApprove": []
     },
     "chrome-devtools": {
@@ -14,15 +14,6 @@
       "args": [
         "-y",
         "chrome-devtools-mcp@latest"
-      ],
-      "disabled": false,
-      "autoApprove": []
-    },
-    "gcloud": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@google-cloud/gcloud-mcp"
       ],
       "disabled": false,
       "autoApprove": []
