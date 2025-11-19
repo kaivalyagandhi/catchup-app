@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Test Coverage & Quality Check",
+  "description": "Automatically checks that new code has test coverage and that all tests and linters pass whenever code files are edited",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "src/**/*.js",
+      "src/**/*.jsx",
+      "src/**/*.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Code has been modified. Please verify the following before continuing:\n\n1. **Test Coverage**: Check if the modified code has corresponding test coverage. If tests are missing or incomplete, identify what needs to be tested.\n\n2. **Run Tests**: Execute the test suite for the affected modules and report any failures.\n\n3. **Run Linter**: Execute the linter (ESLint/Prettier for TS/JS, Black/Ruff for Python) and report any code style violations.\n\n4. **Summary**: Provide a clear summary of:\n   - Test coverage status (adequate/inadequate)\n   - Test results (passing/failing)\n   - Linting results (clean/violations)\n   - Recommended actions before continuing\n\nOnly give approval to continue if all tests pass, linting is clean, and test coverage is adequate for the changes made."
+  }
+}

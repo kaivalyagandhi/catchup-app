@@ -14,7 +14,7 @@ CatchUp is a relationship management application designed to help users maintain
 - **Tag**: A 1-3 word automatically generated descriptor representing a contact's interests or attributes
 - **Voice Note**: An audio recording captured by the user containing context about friends
 - **Suggestion**: A system-generated recommendation to connect with a specific contact at a specific time
-- **Interaction Log**: A record of past communications or meetups with contacts
+- **Interaction Log**: A record of catchup-related communications or meetups with contacts, not all messages between the user and the contact
 - **Calendar Feed**: An iCal or Google Calendar subscription containing catchup suggestions
 - **Frequency Preference**: User-configured cadence for connection reminders (Daily/Weekly/Monthly/Yearly/Flexible)
 - **Availability Parameters**: User-configured settings including manual availability specification, commute times, and nighttime patterns
@@ -46,9 +46,11 @@ CatchUp is a relationship management application designed to help users maintain
 
 1. WHEN a user creates a group THEN the CatchUp System SHALL allow specification of a group name
 2. WHEN a user edits a group name THEN the CatchUp System SHALL update the group name across all associated contacts
-3. WHEN a user archives a group THEN the CatchUp System SHALL mark the group as archived without deleting member contacts
-4. WHEN the system initializes for a new user THEN the CatchUp System SHALL create default groups (Close Friends, Friends, Remote Friends, College Friends, High School Friends)
-5. WHEN a user promotes a tag to a group THEN the CatchUp System SHALL create a new group and mark it as system-promoted from tags
+3. WHEN a user selects multiple contacts THEN the CatchUp System SHALL allow bulk addition to a group
+4. WHEN a user selects multiple contacts THEN the CatchUp System SHALL allow bulk removal from a group
+5. WHEN a user archives a group THEN the CatchUp System SHALL mark the group as archived without deleting member contacts
+6. WHEN the system initializes for a new user THEN the CatchUp System SHALL create default groups (Close Friends, Friends, Remote Friends, College Friends, High School Friends)
+7. WHEN a user promotes a tag to a group THEN the CatchUp System SHALL create a new group and mark it as system-promoted from tags
 
 ### Requirement 3: Voice Note Capture and Processing
 
@@ -57,16 +59,19 @@ CatchUp is a relationship management application designed to help users maintain
 #### Acceptance Criteria
 
 1. WHEN a user records a voice note THEN the CatchUp System SHALL transcribe the audio to text
-2. WHEN a voice note is transcribed THEN the CatchUp System SHALL disambiguate which contact the note refers to
-3. WHEN a contact is identified from a voice note THEN the CatchUp System SHALL extract entities and attributes using natural language parsing
-4. WHEN entities are extracted THEN the CatchUp System SHALL present a confirmation interface displaying the proposed enrichment data in concise format
-5. WHEN the confirmation interface is displayed THEN the CatchUp System SHALL show which contact fields will be updated, which tags will be added, and which group memberships will change
-6. WHEN the user reviews the confirmation interface THEN the CatchUp System SHALL provide options to accept all changes, reject all changes, or modify individual enrichment items
-7. WHEN the user modifies an enrichment item THEN the CatchUp System SHALL allow editing of field values, tag text, and group assignments before application
-8. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL update any existing contact fields including location, last contact date, social media handles, custom notes, and other metadata
-9. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL generate tags (1-3 words each) and associate them with the identified contact
-10. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL update group memberships for the identified contact
-11. WHEN tags are generated THEN the CatchUp System SHALL categorize and deduplicate tags based on similarity
+2. WHEN a voice note is transcribed THEN the CatchUp System SHALL attempt to disambiguate which contact the note refers to
+3. WHEN a contact is not detected in a voice note THEN the CatchUp System SHALL continue processing and prompt the user to manually select a contact from their contact list in the confirmation interface
+4. WHEN a contact is identified from a voice note THEN the CatchUp System SHALL extract entities and attributes using natural language parsing
+5. WHEN entities are extracted THEN the CatchUp System SHALL present a confirmation interface displaying the proposed enrichment data in concise format
+6. WHEN the confirmation interface is displayed THEN the CatchUp System SHALL show which contact fields will be updated, which tags will be added, and which group memberships will change
+7. WHEN the confirmation interface is displayed THEN the CatchUp System SHALL allow the user to edit the selected contact
+8. WHEN the user reviews the confirmation interface THEN the CatchUp System SHALL present each enrichment item atomically for individual selection, editing, acceptance, or removal
+9. WHEN the user modifies an enrichment item THEN the CatchUp System SHALL allow editing of field values, tag text, and group assignments before application
+10. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL update any existing contact fields including location, last contact date, social media handles, custom notes, and other metadata
+11. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL generate tags (1-3 words each) and associate them with the identified contact
+12. WHEN the user accepts the enrichment data THEN the CatchUp System SHALL update group memberships for the identified contact
+13. WHEN tags are generated and existing tags have similar meaning within a similarity threshold THEN the CatchUp System SHALL prefer existing tags over creating new tags
+14. WHEN tags are generated THEN the CatchUp System SHALL categorize and deduplicate tags based on similarity
 
 ### Requirement 4: Tag Management
 
@@ -89,6 +94,7 @@ CatchUp is a relationship management application designed to help users maintain
 1. WHEN a user accepts a suggestion THEN the CatchUp System SHALL create an interaction log entry with date, time, and type
 2. WHEN an interaction is logged THEN the CatchUp System SHALL update the contact's last contact date
 3. WHEN a user manually logs an interaction THEN the CatchUp System SHALL accept date, time, type (hangout, call, text), and notes
+4. WHEN the system stores interaction logs THEN the CatchUp System SHALL record only communications related to catchup activities, not all messages between the user and the contact
 5. WHEN the system detects a calendar event with a contact THEN the CatchUp System SHALL optionally create an interaction log entry
 
 ### Requirement 6: Frequency Preference Configuration
@@ -110,10 +116,13 @@ CatchUp is a relationship management application designed to help users maintain
 #### Acceptance Criteria
 
 1. WHEN a user connects Google Calendar THEN the CatchUp System SHALL request read-only permissions via OAuth
-2. WHEN calendar access is granted THEN the CatchUp System SHALL scan for free time slots based on existing events
-3. WHEN the user configures availability parameters THEN the CatchUp System SHALL accept manual availability specification, commute times, and nighttime patterns
-4. WHEN predicting availability THEN the CatchUp System SHALL apply user-configured parameters to identify true free time
-5. WHEN calendar data changes THEN the CatchUp System SHALL refresh availability predictions
+2. WHEN calendar access is granted THEN the CatchUp System SHALL display all calendars associated with the user's Google account
+3. WHEN the user views available calendars THEN the CatchUp System SHALL allow the user to select multiple calendars for suggestion generation
+4. WHEN the user selects calendars THEN the CatchUp System SHALL allow the user to edit which calendars are used for availability calculations
+5. WHEN calendar access is granted THEN the CatchUp System SHALL scan for free time slots based on existing events in selected calendars
+6. WHEN the user configures availability parameters THEN the CatchUp System SHALL accept manual availability specification, commute times, and nighttime patterns
+7. WHEN predicting availability THEN the CatchUp System SHALL apply user-configured parameters to identify true free time
+8. WHEN calendar data changes THEN the CatchUp System SHALL refresh availability predictions
 
 ### Requirement 8: Calendar Feed Publishing
 
@@ -283,8 +292,9 @@ CatchUp is a relationship management application designed to help users maintain
 1. WHEN a user chooses to import contacts THEN the CatchUp System SHALL support Google Contacts sync via OAuth
 2. WHEN Google Contacts access is granted THEN the CatchUp System SHALL extract name, phone, email, and other available fields
 3. WHEN contacts are imported THEN the CatchUp System SHALL deduplicate contacts based on email and phone number
-4. WHEN the user has not imported contacts THEN the CatchUp System SHALL fully support manual contact entry
-5. WHEN analyzing imported data THEN the CatchUp System SHALL optionally identify friends based on frequency in calendar events
+4. WHEN a user adds a data integration THEN the CatchUp System SHALL create contacts on behalf of the user from the integrated data source
+5. WHEN the user has not imported contacts THEN the CatchUp System SHALL fully support manual contact entry
+6. WHEN analyzing imported data THEN the CatchUp System SHALL optionally identify friends based on frequency in calendar events
 
 
 
@@ -311,3 +321,22 @@ CatchUp is a relationship management application designed to help users maintain
 3. WHEN interactions are logged THEN the CatchUp System SHALL persist interaction history permanently
 4. WHEN voice notes are recorded THEN the CatchUp System SHALL store transcriptions and extracted metadata
 5. WHEN a user logs out and logs back in THEN the CatchUp System SHALL restore all data without loss
+
+### Requirement 23: Account Management
+
+**User Story:** As a user, I want to manage my account and data, so that I have control over my information and can remove it if needed.
+
+#### Acceptance Criteria
+
+1. WHEN a user requests account deletion THEN the CatchUp System SHALL remove all user data from the system
+2. WHEN a user requests account deletion THEN the CatchUp System SHALL delete all associated contacts, groups, tags, suggestions, interaction logs, voice notes, and configuration data
+3. WHEN account deletion is complete THEN the CatchUp System SHALL confirm removal to the user
+
+### Requirement 24: Test User Support
+
+**User Story:** As a developer, I want to create test users, so that I can validate product functionality without affecting production data.
+
+#### Acceptance Criteria
+
+1. WHEN a test user is created THEN the CatchUp System SHALL support all standard user functionality
+2. WHEN a test user is created THEN the CatchUp System SHALL allow validation of product features in isolation from production users
