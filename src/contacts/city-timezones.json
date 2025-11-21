@@ -1,0 +1,584 @@
+[
+  {
+    "city": "New York City",
+    "country": "United States",
+    "timezone": "America/New_York",
+    "aliases": ["NYC", "New York", "Manhattan"]
+  },
+  {
+    "city": "Los Angeles",
+    "country": "United States",
+    "timezone": "America/Los_Angeles",
+    "aliases": ["LA", "Los Angeles"]
+  },
+  {
+    "city": "Chicago",
+    "country": "United States",
+    "timezone": "America/Chicago",
+    "aliases": ["Chi-town", "Chicago"]
+  },
+  {
+    "city": "Houston",
+    "country": "United States",
+    "timezone": "America/Chicago",
+    "aliases": ["Houston"]
+  },
+  {
+    "city": "Phoenix",
+    "country": "United States",
+    "timezone": "America/Phoenix",
+    "aliases": ["Phoenix"]
+  },
+  {
+    "city": "Philadelphia",
+    "country": "United States",
+    "timezone": "America/New_York",
+    "aliases": ["Philly", "Philadelphia"]
+  },
+  {
+    "city": "San Antonio",
+    "country": "United States",
+    "timezone": "America/Chicago",
+    "aliases": ["San Antonio"]
+  },
+  {
+    "city": "San Diego",
+    "country": "United States",
+    "timezone": "America/Los_Angeles",
+    "aliases": ["San Diego"]
+  },
+  {
+    "city": "Dallas",
+    "country": "United States",
+    "timezone": "America/Chicago",
+    "aliases": ["Dallas"]
+  },
+  {
+    "city": "San Jose",
+    "country": "United States",
+    "timezone": "America/Los_Angeles",
+    "aliases": ["San Jose"]
+  },
+  {
+    "city": "Austin",
+    "country": "United States",
+    "timezone": "America/Chicago",
+    "aliases": ["Austin"]
+  },
+  {
+    "city": "San Francisco",
+    "country": "United States",
+    "timezone": "America/Los_Angeles",
+    "aliases": ["SF", "San Francisco", "Bay Area"]
+  },
+  {
+    "city": "Seattle",
+    "country": "United States",
+    "timezone": "America/Los_Angeles",
+    "aliases": ["Seattle"]
+  },
+  {
+    "city": "Denver",
+    "country": "United States",
+    "timezone": "America/Denver",
+    "aliases": ["Denver"]
+  },
+  {
+    "city": "Boston",
+    "country": "United States",
+    "timezone": "America/New_York",
+    "aliases": ["Boston"]
+  },
+  {
+    "city": "Miami",
+    "country": "United States",
+    "timezone": "America/New_York",
+    "aliases": ["Miami"]
+  },
+  {
+    "city": "Atlanta",
+    "country": "United States",
+    "timezone": "America/New_York",
+    "aliases": ["Atlanta"]
+  },
+  {
+    "city": "Washington",
+    "country": "United States",
+    "timezone": "America/New_York",
+    "aliases": ["DC", "Washington DC", "Washington"]
+  },
+  {
+    "city": "Toronto",
+    "country": "Canada",
+    "timezone": "America/Toronto",
+    "aliases": ["Toronto"]
+  },
+  {
+    "city": "Montreal",
+    "country": "Canada",
+    "timezone": "America/Montreal",
+    "aliases": ["Montreal"]
+  },
+  {
+    "city": "Vancouver",
+    "country": "Canada",
+    "timezone": "America/Vancouver",
+    "aliases": ["Vancouver"]
+  },
+  {
+    "city": "Calgary",
+    "country": "Canada",
+    "timezone": "America/Edmonton",
+    "aliases": ["Calgary"]
+  },
+  {
+    "city": "Mexico City",
+    "country": "Mexico",
+    "timezone": "America/Mexico_City",
+    "aliases": ["CDMX", "Mexico City"]
+  },
+  {
+    "city": "London",
+    "country": "United Kingdom",
+    "timezone": "Europe/London",
+    "aliases": ["London"]
+  },
+  {
+    "city": "Paris",
+    "country": "France",
+    "timezone": "Europe/Paris",
+    "aliases": ["Paris"]
+  },
+  {
+    "city": "Berlin",
+    "country": "Germany",
+    "timezone": "Europe/Berlin",
+    "aliases": ["Berlin"]
+  },
+  {
+    "city": "Madrid",
+    "country": "Spain",
+    "timezone": "Europe/Madrid",
+    "aliases": ["Madrid"]
+  },
+  {
+    "city": "Rome",
+    "country": "Italy",
+    "timezone": "Europe/Rome",
+    "aliases": ["Rome"]
+  },
+  {
+    "city": "Amsterdam",
+    "country": "Netherlands",
+    "timezone": "Europe/Amsterdam",
+    "aliases": ["Amsterdam"]
+  },
+  {
+    "city": "Brussels",
+    "country": "Belgium",
+    "timezone": "Europe/Brussels",
+    "aliases": ["Brussels"]
+  },
+  {
+    "city": "Vienna",
+    "country": "Austria",
+    "timezone": "Europe/Vienna",
+    "aliases": ["Vienna"]
+  },
+  {
+    "city": "Stockholm",
+    "country": "Sweden",
+    "timezone": "Europe/Stockholm",
+    "aliases": ["Stockholm"]
+  },
+  {
+    "city": "Copenhagen",
+    "country": "Denmark",
+    "timezone": "Europe/Copenhagen",
+    "aliases": ["Copenhagen"]
+  },
+  {
+    "city": "Oslo",
+    "country": "Norway",
+    "timezone": "Europe/Oslo",
+    "aliases": ["Oslo"]
+  },
+  {
+    "city": "Helsinki",
+    "country": "Finland",
+    "timezone": "Europe/Helsinki",
+    "aliases": ["Helsinki"]
+  },
+  {
+    "city": "Dublin",
+    "country": "Ireland",
+    "timezone": "Europe/Dublin",
+    "aliases": ["Dublin"]
+  },
+  {
+    "city": "Lisbon",
+    "country": "Portugal",
+    "timezone": "Europe/Lisbon",
+    "aliases": ["Lisbon"]
+  },
+  {
+    "city": "Warsaw",
+    "country": "Poland",
+    "timezone": "Europe/Warsaw",
+    "aliases": ["Warsaw"]
+  },
+  {
+    "city": "Prague",
+    "country": "Czech Republic",
+    "timezone": "Europe/Prague",
+    "aliases": ["Prague"]
+  },
+  {
+    "city": "Budapest",
+    "country": "Hungary",
+    "timezone": "Europe/Budapest",
+    "aliases": ["Budapest"]
+  },
+  {
+    "city": "Athens",
+    "country": "Greece",
+    "timezone": "Europe/Athens",
+    "aliases": ["Athens"]
+  },
+  {
+    "city": "Istanbul",
+    "country": "Turkey",
+    "timezone": "Europe/Istanbul",
+    "aliases": ["Istanbul"]
+  },
+  {
+    "city": "Moscow",
+    "country": "Russia",
+    "timezone": "Europe/Moscow",
+    "aliases": ["Moscow"]
+  },
+  {
+    "city": "Dubai",
+    "country": "United Arab Emirates",
+    "timezone": "Asia/Dubai",
+    "aliases": ["Dubai"]
+  },
+  {
+    "city": "Tel Aviv",
+    "country": "Israel",
+    "timezone": "Asia/Jerusalem",
+    "aliases": ["Tel Aviv"]
+  },
+  {
+    "city": "Cairo",
+    "country": "Egypt",
+    "timezone": "Africa/Cairo",
+    "aliases": ["Cairo"]
+  },
+  {
+    "city": "Johannesburg",
+    "country": "South Africa",
+    "timezone": "Africa/Johannesburg",
+    "aliases": ["Johannesburg", "Joburg"]
+  },
+  {
+    "city": "Cape Town",
+    "country": "South Africa",
+    "timezone": "Africa/Johannesburg",
+    "aliases": ["Cape Town"]
+  },
+  {
+    "city": "Lagos",
+    "country": "Nigeria",
+    "timezone": "Africa/Lagos",
+    "aliases": ["Lagos"]
+  },
+  {
+    "city": "Nairobi",
+    "country": "Kenya",
+    "timezone": "Africa/Nairobi",
+    "aliases": ["Nairobi"]
+  },
+  {
+    "city": "Tokyo",
+    "country": "Japan",
+    "timezone": "Asia/Tokyo",
+    "aliases": ["Tokyo"]
+  },
+  {
+    "city": "Seoul",
+    "country": "South Korea",
+    "timezone": "Asia/Seoul",
+    "aliases": ["Seoul"]
+  },
+  {
+    "city": "Beijing",
+    "country": "China",
+    "timezone": "Asia/Shanghai",
+    "aliases": ["Beijing"]
+  },
+  {
+    "city": "Shanghai",
+    "country": "China",
+    "timezone": "Asia/Shanghai",
+    "aliases": ["Shanghai"]
+  },
+  {
+    "city": "Hong Kong",
+    "country": "Hong Kong",
+    "timezone": "Asia/Hong_Kong",
+    "aliases": ["HK", "Hong Kong"]
+  },
+  {
+    "city": "Singapore",
+    "country": "Singapore",
+    "timezone": "Asia/Singapore",
+    "aliases": ["Singapore"]
+  },
+  {
+    "city": "Bangkok",
+    "country": "Thailand",
+    "timezone": "Asia/Bangkok",
+    "aliases": ["Bangkok"]
+  },
+  {
+    "city": "Kuala Lumpur",
+    "country": "Malaysia",
+    "timezone": "Asia/Kuala_Lumpur",
+    "aliases": ["KL", "Kuala Lumpur"]
+  },
+  {
+    "city": "Jakarta",
+    "country": "Indonesia",
+    "timezone": "Asia/Jakarta",
+    "aliases": ["Jakarta"]
+  },
+  {
+    "city": "Manila",
+    "country": "Philippines",
+    "timezone": "Asia/Manila",
+    "aliases": ["Manila"]
+  },
+  {
+    "city": "Ho Chi Minh City",
+    "country": "Vietnam",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "aliases": ["Saigon", "Ho Chi Minh", "HCMC"]
+  },
+  {
+    "city": "Hanoi",
+    "country": "Vietnam",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "aliases": ["Hanoi"]
+  },
+  {
+    "city": "Mumbai",
+    "country": "India",
+    "timezone": "Asia/Kolkata",
+    "aliases": ["Bombay", "Mumbai"]
+  },
+  {
+    "city": "Delhi",
+    "country": "India",
+    "timezone": "Asia/Kolkata",
+    "aliases": ["New Delhi", "Delhi"]
+  },
+  {
+    "city": "Bangalore",
+    "country": "India",
+    "timezone": "Asia/Kolkata",
+    "aliases": ["Bengaluru", "Bangalore"]
+  },
+  {
+    "city": "Hyderabad",
+    "country": "India",
+    "timezone": "Asia/Kolkata",
+    "aliases": ["Hyderabad"]
+  },
+  {
+    "city": "Chennai",
+    "country": "India",
+    "timezone": "Asia/Kolkata",
+    "aliases": ["Madras", "Chennai"]
+  },
+  {
+    "city": "Kolkata",
+    "country": "India",
+    "timezone": "Asia/Kolkata",
+    "aliases": ["Calcutta", "Kolkata"]
+  },
+  {
+    "city": "Karachi",
+    "country": "Pakistan",
+    "timezone": "Asia/Karachi",
+    "aliases": ["Karachi"]
+  },
+  {
+    "city": "Lahore",
+    "country": "Pakistan",
+    "timezone": "Asia/Karachi",
+    "aliases": ["Lahore"]
+  },
+  {
+    "city": "Dhaka",
+    "country": "Bangladesh",
+    "timezone": "Asia/Dhaka",
+    "aliases": ["Dhaka"]
+  },
+  {
+    "city": "Sydney",
+    "country": "Australia",
+    "timezone": "Australia/Sydney",
+    "aliases": ["Sydney"]
+  },
+  {
+    "city": "Melbourne",
+    "country": "Australia",
+    "timezone": "Australia/Melbourne",
+    "aliases": ["Melbourne"]
+  },
+  {
+    "city": "Brisbane",
+    "country": "Australia",
+    "timezone": "Australia/Brisbane",
+    "aliases": ["Brisbane"]
+  },
+  {
+    "city": "Perth",
+    "country": "Australia",
+    "timezone": "Australia/Perth",
+    "aliases": ["Perth"]
+  },
+  {
+    "city": "Auckland",
+    "country": "New Zealand",
+    "timezone": "Pacific/Auckland",
+    "aliases": ["Auckland"]
+  },
+  {
+    "city": "Wellington",
+    "country": "New Zealand",
+    "timezone": "Pacific/Auckland",
+    "aliases": ["Wellington"]
+  },
+  {
+    "city": "São Paulo",
+    "country": "Brazil",
+    "timezone": "America/Sao_Paulo",
+    "aliases": ["Sao Paulo", "São Paulo"]
+  },
+  {
+    "city": "Rio de Janeiro",
+    "country": "Brazil",
+    "timezone": "America/Sao_Paulo",
+    "aliases": ["Rio", "Rio de Janeiro"]
+  },
+  {
+    "city": "Buenos Aires",
+    "country": "Argentina",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "aliases": ["Buenos Aires"]
+  },
+  {
+    "city": "Santiago",
+    "country": "Chile",
+    "timezone": "America/Santiago",
+    "aliases": ["Santiago"]
+  },
+  {
+    "city": "Lima",
+    "country": "Peru",
+    "timezone": "America/Lima",
+    "aliases": ["Lima"]
+  },
+  {
+    "city": "Bogotá",
+    "country": "Colombia",
+    "timezone": "America/Bogota",
+    "aliases": ["Bogota", "Bogotá"]
+  },
+  {
+    "city": "Caracas",
+    "country": "Venezuela",
+    "timezone": "America/Caracas",
+    "aliases": ["Caracas"]
+  },
+  {
+    "city": "Quito",
+    "country": "Ecuador",
+    "timezone": "America/Guayaquil",
+    "aliases": ["Quito"]
+  },
+  {
+    "city": "Montevideo",
+    "country": "Uruguay",
+    "timezone": "America/Montevideo",
+    "aliases": ["Montevideo"]
+  },
+  {
+    "city": "Havana",
+    "country": "Cuba",
+    "timezone": "America/Havana",
+    "aliases": ["Havana"]
+  },
+  {
+    "city": "Panama City",
+    "country": "Panama",
+    "timezone": "America/Panama",
+    "aliases": ["Panama", "Panama City"]
+  },
+  {
+    "city": "San Juan",
+    "country": "Puerto Rico",
+    "timezone": "America/Puerto_Rico",
+    "aliases": ["San Juan"]
+  },
+  {
+    "city": "Honolulu",
+    "country": "United States",
+    "timezone": "Pacific/Honolulu",
+    "aliases": ["Honolulu"]
+  },
+  {
+    "city": "Anchorage",
+    "country": "United States",
+    "timezone": "America/Anchorage",
+    "aliases": ["Anchorage"]
+  },
+  {
+    "city": "Las Vegas",
+    "country": "United States",
+    "timezone": "America/Los_Angeles",
+    "aliases": ["Vegas", "Las Vegas"]
+  },
+  {
+    "city": "Portland",
+    "country": "United States",
+    "timezone": "America/Los_Angeles",
+    "aliases": ["Portland"]
+  },
+  {
+    "city": "Minneapolis",
+    "country": "United States",
+    "timezone": "America/Chicago",
+    "aliases": ["Minneapolis"]
+  },
+  {
+    "city": "Detroit",
+    "country": "United States",
+    "timezone": "America/Detroit",
+    "aliases": ["Detroit"]
+  },
+  {
+    "city": "Nashville",
+    "country": "United States",
+    "timezone": "America/Chicago",
+    "aliases": ["Nashville"]
+  },
+  {
+    "city": "Charlotte",
+    "country": "United States",
+    "timezone": "America/New_York",
+    "aliases": ["Charlotte"]
+  }
+]

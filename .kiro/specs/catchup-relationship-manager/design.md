@@ -102,6 +102,10 @@ interface ContactService {
   deleteContact(id: string): Promise<void>
   archiveContact(id: string): Promise<void>
   
+  // Timezone inference
+  inferTimezoneFromLocation(location: string): Promise<string | null>
+  getCityDataset(): CityTimezoneData[]
+  
   // Group management
   createGroup(name: string): Promise<Group>
   updateGroup(id: string, name: string): Promise<Group>
@@ -279,6 +283,17 @@ interface Tag {
 }
 ```
 
+### CityTimezoneData
+
+```typescript
+interface CityTimezoneData {
+  city: string
+  country: string
+  timezone: string  // IANA timezone identifier (e.g., 'America/New_York')
+  aliases?: string[]  // Alternative names for fuzzy matching
+}
+```
+
 ### Suggestion
 
 ```typescript
@@ -420,20 +435,24 @@ interface NotificationPreferences {
 **Validates: Requirements 1.1, 1.6**
 
 **Property 2: Timezone inference from location**
-*For any* valid location, when a contact's location is set or updated, the system should automatically infer and store a valid timezone corresponding to that location.
+*For any* location matching a city in the static dataset, when a contact's location is set or updated, the system should automatically infer and store a valid timezone corresponding to that location.
 **Validates: Requirements 1.2, 1.3**
+
+**Property 2.1: Manual timezone fallback**
+*For any* location that cannot be matched to the static city dataset, the system should prompt the user to manually select a timezone.
+**Validates: Requirements 1.4**
 
 **Property 3: Multiple group membership**
 *For any* contact and any set of groups, assigning the contact to multiple groups should result in all group memberships being preserved and retrievable.
-**Validates: Requirements 1.4**
+**Validates: Requirements 1.5**
 
 **Property 4: Contact profile completeness**
 *For any* contact with associated metadata, the profile view should include all fields: location, inferred timezone, tags, last contact date, and frequency preference.
-**Validates: Requirements 1.5**
+**Validates: Requirements 1.6**
 
 **Property 5: Complete contact deletion**
 *For any* contact with associated data (tags, interactions, group memberships), deleting the contact should remove the contact and all associated data from the system.
-**Validates: Requirements 1.7**
+**Validates: Requirements 1.8**
 
 ### Group Management Properties
 
@@ -796,9 +815,11 @@ interface NotificationPreferences {
 ### Input Validation
 
 **Location Validation**
-- Invalid or ambiguous locations should prompt user for clarification
-- Timezone inference failures should fall back to manual timezone selection
-- Location updates should validate before applying timezone changes
+- Locations should be matched against a static dataset of top 100 cities worldwide
+- The static dataset should include city name, country, and IANA timezone identifier
+- Unmatched locations should prompt user for manual timezone selection
+- Location updates should validate against the static dataset before applying timezone changes
+- Fuzzy matching should be used to handle minor spelling variations
 
 **Contact Data Validation**
 - Phone numbers should be validated for format
@@ -858,7 +879,9 @@ The system will use unit tests to verify specific examples, edge cases, and erro
 
 **Contact Management**
 - Test contact CRUD operations with various field combinations
-- Test timezone inference for specific known locations
+- Test timezone inference for cities in the static dataset
+- Test manual timezone selection for unmatched locations
+- Test fuzzy matching for location names with minor variations
 - Test group assignment and removal
 - Test tag management operations
 - Test contact deletion cascades
@@ -1005,6 +1028,14 @@ The property-based tests will verify all 74 correctness properties defined above
 - Handle failed contact disambiguation by continuing processing and prompting for manual selection
 - Present enrichment items atomically for individual review
 - Implement tag similarity matching to prefer existing tags (e.g., cosine similarity with threshold of 0.85)
+
+**Timezone Inference Strategy**
+- Use a static dataset of top 100 cities worldwide with IANA timezone identifiers
+- Store dataset as JSON file in the codebase (no external API required)
+- Implement fuzzy string matching for location lookups (e.g., using Levenshtein distance)
+- Fall back to manual timezone selection when location cannot be matched
+- Dataset should include common aliases (e.g., "NYC" → "New York City")
+- Consider using libraries like `cities.json` or creating a custom curated list
 
 **Data Privacy**
 - Encrypt sensitive data at rest (contact info, notes)

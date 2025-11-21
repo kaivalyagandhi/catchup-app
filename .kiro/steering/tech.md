@@ -25,6 +25,13 @@
 - Matching algorithms: Shared interests × availability × time decay × frequency preferences
 - Disambiguation: Identify which contact voice notes refer to
 
+### Timezone Inference
+- Use static dataset of top 100 cities worldwide (no external API required)
+- Store as JSON file in codebase with city name, country, IANA timezone identifier, and aliases
+- Implement fuzzy string matching for location lookups (Levenshtein distance)
+- Fall back to manual timezone selection when location cannot be matched
+- No dependency on Google Maps API or other geocoding services
+
 ## Testing Standards
 
 - **Required**: Write tests for all new functionality

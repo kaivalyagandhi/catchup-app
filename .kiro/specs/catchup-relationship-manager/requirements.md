@@ -31,8 +31,9 @@ CatchUp is a relationship management application designed to help users maintain
 #### Acceptance Criteria
 
 1. WHEN a user creates a contact THEN the CatchUp System SHALL store name, phone, email, LinkedIn profile, Instagram handle, X handle, other social media handles, location, and custom notes
-2. WHEN a user specifies a location for a contact THEN the CatchUp System SHALL automatically infer and store the timezone based on the location
-3. WHEN a user updates a contact's location THEN the CatchUp System SHALL recalculate and update the inferred timezone
+2. WHEN a user specifies a location for a contact THEN the CatchUp System SHALL automatically infer and store the timezone by matching against a static dataset of major cities
+3. WHEN a user updates a contact's location THEN the CatchUp System SHALL recalculate and update the inferred timezone using the static city dataset
+4. WHEN a location cannot be matched to the static dataset THEN the CatchUp System SHALL prompt the user to manually select a timezone
 4. WHEN a user assigns a contact to groups THEN the CatchUp System SHALL support multiple group memberships per contact
 5. WHEN a user views a contact profile THEN the CatchUp System SHALL display all associated metadata including location, inferred timezone, automatically generated tags, last contact date, and frequency preference
 6. WHEN a user updates contact information THEN the CatchUp System SHALL persist changes immediately
