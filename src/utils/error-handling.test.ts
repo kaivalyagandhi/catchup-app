@@ -127,15 +127,15 @@ describe('retryWithBackoff', () => {
   it('should fail after max retries', async () => {
     const fn = vi.fn().mockRejectedValue({ status: 503 });
 
-    const promise = retryWithBackoff(fn, {
-      ...DEFAULT_RETRY_CONFIG,
-      maxRetries: 2,
-      initialDelayMs: 100,
-    });
-
     await vi.runAllTimersAsync();
 
-    await expect(promise).rejects.toEqual({ status: 503 });
+    await expect(
+      retryWithBackoff(fn, {
+        ...DEFAULT_RETRY_CONFIG,
+        maxRetries: 2,
+        initialDelayMs: 100,
+      })
+    ).rejects.toEqual({ status: 503 });
     expect(fn).toHaveBeenCalledTimes(3); // Initial + 2 retries
   });
 
@@ -191,10 +191,9 @@ describe('handleGoogleCalendarError', () => {
   it('should throw wrapped error without fallback', async () => {
     const fn = vi.fn().mockRejectedValue({ status: 503 });
 
-    const promise = handleGoogleCalendarError(fn);
     await vi.runAllTimersAsync();
 
-    await expect(promise).rejects.toThrow('Google Calendar operation failed');
+    await expect(handleGoogleCalendarError(fn)).rejects.toThrow('Google Calendar operation failed');
   });
 });
 
@@ -311,10 +310,9 @@ describe('handleDatabaseOperation', () => {
   it('should throw wrapped error on failure', async () => {
     const fn = vi.fn().mockRejectedValue(new Error('DB error'));
 
-    const promise = handleDatabaseOperation(fn);
     await vi.runAllTimersAsync();
 
-    await expect(promise).rejects.toThrow('Database operation failed');
+    await expect(handleDatabaseOperation(fn)).rejects.toThrow('Database operation failed');
   });
 });
 

@@ -204,10 +204,9 @@ describe('retryOnLockConflict', () => {
     const error = new OptimisticLockError('Lock error', 'contacts', '123', 1, 2);
     const operation = vi.fn().mockRejectedValue(error);
 
-    const promise = retryOnLockConflict(operation, 2, 10);
     await vi.runAllTimersAsync();
 
-    await expect(promise).rejects.toThrow('Lock error');
+    await expect(retryOnLockConflict(operation, 2, 10)).rejects.toThrow('Lock error');
     expect(operation).toHaveBeenCalledTimes(3); // Initial + 2 retries
   });
 

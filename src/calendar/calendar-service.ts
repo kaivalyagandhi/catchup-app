@@ -17,6 +17,7 @@ import {
   CacheTTL,
   invalidateCalendarCache,
 } from '../utils/cache';
+import { logAuditEvent, AuditAction } from '../utils/audit-logger';
 
 /**
  * Connect Google Calendar by exchanging auth code for tokens
@@ -55,9 +56,25 @@ export async function connectGoogleCalendar(
       tokens.refresh_token || undefined
     );
 
+    // Log OAuth consent granted
+    await logAuditEvent(AuditAction.OAUTH_CONSENT_GRANTED, {
+      userId,
+      metadata: { provider: 'google_calendar', scope: tokens.scope },
+      success: true
+    });
+
     return { success: true, calendars };
   } catch (error) {
     console.error('Error connecting Google Calendar:', error);
+    
+    // Log failed OAuth attempt
+    await logAuditEvent(AuditAction.OAUTH_CONSENT_GRANTED, {
+      userId,
+      metadata: { provider: 'google_calendar' },
+      success: false,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error'
+    });
+    
     throw new Error('Failed to connect Google Calendar');
   }
 }

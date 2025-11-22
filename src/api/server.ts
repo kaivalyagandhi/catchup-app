@@ -1,14 +1,22 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import authRouter from './routes/auth';
+import auditRouter from './routes/audit';
 import contactsRouter from './routes/contacts';
 import suggestionsRouter from './routes/suggestions';
 import calendarRouter from './routes/calendar';
 import voiceNotesRouter from './routes/voice-notes';
 import preferencesRouter from './routes/preferences';
+import accountRouter from './routes/account';
 import { apiRateLimiter } from '../utils/rate-limiter';
+import { enforceHttps, securityHeaders } from './middleware/security';
 
 export function createServer(): Express {
   const app = express();
+
+  // Security middleware
+  app.use(enforceHttps);
+  app.use(securityHeaders);
 
   // Middleware
   app.use(cors());
@@ -33,11 +41,14 @@ export function createServer(): Express {
   app.use('/api', apiRateLimiter());
 
   // API routes
+  app.use('/api/auth', authRouter);
+  app.use('/api/audit', auditRouter);
   app.use('/api/contacts', contactsRouter);
   app.use('/api/suggestions', suggestionsRouter);
   app.use('/api/calendar', calendarRouter);
   app.use('/api/voice-notes', voiceNotesRouter);
   app.use('/api/preferences', preferencesRouter);
+  app.use('/api/account', accountRouter);
 
   // Serve index.html for all other routes (SPA support)
   app.get('*', (req: Request, res: Response) => {

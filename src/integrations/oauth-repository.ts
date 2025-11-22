@@ -2,9 +2,11 @@
  * OAuth Token Repository
  *
  * Handles database operations for OAuth tokens
+ * Tokens are encrypted at rest for security
  */
 
 import pool from '../db/connection';
+import { encryptToken, decryptToken } from '../utils/encryption';
 
 export interface OAuthToken {
   id: string;
@@ -37,8 +39,8 @@ function rowToOAuthToken(row: OAuthTokenRow): OAuthToken {
     id: row.id,
     userId: row.user_id,
     provider: row.provider,
-    accessToken: row.access_token,
-    refreshToken: row.refresh_token || undefined,
+    accessToken: decryptToken(row.access_token),
+    refreshToken: row.refresh_token ? decryptToken(row.refresh_token) : undefined,
     tokenType: row.token_type || undefined,
     expiresAt: row.expires_at || undefined,
     scope: row.scope || undefined,
@@ -82,6 +84,7 @@ export async function getUsersWithProvider(
 
 /**
  * Upsert OAuth token
+ * Encrypts tokens before storage
  */
 export async function upsertToken(
   userId: string,
@@ -92,6 +95,10 @@ export async function upsertToken(
   expiresAt?: Date,
   scope?: string
 ): Promise<OAuthToken> {
+  // Encrypt tokens before storage
+  const encryptedAccessToken = encryptToken(accessToken);
+  const encryptedRefreshToken = refreshToken ? encryptToken(refreshToken) : null;
+  
   const result = await pool.query<OAuthTokenRow>(
     `INSERT INTO oauth_tokens (user_id, provider, access_token, refresh_token, token_type, expires_at, scope)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -104,7 +111,7 @@ export async function upsertToken(
        scope = EXCLUDED.scope,
        updated_at = CURRENT_TIMESTAMP
      RETURNING *`,
-    [userId, provider, accessToken, refreshToken, tokenType, expiresAt, scope]
+    [userId, provider, encryptedAccessToken, encryptedRefreshToken, tokenType, expiresAt, scope]
   );
 
   return rowToOAuthToken(result.rows[0]);
