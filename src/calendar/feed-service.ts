@@ -245,3 +245,36 @@ export async function updateFeedEvent(suggestionId: string): Promise<void> {
   // TODO: Implement cache invalidation when caching is added
   // TODO: Implement webhook notifications for real-time updates
 }
+
+/**
+ * Generate iCal feed content for a user's suggestions
+ * 
+ * @param userId - User ID
+ * @returns iCal formatted string
+ */
+export async function generateICalFeed(userId: string): Promise<string> {
+  // Import dependencies
+  const { getPendingSuggestions } = await import('../matching/suggestion-service');
+  const { contactService } = await import('../contacts/service');
+  
+  // Get pending suggestions
+  const suggestions = await getPendingSuggestions(userId);
+  
+  // Get contacts for the suggestions
+  const contactIds = [...new Set(suggestions.map(s => s.contactId))];
+  const contactsMap = new Map<string, Contact>();
+  
+  for (const contactId of contactIds) {
+    try {
+      const contact = await contactService.getContact(contactId, userId);
+      if (contact) {
+        contactsMap.set(contactId, contact);
+      }
+    } catch (error) {
+      console.error(`Failed to load contact ${contactId}:`, error);
+    }
+  }
+  
+  // Generate feed content
+  return generateFeedContent(suggestions, contactsMap);
+}

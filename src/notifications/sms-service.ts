@@ -5,6 +5,7 @@
  */
 
 import twilio from 'twilio';
+import { checkSMSLimit } from '../utils/rate-limiter';
 
 export interface SMSDeliveryResult {
   success: boolean;
@@ -51,9 +52,22 @@ export class TwilioSMSService implements SMSService {
   }
 
   /**
-   * Send SMS with retry logic
+   * Send SMS with retry logic and rate limiting
    */
-  async sendSMS(to: string, body: string): Promise<SMSDeliveryResult> {
+  async sendSMS(to: string, body: string, userId?: string): Promise<SMSDeliveryResult> {
+    // Check rate limit if userId provided
+    if (userId) {
+      const rateLimit = await checkSMSLimit(userId);
+      if (!rateLimit.allowed) {
+        console.log(`SMS rate limit exceeded for user ${userId}`);
+        return {
+          success: false,
+          error: `SMS rate limit exceeded. Try again in ${rateLimit.retryAfter} seconds.`,
+          attempts: 0,
+        };
+      }
+    }
+
     let attempts = 0;
     let lastError: Error | null = null;
 

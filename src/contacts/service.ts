@@ -15,6 +15,12 @@ import {
 import { Contact, CityTimezoneData } from '../types';
 import { validateContactData } from './validation';
 import { TimezoneService, timezoneService as defaultTimezoneService } from './timezone-service';
+import {
+  getOrSetCache,
+  CacheKeys,
+  CacheTTL,
+  invalidateContactCache,
+} from '../utils/cache';
 
 /**
  * Contact Service Interface
@@ -66,7 +72,12 @@ export class ContactServiceImpl implements ContactService {
     }
 
     // Create contact
-    return await this.repository.create(userId, data);
+    const contact = await this.repository.create(userId, data);
+
+    // Invalidate contact list cache
+    await invalidateContactCache(userId);
+
+    return contact;
   }
 
   async updateContact(id: string, userId: string, data: ContactUpdateData): Promise<Contact> {
@@ -109,29 +120,55 @@ export class ContactServiceImpl implements ContactService {
     }
 
     // Update contact
-    return await this.repository.update(id, userId, data);
-  }
+    const contact = await this.repository.update(id, userId, data);
 
-  async getContact(id: string, userId: string): Promise<Contact> {
-    const contact = await this.repository.findById(id, userId);
-
-    if (!contact) {
-      throw new Error('Contact not found');
-    }
+    // Invalidate caches
+    await invalidateContactCache(userId, id);
 
     return contact;
   }
 
+  async getContact(id: string, userId: string): Promise<Contact> {
+    // Try to get from cache first
+    return await getOrSetCache(
+      CacheKeys.CONTACT_PROFILE(id),
+      async () => {
+        const contact = await this.repository.findById(id, userId);
+        if (!contact) {
+          throw new Error('Contact not found');
+        }
+        return contact;
+      },
+      CacheTTL.CONTACT_PROFILE
+    );
+  }
+
   async listContacts(userId: string, filters?: ContactFilters): Promise<Contact[]> {
+    // Only cache if no filters are applied
+    if (!filters || Object.keys(filters).length === 0) {
+      return await getOrSetCache(
+        CacheKeys.CONTACT_LIST(userId),
+        async () => await this.repository.findAll(userId, filters),
+        CacheTTL.CONTACT_LIST
+      );
+    }
+
+    // Don't cache filtered results
     return await this.repository.findAll(userId, filters);
   }
 
   async deleteContact(id: string, userId: string): Promise<void> {
     await this.repository.delete(id, userId);
+
+    // Invalidate caches
+    await invalidateContactCache(userId, id);
   }
 
   async archiveContact(id: string, userId: string): Promise<void> {
     await this.repository.archive(id, userId);
+
+    // Invalidate caches
+    await invalidateContactCache(userId, id);
   }
 
   inferTimezoneFromLocation(location: string): string | null {

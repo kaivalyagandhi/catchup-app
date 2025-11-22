@@ -489,3 +489,81 @@ export async function preferExistingTags(
 
   return result;
 }
+
+/**
+ * Process a voice note end-to-end
+ * 
+ * Transcribes audio, stores it, extracts entities, and generates enrichment proposal
+ * 
+ * @param userId - User ID
+ * @param audioData - Audio file buffer
+ * @param filename - Original filename
+ * @returns Voice note with enrichment proposal
+ */
+export async function processVoiceNote(
+  userId: string,
+  audioData: Buffer,
+  filename: string
+): Promise<{
+  id: string;
+  transcript: string;
+  enrichmentProposal: EnrichmentProposal;
+}> {
+  // Import dependencies
+  const pool = (await import('../db/connection')).default;
+  const { VoiceNoteRepository } = await import('./voice-repository');
+  const { contactService } = await import('../contacts/service');
+
+  const voiceNoteRepo = new VoiceNoteRepository(pool);
+
+  // Transcribe audio
+  const transcript = await transcribeAudio(audioData, filename);
+
+  // Store audio file
+  const audioUrl = await storeAudioFile(audioData, userId, filename);
+
+  // Get user's contacts for disambiguation
+  const userContacts = await contactService.listContacts(userId);
+
+  // Disambiguate contact
+  const contact = await disambiguateContact(transcript, userContacts);
+
+  // Extract entities
+  const entities = await extractEntities(transcript, contact || undefined);
+
+  // Generate enrichment confirmation
+  const enrichmentProposal = generateEnrichmentConfirmation(
+    entities,
+    contact,
+    userContacts
+  );
+
+  // Create voice note record
+  const voiceNote = await voiceNoteRepo.create(
+    userId,
+    audioUrl,
+    transcript,
+    contact?.id,
+    entities
+  );
+
+  return {
+    id: voiceNote.id,
+    transcript,
+    enrichmentProposal,
+  };
+}
+
+/**
+ * Get a voice note by ID
+ * 
+ * @param id - Voice note ID
+ * @returns Voice note or null if not found
+ */
+export async function getVoiceNote(id: string): Promise<any> {
+  const pool = (await import('../db/connection')).default;
+  const { VoiceNoteRepository } = await import('./voice-repository');
+
+  const voiceNoteRepo = new VoiceNoteRepository(pool);
+  return voiceNoteRepo.getById(id);
+}

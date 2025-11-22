@@ -18,6 +18,7 @@ export interface ContactRepository {
   findAll(userId: string, filters?: ContactFilters): Promise<Contact[]>;
   delete(id: string, userId: string): Promise<void>;
   archive(id: string, userId: string): Promise<void>;
+  unarchive(id: string, userId: string): Promise<void>;
 }
 
 export interface ContactCreateData {
@@ -304,6 +305,29 @@ export class PostgresContactRepository implements ContactRepository {
 
       const result = await client.query(
         'UPDATE contacts SET archived = true WHERE id = $1 AND user_id = $2',
+        [id, userId]
+      );
+
+      if (result.rowCount === 0) {
+        throw new Error('Contact not found');
+      }
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async unarchive(id: string, userId: string): Promise<void> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const result = await client.query(
+        'UPDATE contacts SET archived = false WHERE id = $1 AND user_id = $2',
         [id, userId]
       );
 

@@ -19,6 +19,12 @@ import { SuggestionCreateData, SuggestionFilters } from './suggestion-repository
 import { contactService } from '../contacts/service';
 import { interactionService } from '../contacts/interaction-service';
 import { frequencyService } from '../contacts/frequency-service';
+import {
+  getOrSetCache,
+  CacheKeys,
+  CacheTTL,
+  invalidateSuggestionCache,
+} from '../utils/cache';
 
 /**
  * Contact match result with priority score
@@ -421,6 +427,9 @@ export async function acceptSuggestion(
     status: SuggestionStatus.ACCEPTED,
   });
 
+  // Invalidate suggestion cache
+  await invalidateSuggestionCache(userId);
+
   // Get contact details
   const contact = await contactService.getContact(suggestion.contactId, userId);
 
@@ -507,10 +516,15 @@ export async function dismissSuggestion(
   }
 
   // Update suggestion status
-  return await suggestionRepository.update(suggestionId, userId, {
+  const updatedSuggestion = await suggestionRepository.update(suggestionId, userId, {
     status: SuggestionStatus.DISMISSED,
     dismissalReason: reason,
   });
+
+  // Invalidate suggestion cache
+  await invalidateSuggestionCache(userId);
+
+  return updatedSuggestion;
 }
 
 /**
@@ -539,10 +553,15 @@ export async function snoozeSuggestion(
   snoozedUntil.setHours(snoozedUntil.getHours() + snoozeDuration);
 
   // Update suggestion status
-  return await suggestionRepository.update(suggestionId, userId, {
+  const updatedSuggestion = await suggestionRepository.update(suggestionId, userId, {
     status: SuggestionStatus.SNOOZED,
     snoozedUntil,
   });
+
+  // Invalidate suggestion cache
+  await invalidateSuggestionCache(userId);
+
+  return updatedSuggestion;
 }
 
 /**
@@ -555,6 +574,26 @@ export async function snoozeSuggestion(
  * Returns pending suggestions, handling snoozed suggestions that should resurface.
  */
 export async function getPendingSuggestions(
+  userId: string,
+  filters?: SuggestionFilters
+): Promise<Suggestion[]> {
+  // Only cache if no filters are applied
+  if (!filters || Object.keys(filters).length === 0) {
+    return await getOrSetCache(
+      CacheKeys.SUGGESTION_LIST(userId),
+      async () => await loadPendingSuggestions(userId, filters),
+      CacheTTL.SUGGESTION_LIST
+    );
+  }
+
+  // Don't cache filtered results
+  return await loadPendingSuggestions(userId, filters);
+}
+
+/**
+ * Internal function to load pending suggestions
+ */
+async function loadPendingSuggestions(
   userId: string,
   filters?: SuggestionFilters
 ): Promise<Suggestion[]> {

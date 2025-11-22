@@ -10,6 +10,57 @@ import { OAuth2Client } from 'google-auth-library';
 import { GoogleCalendar, TimeSlot, DateRange, AvailabilityParams } from '../types';
 import * as calendarRepository from './calendar-repository';
 import * as availabilityService from './availability-service';
+import * as oauthRepository from '../integrations/oauth-repository';
+import {
+  getOrSetCache,
+  CacheKeys,
+  CacheTTL,
+  invalidateCalendarCache,
+} from '../utils/cache';
+
+/**
+ * Connect Google Calendar by exchanging auth code for tokens
+ * 
+ * Requirements: 7.1
+ */
+export async function connectGoogleCalendar(
+  userId: string,
+  authCode: string
+): Promise<{ success: boolean; calendars: GoogleCalendar[] }> {
+  const oauth2Client = createOAuth2Client();
+
+  try {
+    // Exchange auth code for tokens
+    const { tokens } = await oauth2Client.getToken(authCode);
+
+    if (!tokens.access_token) {
+      throw new Error('No access token received');
+    }
+
+    // Store tokens in database
+    await oauthRepository.upsertToken(
+      userId,
+      'google_calendar',
+      tokens.access_token,
+      tokens.refresh_token || undefined,
+      tokens.token_type || undefined,
+      tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
+      tokens.scope || undefined
+    );
+
+    // Sync calendars from Google
+    const calendars = await syncCalendarsFromGoogle(
+      userId,
+      tokens.access_token,
+      tokens.refresh_token || undefined
+    );
+
+    return { success: true, calendars };
+  } catch (error) {
+    console.error('Error connecting Google Calendar:', error);
+    throw new Error('Failed to connect Google Calendar');
+  }
+}
 
 /**
  * Create OAuth2 client
@@ -269,41 +320,52 @@ export async function getFreeTimeSlots(
   minSlotDuration: number = 30,
   applyAvailabilityFilters: boolean = true
 ): Promise<TimeSlot[]> {
-  // Get selected calendars for the user
-  const selectedCalendars = await calendarRepository.getSelectedCalendars(userId);
+  // Create cache key based on date range
+  const dateKey = `${dateRange.start.toISOString().split('T')[0]}_${dateRange.end.toISOString().split('T')[0]}`;
+  const cacheKey = CacheKeys.CALENDAR_FREE_SLOTS(userId, dateKey);
 
-  if (selectedCalendars.length === 0) {
-    throw new Error('No calendars selected for availability detection');
-  }
+  // Try to get from cache first
+  return await getOrSetCache(
+    cacheKey,
+    async () => {
+      // Get selected calendars for the user
+      const selectedCalendars = await calendarRepository.getSelectedCalendars(userId);
 
-  // Create authenticated client
-  const auth = getAuthenticatedClient(accessToken, refreshToken);
+      if (selectedCalendars.length === 0) {
+        throw new Error('No calendars selected for availability detection');
+      }
 
-  // Fetch events from all selected calendars
-  const calendarIds = selectedCalendars.map((cal) => cal.calendarId);
-  const events = await fetchEventsFromGoogle(auth, calendarIds, dateRange);
+      // Create authenticated client
+      const auth = getAuthenticatedClient(accessToken, refreshToken);
 
-  // Determine timezone (use first selected calendar's timezone or default to UTC)
-  // In a real implementation, we might want to use the user's timezone preference
-  const timezone = 'UTC'; // TODO: Get from user preferences
+      // Fetch events from all selected calendars
+      const calendarIds = selectedCalendars.map((cal) => cal.calendarId);
+      const events = await fetchEventsFromGoogle(auth, calendarIds, dateRange);
 
-  // Convert events to time slots (filter out all-day events)
-  const busySlots = events
-    .map((event) => eventToTimeSlot(event, timezone))
-    .filter((slot): slot is TimeSlot => slot !== null);
+      // Determine timezone (use first selected calendar's timezone or default to UTC)
+      // In a real implementation, we might want to use the user's timezone preference
+      const timezone = 'UTC'; // TODO: Get from user preferences
 
-  // Identify free time slots between busy slots
-  let freeSlots = identifyFreeSlots(busySlots, dateRange, timezone, minSlotDuration);
+      // Convert events to time slots (filter out all-day events)
+      const busySlots = events
+        .map((event) => eventToTimeSlot(event, timezone))
+        .filter((slot): slot is TimeSlot => slot !== null);
 
-  // Apply availability parameters if requested
-  if (applyAvailabilityFilters) {
-    const availabilityParams = await availabilityService.getAvailabilityParams(userId);
-    if (availabilityParams) {
-      freeSlots = availabilityService.applyAvailabilityParameters(freeSlots, availabilityParams);
-    }
-  }
+      // Identify free time slots between busy slots
+      let freeSlots = identifyFreeSlots(busySlots, dateRange, timezone, minSlotDuration);
 
-  return freeSlots;
+      // Apply availability parameters if requested
+      if (applyAvailabilityFilters) {
+        const availabilityParams = await availabilityService.getAvailabilityParams(userId);
+        if (availabilityParams) {
+          freeSlots = availabilityService.applyAvailabilityParameters(freeSlots, availabilityParams);
+        }
+      }
+
+      return freeSlots;
+    },
+    CacheTTL.CALENDAR_FREE_SLOTS
+  );
 }
 
 /**
@@ -320,6 +382,9 @@ export async function refreshCalendarData(
   dateRange: DateRange,
   refreshToken?: string
 ): Promise<TimeSlot[]> {
+  // Invalidate calendar cache
+  await invalidateCalendarCache(userId);
+
   // Sync calendars from Google to ensure we have the latest calendar list
   await syncCalendarsFromGoogle(userId, accessToken, refreshToken);
 

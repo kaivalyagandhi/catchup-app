@@ -5,6 +5,7 @@
  */
 
 import { testConnection } from './db/connection';
+import { startServer } from './api/server';
 
 async function main() {
   console.log('CatchUp Application Starting...');
@@ -19,7 +20,9 @@ async function main() {
 
   console.log('CatchUp Application Ready');
 
-  // TODO: Initialize API server and other services
+  // Start API server
+  const port = parseInt(process.env.PORT || '3000', 10);
+  startServer(port);
 }
 
 // Handle graceful shutdown

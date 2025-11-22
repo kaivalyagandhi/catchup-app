@@ -5,6 +5,7 @@
  */
 
 import sgMail from '@sendgrid/mail';
+import { checkEmailLimit } from '../utils/rate-limiter';
 
 export interface EmailDeliveryResult {
   success: boolean;
@@ -50,9 +51,22 @@ export class SendGridEmailService implements EmailService {
   }
 
   /**
-   * Send email with retry logic
+   * Send email with retry logic and rate limiting
    */
-  async sendEmail(message: EmailMessage): Promise<EmailDeliveryResult> {
+  async sendEmail(message: EmailMessage, userId?: string): Promise<EmailDeliveryResult> {
+    // Check rate limit if userId provided
+    if (userId) {
+      const rateLimit = await checkEmailLimit(userId);
+      if (!rateLimit.allowed) {
+        console.log(`Email rate limit exceeded for user ${userId}`);
+        return {
+          success: false,
+          error: `Email rate limit exceeded. Try again in ${rateLimit.retryAfter} seconds.`,
+          attempts: 0,
+        };
+      }
+    }
+
     let attempts = 0;
     let lastError: Error | null = null;
 

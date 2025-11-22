@@ -37,6 +37,9 @@
   "homepage": "https://github.com/kaivalyagandhi/catchup-app#readme",
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/multer": "^2.0.0",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
     "@typescript-eslint/eslint-plugin": "^8.47.0",
@@ -54,10 +57,14 @@
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
     "@types/bull": "^3.15.9",
+    "body-parser": "^2.2.0",
     "bull": "^4.16.5",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
+    "express": "^5.1.0",
     "googleapis": "^166.0.0",
     "ioredis": "^5.8.2",
+    "multer": "^2.0.2",
     "openai": "^6.9.1",
     "pg": "^8.16.3",
     "twilio": "^5.10.6"

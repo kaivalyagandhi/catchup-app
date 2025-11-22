@@ -98,3 +98,16 @@ export class NotificationPreferencesServiceImpl implements NotificationPreferenc
 
 // Export singleton instance
 export const notificationPreferencesService = new NotificationPreferencesServiceImpl();
+
+
+// Convenience functions for direct use
+export async function getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
+  return notificationPreferencesService.getPreferences(userId);
+}
+
+export async function setNotificationPreferences(
+  userId: string,
+  preferences: NotificationPreferences
+): Promise<NotificationPreferences> {
+  return notificationPreferencesService.setPreferences(userId, preferences);
+}
