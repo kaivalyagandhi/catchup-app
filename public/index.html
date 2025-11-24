@@ -55,11 +55,69 @@
             color: white;
         }
         
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .user-email {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .logout-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .logout-btn:hover {
+            background: #dc2626;
+        }
+        
         .content {
             background: white;
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .auth-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .auth-container h2 {
+            margin-bottom: 20px;
+            color: #2563eb;
+        }
+        
+        .auth-toggle {
+            text-align: center;
+            margin-top: 20px;
+            color: #6b7280;
+        }
+        
+        .auth-toggle a {
+            color: #2563eb;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .auth-toggle a:hover {
+            text-decoration: underline;
         }
         
         .hidden {
@@ -216,7 +274,33 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="auth-container">
+        <h2 id="auth-title">Login to CatchUp</h2>
+        <div id="auth-error" class="error hidden"></div>
+        <div id="auth-success" class="success hidden"></div>
+        <form id="auth-form" onsubmit="handleAuth(event)">
+            <div class="form-group">
+                <label for="auth-email">Email</label>
+                <input type="email" id="auth-email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="auth-password">Password</label>
+                <input type="password" id="auth-password" required minlength="6">
+            </div>
+            
+            <button type="submit" id="auth-submit-btn">Login</button>
+        </form>
+        
+        <div class="auth-toggle">
+            <span id="auth-toggle-text">Don't have an account?</span>
+            <a onclick="toggleAuthMode()">Sign up</a>
+        </div>
+    </div>
+    
+    <!-- Main App -->
+    <div id="main-app" class="container hidden">
         <header>
             <h1>CatchUp</h1>
             <p>AI-Powered Relationship Manager</p>
@@ -227,6 +311,10 @@
                 <a href="#voice" class="nav-link" data-page="voice">Voice Notes</a>
                 <a href="#preferences" class="nav-link" data-page="preferences">Preferences</a>
             </nav>
+            <div class="user-info">
+                <span class="user-email" id="user-email"></span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
         </header>
         
         <div class="content">
@@ -268,7 +356,7 @@
                 <div id="preferences-content"></div>
             </div>
         </div>
-    </div>
+    </div>  <!-- End main-app -->
     
     <!-- Add/Edit Contact Modal -->
     <div id="contact-modal" class="modal hidden">
@@ -299,6 +387,18 @@
                 <div class="form-group">
                     <label for="contact-location">Location</label>
                     <input type="text" id="contact-location" placeholder="City, Country">
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact-frequency">Frequency Preference</label>
+                    <select id="contact-frequency">
+                        <option value="">Not set</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Biweekly</option>
+                        <option value="monthly" selected>Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">

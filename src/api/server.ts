@@ -23,8 +23,17 @@ export function createServer(): Express {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Serve static files from public directory
-  app.use(express.static('public'));
+  // Serve static files from public directory with cache control
+  app.use(express.static('public', {
+    setHeaders: (res, path) => {
+      // Disable caching for HTML and JS files during development
+      if (path.endsWith('.html') || path.endsWith('.js')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }
+  }));
 
   // Request logging middleware
   app.use((req: Request, _res: Response, next: NextFunction) => {

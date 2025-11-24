@@ -2,18 +2,126 @@
 
 // Configuration
 const API_BASE = '/api';
-const USER_ID = 'demo-user'; // In production, this would come from authentication
 
 // State
+let authToken = null;
+let userId = null;
+let userEmail = null;
 let contacts = [];
 let suggestions = [];
 let currentPage = 'contacts';
+let isLoginMode = true;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
     setupNavigation();
-    loadContacts();
 });
+
+// Authentication
+function checkAuth() {
+    authToken = localStorage.getItem('authToken');
+    userId = localStorage.getItem('userId');
+    userEmail = localStorage.getItem('userEmail');
+    
+    if (authToken && userId) {
+        showMainApp();
+    } else {
+        showAuthScreen();
+    }
+}
+
+function showAuthScreen() {
+    document.getElementById('auth-screen').classList.remove('hidden');
+    document.getElementById('main-app').classList.add('hidden');
+}
+
+function showMainApp() {
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('main-app').classList.remove('hidden');
+    document.getElementById('user-email').textContent = userEmail;
+    loadContacts();
+}
+
+function toggleAuthMode() {
+    isLoginMode = !isLoginMode;
+    
+    if (isLoginMode) {
+        document.getElementById('auth-title').textContent = 'Login to CatchUp';
+        document.getElementById('auth-submit-btn').textContent = 'Login';
+        document.getElementById('auth-toggle-text').textContent = "Don't have an account?";
+    } else {
+        document.getElementById('auth-title').textContent = 'Sign Up for CatchUp';
+        document.getElementById('auth-submit-btn').textContent = 'Sign Up';
+        document.getElementById('auth-toggle-text').textContent = 'Already have an account?';
+    }
+    
+    document.getElementById('auth-error').classList.add('hidden');
+    document.getElementById('auth-success').classList.add('hidden');
+}
+
+async function handleAuth(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    
+    const endpoint = isLoginMode ? '/auth/login' : '/auth/register';
+    
+    try {
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Authentication failed');
+        }
+        
+        // Store auth data
+        authToken = data.token;
+        userId = data.user.id;
+        userEmail = data.user.email;
+        
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('userId', userId);
+        localStorage.setItem('userEmail', userEmail);
+        
+        if (!isLoginMode) {
+            // Show success message for registration
+            document.getElementById('auth-success').textContent = 'Account created successfully! Logging you in...';
+            document.getElementById('auth-success').classList.remove('hidden');
+            setTimeout(() => {
+                showMainApp();
+            }, 1000);
+        } else {
+            showMainApp();
+        }
+        
+    } catch (error) {
+        console.error('Auth error:', error);
+        const errorMessage = error.message || 'Authentication failed. Please try again.';
+        document.getElementById('auth-error').textContent = errorMessage;
+        document.getElementById('auth-error').classList.remove('hidden');
+        document.getElementById('auth-success').classList.add('hidden');
+    }
+}
+
+function logout() {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userEmail');
+    
+    authToken = null;
+    userId = null;
+    userEmail = null;
+    
+    showAuthScreen();
+    document.getElementById('auth-form').reset();
+}
 
 // Navigation
 function setupNavigation() {
@@ -64,7 +172,15 @@ function navigateTo(page) {
 // Contacts Management
 async function loadContacts() {
     try {
-        const response = await fetch(`${API_BASE}/contacts?userId=${USER_ID}`);
+        const response = await fetch(`${API_BASE}/contacts?userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
         if (!response.ok) throw new Error('Failed to load contacts');
         
         contacts = await response.json();
@@ -95,7 +211,9 @@ function renderContacts(contactsList) {
             <p><strong>Email:</strong> ${contact.email || 'N/A'}</p>
             <p><strong>Location:</strong> ${contact.location || 'N/A'}</p>
             ${contact.timezone ? `<p><strong>Timezone:</strong> ${contact.timezone}</p>` : ''}
+            ${contact.frequencyPreference ? `<p><strong>Frequency:</strong> ${contact.frequencyPreference}</p>` : ''}
             ${contact.customNotes ? `<p><strong>Notes:</strong> ${escapeHtml(contact.customNotes)}</p>` : ''}
+            ${contact.tags && contact.tags.length > 0 ? `<p><strong>Tags:</strong> ${contact.tags.map(t => t.text).join(', ')}</p>` : ''}
             <div class="card-actions">
                 <button onclick="editContact('${contact.id}')">Edit</button>
                 <button class="secondary" onclick="deleteContact('${contact.id}')">Delete</button>
@@ -131,6 +249,7 @@ function editContact(id) {
     document.getElementById('contact-phone').value = contact.phone || '';
     document.getElementById('contact-email').value = contact.email || '';
     document.getElementById('contact-location').value = contact.location || '';
+    document.getElementById('contact-frequency').value = contact.frequencyPreference || '';
     document.getElementById('contact-notes').value = contact.customNotes || '';
     document.getElementById('contact-modal').classList.remove('hidden');
 }
@@ -145,11 +264,12 @@ async function saveContact(event) {
     
     const id = document.getElementById('contact-id').value;
     const data = {
-        userId: USER_ID,
+        userId: userId,
         name: document.getElementById('contact-name').value,
         phone: document.getElementById('contact-phone').value || undefined,
         email: document.getElementById('contact-email').value || undefined,
         location: document.getElementById('contact-location').value || undefined,
+        frequencyPreference: document.getElementById('contact-frequency').value || undefined,
         customNotes: document.getElementById('contact-notes').value || undefined,
     };
     
@@ -159,16 +279,27 @@ async function saveContact(event) {
             // Update existing contact
             response = await fetch(`${API_BASE}/contacts/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
                 body: JSON.stringify(data)
             });
         } else {
             // Create new contact
             response = await fetch(`${API_BASE}/contacts`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
                 body: JSON.stringify(data)
             });
+        }
+        
+        if (response.status === 401) {
+            logout();
+            return;
         }
         
         if (!response.ok) throw new Error('Failed to save contact');
@@ -185,9 +316,15 @@ async function deleteContact(id) {
     if (!confirm('Are you sure you want to delete this contact?')) return;
     
     try {
-        const response = await fetch(`${API_BASE}/contacts/${id}?userId=${USER_ID}`, {
-            method: 'DELETE'
+        const response = await fetch(`${API_BASE}/contacts/${id}?userId=${userId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${authToken}` }
         });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
         
         if (!response.ok) throw new Error('Failed to delete contact');
         
@@ -201,7 +338,15 @@ async function deleteContact(id) {
 // Suggestions Management
 async function loadSuggestions() {
     try {
-        const response = await fetch(`${API_BASE}/suggestions?userId=${USER_ID}`);
+        const response = await fetch(`${API_BASE}/suggestions?userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
         if (!response.ok) throw new Error('Failed to load suggestions');
         
         suggestions = await response.json();
@@ -249,9 +394,17 @@ async function acceptSuggestion(id) {
     try {
         const response = await fetch(`${API_BASE}/suggestions/${id}/accept`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: USER_ID })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ userId: userId })
         });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
         
         if (!response.ok) throw new Error('Failed to accept suggestion');
         
@@ -268,9 +421,17 @@ async function dismissSuggestion(id) {
     try {
         const response = await fetch(`${API_BASE}/suggestions/${id}/dismiss`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: USER_ID, reason })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ userId: userId, reason })
         });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
         
         if (!response.ok) throw new Error('Failed to dismiss suggestion');
         
@@ -288,12 +449,20 @@ async function snoozeSuggestion(id) {
     try {
         const response = await fetch(`${API_BASE}/suggestions/${id}/snooze`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
             body: JSON.stringify({ 
-                userId: USER_ID, 
+                userId: userId, 
                 duration: { days: parseInt(days) }
             })
         });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
         
         if (!response.ok) throw new Error('Failed to snooze suggestion');
         
