@@ -18,7 +18,7 @@ import * as suggestionRepository from './suggestion-repository';
 import { SuggestionCreateData, SuggestionFilters } from './suggestion-repository';
 import { contactService } from '../contacts/service';
 import { interactionService } from '../contacts/interaction-service';
-import { frequencyService } from '../contacts/frequency-service';
+// import { frequencyService } from '../contacts/frequency-service';
 import {
   getOrSetCache,
   CacheKeys,
@@ -126,8 +126,8 @@ export function applyRecencyDecay(
  * - Communication preferences (IRL vs URL)
  */
 export async function matchContactsToTimeslot(
-  userId: string,
-  timeslot: TimeSlot,
+  _userId: string,
+  _timeslot: TimeSlot,
   contacts: Contact[],
   currentDate: Date = new Date()
 ): Promise<ContactMatch[]> {

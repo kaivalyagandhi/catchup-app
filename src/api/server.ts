@@ -27,13 +27,13 @@ export function createServer(): Express {
   app.use(express.static('public'));
 
   // Request logging middleware
-  app.use((req: Request, res: Response, next: NextFunction) => {
+  app.use((req: Request, _res: Response, next: NextFunction) => {
     console.log(`${req.method} ${req.path}`);
     next();
   });
 
   // Health check endpoint (no rate limiting)
-  app.get('/health', (req: Request, res: Response) => {
+  app.get('/health', (_req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
@@ -51,7 +51,7 @@ export function createServer(): Express {
   app.use('/api/account', accountRouter);
 
   // Serve index.html for all other routes (SPA support)
-  app.get('*', (req: Request, res: Response) => {
+  app.use((req: Request, res: Response) => {
     if (!req.path.startsWith('/api')) {
       res.sendFile('index.html', { root: 'public' });
     } else {
@@ -60,7 +60,7 @@ export function createServer(): Express {
   });
 
   // Error handling middleware
-  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error('Unhandled error:', err);
     res.status(500).json({ error: 'Internal server error' });
   });

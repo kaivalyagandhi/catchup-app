@@ -4,12 +4,13 @@ import * as suggestionService from '../../matching/suggestion-service';
 const router = Router();
 
 // GET /suggestions - Get all pending suggestions for a user
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.query;
     
     if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
     }
     
     const suggestions = await suggestionService.getPendingSuggestions(userId as string);
@@ -21,12 +22,13 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // POST /suggestions/:id/accept - Accept a suggestion
-router.post('/:id/accept', async (req: Request, res: Response) => {
+router.post('/:id/accept', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.body;
     
     if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+      res.status(400).json({ error: 'userId is required' });
+      return;
     }
     
     const result = await suggestionService.acceptSuggestion(req.params.id, userId);
@@ -38,12 +40,13 @@ router.post('/:id/accept', async (req: Request, res: Response) => {
 });
 
 // POST /suggestions/:id/dismiss - Dismiss a suggestion
-router.post('/:id/dismiss', async (req: Request, res: Response) => {
+router.post('/:id/dismiss', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, reason } = req.body;
     
     if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+      res.status(400).json({ error: 'userId is required' });
+      return;
     }
     
     await suggestionService.dismissSuggestion(req.params.id, userId, reason);
@@ -55,12 +58,13 @@ router.post('/:id/dismiss', async (req: Request, res: Response) => {
 });
 
 // POST /suggestions/:id/snooze - Snooze a suggestion
-router.post('/:id/snooze', async (req: Request, res: Response) => {
+router.post('/:id/snooze', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, duration } = req.body;
     
     if (!userId || !duration) {
-      return res.status(400).json({ error: 'userId and duration are required' });
+      res.status(400).json({ error: 'userId and duration are required' });
+      return;
     }
     
     await suggestionService.snoozeSuggestion(req.params.id, userId, duration);

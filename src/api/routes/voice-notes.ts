@@ -63,18 +63,26 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /voice-notes/:id/enrichment - Apply enrichment from voice note
-router.post('/:id/enrichment', async (req: Request, res: Response) => {
+router.post('/:id/enrichment', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId, contactId, enrichmentItems } = req.body;
+    const { userId, enrichmentProposal } = req.body;
     
-    if (!userId || !enrichmentItems || !Array.isArray(enrichmentItems)) {
-      return res.status(400).json({ error: 'userId and enrichmentItems array are required' });
+    if (!userId || !enrichmentProposal) {
+      res.status(400).json({ error: 'userId and enrichmentProposal are required' });
+      return;
     }
     
+    const { ContactServiceImpl } = await import('../../contacts/service');
+    const { TagServiceImpl } = await import('../../contacts/tag-service');
+    const { GroupServiceImpl } = await import('../../contacts/group-service');
+    
     const result = await voiceService.applyEnrichment(
-      contactId || null,
+      enrichmentProposal.contactId,
       userId,
-      enrichmentItems
+      enrichmentProposal,
+      new ContactServiceImpl(),
+      new TagServiceImpl(),
+      new GroupServiceImpl()
     );
     
     res.json(result);

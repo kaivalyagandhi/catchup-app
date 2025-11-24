@@ -25,17 +25,19 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 // GET /contacts/:id - Get a specific contact
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.query;
     if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
     }
     const contactService = new ContactServiceImpl();
     const contact = await contactService.getContact(req.params.id, userId as string);
     
     if (!contact) {
-      return res.status(404).json({ error: 'Contact not found' });
+      res.status(404).json({ error: 'Contact not found' });
+      return;
     }
     
     res.json(contact);
@@ -46,12 +48,13 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // GET /contacts - List all contacts with optional filters
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, groupId, archived, search } = req.query;
     
     if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
     }
     
     const contactService = new ContactServiceImpl();
@@ -69,17 +72,19 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // PUT /contacts/:id - Update a contact
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, ...updateData } = req.body;
     if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+      res.status(400).json({ error: 'userId is required' });
+      return;
     }
     const contactService = new ContactServiceImpl();
     const contact = await contactService.updateContact(req.params.id, userId, updateData);
     
     if (!contact) {
-      return res.status(404).json({ error: 'Contact not found' });
+      res.status(404).json({ error: 'Contact not found' });
+      return;
     }
     
     res.json(contact);
@@ -90,11 +95,12 @@ router.put('/:id', async (req: Request, res: Response) => {
 });
 
 // DELETE /contacts/:id - Delete a contact
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.query;
     if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
     }
     const contactService = new ContactServiceImpl();
     await contactService.deleteContact(req.params.id, userId as string);
@@ -106,11 +112,12 @@ router.delete('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /contacts/:id/archive - Archive a contact
-router.post('/:id/archive', async (req: Request, res: Response) => {
+router.post('/:id/archive', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.body;
     if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+      res.status(400).json({ error: 'userId is required' });
+      return;
     }
     const contactService = new ContactServiceImpl();
     await contactService.archiveContact(req.params.id, userId);
@@ -124,11 +131,12 @@ router.post('/:id/archive', async (req: Request, res: Response) => {
 // Group management endpoints
 
 // POST /groups - Create a new group
-router.post('/groups', async (req: Request, res: Response) => {
+router.post('/groups', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, name } = req.body;
     if (!userId || !name) {
-      return res.status(400).json({ error: 'userId and name are required' });
+      res.status(400).json({ error: 'userId and name are required' });
+      return;
     }
     const groupService = new GroupServiceImpl();
     const group = await groupService.createGroup(userId, name);
@@ -140,17 +148,19 @@ router.post('/groups', async (req: Request, res: Response) => {
 });
 
 // PUT /groups/:id - Update a group
-router.put('/groups/:id', async (req: Request, res: Response) => {
+router.put('/groups/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name } = req.body;
-    if (!name) {
-      return res.status(400).json({ error: 'name is required' });
+    const { userId, name } = req.body;
+    if (!userId || !name) {
+      res.status(400).json({ error: 'userId and name are required' });
+      return;
     }
     const groupService = new GroupServiceImpl();
-    const group = await groupService.updateGroup(req.params.id, name);
+    const group = await groupService.updateGroup(req.params.id, userId, name);
     
     if (!group) {
-      return res.status(404).json({ error: 'Group not found' });
+      res.status(404).json({ error: 'Group not found' });
+      return;
     }
     
     res.json(group);
@@ -161,22 +171,24 @@ router.put('/groups/:id', async (req: Request, res: Response) => {
 });
 
 // POST /contacts/bulk/groups - Bulk assign contacts to a group
-router.post('/bulk/groups', async (req: Request, res: Response) => {
+router.post('/bulk/groups', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { contactIds, groupId, action } = req.body;
+    const { userId, contactIds, groupId, action } = req.body;
     
-    if (!contactIds || !Array.isArray(contactIds) || !groupId || !action) {
-      return res.status(400).json({ error: 'contactIds (array), groupId, and action are required' });
+    if (!userId || !contactIds || !Array.isArray(contactIds) || !groupId || !action) {
+      res.status(400).json({ error: 'userId, contactIds (array), groupId, and action are required' });
+      return;
     }
     
     const groupService = new GroupServiceImpl();
     
     if (action === 'add') {
-      await groupService.bulkAssignContactsToGroup(contactIds, groupId);
+      await groupService.bulkAssignContactsToGroup(contactIds, groupId, userId);
     } else if (action === 'remove') {
-      await groupService.bulkRemoveContactsFromGroup(contactIds, groupId);
+      await groupService.bulkRemoveContactsFromGroup(contactIds, groupId, userId);
     } else {
-      return res.status(400).json({ error: 'Invalid action. Must be "add" or "remove"' });
+      res.status(400).json({ error: 'Invalid action. Must be "add" or "remove"' });
+      return;
     }
     
     res.status(204).send();
@@ -189,14 +201,15 @@ router.post('/bulk/groups', async (req: Request, res: Response) => {
 // Tag management endpoints
 
 // POST /tags - Add a tag to a contact
-router.post('/tags', async (req: Request, res: Response) => {
+router.post('/tags', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { contactId, text, source } = req.body;
-    if (!contactId || !text || !source) {
-      return res.status(400).json({ error: 'contactId, text, and source are required' });
+    const { userId, contactId, text, source } = req.body;
+    if (!userId || !contactId || !text || !source) {
+      res.status(400).json({ error: 'userId, contactId, text, and source are required' });
+      return;
     }
     const tagService = new TagServiceImpl();
-    await tagService.addTag(contactId, { text, source });
+    await tagService.addTag(contactId, userId, text, source);
     res.status(201).send();
   } catch (error) {
     console.error('Error adding tag:', error);
@@ -205,17 +218,19 @@ router.post('/tags', async (req: Request, res: Response) => {
 });
 
 // PUT /tags/:id - Update a tag
-router.put('/tags/:id', async (req: Request, res: Response) => {
+router.put('/tags/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const { text } = req.body;
     if (!text) {
-      return res.status(400).json({ error: 'text is required' });
+      res.status(400).json({ error: 'text is required' });
+      return;
     }
     const tagService = new TagServiceImpl();
     const tag = await tagService.updateTag(req.params.id, text);
     
     if (!tag) {
-      return res.status(404).json({ error: 'Tag not found' });
+      res.status(404).json({ error: 'Tag not found' });
+      return;
     }
     
     res.json(tag);
@@ -226,16 +241,17 @@ router.put('/tags/:id', async (req: Request, res: Response) => {
 });
 
 // DELETE /tags/:id - Remove a tag
-router.delete('/tags/:id', async (req: Request, res: Response) => {
+router.delete('/tags/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { contactId } = req.query;
+    const { userId, contactId } = req.query;
     
-    if (!contactId) {
-      return res.status(400).json({ error: 'contactId query parameter is required' });
+    if (!userId || !contactId) {
+      res.status(400).json({ error: 'userId and contactId query parameters are required' });
+      return;
     }
     
     const tagService = new TagServiceImpl();
-    await tagService.removeTag(contactId as string, req.params.id);
+    await tagService.removeTag(contactId as string, req.params.id, userId as string);
     res.status(204).send();
   } catch (error) {
     console.error('Error removing tag:', error);
