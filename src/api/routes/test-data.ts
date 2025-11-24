@@ -1,11 +1,20 @@
-import { Router, Request, Response } from 'express';
-import * as suggestionService from '../../matching/suggestion-service';
+/**
+ * Test Data Routes
+ * 
+ * Endpoints for seeding test data and generating suggestions for testing
+ */
+
+import { Router, Response } from 'express';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
+import { generateTimeboundSuggestions } from '../../matching/suggestion-service';
 import { TimeSlot } from '../../types';
 import pool from '../../db/connection';
 
 const router = Router();
 
-// Helper function to infer timezone from location
+/**
+ * Helper function to infer timezone from location
+ */
 function inferTimezone(location: string): string {
   const timezones: Record<string, string> = {
     'san francisco': 'America/Los_Angeles',
@@ -14,6 +23,8 @@ function inferTimezone(location: string): string {
     'seattle': 'America/Los_Angeles',
     'chicago': 'America/Chicago',
     'boston': 'America/New_York',
+    'austin': 'America/Chicago',
+    'denver': 'America/Denver'
   };
   
   const key = location.toLowerCase();
@@ -23,22 +34,23 @@ function inferTimezone(location: string): string {
     }
   }
   
-  return 'America/Los_Angeles';
+  return 'America/Los_Angeles'; // Default
 }
 
-// POST /suggestions/seed-test-data - Seed test contacts and generate suggestions
-// MUST come before /:id routes
-router.post('/seed-test-data', async (req: Request, res: Response): Promise<void> => {
-  console.log('Seed test data endpoint hit!', req.body);
+/**
+ * POST /api/test-data/seed
+ * Seed test contacts and generate suggestions
+ */
+router.post('/seed', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.body;
-    
-    if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
     
-    // Create test contacts
+    const userId = req.userId;
+    
+    // Create test contacts with different scenarios
     const contacts = [
       {
         name: 'Alice Johnson',
@@ -46,7 +58,7 @@ router.post('/seed-test-data', async (req: Request, res: Response): Promise<void
         phone: '+1234567890',
         location: 'San Francisco',
         frequencyPreference: 'weekly',
-        lastContactDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+        lastContactDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 14 days ago
         tags: ['tech', 'hiking', 'coffee']
       },
       {
@@ -54,7 +66,7 @@ router.post('/seed-test-data', async (req: Request, res: Response): Promise<void
         email: 'bob@example.com',
         location: 'New York City',
         frequencyPreference: 'monthly',
-        lastContactDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
+        lastContactDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), // 45 days ago
         tags: ['startup', 'basketball', 'music']
       },
       {
@@ -63,7 +75,7 @@ router.post('/seed-test-data', async (req: Request, res: Response): Promise<void
         phone: '+1987654321',
         location: 'Los Angeles',
         frequencyPreference: 'biweekly',
-        lastContactDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+        lastContactDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
         tags: ['design', 'yoga', 'photography']
       },
       {
@@ -71,7 +83,7 @@ router.post('/seed-test-data', async (req: Request, res: Response): Promise<void
         email: 'david@example.com',
         location: 'Seattle',
         frequencyPreference: 'monthly',
-        lastContactDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+        lastContactDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // 60 days ago (overdue!)
         tags: ['gaming', 'cooking', 'tech']
       },
       {
@@ -79,7 +91,7 @@ router.post('/seed-test-data', async (req: Request, res: Response): Promise<void
         email: 'emma@example.com',
         location: 'San Francisco',
         frequencyPreference: 'weekly',
-        lastContactDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        lastContactDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
         tags: ['running', 'books', 'coffee']
       }
     ];
@@ -87,6 +99,7 @@ router.post('/seed-test-data', async (req: Request, res: Response): Promise<void
     let contactsCreated = 0;
     
     for (const contact of contacts) {
+      // Insert contact
       const contactResult = await pool.query(
         `INSERT INTO contacts (user_id, name, email, phone, location, timezone, frequency_preference, last_contact_date, custom_notes)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -107,6 +120,7 @@ router.post('/seed-test-data', async (req: Request, res: Response): Promise<void
       const contactId = contactResult.rows[0].id;
       contactsCreated++;
       
+      // Add tags
       for (const tagText of contact.tags) {
         await pool.query(
           `INSERT INTO tags (contact_id, text, source)
@@ -116,16 +130,19 @@ router.post('/seed-test-data', async (req: Request, res: Response): Promise<void
       }
     }
     
-    // Generate time slots
+    // Generate available time slots for the next week
     const availableSlots: TimeSlot[] = [];
     const now = new Date();
     
+    // Create slots for next 7 days (weekdays only, 2-4pm)
     for (let i = 1; i <= 7; i++) {
       const date = new Date(now);
       date.setDate(date.getDate() + i);
       
+      // Skip weekends
       if (date.getDay() === 0 || date.getDay() === 6) continue;
       
+      // Create afternoon slot (2-4pm)
       const start = new Date(date);
       start.setHours(14, 0, 0, 0);
       
@@ -139,7 +156,8 @@ router.post('/seed-test-data', async (req: Request, res: Response): Promise<void
       });
     }
     
-    const suggestions = await suggestionService.generateTimeboundSuggestions(userId, availableSlots);
+    // Generate timebound suggestions
+    const suggestions = await generateTimeboundSuggestions(userId, availableSlots);
     
     res.json({
       message: 'Test data seeded successfully',
@@ -155,26 +173,30 @@ router.post('/seed-test-data', async (req: Request, res: Response): Promise<void
   }
 });
 
-// POST /suggestions/generate - Generate suggestions for existing contacts
-// MUST come before /:id routes
-router.post('/generate', async (req: Request, res: Response): Promise<void> => {
+/**
+ * POST /api/test-data/generate-suggestions
+ * Generate suggestions for existing contacts
+ */
+router.post('/generate-suggestions', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.body;
-    
-    if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
     
+    // Generate available time slots for the next week
     const availableSlots: TimeSlot[] = [];
     const now = new Date();
     
+    // Create slots for next 7 days (weekdays only, 2-4pm)
     for (let i = 1; i <= 7; i++) {
       const date = new Date(now);
       date.setDate(date.getDate() + i);
       
+      // Skip weekends
       if (date.getDay() === 0 || date.getDay() === 6) continue;
       
+      // Create afternoon slot (2-4pm)
       const start = new Date(date);
       start.setHours(14, 0, 0, 0);
       
@@ -188,90 +210,16 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
       });
     }
     
-    const suggestions = await suggestionService.generateTimeboundSuggestions(userId, availableSlots);
+    const suggestions = await generateTimeboundSuggestions(req.userId, availableSlots);
     
     res.json({
       message: 'Suggestions generated successfully',
-      suggestionsCreated: suggestions.length
+      suggestionsCreated: suggestions.length,
+      suggestions
     });
   } catch (error) {
     console.error('Error generating suggestions:', error);
     res.status(500).json({ error: 'Failed to generate suggestions' });
-  }
-});
-
-// GET /suggestions - Get all pending suggestions for a user
-router.get('/', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId } = req.query;
-    
-    console.log('GET /suggestions called with userId:', userId);
-    
-    if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
-      return;
-    }
-    
-    const suggestions = await suggestionService.getPendingSuggestions(userId as string);
-    console.log('Found suggestions:', suggestions.length);
-    res.json(suggestions);
-  } catch (error) {
-    console.error('Error fetching suggestions:', error);
-    res.status(500).json({ error: 'Failed to fetch suggestions' });
-  }
-});
-
-// POST /suggestions/:id/accept - Accept a suggestion
-router.post('/:id/accept', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId } = req.body;
-    
-    if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
-      return;
-    }
-    
-    const result = await suggestionService.acceptSuggestion(req.params.id, userId);
-    res.json(result);
-  } catch (error) {
-    console.error('Error accepting suggestion:', error);
-    res.status(500).json({ error: 'Failed to accept suggestion' });
-  }
-});
-
-// POST /suggestions/:id/dismiss - Dismiss a suggestion
-router.post('/:id/dismiss', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId, reason } = req.body;
-    
-    if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
-      return;
-    }
-    
-    await suggestionService.dismissSuggestion(req.params.id, userId, reason);
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error dismissing suggestion:', error);
-    res.status(500).json({ error: 'Failed to dismiss suggestion' });
-  }
-});
-
-// POST /suggestions/:id/snooze - Snooze a suggestion
-router.post('/:id/snooze', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId, duration } = req.body;
-    
-    if (!userId || !duration) {
-      res.status(400).json({ error: 'userId and duration are required' });
-      return;
-    }
-    
-    await suggestionService.snoozeSuggestion(req.params.id, userId, duration);
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error snoozing suggestion:', error);
-    res.status(500).json({ error: 'Failed to snooze suggestion' });
   }
 });
 

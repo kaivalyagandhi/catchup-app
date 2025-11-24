@@ -334,7 +334,16 @@
             
             <!-- Suggestions Page -->
             <div id="suggestions-page" class="page hidden">
-                <h2 style="margin-bottom: 20px;">Suggestions</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Suggestions</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="generateSuggestions()" class="secondary">Generate Suggestions</button>
+                        <button onclick="seedTestData()">Seed Test Data</button>
+                    </div>
+                </div>
+                <div id="suggestions-info" style="background: #e0f2fe; padding: 15px; border-radius: 4px; margin-bottom: 20px; display: none;">
+                    <p style="margin: 0; color: #0369a1;"><strong>💡 Tip:</strong> <span id="suggestions-info-text"></span></p>
+                </div>
                 <div id="suggestions-list"></div>
             </div>
             

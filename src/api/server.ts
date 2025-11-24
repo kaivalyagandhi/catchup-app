@@ -8,6 +8,7 @@ import calendarRouter from './routes/calendar';
 import voiceNotesRouter from './routes/voice-notes';
 import preferencesRouter from './routes/preferences';
 import accountRouter from './routes/account';
+import testDataRouter from './routes/test-data';
 import { apiRateLimiter } from '../utils/rate-limiter';
 import { enforceHttps, securityHeaders } from './middleware/security';
 
@@ -58,6 +59,14 @@ export function createServer(): Express {
   app.use('/api/voice-notes', voiceNotesRouter);
   app.use('/api/preferences', preferencesRouter);
   app.use('/api/account', accountRouter);
+  
+  // Test data routes (for development/testing)
+  try {
+    app.use('/api/test-data', testDataRouter);
+    console.log('Test data routes registered');
+  } catch (error) {
+    console.error('Failed to register test data routes:', error);
+  }
 
   // Serve index.html for all other routes (SPA support)
   app.use((req: Request, res: Response) => {

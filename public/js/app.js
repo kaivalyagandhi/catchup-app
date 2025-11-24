@@ -544,6 +544,97 @@ function savePreferences() {
     alert('Preferences saved!');
 }
 
+// Test Data Functions
+async function seedTestData() {
+    if (!confirm('This will create 5 test contacts with different scenarios and generate suggestions. Continue?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/suggestions/seed-test-data`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ userId: userId })
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) throw new Error('Failed to seed test data');
+        
+        const data = await response.json();
+        
+        // Show success message
+        document.getElementById('suggestions-info-text').textContent = 
+            `Created ${data.contactsCreated} test contacts and ${data.suggestionsCreated} suggestions!`;
+        document.getElementById('suggestions-info').style.display = 'block';
+        
+        // Reload contacts and suggestions
+        if (currentPage === 'contacts') {
+            loadContacts();
+        } else {
+            loadSuggestions();
+        }
+        
+        // Hide info after 5 seconds
+        setTimeout(() => {
+            document.getElementById('suggestions-info').style.display = 'none';
+        }, 5000);
+        
+    } catch (error) {
+        console.error('Error seeding test data:', error);
+        alert('Failed to seed test data');
+    }
+}
+
+async function generateSuggestions() {
+    if (!confirm('This will generate new suggestions based on your existing contacts. Continue?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/suggestions/generate`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ userId: userId })
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) throw new Error('Failed to generate suggestions');
+        
+        const data = await response.json();
+        
+        // Show success message
+        document.getElementById('suggestions-info-text').textContent = 
+            `Generated ${data.suggestionsCreated} new suggestions!`;
+        document.getElementById('suggestions-info').style.display = 'block';
+        
+        // Reload suggestions
+        loadSuggestions();
+        
+        // Hide info after 5 seconds
+        setTimeout(() => {
+            document.getElementById('suggestions-info').style.display = 'none';
+        }, 5000);
+        
+    } catch (error) {
+        console.error('Error generating suggestions:', error);
+        alert('Failed to generate suggestions');
+    }
+}
+
 // Utility functions
 function escapeHtml(text) {
     const div = document.createElement('div');
