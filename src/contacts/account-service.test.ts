@@ -28,8 +28,8 @@ describe('AccountService', () => {
     tagService = new TagServiceImpl();
     interactionService = new InteractionServiceImpl();
 
-    // Create a test user
-    testUserEmail = `test-${Date.now()}@example.com`;
+    // Create a test user with more unique identifier
+    testUserEmail = `test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
     const result = await pool.query(
       'INSERT INTO users (email, name) VALUES ($1, $2) RETURNING id',
       [testUserEmail, 'Test User']
@@ -39,7 +39,11 @@ describe('AccountService', () => {
 
   afterEach(async () => {
     // Clean up test user if it still exists
-    await pool.query('DELETE FROM users WHERE email = $1', [testUserEmail]);
+    try {
+      await pool.query('DELETE FROM users WHERE email = $1', [testUserEmail]);
+    } catch (error) {
+      // Ignore errors if user was already deleted
+    }
   });
 
   describe('deleteUserAccount', () => {

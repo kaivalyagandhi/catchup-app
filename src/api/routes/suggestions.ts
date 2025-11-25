@@ -1,218 +1,48 @@
 import { Router, Request, Response } from 'express';
 import * as suggestionService from '../../matching/suggestion-service';
-import { TimeSlot } from '../../types';
-import pool from '../../db/connection';
 
 const router = Router();
 
-// Helper function to infer timezone from location
-function inferTimezone(location: string): string {
-  const timezones: Record<string, string> = {
-    'san francisco': 'America/Los_Angeles',
-    'new york': 'America/New_York',
-    'los angeles': 'America/Los_Angeles',
-    'seattle': 'America/Los_Angeles',
-    'chicago': 'America/Chicago',
-    'boston': 'America/New_York',
-  };
-  
-  const key = location.toLowerCase();
-  for (const [city, tz] of Object.entries(timezones)) {
-    if (key.includes(city)) {
-      return tz;
-    }
-  }
-  
-  return 'America/Los_Angeles';
-}
-
-// POST /suggestions/seed-test-data - Seed test contacts and generate suggestions
-// MUST come before /:id routes
-router.post('/seed-test-data', async (req: Request, res: Response): Promise<void> => {
-  console.log('Seed test data endpoint hit!', req.body);
-  try {
-    const { userId } = req.body;
-    
-    if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
-      return;
-    }
-    
-    // Create test contacts
-    const contacts = [
-      {
-        name: 'Alice Johnson',
-        email: 'alice@example.com',
-        phone: '+1234567890',
-        location: 'San Francisco',
-        frequencyPreference: 'weekly',
-        lastContactDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-        tags: ['tech', 'hiking', 'coffee']
-      },
-      {
-        name: 'Bob Martinez',
-        email: 'bob@example.com',
-        location: 'New York City',
-        frequencyPreference: 'monthly',
-        lastContactDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-        tags: ['startup', 'basketball', 'music']
-      },
-      {
-        name: 'Carol Chen',
-        email: 'carol@example.com',
-        phone: '+1987654321',
-        location: 'Los Angeles',
-        frequencyPreference: 'biweekly',
-        lastContactDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-        tags: ['design', 'yoga', 'photography']
-      },
-      {
-        name: 'David Kim',
-        email: 'david@example.com',
-        location: 'Seattle',
-        frequencyPreference: 'monthly',
-        lastContactDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-        tags: ['gaming', 'cooking', 'tech']
-      },
-      {
-        name: 'Emma Wilson',
-        email: 'emma@example.com',
-        location: 'San Francisco',
-        frequencyPreference: 'weekly',
-        lastContactDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        tags: ['running', 'books', 'coffee']
-      }
-    ];
-    
-    let contactsCreated = 0;
-    
-    for (const contact of contacts) {
-      const contactResult = await pool.query(
-        `INSERT INTO contacts (user_id, name, email, phone, location, timezone, frequency_preference, last_contact_date, custom_notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         RETURNING id`,
-        [
-          userId,
-          contact.name,
-          contact.email,
-          contact.phone || null,
-          contact.location,
-          inferTimezone(contact.location),
-          contact.frequencyPreference,
-          contact.lastContactDate,
-          `Test contact - Last contacted ${Math.floor((Date.now() - contact.lastContactDate.getTime()) / (1000 * 60 * 60 * 24))} days ago`
-        ]
-      );
-      
-      const contactId = contactResult.rows[0].id;
-      contactsCreated++;
-      
-      for (const tagText of contact.tags) {
-        await pool.query(
-          `INSERT INTO tags (contact_id, text, source)
-           VALUES ($1, $2, $3)`,
-          [contactId, tagText, 'manual']
-        );
-      }
-    }
-    
-    // Generate time slots
-    const availableSlots: TimeSlot[] = [];
-    const now = new Date();
-    
-    for (let i = 1; i <= 7; i++) {
-      const date = new Date(now);
-      date.setDate(date.getDate() + i);
-      
-      if (date.getDay() === 0 || date.getDay() === 6) continue;
-      
-      const start = new Date(date);
-      start.setHours(14, 0, 0, 0);
-      
-      const end = new Date(date);
-      end.setHours(16, 0, 0, 0);
-      
-      availableSlots.push({
-        start,
-        end,
-        timezone: 'America/Los_Angeles'
-      });
-    }
-    
-    const suggestions = await suggestionService.generateTimeboundSuggestions(userId, availableSlots);
-    
-    res.json({
-      message: 'Test data seeded successfully',
-      contactsCreated,
-      suggestionsCreated: suggestions.length
-    });
-  } catch (error) {
-    console.error('Error seeding test data:', error);
-    res.status(500).json({ 
-      error: 'Failed to seed test data',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// POST /suggestions/generate - Generate suggestions for existing contacts
-// MUST come before /:id routes
-router.post('/generate', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId } = req.body;
-    
-    if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
-      return;
-    }
-    
-    const availableSlots: TimeSlot[] = [];
-    const now = new Date();
-    
-    for (let i = 1; i <= 7; i++) {
-      const date = new Date(now);
-      date.setDate(date.getDate() + i);
-      
-      if (date.getDay() === 0 || date.getDay() === 6) continue;
-      
-      const start = new Date(date);
-      start.setHours(14, 0, 0, 0);
-      
-      const end = new Date(date);
-      end.setHours(16, 0, 0, 0);
-      
-      availableSlots.push({
-        start,
-        end,
-        timezone: 'America/Los_Angeles'
-      });
-    }
-    
-    const suggestions = await suggestionService.generateTimeboundSuggestions(userId, availableSlots);
-    
-    res.json({
-      message: 'Suggestions generated successfully',
-      suggestionsCreated: suggestions.length
-    });
-  } catch (error) {
-    console.error('Error generating suggestions:', error);
-    res.status(500).json({ error: 'Failed to generate suggestions' });
-  }
-});
-
-// GET /suggestions - Get all pending suggestions for a user
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+// GET /suggestions/all - Get ALL suggestions regardless of status
+router.get('/all', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.query;
-    
-    console.log('GET /suggestions called with userId:', userId);
     
     if (!userId) {
       res.status(400).json({ error: 'userId query parameter is required' });
       return;
     }
     
-    const suggestions = await suggestionService.getPendingSuggestions(userId as string);
+    const suggestions = await suggestionService.getAllSuggestions(userId as string);
+    res.json(suggestions);
+  } catch (error) {
+    console.error('Error fetching all suggestions:', error);
+    res.status(500).json({ error: 'Failed to fetch suggestions' });
+  }
+});
+
+// GET /suggestions - Get suggestions for a user (with optional status filter)
+router.get('/', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, status } = req.query;
+    
+    console.log('GET /suggestions called with userId:', userId, 'status:', status);
+    
+    if (!userId) {
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
+    }
+    
+    let suggestions;
+    if (status && status !== 'all') {
+      // Fetch suggestions with specific status
+      const filters = { status: status as any };
+      suggestions = await suggestionService.getPendingSuggestions(userId as string, filters);
+    } else {
+      // Fetch all suggestions (not just pending)
+      suggestions = await suggestionService.getAllSuggestions(userId as string);
+    }
+    
     console.log('Found suggestions:', suggestions.length);
     res.json(suggestions);
   } catch (error) {

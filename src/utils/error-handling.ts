@@ -119,7 +119,7 @@ export async function retryWithBackoff<T>(
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error) {
+    } catch (error: unknown) {
       lastError = error;
 
       // Don't retry if this is the last attempt
@@ -169,7 +169,7 @@ export async function handleGoogleCalendarError<T>(
       ...DEFAULT_RETRY_CONFIG,
       maxRetries: 2,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     const errorType = classifyError(error);
 
     // Log error for monitoring
@@ -220,7 +220,7 @@ export async function handleNotificationDelivery<T>(
     });
 
     return { success: true, result };
-  } catch (error) {
+  } catch (error: unknown) {
     const errorType = classifyError(error);
 
     // Log error for monitoring
@@ -260,7 +260,7 @@ export async function handleTranscription(
     });
 
     return { success: true, transcript };
-  } catch (error) {
+  } catch (error: unknown) {
     const errorType = classifyError(error);
 
     // Log error for monitoring
@@ -301,7 +301,7 @@ export async function handleNLPOperation<T>(
     });
 
     return { success: true, result };
-  } catch (error) {
+  } catch (error: unknown) {
     const errorType = classifyError(error);
 
     // Log error for monitoring
@@ -351,7 +351,7 @@ export async function handleDatabaseOperation<T>(
         console.warn(`Database operation retry attempt ${attempt}:`, error.message);
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     const errorType = classifyError(error);
 
     // Log error for monitoring
@@ -401,7 +401,7 @@ export class CircuitBreaker {
       }
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       this.failures++;
       this.lastFailureTime = Date.now();
 

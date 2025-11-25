@@ -5,7 +5,160 @@ import { TagServiceImpl } from '../../contacts/tag-service';
 
 const router = Router();
 
-// Contact CRUD endpoints
+// IMPORTANT: Specific routes must come BEFORE parameterized routes
+// Otherwise /contacts/groups will match /contacts/:id with id="groups"
+
+// Group management endpoints
+
+// GET /groups - List all groups for a user
+router.get('/groups', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
+    }
+    const groupService = new GroupServiceImpl();
+    const groups = await groupService.listGroups(userId as string);
+    res.json(groups);
+  } catch (error) {
+    console.error('Error listing groups:', error);
+    res.status(500).json({ error: 'Failed to list groups' });
+  }
+});
+
+// POST /groups - Create a new group
+router.post('/groups', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, name } = req.body;
+    if (!userId || !name) {
+      res.status(400).json({ error: 'userId and name are required' });
+      return;
+    }
+    const groupService = new GroupServiceImpl();
+    const group = await groupService.createGroup(userId, name);
+    res.status(201).json(group);
+  } catch (error) {
+    console.error('Error creating group:', error);
+    res.status(500).json({ error: 'Failed to create group' });
+  }
+});
+
+// PUT /groups/:id - Update a group
+router.put('/groups/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, name } = req.body;
+    if (!userId || !name) {
+      res.status(400).json({ error: 'userId and name are required' });
+      return;
+    }
+    const groupService = new GroupServiceImpl();
+    const group = await groupService.updateGroup(req.params.id, userId, name);
+
+    if (!group) {
+      res.status(404).json({ error: 'Group not found' });
+      return;
+    }
+
+    res.json(group);
+  } catch (error) {
+    console.error('Error updating group:', error);
+    res.status(500).json({ error: 'Failed to update group' });
+  }
+});
+
+// POST /contacts/bulk/groups - Bulk assign contacts to a group
+router.post('/bulk/groups', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, contactIds, groupId, action } = req.body;
+
+    if (!userId || !contactIds || !Array.isArray(contactIds) || !groupId || !action) {
+      res
+        .status(400)
+        .json({ error: 'userId, contactIds (array), groupId, and action are required' });
+      return;
+    }
+
+    const groupService = new GroupServiceImpl();
+
+    if (action === 'add') {
+      await groupService.bulkAssignContactsToGroup(contactIds, groupId, userId);
+    } else if (action === 'remove') {
+      await groupService.bulkRemoveContactsFromGroup(contactIds, groupId, userId);
+    } else {
+      res.status(400).json({ error: 'Invalid action. Must be "add" or "remove"' });
+      return;
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error bulk updating group assignments:', error);
+    res.status(500).json({ error: 'Failed to bulk update group assignments' });
+  }
+});
+
+// Tag management endpoints
+
+// POST /tags - Add a tag to a contact
+router.post('/tags', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, contactId, text, source } = req.body;
+    if (!userId || !contactId || !text || !source) {
+      res.status(400).json({ error: 'userId, contactId, text, and source are required' });
+      return;
+    }
+    const tagService = new TagServiceImpl();
+    await tagService.addTag(contactId, userId, text, source);
+    res.status(201).send();
+  } catch (error) {
+    console.error('Error adding tag:', error);
+    res.status(500).json({ error: 'Failed to add tag' });
+  }
+});
+
+// PUT /tags/:id - Update a tag
+router.put('/tags/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { text } = req.body;
+    if (!text) {
+      res.status(400).json({ error: 'text is required' });
+      return;
+    }
+    const tagService = new TagServiceImpl();
+    const tag = await tagService.updateTag(req.params.id, text);
+
+    if (!tag) {
+      res.status(404).json({ error: 'Tag not found' });
+      return;
+    }
+
+    res.json(tag);
+  } catch (error) {
+    console.error('Error updating tag:', error);
+    res.status(500).json({ error: 'Failed to update tag' });
+  }
+});
+
+// DELETE /tags/:id - Remove a tag
+router.delete('/tags/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, contactId } = req.query;
+
+    if (!userId || !contactId) {
+      res.status(400).json({ error: 'userId and contactId query parameters are required' });
+      return;
+    }
+
+    const tagService = new TagServiceImpl();
+    await tagService.removeTag(contactId as string, req.params.id, userId as string);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error removing tag:', error);
+    res.status(500).json({ error: 'Failed to remove tag' });
+  }
+});
+
+// Contact CRUD endpoints (parameterized routes come AFTER specific routes)
 
 // POST /contacts - Create a new contact
 router.post('/', async (req: Request, res: Response): Promise<void> => {
@@ -24,6 +177,30 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// GET /contacts - List all contacts with optional filters
+router.get('/', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, groupId, archived, search } = req.query;
+
+    if (!userId) {
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
+    }
+
+    const contactService = new ContactServiceImpl();
+    const filters: Record<string, string | boolean> = {};
+    if (groupId) filters.groupId = groupId as string;
+    if (archived !== undefined) filters.archived = archived === 'true';
+    if (search) filters.search = search as string;
+
+    const contacts = await contactService.listContacts(userId as string, filters);
+    res.json(contacts);
+  } catch (error) {
+    console.error('Error listing contacts:', error);
+    res.status(500).json({ error: 'Failed to list contacts' });
+  }
+});
+
 // GET /contacts/:id - Get a specific contact
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -34,40 +211,16 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     }
     const contactService = new ContactServiceImpl();
     const contact = await contactService.getContact(req.params.id, userId as string);
-    
+
     if (!contact) {
       res.status(404).json({ error: 'Contact not found' });
       return;
     }
-    
+
     res.json(contact);
   } catch (error) {
     console.error('Error fetching contact:', error);
     res.status(500).json({ error: 'Failed to fetch contact' });
-  }
-});
-
-// GET /contacts - List all contacts with optional filters
-router.get('/', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId, groupId, archived, search } = req.query;
-    
-    if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
-      return;
-    }
-    
-    const contactService = new ContactServiceImpl();
-    const filters: any = {};
-    if (groupId) filters.groupId = groupId as string;
-    if (archived !== undefined) filters.archived = archived === 'true';
-    if (search) filters.search = search as string;
-    
-    const contacts = await contactService.listContacts(userId as string, filters);
-    res.json(contacts);
-  } catch (error) {
-    console.error('Error listing contacts:', error);
-    res.status(500).json({ error: 'Failed to list contacts' });
   }
 });
 
@@ -81,12 +234,12 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
     }
     const contactService = new ContactServiceImpl();
     const contact = await contactService.updateContact(req.params.id, userId, updateData);
-    
+
     if (!contact) {
       res.status(404).json({ error: 'Contact not found' });
       return;
     }
-    
+
     res.json(contact);
   } catch (error) {
     console.error('Error updating contact:', error);
@@ -125,137 +278,6 @@ router.post('/:id/archive', async (req: Request, res: Response): Promise<void> =
   } catch (error) {
     console.error('Error archiving contact:', error);
     res.status(500).json({ error: 'Failed to archive contact' });
-  }
-});
-
-// Group management endpoints
-
-// POST /groups - Create a new group
-router.post('/groups', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId, name } = req.body;
-    if (!userId || !name) {
-      res.status(400).json({ error: 'userId and name are required' });
-      return;
-    }
-    const groupService = new GroupServiceImpl();
-    const group = await groupService.createGroup(userId, name);
-    res.status(201).json(group);
-  } catch (error) {
-    console.error('Error creating group:', error);
-    res.status(500).json({ error: 'Failed to create group' });
-  }
-});
-
-// PUT /groups/:id - Update a group
-router.put('/groups/:id', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId, name } = req.body;
-    if (!userId || !name) {
-      res.status(400).json({ error: 'userId and name are required' });
-      return;
-    }
-    const groupService = new GroupServiceImpl();
-    const group = await groupService.updateGroup(req.params.id, userId, name);
-    
-    if (!group) {
-      res.status(404).json({ error: 'Group not found' });
-      return;
-    }
-    
-    res.json(group);
-  } catch (error) {
-    console.error('Error updating group:', error);
-    res.status(500).json({ error: 'Failed to update group' });
-  }
-});
-
-// POST /contacts/bulk/groups - Bulk assign contacts to a group
-router.post('/bulk/groups', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId, contactIds, groupId, action } = req.body;
-    
-    if (!userId || !contactIds || !Array.isArray(contactIds) || !groupId || !action) {
-      res.status(400).json({ error: 'userId, contactIds (array), groupId, and action are required' });
-      return;
-    }
-    
-    const groupService = new GroupServiceImpl();
-    
-    if (action === 'add') {
-      await groupService.bulkAssignContactsToGroup(contactIds, groupId, userId);
-    } else if (action === 'remove') {
-      await groupService.bulkRemoveContactsFromGroup(contactIds, groupId, userId);
-    } else {
-      res.status(400).json({ error: 'Invalid action. Must be "add" or "remove"' });
-      return;
-    }
-    
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error bulk updating group assignments:', error);
-    res.status(500).json({ error: 'Failed to bulk update group assignments' });
-  }
-});
-
-// Tag management endpoints
-
-// POST /tags - Add a tag to a contact
-router.post('/tags', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId, contactId, text, source } = req.body;
-    if (!userId || !contactId || !text || !source) {
-      res.status(400).json({ error: 'userId, contactId, text, and source are required' });
-      return;
-    }
-    const tagService = new TagServiceImpl();
-    await tagService.addTag(contactId, userId, text, source);
-    res.status(201).send();
-  } catch (error) {
-    console.error('Error adding tag:', error);
-    res.status(500).json({ error: 'Failed to add tag' });
-  }
-});
-
-// PUT /tags/:id - Update a tag
-router.put('/tags/:id', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { text } = req.body;
-    if (!text) {
-      res.status(400).json({ error: 'text is required' });
-      return;
-    }
-    const tagService = new TagServiceImpl();
-    const tag = await tagService.updateTag(req.params.id, text);
-    
-    if (!tag) {
-      res.status(404).json({ error: 'Tag not found' });
-      return;
-    }
-    
-    res.json(tag);
-  } catch (error) {
-    console.error('Error updating tag:', error);
-    res.status(500).json({ error: 'Failed to update tag' });
-  }
-});
-
-// DELETE /tags/:id - Remove a tag
-router.delete('/tags/:id', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId, contactId } = req.query;
-    
-    if (!userId || !contactId) {
-      res.status(400).json({ error: 'userId and contactId query parameters are required' });
-      return;
-    }
-    
-    const tagService = new TagServiceImpl();
-    await tagService.removeTag(contactId as string, req.params.id, userId as string);
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error removing tag:', error);
-    res.status(500).json({ error: 'Failed to remove tag' });
   }
 });
 

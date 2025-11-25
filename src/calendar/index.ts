@@ -56,6 +56,14 @@ export {
   CalendarFeedUrl,
 } from './feed-service';
 
+// Export calendar event generator
+export {
+  CalendarEventGenerator,
+  calendarEventGenerator,
+  TimeOfDay,
+  SlotOptions,
+} from './calendar-event-generator';
+
 // Export suggestion repository functions
 export {
   getUserSuggestions,

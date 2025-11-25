@@ -195,3 +195,15 @@ export interface EnrichmentItem {
   value: any;
   accepted: boolean;
 }
+
+export interface CalendarEvent {
+  id: string;
+  userId: string;
+  title: string;
+  startTime: Date;
+  endTime: Date;
+  timezone: string;
+  isAvailable: boolean;
+  source: string;
+  createdAt: Date;
+}

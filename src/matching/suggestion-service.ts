@@ -25,6 +25,24 @@ import {
   CacheTTL,
   invalidateSuggestionCache,
 } from '../utils/cache';
+import pool from '../db/connection';
+
+/**
+ * Helper function to fetch group names for a user
+ */
+async function fetchGroupNames(userId: string): Promise<Map<string, string>> {
+  const result = await pool.query(
+    'SELECT id, name FROM groups WHERE user_id = $1',
+    [userId]
+  );
+  
+  const groupMap = new Map<string, string>();
+  for (const row of result.rows) {
+    groupMap.set(row.id, row.name);
+  }
+  
+  return groupMap;
+}
 
 /**
  * Contact match result with priority score
@@ -129,7 +147,8 @@ export async function matchContactsToTimeslot(
   _userId: string,
   _timeslot: TimeSlot,
   contacts: Contact[],
-  currentDate: Date = new Date()
+  currentDate: Date = new Date(),
+  groupMap: Map<string, string> = new Map()
 ): Promise<ContactMatch[]> {
   const matches: ContactMatch[] = [];
 
@@ -140,7 +159,11 @@ export async function matchContactsToTimeslot(
     }
 
     // Calculate priority
-    const priority = calculatePriority(contact, contact.lastContactDate || null, currentDate);
+    const priority = calculatePriority(
+      contact, 
+      contact.lastContactDate ? new Date(contact.lastContactDate) : null, 
+      currentDate
+    );
 
     // Build reasoning
     let reasoning = `It's been a while since you connected`;
@@ -152,7 +175,12 @@ export async function matchContactsToTimeslot(
 
     // Add group context
     if (contact.groups && contact.groups.length > 0) {
-      reasoning += `. Member of: ${contact.groups.join(', ')}`;
+      const groupNames = contact.groups
+        .map(groupId => groupMap.get(groupId))
+        .filter(name => name !== undefined);
+      if (groupNames.length > 0) {
+        reasoning += `. Member of: ${groupNames.join(', ')}`;
+      }
     }
 
     // Add tag context for shared interests
@@ -199,13 +227,16 @@ export async function generateTimeboundSuggestions(
 ): Promise<Suggestion[]> {
   // Get all contacts for the user
   const contacts = await contactService.listContacts(userId);
+  
+  // Fetch group names for display in reasoning
+  const groupMap = await fetchGroupNames(userId);
 
   // Filter contacts that need connection based on frequency preference
   const contactsNeedingConnection = contacts.filter((contact) => {
     if (contact.archived) return false;
 
     const frequency = contact.frequencyPreference || FrequencyOption.MONTHLY;
-    const lastContact = contact.lastContactDate || new Date(0);
+    const lastContact = contact.lastContactDate ? new Date(contact.lastContactDate) : new Date(0);
 
     const daysSinceContact = Math.floor(
       (currentDate.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24)
@@ -234,7 +265,8 @@ export async function generateTimeboundSuggestions(
       userId,
       slot,
       contactsNeedingConnection,
-      currentDate
+      currentDate,
+      groupMap
     );
 
     if (matches.length === 0) continue;
@@ -328,7 +360,7 @@ export async function generateSharedActivitySuggestions(
     }
 
     // Consider time since last contact
-    const lastContact = contact.lastContactDate || new Date(0);
+    const lastContact = contact.lastContactDate ? new Date(contact.lastContactDate) : new Date(0);
     const daysSinceContact = Math.floor(
       (new Date().getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -562,6 +594,16 @@ export async function snoozeSuggestion(
   await invalidateSuggestionCache(userId);
 
   return updatedSuggestion;
+}
+
+/**
+ * Get all suggestions for a user (regardless of status)
+ */
+export async function getAllSuggestions(
+  userId: string,
+  filters?: SuggestionFilters
+): Promise<Suggestion[]> {
+  return await suggestionRepository.findAll(userId, filters);
 }
 
 /**

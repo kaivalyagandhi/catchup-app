@@ -120,6 +120,28 @@
             text-decoration: underline;
         }
         
+        .filter-btn {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .filter-btn:hover {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+        }
+        
+        .filter-btn.active {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        
         .hidden {
             display: none !important;
         }
@@ -271,6 +293,94 @@
             border-radius: 4px;
             margin-bottom: 15px;
         }
+        
+        /* Tag and Group Badges */
+        .contact-tags, .contact-groups {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .tag-badge {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid #93c5fd;
+        }
+        
+        .group-badge {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid #fcd34d;
+        }
+        
+        /* Tag and Group Management in Modal */
+        .tag-item, .group-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .tag-item {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        
+        .group-item {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+        
+        .tag-item .remove-btn, .group-item .remove-btn {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 0;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 14px;
+            line-height: 1;
+        }
+        
+        .tag-item .remove-btn:hover {
+            background: #93c5fd;
+        }
+        
+        .group-item .remove-btn:hover {
+            background: #fcd34d;
+        }
+        
+        /* Loading spinner animation */
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 <body>
@@ -336,11 +446,22 @@
             <div id="suggestions-page" class="page hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2>Suggestions</h2>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="generateSuggestions()" class="secondary">Generate Suggestions</button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <button onclick="seedTestData()">Seed Test Data</button>
+                        <button onclick="generateSuggestions()" class="secondary">Generate Suggestions</button>
+                        <button onclick="clearTestData()" class="secondary" style="background: #ef4444;">Clear Test Data</button>
                     </div>
                 </div>
+                
+                <!-- Filter Buttons -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button onclick="filterSuggestions('all')" id="filter-all" class="filter-btn active">All</button>
+                    <button onclick="filterSuggestions('pending')" id="filter-pending" class="filter-btn">Pending</button>
+                    <button onclick="filterSuggestions('accepted')" id="filter-accepted" class="filter-btn">Accepted</button>
+                    <button onclick="filterSuggestions('dismissed')" id="filter-dismissed" class="filter-btn">Dismissed</button>
+                    <button onclick="filterSuggestions('snoozed')" id="filter-snoozed" class="filter-btn">Snoozed</button>
+                </div>
+                
                 <div id="suggestions-info" style="background: #e0f2fe; padding: 15px; border-radius: 4px; margin-bottom: 20px; display: none;">
                     <p style="margin: 0; color: #0369a1;"><strong>💡 Tip:</strong> <span id="suggestions-info-text"></span></p>
                 </div>
@@ -413,6 +534,26 @@
                 <div class="form-group">
                     <label for="contact-notes">Notes</label>
                     <textarea id="contact-notes" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact-tags">Tags</label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <input type="text" id="contact-tag-input" placeholder="Add a tag..." style="margin-bottom: 0;">
+                        <button type="button" onclick="addTagToContact()" style="padding: 8px 16px; white-space: nowrap;">Add Tag</button>
+                    </div>
+                    <div id="contact-tags-list" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact-groups">Groups</label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <select id="contact-group-select" style="margin-bottom: 0;">
+                            <option value="">Select a group...</option>
+                        </select>
+                        <button type="button" onclick="assignGroupToContact()" style="padding: 8px 16px; white-space: nowrap;">Add Group</button>
+                    </div>
+                    <div id="contact-groups-list" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px;"></div>
                 </div>
                 
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">

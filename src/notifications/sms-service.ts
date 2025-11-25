@@ -34,18 +34,20 @@ export class TwilioSMSService implements SMSService {
     maxRetries: number = 3,
     retryDelayMs: number = 1000
   ) {
-    const sid = accountSid || process.env.TWILIO_ACCOUNT_SID;
-    const token = authToken || process.env.TWILIO_AUTH_TOKEN;
-    this.fromNumber = fromNumber || process.env.TWILIO_PHONE_NUMBER || '';
+    // Use explicit checks to properly handle empty strings
+    const sid = accountSid !== undefined && accountSid !== '' ? accountSid : process.env.TWILIO_ACCOUNT_SID;
+    const token = authToken !== undefined && authToken !== '' ? authToken : process.env.TWILIO_AUTH_TOKEN;
+    const phone = fromNumber !== undefined && fromNumber !== '' ? fromNumber : process.env.TWILIO_PHONE_NUMBER;
 
     if (!sid || !token) {
       throw new Error('Twilio credentials not configured');
     }
 
-    if (!this.fromNumber) {
+    if (!phone) {
       throw new Error('Twilio phone number not configured');
     }
 
+    this.fromNumber = phone;
     this.client = twilio(sid, token);
     this.maxRetries = maxRetries;
     this.retryDelayMs = retryDelayMs;

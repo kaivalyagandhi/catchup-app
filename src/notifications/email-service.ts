@@ -34,16 +34,23 @@ export class SendGridEmailService implements EmailService {
   private retryDelayMs: number;
 
   constructor(apiKey?: string, fromEmail?: string, maxRetries: number = 3, retryDelayMs: number = 1000) {
-    const key = apiKey || process.env.SENDGRID_API_KEY;
-    this.fromEmail = fromEmail || process.env.SENDGRID_FROM_EMAIL || '';
+    // Use nullish coalescing to properly handle empty strings
+    const key = apiKey !== undefined && apiKey !== '' ? apiKey : process.env.SENDGRID_API_KEY;
+    const email = fromEmail !== undefined && fromEmail !== '' ? fromEmail : process.env.SENDGRID_FROM_EMAIL;
 
     if (!key) {
       throw new Error('SendGrid API key not configured');
     }
 
-    if (!this.fromEmail) {
+    if (!email) {
       throw new Error('SendGrid from email not configured');
     }
+
+    this.fromEmail = email;
+    sgMail.setApiKey(key);
+    this.maxRetries = maxRetries;
+    this.retryDelayMs = retryDelayMs;
+  }
 
     sgMail.setApiKey(key);
     this.maxRetries = maxRetries;
