@@ -8,6 +8,13 @@ import pool from '../db/connection';
 import { Group } from '../types';
 
 /**
+ * Extended Group type with contact count
+ */
+export interface GroupWithCount extends Group {
+  contactCount: number;
+}
+
+/**
  * Group Repository Interface
  */
 export interface GroupRepository {
@@ -26,6 +33,9 @@ export interface GroupRepository {
   bulkAssignContacts(contactIds: string[], groupId: string, userId: string): Promise<void>;
   bulkRemoveContacts(contactIds: string[], groupId: string, userId: string): Promise<void>;
   createDefaultGroups(userId: string): Promise<Group[]>;
+  getGroupWithContactCount(id: string, userId: string): Promise<GroupWithCount | null>;
+  listGroupsWithContactCounts(userId: string): Promise<GroupWithCount[]>;
+  getGroupContacts(groupId: string, userId: string): Promise<any[]>;
 }
 
 /**
@@ -294,6 +304,55 @@ export class PostgresGroupRepository implements GroupRepository {
     }
   }
 
+  async getGroupWithContactCount(id: string, userId: string): Promise<GroupWithCount | null> {
+    const result = await pool.query(
+      `SELECT g.*, COUNT(cg.contact_id) as contact_count
+       FROM groups g
+       LEFT JOIN contact_groups cg ON g.id = cg.group_id
+       WHERE g.id = $1 AND g.user_id = $2
+       GROUP BY g.id`,
+      [id, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToGroupWithCount(result.rows[0]);
+  }
+
+  async listGroupsWithContactCounts(userId: string): Promise<GroupWithCount[]> {
+    const result = await pool.query(
+      `SELECT g.*, COUNT(cg.contact_id) as contact_count
+       FROM groups g
+       LEFT JOIN contact_groups cg ON g.id = cg.group_id
+       WHERE g.user_id = $1 AND g.archived = false
+       GROUP BY g.id
+       ORDER BY g.name ASC`,
+      [userId]
+    );
+
+    return result.rows.map((row) => this.mapRowToGroupWithCount(row));
+  }
+
+  async getGroupContacts(groupId: string, userId: string): Promise<any[]> {
+    const result = await pool.query(
+      `SELECT c.id, c.name, c.email, c.phone
+       FROM contacts c
+       INNER JOIN contact_groups cg ON c.id = cg.contact_id
+       WHERE cg.group_id = $1 AND c.user_id = $2 AND c.archived = false
+       ORDER BY c.name ASC`,
+      [groupId, userId]
+    );
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      phone: row.phone,
+    }));
+  }
+
   private mapRowToGroup(row: any): Group {
     return {
       id: row.id,
@@ -304,6 +363,13 @@ export class PostgresGroupRepository implements GroupRepository {
       archived: row.archived,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
+    };
+  }
+
+  private mapRowToGroupWithCount(row: any): GroupWithCount {
+    return {
+      ...this.mapRowToGroup(row),
+      contactCount: parseInt(row.contact_count, 10) || 0,
     };
   }
 }

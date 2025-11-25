@@ -56,6 +56,9 @@ Users face several key challenges in maintaining friendships:
 - 4.1.2.1.3. Groups are either:
     - Manually entered by the user
     - Promoted from tags (AI-generated tags can be elevated to groups)
+- 4.1.2.1.4. Group names must be unique per user (case-insensitive)
+    - System prevents creation of duplicate group names
+    - When updating a group name, system validates uniqueness
 
 *4.1.2.2. Rich Profiles*
 
@@ -64,6 +67,9 @@ Users face several key challenges in maintaining friendships:
     - Generated based on voice memos and optional integration metadata
     - User can remove or update tags
     - Tags are categorized and deduplicated based on similarity
+    - Tag text must be unique globally (case-insensitive)
+    - System automatically merges similar tags using semantic matching (85% similarity threshold)
+    - Contacts cannot have duplicate tags
 - 4.1.2.2.3. Last contact date
 - 4.1.2.2.4. "Recently Met" status (dynamically updated based on user feedback after accepting suggestions)
 - 4.1.2.2.5. Communication frequency preference:
@@ -275,16 +281,21 @@ Last hung out 6 weeks ago. [Yes] [Maybe Later]"
 
 *7.2.2. Group*
 
-- 7.2.2.1. Group name (user editable)
+- 7.2.2.1. Group name (user editable, unique per user, case-insensitive)
 - 7.2.2.2. Group type: Manual or Promoted (from tags)
 - 7.2.2.3. Member contact IDs
+- 7.2.2.4. Duplicate prevention: Database constraint ensures uniqueness per user
 
 *7.2.3. Tag*
 
-- 7.2.3.1. Tag text (1-3 words)
+- 7.2.3.1. Tag text (1-3 words, unique globally, case-insensitive)
 - 7.2.3.2. Category
 - 7.2.3.3. Associated contact IDs
 - 7.2.3.4. Source: Voice memo, email integration, Instagram integration
+- 7.2.3.5. Duplicate prevention: 
+    - Database constraint ensures unique tag text (case-insensitive)
+    - Semantic similarity matching (85% threshold) prevents near-duplicates
+    - Contacts cannot have the same tag assigned multiple times
 
 *7.2.4. Interaction Log*
 

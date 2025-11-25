@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS groups (
     is_promoted_from_tag BOOLEAN DEFAULT FALSE,
     archived BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_group_name_per_user UNIQUE (user_id, name)
 );
 
 -- Create indexes for groups
@@ -61,12 +62,14 @@ CREATE TABLE IF NOT EXISTS tags (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     text VARCHAR(100) NOT NULL,
     source tag_source NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_tag_text UNIQUE (LOWER(text))
 );
 
 -- Create indexes for tags
 CREATE INDEX idx_tags_text ON tags(text);
 CREATE INDEX idx_tags_source ON tags(source);
+CREATE INDEX idx_tags_text_lower ON tags(LOWER(text));
 
 -- Create contact_tags junction table (many-to-many relationship)
 CREATE TABLE IF NOT EXISTS contact_tags (

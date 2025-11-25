@@ -8,6 +8,13 @@ import pool from '../db/connection';
 import { Tag, TagSource } from '../types';
 
 /**
+ * Extended Tag type with contact count
+ */
+export interface TagWithCount extends Tag {
+  contactCount: number;
+}
+
+/**
  * Tag Repository Interface
  */
 export interface TagRepository {
@@ -18,8 +25,13 @@ export interface TagRepository {
   findByText(text: string): Promise<Tag | null>;
   findSimilarTags(text: string, threshold: number): Promise<Tag[]>;
   delete(id: string): Promise<void>;
+  deleteTag(id: string): Promise<void>;
   addToContact(contactId: string, tagId: string, userId: string): Promise<void>;
   removeFromContact(contactId: string, tagId: string, userId: string): Promise<void>;
+  getTagWithContactCount(id: string): Promise<TagWithCount | null>;
+  listTagsWithContactCounts(): Promise<TagWithCount[]>;
+  getTagContacts(tagId: string): Promise<any[]>;
+  bulkAddToContacts(contactIds: string[], tagId: string, userId: string): Promise<void>;
 }
 
 /**
@@ -103,6 +115,15 @@ export class PostgresTagRepository implements TagRepository {
   }
 
   async delete(id: string): Promise<void> {
+    const result = await pool.query('DELETE FROM tags WHERE id = $1', [id]);
+
+    if (result.rowCount === 0) {
+      throw new Error('Tag not found');
+    }
+  }
+
+  async deleteTag(id: string): Promise<void> {
+    // Delete tag and all associations (cascade should handle this)
     const result = await pool.query('DELETE FROM tags WHERE id = $1', [id]);
 
     if (result.rowCount === 0) {
@@ -206,12 +227,107 @@ export class PostgresTagRepository implements TagRepository {
     return ngrams;
   }
 
+  async getTagWithContactCount(id: string): Promise<TagWithCount | null> {
+    const result = await pool.query(
+      `SELECT t.*, COUNT(ct.contact_id) as contact_count
+       FROM tags t
+       LEFT JOIN contact_tags ct ON t.id = ct.tag_id
+       WHERE t.id = $1
+       GROUP BY t.id`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToTagWithCount(result.rows[0]);
+  }
+
+  async listTagsWithContactCounts(): Promise<TagWithCount[]> {
+    const result = await pool.query(
+      `SELECT t.*, COUNT(ct.contact_id) as contact_count
+       FROM tags t
+       LEFT JOIN contact_tags ct ON t.id = ct.tag_id
+       GROUP BY t.id
+       ORDER BY t.text ASC`
+    );
+
+    return result.rows.map((row) => this.mapRowToTagWithCount(row));
+  }
+
+  async getTagContacts(tagId: string): Promise<any[]> {
+    const result = await pool.query(
+      `SELECT c.id, c.name, c.email, c.phone
+       FROM contacts c
+       INNER JOIN contact_tags ct ON c.id = ct.contact_id
+       WHERE ct.tag_id = $1 AND c.archived = false
+       ORDER BY c.name ASC`,
+      [tagId]
+    );
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      phone: row.phone,
+    }));
+  }
+
+  async bulkAddToContacts(contactIds: string[], tagId: string, userId: string): Promise<void> {
+    if (contactIds.length === 0) {
+      return;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Verify tag exists
+      const tagCheck = await client.query('SELECT id FROM tags WHERE id = $1', [tagId]);
+      if (tagCheck.rows.length === 0) {
+        throw new Error('Tag not found');
+      }
+
+      // Verify all contacts belong to user
+      const contactCheck = await client.query(
+        'SELECT id FROM contacts WHERE id = ANY($1) AND user_id = $2',
+        [contactIds, userId]
+      );
+      if (contactCheck.rows.length !== contactIds.length) {
+        throw new Error('One or more contacts not found');
+      }
+
+      // Bulk insert
+      const values = contactIds.map((contactId) => `('${contactId}', '${tagId}')`).join(',');
+      await client.query(
+        `INSERT INTO contact_tags (contact_id, tag_id)
+         VALUES ${values}
+         ON CONFLICT (contact_id, tag_id) DO NOTHING`
+      );
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   private mapRowToTag(row: any): Tag {
     return {
       id: row.id,
       text: row.text,
       source: row.source as TagSource,
       createdAt: new Date(row.created_at),
+    };
+  }
+
+  private mapRowToTagWithCount(row: any): TagWithCount {
+    return {
+      ...this.mapRowToTag(row),
+      contactCount: parseInt(row.contact_count, 10) || 0,
     };
   }
 }

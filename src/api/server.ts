@@ -3,6 +3,7 @@ import cors from 'cors';
 import authRouter from './routes/auth';
 import auditRouter from './routes/audit';
 import contactsRouter from './routes/contacts';
+import groupsTagsRouter from './routes/groups-tags';
 import suggestionsRouter from './routes/suggestions';
 import calendarRouter from './routes/calendar';
 import voiceNotesRouter from './routes/voice-notes';
@@ -54,6 +55,7 @@ export function createServer(): Express {
   app.use('/api/auth', authRouter);
   app.use('/api/audit', auditRouter);
   app.use('/api/contacts', contactsRouter);
+  app.use('/api/groups-tags', groupsTagsRouter);
   app.use('/api/suggestions', suggestionsRouter);
   app.use('/api/calendar', calendarRouter);
   app.use('/api/voice-notes', voiceNotesRouter);

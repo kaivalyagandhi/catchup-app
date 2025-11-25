@@ -157,6 +157,9 @@ function navigateTo(page) {
         case 'contacts':
             loadContacts();
             break;
+        case 'groups-tags':
+            loadGroupsTagsManagement();
+            break;
         case 'suggestions':
             loadSuggestions();
             break;
@@ -172,8 +175,23 @@ function navigateTo(page) {
     }
 }
 
+// Wrapper function for button navigation (used by Preferences button)
+function navigateToPage(page) {
+    navigateTo(page);
+}
+
 // Contacts Management
 async function loadContacts() {
+    const container = document.getElementById('contacts-list');
+    
+    // Show loading state
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading contacts...</p>
+        </div>
+    `;
+    
     try {
         // Load groups first for lookup
         const groupsResponse = await fetch(`${API_BASE}/contacts/groups?userId=${userId}`, {
@@ -343,7 +361,14 @@ async function saveContact(event) {
         customNotes: document.getElementById('contact-notes').value || undefined,
     };
     
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
     try {
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+        
         let response;
         let contactId = id;
         
@@ -385,11 +410,24 @@ async function saveContact(event) {
         // Handle groups
         await syncContactGroups(contactId, savedContact.groups || []);
         
+        // Show success toast
+        showToast(id ? 'Contact updated successfully!' : 'Contact created successfully!', 'success');
+        
         closeContactModal();
         loadContacts();
+        
+        // Refresh groups and tags management view if it's currently visible
+        // This ensures contact counts are updated in the management view
+        if (currentPage === 'groups-tags') {
+            await loadGroupsTagsManagement();
+        }
     } catch (error) {
         console.error('Error saving contact:', error);
         showModalError('contact-modal-error', 'Failed to save contact');
+    } finally {
+        // Restore button state
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
     }
 }
 
@@ -495,6 +533,8 @@ async function syncContactGroups(contactId, existingGroups) {
 async function deleteContact(id) {
     if (!confirm('Are you sure you want to delete this contact?')) return;
     
+    const loadingToastId = showToast('Deleting contact...', 'loading');
+    
     try {
         const response = await fetch(`${API_BASE}/contacts/${id}?userId=${userId}`, {
             method: 'DELETE',
@@ -508,10 +548,20 @@ async function deleteContact(id) {
         
         if (!response.ok) throw new Error('Failed to delete contact');
         
+        hideToast(loadingToastId);
+        showToast('Contact deleted successfully!', 'success');
+        
         loadContacts();
+        
+        // Refresh groups and tags management view if it's currently visible
+        // This ensures contact counts are updated in the management view
+        if (currentPage === 'groups-tags') {
+            await loadGroupsTagsManagement();
+        }
     } catch (error) {
         console.error('Error deleting contact:', error);
-        alert('Failed to delete contact');
+        hideToast(loadingToastId);
+        showToast('Failed to delete contact', 'error');
     }
 }
 
@@ -620,11 +670,1359 @@ function removeGroupFromContact(index) {
     renderContactGroups();
 }
 
+// Groups & Tags Management
+let allGroups = [];
+let allTags = [];
+
+async function loadGroupsTagsManagement() {
+    await loadGroupsList();
+    await loadTags();
+}
+
+async function loadGroupsList() {
+    const container = document.getElementById('groups-list');
+    
+    // Show loading indicator
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading groups...</p>
+        </div>
+    `;
+    
+    try {
+        const response = await fetchWithRetry(`${API_BASE}/groups-tags/groups?userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load groups');
+        }
+        
+        allGroups = await response.json();
+        renderGroupsList(allGroups);
+    } catch (error) {
+        console.error('Error loading groups:', error);
+        container.innerHTML = `
+            <div class="error-state">
+                <h3>Failed to load groups</h3>
+                <p>${escapeHtml(error.message)}</p>
+                <button onclick="loadGroupsList()" class="retry-btn">Retry</button>
+            </div>
+        `;
+    }
+}
+
+// Load tags from API with loading indicator
+async function loadTags() {
+    const container = document.getElementById('tags-list');
+    
+    // Show loading indicator
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading tags...</p>
+        </div>
+    `;
+    
+    try {
+        const response = await fetchWithRetry(`${API_BASE}/groups-tags/tags`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load tags');
+        }
+        
+        allTags = await response.json();
+        renderTags(allTags);
+    } catch (error) {
+        console.error('Error loading tags:', error);
+        container.innerHTML = `
+            <div class="error-state">
+                <h3>Failed to load tags</h3>
+                <p>${escapeHtml(error.message)}</p>
+                <button onclick="loadTags()" class="retry-btn">Retry</button>
+            </div>
+        `;
+    }
+}
+
+// Alias for backward compatibility
+async function loadTagsList() {
+    await loadTags();
+}
+
+function renderGroupsList(groupsList) {
+    const container = document.getElementById('groups-list');
+    
+    if (groupsList.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>No groups yet</h3>
+                <p>Create your first group to organize contacts</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = groupsList.map(group => `
+        <div class="management-item" onclick="showGroupContacts('${group.id}')">
+            <div class="management-item-header">
+                <span class="management-item-name">${escapeHtml(group.name)}</span>
+                <span class="management-item-count">${group.contactCount || 0} contacts</span>
+            </div>
+            <div class="management-item-actions" onclick="event.stopPropagation()">
+                <button onclick="showEditGroupModal('${group.id}')">Edit</button>
+                <button class="secondary" onclick="deleteGroup('${group.id}')">Delete</button>
+                <button class="secondary" onclick="showAddContactsToGroupModal('${group.id}')">Add Contacts</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Render tags list with contact counts and click handlers
+function renderTags(tagsList) {
+    const container = document.getElementById('tags-list');
+    
+    // Display empty state when no tags exist
+    if (tagsList.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>No tags yet</h3>
+                <p>Create your first tag to label contacts</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Render tags with contact counts and action buttons
+    container.innerHTML = tagsList.map(tag => `
+        <div class="management-item" onclick="showTagContacts('${tag.id}')">
+            <div class="management-item-header">
+                <span class="management-item-name">${escapeHtml(tag.text)}</span>
+                <span class="management-item-count">${tag.contactCount || 0} contacts</span>
+            </div>
+            <div class="management-item-actions" onclick="event.stopPropagation()">
+                <button onclick="showEditTagModal('${tag.id}')">Edit</button>
+                <button class="secondary" onclick="deleteTag('${tag.id}')">Delete</button>
+                <button class="secondary" onclick="showAddContactsToTagModal('${tag.id}')">Add Contacts</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Alias for backward compatibility
+function renderTagsList(tagsList) {
+    renderTags(tagsList);
+}
+
+function searchGroups() {
+    const query = document.getElementById('group-search').value.toLowerCase();
+    const filtered = allGroups.filter(g => 
+        g.name.toLowerCase().includes(query)
+    );
+    renderGroupsList(filtered);
+}
+
+function searchTags() {
+    const query = document.getElementById('tag-search').value.toLowerCase();
+    const filtered = allTags.filter(t => 
+        t.text.toLowerCase().includes(query)
+    );
+    renderTags(filtered);
+}
+
+// Group Management Modal Functions
+function showCreateGroupModal() {
+    document.getElementById('group-modal-title').textContent = 'Create Group';
+    document.getElementById('group-form').reset();
+    document.getElementById('group-id').value = '';
+    document.getElementById('group-modal-error').classList.add('hidden');
+    document.getElementById('group-modal-success').classList.add('hidden');
+    document.getElementById('group-modal').classList.remove('hidden');
+}
+
+function showEditGroupModal(groupId) {
+    const group = allGroups.find(g => g.id === groupId);
+    if (!group) {
+        alert('Group not found');
+        return;
+    }
+    
+    document.getElementById('group-modal-title').textContent = 'Edit Group';
+    document.getElementById('group-id').value = group.id;
+    document.getElementById('group-name').value = group.name;
+    document.getElementById('group-modal-error').classList.add('hidden');
+    document.getElementById('group-modal-success').classList.add('hidden');
+    document.getElementById('group-modal').classList.remove('hidden');
+}
+
+function closeGroupModal() {
+    document.getElementById('group-modal').classList.add('hidden');
+    document.getElementById('group-modal-error').classList.add('hidden');
+    document.getElementById('group-modal-success').classList.add('hidden');
+}
+
+async function saveGroup(event) {
+    event.preventDefault();
+    
+    const id = document.getElementById('group-id').value;
+    const rawName = document.getElementById('group-name').value;
+    const name = sanitizeInput(rawName);
+    
+    // Validation: Check if name is empty
+    if (!name) {
+        showModalError('group-modal-error', 'Group name is required');
+        return;
+    }
+    
+    // Validation: Check name length
+    if (name.length > 255) {
+        showModalError('group-modal-error', 'Group name must be 255 characters or less');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('group-submit-btn');
+    const originalText = submitBtn.textContent;
+    
+    // Use concurrency control to prevent duplicate submissions
+    const operationKey = `save-group-${id || 'new'}`;
+    
+    try {
+        await executeWithConcurrencyControl(operationKey, async () => {
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+            
+            let response;
+            
+            if (id) {
+                // Update existing group
+                response = await fetchWithRetry(`${API_BASE}/groups-tags/groups/${id}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ userId, name })
+                });
+            } else {
+                // Create new group
+                response = await fetchWithRetry(`${API_BASE}/groups-tags/groups`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ userId, name })
+                });
+            }
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to save group');
+            }
+            
+            // Show success message
+            const successEl = document.getElementById('group-modal-success');
+            successEl.textContent = id ? 'Group updated successfully!' : 'Group created successfully!';
+            successEl.classList.remove('hidden');
+            
+            // Hide error if it was showing
+            document.getElementById('group-modal-error').classList.add('hidden');
+            
+            // Reload groups list
+            await loadGroupsList();
+            
+            // Refresh contacts view if it's currently visible
+            // This ensures group badges are updated in the contacts list
+            if (currentPage === 'contacts') {
+                await loadContacts();
+            }
+            
+            // Close modal after a short delay
+            setTimeout(() => {
+                closeGroupModal();
+            }, 1000);
+        });
+    } catch (error) {
+        console.error('Error saving group:', error);
+        showModalError('group-modal-error', error.message || 'Failed to save group');
+    } finally {
+        // Restore button state
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+async function deleteGroup(groupId) {
+    const group = allGroups.find(g => g.id === groupId);
+    if (!group) {
+        showToast('Group not found', 'error');
+        return;
+    }
+    
+    // Confirmation dialog
+    const confirmMessage = group.contactCount > 0 
+        ? `Are you sure you want to delete "${escapeHtml(group.name)}"? This will remove ${group.contactCount} contact(s) from this group, but the contacts themselves will be preserved.`
+        : `Are you sure you want to delete "${escapeHtml(group.name)}"?`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Show loading toast
+    const loadingToastId = showToast('Deleting group...', 'loading');
+    
+    // Use concurrency control
+    const operationKey = `delete-group-${groupId}`;
+    
+    try {
+        await executeWithConcurrencyControl(operationKey, async () => {
+            const response = await fetchWithRetry(`${API_BASE}/groups-tags/groups/${groupId}?userId=${userId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to delete group' }));
+                throw new Error(errorData.error || 'Failed to delete group');
+            }
+            
+            // Hide loading toast
+            hideToast(loadingToastId);
+            
+            // Show success message
+            showToast('Group deleted successfully!', 'success');
+            
+            // Reload groups list
+            await loadGroupsList();
+            
+            // Refresh contacts view if it's currently visible
+            // This ensures group badges are removed from contacts
+            if (currentPage === 'contacts') {
+                await loadContacts();
+            }
+        });
+    } catch (error) {
+        console.error('Error deleting group:', error);
+        hideToast(loadingToastId);
+        showToast(error.message || 'Failed to delete group', 'error');
+    }
+}
+
+// Group Contact Association Management
+let currentGroupId = null;
+let groupContacts = [];
+let availableContactsForGroup = [];
+let selectedContactIds = [];
+
+async function showGroupContacts(groupId) {
+    currentGroupId = groupId;
+    const group = allGroups.find(g => g.id === groupId);
+    
+    if (!group) {
+        alert('Group not found');
+        return;
+    }
+    
+    // Update modal title
+    document.getElementById('group-contacts-modal-title').textContent = `${group.name} - Contacts`;
+    
+    // Show loading state
+    const container = document.getElementById('group-contacts-list');
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading contacts...</p>
+        </div>
+    `;
+    
+    // Show modal
+    document.getElementById('group-contacts-modal').classList.remove('hidden');
+    document.getElementById('group-contacts-modal-error').classList.add('hidden');
+    document.getElementById('group-contacts-modal-success').classList.add('hidden');
+    
+    try {
+        const response = await fetch(`${API_BASE}/groups-tags/groups/${groupId}/contacts?userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) throw new Error('Failed to load group contacts');
+        
+        groupContacts = await response.json();
+        renderGroupContacts();
+    } catch (error) {
+        console.error('Error loading group contacts:', error);
+        container.innerHTML = `<div class="error">Failed to load contacts</div>`;
+    }
+}
+
+function renderGroupContacts() {
+    const container = document.getElementById('group-contacts-list');
+    
+    if (groupContacts.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>No contacts in this group</h3>
+                <p>Add contacts to get started</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = groupContacts.map(contact => `
+        <div class="contact-item">
+            <div class="contact-item-info">
+                <div class="contact-item-name">${escapeHtml(contact.name)}</div>
+                <div class="contact-item-details">
+                    ${contact.email ? escapeHtml(contact.email) : ''}
+                    ${contact.email && contact.phone ? ' • ' : ''}
+                    ${contact.phone ? escapeHtml(contact.phone) : ''}
+                </div>
+            </div>
+            <div class="contact-item-actions">
+                <button class="secondary" onclick="removeContactFromGroup('${contact.id}')">Remove</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function closeGroupContactsModal() {
+    document.getElementById('group-contacts-modal').classList.add('hidden');
+    currentGroupId = null;
+    groupContacts = [];
+}
+
+function showAddContactsToGroupModalFromView() {
+    if (!currentGroupId) return;
+    showAddContactsToGroupModal(currentGroupId);
+}
+
+async function showAddContactsToGroupModal(groupId) {
+    currentGroupId = groupId;
+    selectedContactIds = [];
+    
+    const group = allGroups.find(g => g.id === groupId);
+    
+    if (!group) {
+        alert('Group not found');
+        return;
+    }
+    
+    // Update modal title
+    document.getElementById('add-contacts-to-group-modal-title').textContent = `Add Contacts to ${group.name}`;
+    
+    // Show loading state
+    const container = document.getElementById('available-contacts-list');
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading available contacts...</p>
+        </div>
+    `;
+    
+    // Show modal
+    document.getElementById('add-contacts-to-group-modal').classList.remove('hidden');
+    document.getElementById('add-contacts-to-group-modal-error').classList.add('hidden');
+    document.getElementById('add-contacts-to-group-modal-success').classList.add('hidden');
+    document.getElementById('add-contacts-search').value = '';
+    
+    try {
+        // Load all contacts
+        const contactsResponse = await fetch(`${API_BASE}/contacts?userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (contactsResponse.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!contactsResponse.ok) throw new Error('Failed to load contacts');
+        
+        const allContacts = await contactsResponse.json();
+        
+        // Load current group contacts
+        const groupContactsResponse = await fetch(`${API_BASE}/groups-tags/groups/${groupId}/contacts?userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (!groupContactsResponse.ok) throw new Error('Failed to load group contacts');
+        
+        const currentGroupContacts = await groupContactsResponse.json();
+        const currentGroupContactIds = currentGroupContacts.map(c => c.id);
+        
+        // Filter out contacts already in the group
+        availableContactsForGroup = allContacts.filter(c => !currentGroupContactIds.includes(c.id));
+        
+        renderAvailableContacts();
+    } catch (error) {
+        console.error('Error loading available contacts:', error);
+        container.innerHTML = `<div class="error">Failed to load contacts</div>`;
+    }
+}
+
+function renderAvailableContacts() {
+    const container = document.getElementById('available-contacts-list');
+    const searchQuery = document.getElementById('add-contacts-search').value.toLowerCase();
+    
+    // Filter contacts based on search
+    const filteredContacts = availableContactsForGroup.filter(contact => {
+        if (!searchQuery) return true;
+        return contact.name.toLowerCase().includes(searchQuery) ||
+               (contact.email && contact.email.toLowerCase().includes(searchQuery)) ||
+               (contact.phone && contact.phone.includes(searchQuery));
+    });
+    
+    if (filteredContacts.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>No available contacts</h3>
+                <p>${searchQuery ? 'Try a different search' : 'All contacts are already in this group'}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = filteredContacts.map(contact => `
+        <div class="contact-selection-item" onclick="toggleContactSelection('${contact.id}', event)">
+            <input type="checkbox" 
+                   id="contact-checkbox-${contact.id}" 
+                   ${selectedContactIds.includes(contact.id) ? 'checked' : ''}
+                   onclick="event.stopPropagation(); toggleContactSelection('${contact.id}', event)">
+            <div class="contact-selection-info">
+                <div class="contact-selection-name">${escapeHtml(contact.name)}</div>
+                <div class="contact-selection-details">
+                    ${contact.email ? escapeHtml(contact.email) : ''}
+                    ${contact.email && contact.phone ? ' • ' : ''}
+                    ${contact.phone ? escapeHtml(contact.phone) : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function filterAvailableContacts() {
+    renderAvailableContacts();
+}
+
+function toggleContactSelection(contactId, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    const checkbox = document.getElementById(`contact-checkbox-${contactId}`);
+    
+    if (selectedContactIds.includes(contactId)) {
+        selectedContactIds = selectedContactIds.filter(id => id !== contactId);
+        if (checkbox) checkbox.checked = false;
+    } else {
+        selectedContactIds.push(contactId);
+        if (checkbox) checkbox.checked = true;
+    }
+}
+
+function closeAddContactsToGroupModal() {
+    document.getElementById('add-contacts-to-group-modal').classList.add('hidden');
+    selectedContactIds = [];
+    availableContactsForGroup = [];
+}
+
+async function addSelectedContactsToGroup() {
+    if (selectedContactIds.length === 0) {
+        showModalError('add-contacts-to-group-modal-error', 'Please select at least one contact');
+        return;
+    }
+    
+    if (!currentGroupId) {
+        showModalError('add-contacts-to-group-modal-error', 'Group not found');
+        return;
+    }
+    
+    const addBtn = document.getElementById('add-contacts-btn');
+    const originalText = addBtn.textContent;
+    
+    try {
+        // Show loading state
+        addBtn.disabled = true;
+        addBtn.innerHTML = '<span class="loading-spinner"></span> Adding...';
+        
+        const response = await fetch(`${API_BASE}/groups-tags/groups/${currentGroupId}/contacts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                userId: userId,
+                contactIds: selectedContactIds
+            })
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to add contacts to group');
+        }
+        
+        // Show success message
+        const successEl = document.getElementById('add-contacts-to-group-modal-success');
+        successEl.textContent = `Successfully added ${selectedContactIds.length} contact(s) to group!`;
+        successEl.classList.remove('hidden');
+        
+        // Hide error if it was showing
+        document.getElementById('add-contacts-to-group-modal-error').classList.add('hidden');
+        
+        // Reload groups list to update counts
+        await loadGroupsList();
+        
+        // Refresh contacts view if it's currently visible
+        // This ensures group badges are updated in the contacts list
+        if (currentPage === 'contacts') {
+            await loadContacts();
+        }
+        
+        // If group contacts modal is open, refresh it
+        if (!document.getElementById('group-contacts-modal').classList.contains('hidden')) {
+            await showGroupContacts(currentGroupId);
+        }
+        
+        // Close modal after a short delay
+        setTimeout(() => {
+            closeAddContactsToGroupModal();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Error adding contacts to group:', error);
+        showModalError('add-contacts-to-group-modal-error', error.message || 'Failed to add contacts to group');
+    } finally {
+        // Restore button state
+        addBtn.disabled = false;
+        addBtn.textContent = originalText;
+    }
+}
+
+async function addContactsToGroup(groupId, contactIds) {
+    // This is a programmatic version that can be called from other functions
+    try {
+        const response = await fetch(`${API_BASE}/groups-tags/groups/${groupId}/contacts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                userId: userId,
+                contactIds: contactIds
+            })
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to add contacts to group');
+        }
+        
+        // Reload groups list to update counts
+        await loadGroupsList();
+        
+    } catch (error) {
+        console.error('Error adding contacts to group:', error);
+        throw error;
+    }
+}
+
+async function removeContactFromGroup(contactId) {
+    if (!currentGroupId) {
+        showModalError('group-contacts-modal-error', 'Group not found');
+        return;
+    }
+    
+    const contact = groupContacts.find(c => c.id === contactId);
+    if (!contact) {
+        showModalError('group-contacts-modal-error', 'Contact not found');
+        return;
+    }
+    
+    // Confirmation dialog
+    if (!confirm(`Are you sure you want to remove ${escapeHtml(contact.name)} from this group?`)) {
+        return;
+    }
+    
+    // Show loading state in the contact list
+    const loadingToastId = showToast('Removing contact...', 'loading');
+    
+    // Use concurrency control
+    const operationKey = `remove-contact-from-group-${currentGroupId}-${contactId}`;
+    
+    try {
+        await executeWithConcurrencyControl(operationKey, async () => {
+            const response = await fetchWithRetry(`${API_BASE}/groups-tags/groups/${currentGroupId}/contacts/${contactId}?userId=${userId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to remove contact from group' }));
+                throw new Error(errorData.error || 'Failed to remove contact from group');
+            }
+            
+            // Hide loading toast
+            hideToast(loadingToastId);
+            
+            // Show success message
+            const successEl = document.getElementById('group-contacts-modal-success');
+            successEl.textContent = 'Contact removed successfully!';
+            successEl.classList.remove('hidden');
+            
+            // Hide error if it was showing
+            document.getElementById('group-contacts-modal-error').classList.add('hidden');
+            
+            // Reload groups list to update counts
+            await loadGroupsList();
+            
+            // Refresh contacts view if it's currently visible
+            // This ensures group badges are updated in the contacts list
+            if (currentPage === 'contacts') {
+                await loadContacts();
+            }
+            
+            // Refresh the contacts list
+            await showGroupContacts(currentGroupId);
+            
+            // Hide success message after 3 seconds
+            setTimeout(() => {
+                successEl.classList.add('hidden');
+            }, 3000);
+        });
+    } catch (error) {
+        console.error('Error removing contact from group:', error);
+        hideToast(loadingToastId);
+        showModalError('group-contacts-modal-error', error.message || 'Failed to remove contact from group');
+    }
+}
+
+// Tag Management Modal Functions
+function showCreateTagModal() {
+    document.getElementById('tag-modal-title').textContent = 'Create Tag';
+    document.getElementById('tag-form').reset();
+    document.getElementById('tag-id').value = '';
+    document.getElementById('tag-modal-error').classList.add('hidden');
+    document.getElementById('tag-modal-success').classList.add('hidden');
+    document.getElementById('tag-modal').classList.remove('hidden');
+}
+
+function showEditTagModal(tagId) {
+    const tag = allTags.find(t => t.id === tagId);
+    if (!tag) {
+        alert('Tag not found');
+        return;
+    }
+    
+    document.getElementById('tag-modal-title').textContent = 'Edit Tag';
+    document.getElementById('tag-id').value = tag.id;
+    document.getElementById('tag-text').value = tag.text;
+    document.getElementById('tag-modal-error').classList.add('hidden');
+    document.getElementById('tag-modal-success').classList.add('hidden');
+    document.getElementById('tag-modal').classList.remove('hidden');
+}
+
+function closeTagModal() {
+    document.getElementById('tag-modal').classList.add('hidden');
+    document.getElementById('tag-modal-error').classList.add('hidden');
+    document.getElementById('tag-modal-success').classList.add('hidden');
+}
+
+async function saveTag(event) {
+    event.preventDefault();
+    
+    const id = document.getElementById('tag-id').value;
+    const rawText = document.getElementById('tag-text').value;
+    const text = sanitizeInput(rawText);
+    
+    // Validation: Check if text is empty
+    if (!text) {
+        showModalError('tag-modal-error', 'Tag text is required');
+        return;
+    }
+    
+    // Validation: Check word count (1-3 words)
+    const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
+    if (wordCount > 3) {
+        showModalError('tag-modal-error', 'Tag must be 1-3 words');
+        return;
+    }
+    
+    // Validation: Check text length
+    if (text.length > 100) {
+        showModalError('tag-modal-error', 'Tag text must be 100 characters or less');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('tag-submit-btn');
+    const originalText = submitBtn.textContent;
+    
+    // Use concurrency control to prevent duplicate submissions
+    const operationKey = `save-tag-${id || 'new'}`;
+    
+    try {
+        await executeWithConcurrencyControl(operationKey, async () => {
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+            
+            let response;
+            
+            if (id) {
+                // Update existing tag
+                response = await fetchWithRetry(`${API_BASE}/groups-tags/tags/${id}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ text })
+                });
+            } else {
+                // Create new tag
+                response = await fetchWithRetry(`${API_BASE}/groups-tags/tags`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ text, source: 'manual' })
+                });
+            }
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to save tag');
+            }
+            
+            // Show success message
+            const successEl = document.getElementById('tag-modal-success');
+            successEl.textContent = id ? 'Tag updated successfully!' : 'Tag created successfully!';
+            successEl.classList.remove('hidden');
+            
+            // Hide error if it was showing
+            document.getElementById('tag-modal-error').classList.add('hidden');
+            
+            // Reload tags list
+            await loadTagsList();
+            
+            // Refresh contacts view if it's currently visible
+            // This ensures tag badges are updated in the contacts list
+            if (currentPage === 'contacts') {
+                await loadContacts();
+            }
+            
+            // Close modal after a short delay
+            setTimeout(() => {
+                closeTagModal();
+            }, 1000);
+        });
+    } catch (error) {
+        console.error('Error saving tag:', error);
+        showModalError('tag-modal-error', error.message || 'Failed to save tag');
+    } finally {
+        // Restore button state
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+async function deleteTag(tagId) {
+    const tag = allTags.find(t => t.id === tagId);
+    if (!tag) {
+        showToast('Tag not found', 'error');
+        return;
+    }
+    
+    // Confirmation dialog
+    const confirmMessage = tag.contactCount > 0 
+        ? `Are you sure you want to delete "${escapeHtml(tag.text)}"? This will remove the tag from ${tag.contactCount} contact(s), but the contacts themselves will be preserved.`
+        : `Are you sure you want to delete "${escapeHtml(tag.text)}"?`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Show loading toast
+    const loadingToastId = showToast('Deleting tag...', 'loading');
+    
+    // Use concurrency control
+    const operationKey = `delete-tag-${tagId}`;
+    
+    try {
+        await executeWithConcurrencyControl(operationKey, async () => {
+            const response = await fetchWithRetry(`${API_BASE}/groups-tags/tags/${tagId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to delete tag' }));
+                throw new Error(errorData.error || 'Failed to delete tag');
+            }
+            
+            // Hide loading toast
+            hideToast(loadingToastId);
+            
+            // Show success message
+            showToast('Tag deleted successfully!', 'success');
+            
+            // Reload tags list
+            await loadTagsList();
+            
+            // Refresh contacts view if it's currently visible
+            // This ensures tag badges are removed from contacts
+            if (currentPage === 'contacts') {
+                await loadContacts();
+            }
+        });
+    } catch (error) {
+        console.error('Error deleting tag:', error);
+        hideToast(loadingToastId);
+        showToast(error.message || 'Failed to delete tag', 'error');
+    }
+}
+
+// Tag Contact Association Management
+let currentTagId = null;
+let tagContacts = [];
+let availableContactsForTag = [];
+let selectedContactIdsForTag = [];
+
+async function showTagContacts(tagId) {
+    currentTagId = tagId;
+    const tag = allTags.find(t => t.id === tagId);
+    
+    if (!tag) {
+        alert('Tag not found');
+        return;
+    }
+    
+    // Update modal title
+    document.getElementById('tag-contacts-modal-title').textContent = `${tag.text} - Contacts`;
+    
+    // Show loading state
+    const container = document.getElementById('tag-contacts-list');
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading contacts...</p>
+        </div>
+    `;
+    
+    // Show modal
+    document.getElementById('tag-contacts-modal').classList.remove('hidden');
+    document.getElementById('tag-contacts-modal-error').classList.add('hidden');
+    document.getElementById('tag-contacts-modal-success').classList.add('hidden');
+    
+    try {
+        const response = await fetch(`${API_BASE}/groups-tags/tags/${tagId}/contacts`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) throw new Error('Failed to load tag contacts');
+        
+        tagContacts = await response.json();
+        renderTagContacts();
+    } catch (error) {
+        console.error('Error loading tag contacts:', error);
+        container.innerHTML = `<div class="error">Failed to load contacts</div>`;
+    }
+}
+
+function renderTagContacts() {
+    const container = document.getElementById('tag-contacts-list');
+    
+    if (tagContacts.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>No contacts with this tag</h3>
+                <p>Add contacts to get started</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = tagContacts.map(contact => `
+        <div class="contact-item">
+            <div class="contact-item-info">
+                <div class="contact-item-name">${escapeHtml(contact.name)}</div>
+                <div class="contact-item-details">
+                    ${contact.email ? escapeHtml(contact.email) : ''}
+                    ${contact.email && contact.phone ? ' • ' : ''}
+                    ${contact.phone ? escapeHtml(contact.phone) : ''}
+                </div>
+            </div>
+            <div class="contact-item-actions">
+                <button class="secondary" onclick="removeContactFromTag('${contact.id}')">Remove</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function closeTagContactsModal() {
+    document.getElementById('tag-contacts-modal').classList.add('hidden');
+    currentTagId = null;
+    tagContacts = [];
+}
+
+function showAddContactsToTagModalFromView() {
+    if (!currentTagId) return;
+    showAddContactsToTagModal(currentTagId);
+}
+
+async function showAddContactsToTagModal(tagId) {
+    currentTagId = tagId;
+    selectedContactIdsForTag = [];
+    
+    const tag = allTags.find(t => t.id === tagId);
+    
+    if (!tag) {
+        alert('Tag not found');
+        return;
+    }
+    
+    // Update modal title
+    document.getElementById('add-contacts-to-tag-modal-title').textContent = `Add Contacts to ${tag.text}`;
+    
+    // Show loading state
+    const container = document.getElementById('available-contacts-for-tag-list');
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading available contacts...</p>
+        </div>
+    `;
+    
+    // Show modal
+    document.getElementById('add-contacts-to-tag-modal').classList.remove('hidden');
+    document.getElementById('add-contacts-to-tag-modal-error').classList.add('hidden');
+    document.getElementById('add-contacts-to-tag-modal-success').classList.add('hidden');
+    document.getElementById('add-contacts-to-tag-search').value = '';
+    
+    try {
+        // Load all contacts
+        const contactsResponse = await fetch(`${API_BASE}/contacts?userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (contactsResponse.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!contactsResponse.ok) throw new Error('Failed to load contacts');
+        
+        const allContacts = await contactsResponse.json();
+        
+        // Load current tag contacts
+        const tagContactsResponse = await fetch(`${API_BASE}/groups-tags/tags/${tagId}/contacts`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (!tagContactsResponse.ok) throw new Error('Failed to load tag contacts');
+        
+        const currentTagContacts = await tagContactsResponse.json();
+        const currentTagContactIds = currentTagContacts.map(c => c.id);
+        
+        // Filter out contacts already tagged
+        availableContactsForTag = allContacts.filter(c => !currentTagContactIds.includes(c.id));
+        
+        renderAvailableContactsForTag();
+    } catch (error) {
+        console.error('Error loading available contacts:', error);
+        container.innerHTML = `<div class="error">Failed to load contacts</div>`;
+    }
+}
+
+function renderAvailableContactsForTag() {
+    const container = document.getElementById('available-contacts-for-tag-list');
+    const searchQuery = document.getElementById('add-contacts-to-tag-search').value.toLowerCase();
+    
+    // Filter contacts based on search
+    const filteredContacts = availableContactsForTag.filter(contact => {
+        if (!searchQuery) return true;
+        return contact.name.toLowerCase().includes(searchQuery) ||
+               (contact.email && contact.email.toLowerCase().includes(searchQuery)) ||
+               (contact.phone && contact.phone.includes(searchQuery));
+    });
+    
+    if (filteredContacts.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>No available contacts</h3>
+                <p>${searchQuery ? 'Try a different search' : 'All contacts already have this tag'}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = filteredContacts.map(contact => `
+        <div class="contact-selection-item" onclick="toggleContactSelectionForTag('${contact.id}', event)">
+            <input type="checkbox" 
+                   id="contact-checkbox-tag-${contact.id}" 
+                   ${selectedContactIdsForTag.includes(contact.id) ? 'checked' : ''}
+                   onclick="event.stopPropagation(); toggleContactSelectionForTag('${contact.id}', event)">
+            <div class="contact-selection-info">
+                <div class="contact-selection-name">${escapeHtml(contact.name)}</div>
+                <div class="contact-selection-details">
+                    ${contact.email ? escapeHtml(contact.email) : ''}
+                    ${contact.email && contact.phone ? ' • ' : ''}
+                    ${contact.phone ? escapeHtml(contact.phone) : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function filterAvailableContactsForTag() {
+    renderAvailableContactsForTag();
+}
+
+function toggleContactSelectionForTag(contactId, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    const checkbox = document.getElementById(`contact-checkbox-tag-${contactId}`);
+    
+    if (selectedContactIdsForTag.includes(contactId)) {
+        selectedContactIdsForTag = selectedContactIdsForTag.filter(id => id !== contactId);
+        if (checkbox) checkbox.checked = false;
+    } else {
+        selectedContactIdsForTag.push(contactId);
+        if (checkbox) checkbox.checked = true;
+    }
+}
+
+function closeAddContactsToTagModal() {
+    document.getElementById('add-contacts-to-tag-modal').classList.add('hidden');
+    selectedContactIdsForTag = [];
+    availableContactsForTag = [];
+}
+
+async function addSelectedContactsToTag() {
+    if (selectedContactIdsForTag.length === 0) {
+        showModalError('add-contacts-to-tag-modal-error', 'Please select at least one contact');
+        return;
+    }
+    
+    if (!currentTagId) {
+        showModalError('add-contacts-to-tag-modal-error', 'Tag not found');
+        return;
+    }
+    
+    const addBtn = document.getElementById('add-contacts-to-tag-btn');
+    const originalText = addBtn.textContent;
+    
+    try {
+        // Show loading state
+        addBtn.disabled = true;
+        addBtn.innerHTML = '<span class="loading-spinner"></span> Adding...';
+        
+        const response = await fetch(`${API_BASE}/groups-tags/tags/${currentTagId}/contacts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                userId: userId,
+                contactIds: selectedContactIdsForTag
+            })
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to add contacts to tag');
+        }
+        
+        // Show success message
+        const successEl = document.getElementById('add-contacts-to-tag-modal-success');
+        successEl.textContent = `Successfully added ${selectedContactIdsForTag.length} contact(s) to tag!`;
+        successEl.classList.remove('hidden');
+        
+        // Hide error if it was showing
+        document.getElementById('add-contacts-to-tag-modal-error').classList.add('hidden');
+        
+        // Reload tags list to update counts
+        await loadTagsList();
+        
+        // Refresh contacts view if it's currently visible
+        // This ensures tag badges are updated in the contacts list
+        if (currentPage === 'contacts') {
+            await loadContacts();
+        }
+        
+        // If tag contacts modal is open, refresh it
+        if (!document.getElementById('tag-contacts-modal').classList.contains('hidden')) {
+            await showTagContacts(currentTagId);
+        }
+        
+        // Close modal after a short delay
+        setTimeout(() => {
+            closeAddContactsToTagModal();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Error adding contacts to tag:', error);
+        showModalError('add-contacts-to-tag-modal-error', error.message || 'Failed to add contacts to tag');
+    } finally {
+        // Restore button state
+        addBtn.disabled = false;
+        addBtn.textContent = originalText;
+    }
+}
+
+async function addContactsToTag(tagId, contactIds) {
+    // This is a programmatic version that can be called from other functions
+    try {
+        const response = await fetch(`${API_BASE}/groups-tags/tags/${tagId}/contacts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                userId: userId,
+                contactIds: contactIds
+            })
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to add contacts to tag');
+        }
+        
+        // Reload tags list to update counts
+        await loadTagsList();
+        
+    } catch (error) {
+        console.error('Error adding contacts to tag:', error);
+        throw error;
+    }
+}
+
+async function removeContactFromTag(contactId) {
+    if (!currentTagId) {
+        showModalError('tag-contacts-modal-error', 'Tag not found');
+        return;
+    }
+    
+    const contact = tagContacts.find(c => c.id === contactId);
+    if (!contact) {
+        showModalError('tag-contacts-modal-error', 'Contact not found');
+        return;
+    }
+    
+    // Confirmation dialog
+    if (!confirm(`Are you sure you want to remove ${escapeHtml(contact.name)} from this tag?`)) {
+        return;
+    }
+    
+    // Show loading state
+    const loadingToastId = showToast('Removing contact...', 'loading');
+    
+    // Use concurrency control
+    const operationKey = `remove-contact-from-tag-${currentTagId}-${contactId}`;
+    
+    try {
+        await executeWithConcurrencyControl(operationKey, async () => {
+            const response = await fetchWithRetry(`${API_BASE}/groups-tags/tags/${currentTagId}/contacts/${contactId}?userId=${userId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to remove contact from tag' }));
+                throw new Error(errorData.error || 'Failed to remove contact from tag');
+            }
+            
+            // Hide loading toast
+            hideToast(loadingToastId);
+            
+            // Show success message
+            const successEl = document.getElementById('tag-contacts-modal-success');
+            successEl.textContent = 'Contact removed successfully!';
+            successEl.classList.remove('hidden');
+            
+            // Hide error if it was showing
+            document.getElementById('tag-contacts-modal-error').classList.add('hidden');
+            
+            // Reload tags list to update counts
+            await loadTagsList();
+            
+            // Refresh contacts view if it's currently visible
+            // This ensures tag badges are updated in the contacts list
+            if (currentPage === 'contacts') {
+                await loadContacts();
+            }
+            
+            // Refresh the contacts list
+            await showTagContacts(currentTagId);
+            
+            // Hide success message after 3 seconds
+            setTimeout(() => {
+                successEl.classList.add('hidden');
+            }, 3000);
+        });
+    } catch (error) {
+        console.error('Error removing contact from tag:', error);
+        hideToast(loadingToastId);
+        showModalError('tag-contacts-modal-error', error.message || 'Failed to remove contact from tag');
+    }
+}
+
 // Suggestions Management
 let currentSuggestionFilter = 'all';
 let allSuggestions = []; // Store all suggestions for filtering
 
 async function loadSuggestions(statusFilter) {
+    const container = document.getElementById('suggestions-list');
+    
+    // Show loading state
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading suggestions...</p>
+        </div>
+    `;
+    
     try {
         // If statusFilter is provided, update the current filter
         if (statusFilter !== undefined) {
@@ -718,6 +2116,41 @@ function renderSuggestions(suggestionsList) {
             actions = `<span style="color: #6b7280; font-size: 14px;">No actions available</span>`;
         }
         
+        // Extract groups and interests from contact
+        let groupsHtml = '';
+        if (contact && contact.groups && contact.groups.length > 0) {
+            const groupNames = contact.groups
+                .map(groupId => {
+                    const group = groups.find(g => g.id === groupId);
+                    return group ? group.name : null;
+                })
+                .filter(name => name !== null);
+            
+            if (groupNames.length > 0) {
+                groupsHtml = `
+                    <div style="margin-top: 12px;">
+                        <p style="margin: 0 0 6px 0;"><strong>Member of:</strong></p>
+                        <div class="contact-groups">
+                            ${groupNames.map(name => `<span class="group-badge">${escapeHtml(name)}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Extract interests from contact tags
+        let interestsHtml = '';
+        if (contact && contact.tags && contact.tags.length > 0) {
+            interestsHtml = `
+                <div style="margin-top: 12px;">
+                    <p style="margin: 0 0 6px 0;"><strong>Interests:</strong></p>
+                    <div class="contact-tags">
+                        ${contact.tags.map(tag => `<span class="tag-badge">${escapeHtml(tag.text)}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
         return `
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
@@ -729,6 +2162,8 @@ function renderSuggestions(suggestionsList) {
                 <p><strong>Time:</strong> ${formatDateTime(suggestion.proposedTimeslot.start)}</p>
                 <p><strong>Reason:</strong> ${escapeHtml(suggestion.reasoning)}</p>
                 <p><strong>Type:</strong> ${suggestion.triggerType}</p>
+                ${groupsHtml}
+                ${interestsHtml}
                 ${suggestion.snoozedUntil ? `<p><strong>Snoozed until:</strong> ${formatDateTime(suggestion.snoozedUntil)}</p>` : ''}
                 ${suggestion.dismissalReason ? `<p><strong>Dismissal reason:</strong> ${escapeHtml(suggestion.dismissalReason)}</p>` : ''}
                 <div class="card-actions">
@@ -740,6 +2175,8 @@ function renderSuggestions(suggestionsList) {
 }
 
 async function acceptSuggestion(id) {
+    const loadingToastId = showToast('Accepting suggestion...', 'loading');
+    
     try {
         const response = await fetch(`${API_BASE}/suggestions/${id}/accept`, {
             method: 'POST',
@@ -757,16 +2194,22 @@ async function acceptSuggestion(id) {
         
         if (!response.ok) throw new Error('Failed to accept suggestion');
         
+        hideToast(loadingToastId);
+        showToast('Suggestion accepted!', 'success');
+        
         // Reload suggestions maintaining current filter
         loadSuggestions();
     } catch (error) {
         console.error('Error accepting suggestion:', error);
-        alert('Failed to accept suggestion');
+        hideToast(loadingToastId);
+        showToast('Failed to accept suggestion', 'error');
     }
 }
 
 async function dismissSuggestion(id) {
     const reason = prompt('Reason for dismissing (optional):');
+    
+    const loadingToastId = showToast('Dismissing suggestion...', 'loading');
     
     try {
         const response = await fetch(`${API_BASE}/suggestions/${id}/dismiss`, {
@@ -785,11 +2228,15 @@ async function dismissSuggestion(id) {
         
         if (!response.ok) throw new Error('Failed to dismiss suggestion');
         
+        hideToast(loadingToastId);
+        showToast('Suggestion dismissed!', 'success');
+        
         // Reload suggestions maintaining current filter
         loadSuggestions();
     } catch (error) {
         console.error('Error dismissing suggestion:', error);
-        alert('Failed to dismiss suggestion');
+        hideToast(loadingToastId);
+        showToast('Failed to dismiss suggestion', 'error');
     }
 }
 
@@ -799,6 +2246,8 @@ async function snoozeSuggestion(id) {
     
     // Convert days to hours (service expects hours)
     const hours = parseInt(days) * 24;
+    
+    const loadingToastId = showToast('Snoozing suggestion...', 'loading');
     
     try {
         const response = await fetch(`${API_BASE}/suggestions/${id}/snooze`, {
@@ -820,11 +2269,15 @@ async function snoozeSuggestion(id) {
         
         if (!response.ok) throw new Error('Failed to snooze suggestion');
         
+        hideToast(loadingToastId);
+        showToast(`Suggestion snoozed for ${days} day(s)!`, 'success');
+        
         // Reload suggestions maintaining current filter
         loadSuggestions();
     } catch (error) {
         console.error('Error snoozing suggestion:', error);
-        alert('Failed to snooze suggestion');
+        hideToast(loadingToastId);
+        showToast('Failed to snooze suggestion', 'error');
     }
 }
 
@@ -1099,9 +2552,107 @@ function showTestDataError(message) {
 
 // Utility functions
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function sanitizeInput(input) {
+    if (!input) return '';
+    // Remove any HTML tags and trim whitespace
+    return input.replace(/<[^>]*>/g, '').trim();
+}
+
+// Enhanced error handling with retry logic
+async function fetchWithRetry(url, options = {}, maxRetries = 2) {
+    let lastError;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await fetch(url, options);
+            
+            // Handle 401 - Unauthorized
+            if (response.status === 401) {
+                logout();
+                throw new Error('Session expired. Please log in again.');
+            }
+            
+            // Handle 404 - Not Found
+            if (response.status === 404) {
+                const errorData = await response.json().catch(() => ({ error: 'Resource not found' }));
+                throw new Error(errorData.error || 'The requested resource was not found');
+            }
+            
+            // Handle 409 - Conflict
+            if (response.status === 409) {
+                const errorData = await response.json().catch(() => ({ error: 'Conflict' }));
+                throw new Error(errorData.error || 'A conflict occurred with the current state');
+            }
+            
+            // Handle 400 - Bad Request
+            if (response.status === 400) {
+                const errorData = await response.json().catch(() => ({ error: 'Invalid request' }));
+                throw new Error(errorData.error || 'Invalid request data');
+            }
+            
+            // Handle 500 - Server Error (retryable)
+            if (response.status >= 500) {
+                const errorData = await response.json().catch(() => ({ error: 'Server error' }));
+                throw new Error(errorData.error || 'Server error occurred');
+            }
+            
+            return response;
+        } catch (error) {
+            lastError = error;
+            
+            // Don't retry on auth errors or client errors
+            if (error.message.includes('Session expired') || 
+                error.message.includes('not found') ||
+                error.message.includes('Invalid request') ||
+                error.message.includes('Conflict')) {
+                throw error;
+            }
+            
+            // Network errors are retryable
+            if (attempt < maxRetries) {
+                // Exponential backoff: 1s, 2s, 4s
+                const delay = Math.pow(2, attempt) * 1000;
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            
+            // If we've exhausted retries, throw the last error
+            throw new Error(error.message || 'Network error. Please check your connection and try again.');
+        }
+    }
+    
+    throw lastError;
+}
+
+// Handle concurrent operations with a simple queue
+const operationQueue = new Map();
+
+async function executeWithConcurrencyControl(key, operation) {
+    // If an operation with this key is already running, wait for it
+    if (operationQueue.has(key)) {
+        try {
+            await operationQueue.get(key);
+        } catch (e) {
+            // Ignore errors from previous operation
+        }
+    }
+    
+    // Execute the new operation
+    const promise = operation();
+    operationQueue.set(key, promise);
+    
+    try {
+        const result = await promise;
+        return result;
+    } finally {
+        operationQueue.delete(key);
+    }
 }
 
 function formatDateTime(dateString) {
@@ -1118,4 +2669,95 @@ function showModalError(errorId, message) {
     const errorEl = document.getElementById(errorId);
     errorEl.textContent = message;
     errorEl.classList.remove('hidden');
+}
+
+function showGroupTagSuccess(message) {
+    // Create a temporary success message element
+    const successDiv = document.createElement('div');
+    successDiv.className = 'success';
+    successDiv.textContent = message;
+    successDiv.style.position = 'fixed';
+    successDiv.style.top = '20px';
+    successDiv.style.right = '20px';
+    successDiv.style.zIndex = '2000';
+    successDiv.style.minWidth = '250px';
+    successDiv.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+    
+    document.body.appendChild(successDiv);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        successDiv.remove();
+    }, 3000);
+}
+
+// Toast notification system
+let toastCounter = 0;
+const activeToasts = new Map();
+
+function showToast(message, type = 'info') {
+    const toastId = ++toastCounter;
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.id = `toast-${toastId}`;
+    toast.className = `toast toast-${type}`;
+    
+    // Add icon based on type
+    let icon = '';
+    if (type === 'success') {
+        icon = '✓';
+    } else if (type === 'error') {
+        icon = '✕';
+    } else if (type === 'loading') {
+        icon = '<span class="toast-spinner"></span>';
+    } else {
+        icon = 'ℹ';
+    }
+    
+    toast.innerHTML = `
+        <div class="toast-icon">${icon}</div>
+        <div class="toast-message">${escapeHtml(message)}</div>
+    `;
+    
+    // Add to DOM
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+    
+    toastContainer.appendChild(toast);
+    activeToasts.set(toastId, toast);
+    
+    // Trigger animation
+    setTimeout(() => {
+        toast.classList.add('toast-show');
+    }, 10);
+    
+    // Auto-dismiss for non-loading toasts
+    if (type !== 'loading') {
+        const duration = type === 'error' ? 5000 : 3000;
+        setTimeout(() => {
+            hideToast(toastId);
+        }, duration);
+    }
+    
+    return toastId;
+}
+
+function hideToast(toastId) {
+    const toast = activeToasts.get(toastId);
+    if (toast) {
+        toast.classList.remove('toast-show');
+        toast.classList.add('toast-hide');
+        
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+            activeToasts.delete(toastId);
+        }, 300);
+    }
 }

@@ -52,8 +52,16 @@ export class TagServiceImpl implements TagService {
       throw new Error('Tag must be 100 characters or less');
     }
 
-    // Find or create tag (with similarity matching)
+    // Find or create tag (with similarity matching to prevent duplicates)
     const tag = await this.findOrCreateTag(trimmedText, source);
+
+    // Check if contact already has this tag
+    const existingTags = await this.repository.findByContactId(contactId);
+    const alreadyHasTag = existingTags.some((t) => t.id === tag.id);
+
+    if (alreadyHasTag) {
+      throw new Error('Contact already has this tag');
+    }
 
     // Add tag to contact
     await this.repository.addToContact(contactId, tag.id, userId);

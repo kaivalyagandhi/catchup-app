@@ -43,7 +43,19 @@ export class GroupServiceImpl implements GroupService {
       throw new Error('Group name must be 255 characters or less');
     }
 
-    return await this.repository.create(userId, name.trim());
+    const trimmedName = name.trim();
+
+    // Check for duplicate group name (case-insensitive)
+    const existingGroups = await this.repository.findAll(userId, false);
+    const duplicate = existingGroups.find(
+      (g) => g.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (duplicate) {
+      throw new Error('A group with this name already exists');
+    }
+
+    return await this.repository.create(userId, trimmedName);
   }
 
   async updateGroup(id: string, userId: string, name: string): Promise<Group> {
@@ -55,7 +67,19 @@ export class GroupServiceImpl implements GroupService {
       throw new Error('Group name must be 255 characters or less');
     }
 
-    return await this.repository.update(id, userId, name.trim());
+    const trimmedName = name.trim();
+
+    // Check for duplicate group name (case-insensitive), excluding current group
+    const existingGroups = await this.repository.findAll(userId, false);
+    const duplicate = existingGroups.find(
+      (g) => g.id !== id && g.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (duplicate) {
+      throw new Error('A group with this name already exists');
+    }
+
+    return await this.repository.update(id, userId, trimmedName);
   }
 
   async archiveGroup(id: string, userId: string): Promise<void> {
@@ -117,8 +141,20 @@ export class GroupServiceImpl implements GroupService {
       throw new Error('Tag text is required');
     }
 
+    const trimmedText = tagText.trim();
+
+    // Check for duplicate group name (case-insensitive)
+    const existingGroups = await this.repository.findAll(userId, false);
+    const duplicate = existingGroups.find(
+      (g) => g.name.toLowerCase() === trimmedText.toLowerCase()
+    );
+
+    if (duplicate) {
+      throw new Error('A group with this name already exists');
+    }
+
     // Create a new group marked as promoted from tag
-    return await this.repository.create(userId, tagText.trim(), false, true);
+    return await this.repository.create(userId, trimmedText, false, true);
   }
 }
 

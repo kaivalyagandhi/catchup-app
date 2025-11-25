@@ -173,21 +173,8 @@ export async function matchContactsToTimeslot(
       reasoning += ` (${contact.frequencyPreference} preference)`;
     }
 
-    // Add group context
-    if (contact.groups && contact.groups.length > 0) {
-      const groupNames = contact.groups
-        .map(groupId => groupMap.get(groupId))
-        .filter(name => name !== undefined);
-      if (groupNames.length > 0) {
-        reasoning += `. Member of: ${groupNames.join(', ')}`;
-      }
-    }
-
-    // Add tag context for shared interests
-    if (contact.tags && contact.tags.length > 0) {
-      const tagTexts = contact.tags.map((t) => t.text).slice(0, 3);
-      reasoning += `. Interests: ${tagTexts.join(', ')}`;
-    }
+    // Group and interest context is now displayed separately in the UI as badges
+    // No need to include them in the reasoning text
 
     matches.push({
       contact,

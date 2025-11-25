@@ -244,7 +244,7 @@ describe('Suggestion Service', () => {
       expect(matches[0].reasoning).toContain('weekly preference');
     });
 
-    it('should include reasoning with groups', async () => {
+    it('should include contacts with groups', async () => {
       const contacts = [
         {
           ...baseContact,
@@ -255,11 +255,12 @@ describe('Suggestion Service', () => {
 
       const matches = await matchContactsToTimeslot('user1', timeslot, contacts);
 
-      expect(matches[0].reasoning).toContain('Member of:');
-      expect(matches[0].reasoning).toContain('College Friends');
+      // Groups are now displayed separately in UI, not in reasoning text
+      expect(matches[0].contact.groups).toContain('College Friends');
+      expect(matches.length).toBeGreaterThan(0);
     });
 
-    it('should include reasoning with tags', async () => {
+    it('should include contacts with tags', async () => {
       const contacts = [
         {
           ...baseContact,
@@ -273,8 +274,9 @@ describe('Suggestion Service', () => {
 
       const matches = await matchContactsToTimeslot('user1', timeslot, contacts);
 
-      expect(matches[0].reasoning).toContain('Interests:');
-      expect(matches[0].reasoning).toContain('hiking');
+      // Tags are now displayed separately in UI, not in reasoning text
+      expect(matches[0].contact.tags?.[0].text).toBe('hiking');
+      expect(matches.length).toBeGreaterThan(0);
     });
   });
 
