@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Selector Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2563eb;
+            margin-bottom: 20px;
+        }
+        
+        .test-controls {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        
+        .test-controls button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        
+        .test-controls button:hover {
+            background: #1d4ed8;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            border-radius: 4px;
+            color: #065f46;
+        }
+        
+        .result h3 {
+            margin-top: 0;
+        }
+        
+        .result pre {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Contact Selector Component Test</h1>
+        
+        <div class="test-controls">
+            <h3>Test Controls</h3>
+            <button onclick="testWithManyContacts()">Test with Many Contacts</button>
+            <button onclick="testWithFewContacts()">Test with Few Contacts</button>
+            <button onclick="testWithNoContacts()">Test with No Contacts</button>
+            <button onclick="testWithGroupsAndTags()">Test with Groups & Tags</button>
+        </div>
+        
+        <div id="result" class="result hidden">
+            <h3>Selected Contacts:</h3>
+            <pre id="result-content"></pre>
+        </div>
+        
+        <!-- Contact Selector Container -->
+        <div id="contact-selector-container"></div>
+    </div>
+    
+    <script src="/js/contact-selector.js"></script>
+    <script>
+        // Mock data
+        const mockContacts = [
+            {
+                id: '1',
+                name: 'John Doe',
+                email: 'john@example.com',
+                phone: '+1-555-0101',
+                location: 'San Francisco, CA',
+                groups: ['group1', 'group2'],
+                tags: [{ id: 'tag1', text: 'hiking' }, { id: 'tag2', text: 'tech' }]
+            },
+            {
+                id: '2',
+                name: 'Jane Smith',
+                email: 'jane@example.com',
+                phone: '+1-555-0102',
+                location: 'New York, NY',
+                groups: ['group1'],
+                tags: [{ id: 'tag1', text: 'hiking' }, { id: 'tag3', text: 'photography' }]
+            },
+            {
+                id: '3',
+                name: 'Bob Johnson',
+                email: 'bob@example.com',
+                phone: '+1-555-0103',
+                location: 'Seattle, WA',
+                groups: ['group2'],
+                tags: [{ id: 'tag2', text: 'tech' }]
+            },
+            {
+                id: '4',
+                name: 'Alice Williams',
+                email: 'alice@example.com',
+                phone: '+1-555-0104',
+                location: 'Austin, TX',
+                groups: [],
+                tags: [{ id: 'tag3', text: 'photography' }, { id: 'tag4', text: 'cooking' }]
+            },
+            {
+                id: '5',
+                name: 'Charlie Brown',
+                email: 'charlie@example.com',
+                phone: '+1-555-0105',
+                location: 'Boston, MA',
+                groups: ['group3'],
+                tags: [{ id: 'tag4', text: 'cooking' }]
+            }
+        ];
+        
+        const mockGroups = [
+            { id: 'group1', name: 'Hiking Friends' },
+            { id: 'group2', name: 'Tech Colleagues' },
+            { id: 'group3', name: 'Cooking Club' }
+        ];
+        
+        const mockTags = [
+            { id: 'tag1', text: 'hiking' },
+            { id: 'tag2', text: 'tech' },
+            { id: 'tag3', text: 'photography' },
+            { id: 'tag4', text: 'cooking' }
+        ];
+        
+        // Generate many contacts for testing
+        function generateManyContacts(count) {
+            const contacts = [];
+            const firstNames = ['John', 'Jane', 'Bob', 'Alice', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Henry'];
+            const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
+            const cities = ['San Francisco', 'New York', 'Seattle', 'Austin', 'Boston', 'Chicago', 'Denver', 'Portland', 'Miami', 'Atlanta'];
+            
+            for (let i = 0; i < count; i++) {
+                const firstName = firstNames[i % firstNames.length];
+                const lastName = lastNames[Math.floor(i / firstNames.length) % lastNames.length];
+                const city = cities[i % cities.length];
+                
+                contacts.push({
+                    id: `contact-${i}`,
+                    name: `${firstName} ${lastName} ${i}`,
+                    email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@example.com`,
+                    phone: `+1-555-${String(i).padStart(4, '0')}`,
+                    location: `${city}, USA`,
+                    groups: i % 3 === 0 ? ['group1'] : i % 3 === 1 ? ['group2'] : [],
+                    tags: i % 2 === 0 ? [{ id: 'tag1', text: 'hiking' }] : [{ id: 'tag2', text: 'tech' }]
+                });
+            }
+            
+            return contacts;
+        }
+        
+        // Test functions
+        function testWithManyContacts() {
+            const contacts = generateManyContacts(50);
+            showContactSelector(contacts, mockGroups, mockTags);
+        }
+        
+        function testWithFewContacts() {
+            showContactSelector(mockContacts, mockGroups, mockTags);
+        }
+        
+        function testWithNoContacts() {
+            showContactSelector([], mockGroups, mockTags);
+        }
+        
+        function testWithGroupsAndTags() {
+            showContactSelector(mockContacts, mockGroups, mockTags);
+        }
+        
+        function showContactSelector(contacts, groups, tags) {
+            // Hide result
+            document.getElementById('result').classList.add('hidden');
+            
+            // Display contact selector
+            window.contactSelector.display(contacts, groups, tags, (selectedContacts) => {
+                // Show result
+                const resultDiv = document.getElementById('result');
+                const resultContent = document.getElementById('result-content');
+                
+                if (selectedContacts.length === 0) {
+                    resultContent.textContent = 'No contacts selected (cancelled)';
+                } else {
+                    resultContent.textContent = JSON.stringify(
+                        selectedContacts.map(c => ({
+                            id: c.id,
+                            name: c.name,
+                            email: c.email
+                        })),
+                        null,
+                        2
+                    );
+                }
+                
+                resultDiv.classList.remove('hidden');
+            });
+        }
+        
+        // Mock showToast function
+        window.showToast = function(message, type) {
+            console.log(`[${type}] ${message}`);
+        };
+    </script>
+</body>
+</html>

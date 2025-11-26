@@ -45,6 +45,7 @@
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
     "@types/supertest": "^6.0.3",
+    "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.47.0",
     "@typescript-eslint/parser": "^8.47.0",
     "@vitest/coverage-v8": "^4.0.10",
@@ -61,10 +62,13 @@
     "vitest": "^4.0.10"
   },
   "dependencies": {
+    "@google-cloud/speech": "^7.2.1",
+    "@google/generative-ai": "^0.24.1",
     "@sendgrid/mail": "^8.1.6",
     "@types/bcrypt": "^6.0.0",
     "@types/bull": "^3.15.9",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/uuid": "^10.0.0",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
     "bull": "^4.16.5",
@@ -77,6 +81,8 @@
     "multer": "^2.0.2",
     "openai": "^6.9.1",
     "pg": "^8.16.3",
-    "twilio": "^5.10.6"
+    "twilio": "^5.10.6",
+    "uuid": "^13.0.0",
+    "ws": "^8.18.3"
   }
 }

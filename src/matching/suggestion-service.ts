@@ -686,3 +686,198 @@ export function generateDismissalReasonTemplates(contact: Contact): string[] {
 
   return templates;
 }
+
+
+/**
+ * Generate group suggestion for a contact group
+ *
+ * Requirements: 8.1, 8.2, 9.1, 9.2
+ * Property 5: Group suggestion membership constraints
+ * Property 6: Group suggestion frequency validation
+ *
+ * Creates a group suggestion for 2-3 contacts with strong shared context.
+ * Validates that all contacts meet frequency thresholds.
+ */
+export async function generateGroupSuggestion(
+  userId: string,
+  contactGroup: import('../matching/group-matching-service').ContactGroup,
+  timeslot: TimeSlot,
+  currentDate: Date = new Date()
+): Promise<Suggestion | null> {
+  // Validate group size (2-3 contacts)
+  if (contactGroup.contacts.length < 2 || contactGroup.contacts.length > 3) {
+    return null;
+  }
+
+  // Verify all contacts meet frequency thresholds
+  const thresholds: Record<FrequencyOption, number> = {
+    [FrequencyOption.DAILY]: 1,
+    [FrequencyOption.WEEKLY]: 7,
+    [FrequencyOption.MONTHLY]: 30,
+    [FrequencyOption.YEARLY]: 365,
+    [FrequencyOption.FLEXIBLE]: 60,
+  };
+
+  for (const contact of contactGroup.contacts) {
+    const frequency = contact.frequencyPreference || FrequencyOption.MONTHLY;
+    const lastContact = contact.lastContactDate ? new Date(contact.lastContactDate) : new Date(0);
+    const daysSinceContact = Math.floor(
+      (currentDate.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // If any contact doesn't meet threshold, don't create group suggestion
+    if (daysSinceContact < thresholds[frequency]) {
+      return null;
+    }
+  }
+
+  // Build reasoning from shared context
+  const factors = contactGroup.sharedContext.factors;
+  const reasonParts: string[] = [];
+
+  if (factors.commonGroups.length > 0) {
+    reasonParts.push(`Common groups: ${factors.commonGroups.join(', ')}`);
+  }
+
+  if (factors.sharedTags.length > 0) {
+    reasonParts.push(`Shared interests: ${factors.sharedTags.join(', ')}`);
+  }
+
+  if (factors.coMentionedInVoiceNotes > 0) {
+    reasonParts.push(`Mentioned together in ${factors.coMentionedInVoiceNotes} voice notes`);
+  }
+
+  const reasoning = reasonParts.length > 0
+    ? `Group catchup opportunity: ${reasonParts.join('; ')}`
+    : 'Group catchup opportunity based on shared context';
+
+  // Calculate priority based on average recency and shared context score
+  let totalPriority = 0;
+  for (const contact of contactGroup.contacts) {
+    const contactPriority = calculatePriority(
+      contact,
+      contact.lastContactDate ? new Date(contact.lastContactDate) : null,
+      currentDate
+    );
+    totalPriority += contactPriority;
+  }
+  const avgPriority = Math.floor(totalPriority / contactGroup.contacts.length);
+  
+  // Boost priority by shared context score
+  const priority = avgPriority + Math.floor(contactGroup.sharedContext.score / 2);
+
+  // Create group suggestion
+  const suggestionData: SuggestionCreateData = {
+    userId,
+    contactIds: contactGroup.contacts.map((c) => c.id),
+    type: 'group',
+    triggerType: TriggerType.TIMEBOUND,
+    proposedTimeslot: timeslot,
+    reasoning,
+    priority,
+    sharedContext: contactGroup.sharedContext,
+  };
+
+  const suggestion = await suggestionRepository.create(suggestionData);
+  return suggestion;
+}
+
+/**
+ * Balance group and individual suggestions
+ *
+ * Requirements: 8.2, 9.2, 9.5, 9.6, 9.9
+ * Property 7: Suggestion type balance
+ * Property 8: Shared context threshold enforcement
+ * Property 9: Contact uniqueness in suggestion batch
+ *
+ * Ensures:
+ * - Both types present when eligible
+ * - Sorted by priority
+ * - No contact appears in multiple suggestions
+ * - Shared context threshold applied
+ */
+export function balanceSuggestions(
+  individualSuggestions: Suggestion[],
+  groupSuggestions: Suggestion[]
+): Suggestion[] {
+  // Combine all suggestions
+  const allSuggestions = [...individualSuggestions, ...groupSuggestions];
+
+  // Sort by priority (highest first)
+  allSuggestions.sort((a, b) => b.priority - a.priority);
+
+  // Track which contacts have been included
+  const includedContacts = new Set<string>();
+  const balancedSuggestions: Suggestion[] = [];
+
+  for (const suggestion of allSuggestions) {
+    // Check if any contact in this suggestion is already included
+    const hasOverlap = suggestion.contacts.some((c) => includedContacts.has(c.id));
+
+    if (!hasOverlap) {
+      // Add this suggestion
+      balancedSuggestions.push(suggestion);
+
+      // Mark all contacts as included
+      for (const contact of suggestion.contacts) {
+        includedContacts.add(contact.id);
+      }
+    }
+  }
+
+  return balancedSuggestions;
+}
+
+/**
+ * Generate suggestions for a user (enhanced with group support)
+ *
+ * Requirements: 8.1, 8.2, 9.1, 9.2
+ * Property 7: Suggestion type balance
+ *
+ * Generates both individual and group suggestions, then balances them.
+ */
+export async function generateSuggestions(
+  userId: string,
+  availableSlots: TimeSlot[],
+  currentDate: Date = new Date()
+): Promise<Suggestion[]> {
+  // Import group matching service
+  const { groupMatchingService, GROUP_SUGGESTION_THRESHOLD } = await import('./group-matching-service');
+
+  // Get all contacts for the user
+  const contacts = await contactService.listContacts(userId);
+
+  // Generate individual timebound suggestions
+  const individualSuggestions = await generateTimeboundSuggestions(
+    userId,
+    availableSlots,
+    currentDate
+  );
+
+  // Find potential groups
+  const potentialGroups = await groupMatchingService.findPotentialGroups(contacts, 3);
+
+  // Generate group suggestions
+  const groupSuggestions: Suggestion[] = [];
+  let slotIndex = 0;
+
+  for (const group of potentialGroups) {
+    if (slotIndex >= availableSlots.length) break;
+
+    // Only create group suggestion if shared context exceeds threshold
+    if (group.sharedContext.score >= GROUP_SUGGESTION_THRESHOLD) {
+      const slot = availableSlots[slotIndex];
+      const suggestion = await generateGroupSuggestion(userId, group, slot, currentDate);
+
+      if (suggestion) {
+        groupSuggestions.push(suggestion);
+        slotIndex++;
+      }
+    }
+  }
+
+  // Balance suggestions to ensure contact uniqueness and type balance
+  const balancedSuggestions = balanceSuggestions(individualSuggestions, groupSuggestions);
+
+  return balancedSuggestions;
+}

@@ -226,10 +226,11 @@ router.delete('/groups/:id/contacts/:contactId', async (req: AuthenticatedReques
  * GET /api/groups-tags/tags
  * List all tags with contact counts
  */
-router.get('/tags', async (_req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/tags', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
+    const userId = req.userId!;
     const tagRepository = new PostgresTagRepository();
-    const tags = await tagRepository.listTagsWithContactCounts();
+    const tags = await tagRepository.listTagsWithContactCounts(userId);
     res.json(tags);
   } catch (error) {
     console.error('Error listing tags with counts:', error);
@@ -243,8 +244,9 @@ router.get('/tags', async (_req: AuthenticatedRequest, res: Response): Promise<v
  */
 router.get('/tags/:id', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
+    const userId = req.userId!;
     const tagRepository = new PostgresTagRepository();
-    const tag = await tagRepository.getTagWithContactCount(req.params.id);
+    const tag = await tagRepository.getTagWithContactCount(req.params.id, userId);
 
     if (!tag) {
       res.status(404).json({ error: 'Tag not found' });
@@ -264,6 +266,7 @@ router.get('/tags/:id', async (req: AuthenticatedRequest, res: Response): Promis
  */
 router.post('/tags', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
+    const userId = req.userId!;
     const { text, source = 'manual' } = req.body;
 
     if (!text) {
@@ -272,7 +275,7 @@ router.post('/tags', async (req: AuthenticatedRequest, res: Response): Promise<v
     }
 
     const tagRepository = new PostgresTagRepository();
-    const tag = await tagRepository.create(text, source);
+    const tag = await tagRepository.create(text, source, userId);
     res.status(201).json(tag);
   } catch (error) {
     console.error('Error creating tag:', error);
@@ -287,6 +290,7 @@ router.post('/tags', async (req: AuthenticatedRequest, res: Response): Promise<v
  */
 router.put('/tags/:id', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
+    const userId = req.userId!;
     const { text } = req.body;
 
     if (!text) {
@@ -295,7 +299,7 @@ router.put('/tags/:id', async (req: AuthenticatedRequest, res: Response): Promis
     }
 
     const tagService = new TagServiceImpl();
-    const tag = await tagService.updateTag(req.params.id, text);
+    const tag = await tagService.updateTag(req.params.id, text, userId);
 
     if (!tag) {
       res.status(404).json({ error: 'Tag not found' });
@@ -321,8 +325,9 @@ router.put('/tags/:id', async (req: AuthenticatedRequest, res: Response): Promis
  */
 router.delete('/tags/:id', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
+    const userId = req.userId!;
     const tagRepository = new PostgresTagRepository();
-    await tagRepository.deleteTag(req.params.id);
+    await tagRepository.deleteTag(req.params.id, userId);
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting tag:', error);
@@ -346,8 +351,9 @@ router.delete('/tags/:id', async (req: AuthenticatedRequest, res: Response): Pro
  */
 router.get('/tags/:id/contacts', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
+    const userId = req.userId!;
     const tagRepository = new PostgresTagRepository();
-    const contacts = await tagRepository.getTagContacts(req.params.id);
+    const contacts = await tagRepository.getTagContacts(req.params.id, userId);
     res.json(contacts);
   } catch (error) {
     console.error('Error fetching tag contacts:', error);

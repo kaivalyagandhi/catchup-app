@@ -119,13 +119,17 @@ router.post('/tags', async (req: Request, res: Response): Promise<void> => {
 // PUT /tags/:id - Update a tag
 router.put('/tags/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { text } = req.body;
+    const { userId, text } = req.body;
     if (!text) {
       res.status(400).json({ error: 'text is required' });
       return;
     }
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
     const tagService = new TagServiceImpl();
-    const tag = await tagService.updateTag(req.params.id, text);
+    const tag = await tagService.updateTag(req.params.id, text, userId);
 
     if (!tag) {
       res.status(404).json({ error: 'Tag not found' });

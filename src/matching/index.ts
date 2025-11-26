@@ -7,7 +7,9 @@
  * - Timebound and shared activity suggestion generation
  * - Suggestion lifecycle management (accept, dismiss, snooze)
  * - Suggestion feed display
+ * - Group matching and shared context analysis
  */
 
 export * from './suggestion-service';
 export * from './suggestion-repository';
+export * from './group-matching-service';

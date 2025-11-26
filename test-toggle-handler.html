@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Toggle Handler Test</title>
+    <style>
+        * {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        :root {
+            --bg-primary: #ffffff;
+            --text-primary: #333333;
+            --color-secondary: #6b7280;
+            --color-secondary-hover: #4b5563;
+            --text-inverse: #ffffff;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --text-primary: #e5e5e5;
+            --color-secondary: #a3a3a3;
+            --color-secondary-hover: #d4d4d4;
+            --text-inverse: #1a1a1a;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            margin-bottom: 30px;
+        }
+        
+        .theme-toggle-btn {
+            background: var(--color-secondary);
+            color: var(--text-inverse);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background 0.2s, transform 0.2s;
+        }
+        
+        .theme-toggle-btn:hover {
+            background: var(--color-secondary-hover);
+            transform: scale(1.05);
+        }
+        
+        .test-results {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+        }
+        
+        .test-item {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .test-pass {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .test-fail {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .current-state {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(37, 99, 235, 0.1);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Theme Toggle Handler Test</h1>
+        
+        <p>Click the button below to test the theme toggle functionality:</p>
+        
+        <div style="margin: 30px 0;">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">
+                <span class="theme-icon" id="theme-icon">🌙</span>
+            </button>
+        </div>
+        
+        <div class="current-state">
+            <strong>Current Theme:</strong> <span id="current-theme">light</span><br>
+            <strong>Icon:</strong> <span id="current-icon">🌙</span><br>
+            <strong>Data Attribute:</strong> <span id="data-attr">none</span>
+        </div>
+        
+        <button onclick="runTests()" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">
+            Run Automated Tests
+        </button>
+        
+        <div id="test-results" class="test-results" style="display: none;">
+            <h3>Test Results:</h3>
+            <div id="results-container"></div>
+        </div>
+    </div>
+    
+    <!-- Include Theme Manager -->
+    <script src="public/js/theme-manager.js"></script>
+    
+    <script>
+        // Theme Toggle Function (from app.js)
+        function toggleTheme() {
+            if (typeof themeManager !== 'undefined') {
+                themeManager.toggleTheme();
+                updateThemeIcon();
+                updateCurrentState();
+            } else {
+                console.error('Theme manager not available');
+            }
+        }
+        
+        function updateThemeIcon() {
+            const themeIcon = document.getElementById('theme-icon');
+            if (themeIcon && typeof themeManager !== 'undefined') {
+                const currentTheme = themeManager.getCurrentTheme();
+                // Show moon (🌙) when in light mode (to indicate dark mode is available)
+                // Show sun (☀️) when in dark mode (to indicate light mode is available)
+                themeIcon.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+            }
+        }
+        
+        function updateCurrentState() {
+            const currentTheme = themeManager.getCurrentTheme();
+            const dataAttr = document.documentElement.getAttribute('data-theme') || 'none';
+            const icon = document.getElementById('theme-icon').textContent;
+            
+            document.getElementById('current-theme').textContent = currentTheme;
+            document.getElementById('current-icon').textContent = icon;
+            document.getElementById('data-attr').textContent = dataAttr;
+        }
+        
+        // Initialize
+        if (typeof themeManager !== 'undefined') {
+            themeManager.initializeTheme();
+            updateThemeIcon();
+            updateCurrentState();
+        }
+        
+        // Automated Tests
+        function runTests() {
+            const results = [];
+            
+            // Test 1: Toggle function exists
+            results.push({
+                name: 'toggleTheme function exists',
+                pass: typeof toggleTheme === 'function',
+                message: typeof toggleTheme === 'function' ? 'Function is defined' : 'Function not found'
+            });
+            
+            // Test 2: updateThemeIcon function exists
+            results.push({
+                name: 'updateThemeIcon function exists',
+                pass: typeof updateThemeIcon === 'function',
+                message: typeof updateThemeIcon === 'function' ? 'Function is defined' : 'Function not found'
+            });
+            
+            // Test 3: Theme manager is available
+            results.push({
+                name: 'Theme manager is available',
+                pass: typeof themeManager !== 'undefined',
+                message: typeof themeManager !== 'undefined' ? 'Theme manager loaded' : 'Theme manager not found'
+            });
+            
+            // Test 4: Button has onclick handler
+            const button = document.querySelector('.theme-toggle-btn');
+            results.push({
+                name: 'Button has onclick handler',
+                pass: button && button.onclick !== null,
+                message: button && button.onclick !== null ? 'onclick handler attached' : 'No onclick handler'
+            });
+            
+            // Test 5: Icon element exists
+            const icon = document.getElementById('theme-icon');
+            results.push({
+                name: 'Icon element exists',
+                pass: icon !== null,
+                message: icon !== null ? 'Icon element found' : 'Icon element not found'
+            });
+            
+            // Test 6: Toggle functionality
+            const initialTheme = themeManager.getCurrentTheme();
+            themeManager.toggleTheme();
+            const newTheme = themeManager.getCurrentTheme();
+            const toggleWorks = initialTheme !== newTheme;
+            themeManager.toggleTheme(); // Toggle back
+            results.push({
+                name: 'Toggle switches theme',
+                pass: toggleWorks,
+                message: toggleWorks ? `Switched from ${initialTheme} to ${newTheme}` : 'Theme did not change'
+            });
+            
+            // Test 7: Icon updates after toggle
+            themeManager.setTheme('light');
+            updateThemeIcon();
+            const lightIcon = document.getElementById('theme-icon').textContent;
+            themeManager.setTheme('dark');
+            updateThemeIcon();
+            const darkIcon = document.getElementById('theme-icon').textContent;
+            const iconUpdates = lightIcon !== darkIcon;
+            results.push({
+                name: 'Icon updates based on theme',
+                pass: iconUpdates,
+                message: iconUpdates ? `Light: ${lightIcon}, Dark: ${darkIcon}` : 'Icon did not update'
+            });
+            
+            // Test 8: Immediate visual feedback (data-theme attribute)
+            themeManager.setTheme('dark');
+            const dataAttrDark = document.documentElement.getAttribute('data-theme');
+            themeManager.setTheme('light');
+            const dataAttrLight = document.documentElement.getAttribute('data-theme');
+            const visualFeedback = dataAttrDark === 'dark' && (dataAttrLight === null || dataAttrLight === '');
+            results.push({
+                name: 'Immediate visual feedback (data-theme)',
+                pass: visualFeedback,
+                message: visualFeedback ? 'data-theme attribute updates correctly' : 'data-theme not updating'
+            });
+            
+            // Display results
+            displayResults(results);
+            updateCurrentState();
+        }
+        
+        function displayResults(results) {
+            const container = document.getElementById('results-container');
+            const resultsDiv = document.getElementById('test-results');
+            
+            container.innerHTML = results.map(result => `
+                <div class="test-item ${result.pass ? 'test-pass' : 'test-fail'}">
+                    <strong>${result.pass ? '✓' : '✗'} ${result.name}</strong><br>
+                    <small>${result.message}</small>
+                </div>
+            `).join('');
+            
+            resultsDiv.style.display = 'block';
+            
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            
+            console.log(`Tests passed: ${passCount}/${totalCount}`);
+        }
+    </script>
+</body>
+</html>

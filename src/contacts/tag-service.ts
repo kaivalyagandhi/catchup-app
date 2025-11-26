@@ -14,11 +14,11 @@ import { Tag, TagSource, Group } from '../types';
 export interface TagService {
   addTag(contactId: string, userId: string, text: string, source: TagSource): Promise<Tag>;
   removeTag(contactId: string, tagId: string, userId: string): Promise<void>;
-  updateTag(tagId: string, text: string): Promise<Tag>;
+  updateTag(tagId: string, text: string, userId: string): Promise<Tag>;
   getContactTags(contactId: string): Promise<Tag[]>;
   deduplicateTags(contactId: string, userId: string): Promise<void>;
   promoteTagToGroup(userId: string, tagText: string): Promise<Group>;
-  findOrCreateTag(text: string, source: TagSource, similarityThreshold?: number): Promise<Tag>;
+  findOrCreateTag(text: string, source: TagSource, userId: string, similarityThreshold?: number): Promise<Tag>;
 }
 
 /**
@@ -53,7 +53,7 @@ export class TagServiceImpl implements TagService {
     }
 
     // Find or create tag (with similarity matching to prevent duplicates)
-    const tag = await this.findOrCreateTag(trimmedText, source);
+    const tag = await this.findOrCreateTag(trimmedText, source, userId);
 
     // Check if contact already has this tag
     const existingTags = await this.repository.findByContactId(contactId);
@@ -73,7 +73,7 @@ export class TagServiceImpl implements TagService {
     await this.repository.removeFromContact(contactId, tagId, userId);
   }
 
-  async updateTag(tagId: string, text: string): Promise<Tag> {
+  async updateTag(tagId: string, text: string, userId: string): Promise<Tag> {
     // Validate tag text
     if (!text || text.trim() === '') {
       throw new Error('Tag text is required');
@@ -91,7 +91,7 @@ export class TagServiceImpl implements TagService {
       throw new Error('Tag must be 100 characters or less');
     }
 
-    return await this.repository.update(tagId, trimmedText);
+    return await this.repository.update(tagId, trimmedText, userId);
   }
 
   async getContactTags(contactId: string): Promise<Tag[]> {
@@ -152,26 +152,27 @@ export class TagServiceImpl implements TagService {
   async findOrCreateTag(
     text: string,
     source: TagSource,
+    userId: string,
     similarityThreshold?: number
   ): Promise<Tag> {
     const threshold = similarityThreshold ?? this.DEFAULT_SIMILARITY_THRESHOLD;
 
-    // Check for exact match first (case-insensitive)
-    const exactMatch = await this.repository.findByText(text);
+    // Check for exact match first (case-insensitive) for this user
+    const exactMatch = await this.repository.findByText(text, userId);
     if (exactMatch) {
       return exactMatch;
     }
 
-    // Check for similar tags
-    const similarTags = await this.repository.findSimilarTags(text, threshold);
+    // Check for similar tags for this user
+    const similarTags = await this.repository.findSimilarTags(text, userId, threshold);
 
     if (similarTags.length > 0) {
       // Return the most similar tag (first one found above threshold)
       return similarTags[0];
     }
 
-    // No similar tag found, create new one
-    return await this.repository.create(text, source);
+    // No similar tag found, create new one for this user
+    return await this.repository.create(text, source, userId);
   }
 }
 

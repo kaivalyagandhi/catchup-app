@@ -15,12 +15,13 @@ describe('CalendarEventGenerator', () => {
   beforeEach(async () => {
     generator = new CalendarEventGenerator();
     
-    // Create a test user
+    // Create a test user with unique email
+    const uniqueEmail = `test-calendar-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
     const result = await pool.query(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, $2, $3)
        RETURNING id`,
-      ['test-calendar@example.com', 'hash', 'Test User']
+      [uniqueEmail, 'hash', 'Test User']
     );
     testUserId = result.rows[0].id;
   });

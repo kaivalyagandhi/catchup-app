@@ -94,7 +94,9 @@ export interface DateRange {
 export interface Suggestion {
   id: string;
   userId: string;
-  contactId: string;
+  contactId: string; // Kept for backward compatibility, use contacts array for new code
+  contacts: Contact[]; // Array of contacts (1 for individual, 2-3 for group)
+  type: 'individual' | 'group';
   triggerType: TriggerType;
   proposedTimeslot: TimeSlot;
   reasoning: string;
@@ -102,8 +104,20 @@ export interface Suggestion {
   dismissalReason?: string;
   calendarEventId?: string;
   snoozedUntil?: Date;
+  priority: number;
+  sharedContext?: SharedContextScore; // For group suggestions
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface SharedContextScore {
+  score: number; // 0-100
+  factors: {
+    commonGroups: string[];
+    sharedTags: string[];
+    coMentionedInVoiceNotes: number;
+    overlappingInterests: string[];
+  };
 }
 
 export interface InteractionLog {
@@ -166,19 +180,37 @@ export interface GoogleCalendar {
 export interface VoiceNote {
   id: string;
   userId: string;
-  audioUrl: string;
   transcript: string;
-  contactId?: string;
-  extractedEntities?: ExtractedEntities;
-  processed: boolean;
+  recordingTimestamp: Date;
+  status: VoiceNoteStatus;
+  extractedEntities?: Record<string, ExtractedEntities>;
+  enrichmentData?: any;
+  contacts: Contact[];
   createdAt: Date;
+  updatedAt: Date;
 }
+
+export type VoiceNoteStatus = 
+  | 'recording' 
+  | 'transcribing' 
+  | 'extracting' 
+  | 'ready' 
+  | 'applied' 
+  | 'error';
 
 export interface ExtractedEntities {
   fields: Record<string, any>;
   tags: string[];
   groups: string[];
   lastContactDate?: Date;
+}
+
+export interface VoiceNoteFilters {
+  contactIds?: string[];
+  status?: VoiceNoteStatus;
+  dateFrom?: Date;
+  dateTo?: Date;
+  searchText?: string;
 }
 
 export interface EnrichmentProposal {

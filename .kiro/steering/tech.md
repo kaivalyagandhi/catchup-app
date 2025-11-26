@@ -5,7 +5,10 @@
 - **Frontend**: Mobile-responsive web app (React/Next.js preferred)
 - **Backend**: Node.js/TypeScript or Python
 - **Database**: PostgreSQL or similar relational DB for structured contact/interaction data
-- **AI/ML**: OpenAI API or similar for NLP, tag generation, and matching logic
+- **AI/ML**: 
+  - Google Cloud Speech-to-Text API for real-time audio transcription (streaming)
+  - Google Gemini API for entity extraction, tag generation, contact disambiguation, and NLP
+  - Custom matching algorithms for relationship suggestions
 
 ## Integration Patterns
 
@@ -19,11 +22,12 @@
 - Email: SendGrid, AWS SES, or similar
 - Configurable timing: Real-time + batched notifications
 
-### AI/ML Libraries
-- NLP for voice note transcription and entity extraction
-- Tag generation and categorization (1-3 word interests)
-- Matching algorithms: Shared interests × availability × time decay × frequency preferences
-- Disambiguation: Identify which contact voice notes refer to
+### AI/ML Services
+- **Audio Transcription**: Google Cloud Speech-to-Text API (streaming recognition, LINEAR16 @ 16kHz)
+- **Entity Extraction**: Google Gemini API with structured JSON output (responseSchema feature)
+- **Tag Generation**: Google Gemini for extracting 1-3 word interests from transcripts
+- **Contact Disambiguation**: Google Gemini to identify which contact voice notes refer to
+- **Matching Algorithms**: Custom logic for shared interests × availability × time decay × frequency preferences
 
 ### Timezone Inference
 - Use static dataset of top 100 cities worldwide (no external API required)

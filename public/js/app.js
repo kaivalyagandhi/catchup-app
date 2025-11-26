@@ -17,8 +17,29 @@ let currentContactGroups = []; // Group IDs being edited in the modal
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize theme before anything else to ensure proper styling
+    if (typeof themeManager !== 'undefined') {
+        themeManager.initializeTheme();
+        updateThemeIcon();
+    }
+    
     checkAuth();
     setupNavigation();
+    
+    // Listen for contacts updates from voice notes enrichment
+    window.addEventListener('contacts-updated', () => {
+        console.log('contacts-updated event received, currentPage:', currentPage);
+        
+        // Always refresh contacts data since it's used across multiple pages
+        console.log('Refreshing contacts list');
+        loadContacts();
+        
+        // Also refresh groups/tags view if visible
+        if (currentPage === 'groups-tags') {
+            console.log('Refreshing groups and tags');
+            loadGroupsAndTags();
+        }
+    });
 });
 
 // Authentication
@@ -43,6 +64,7 @@ function showMainApp() {
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('main-app').classList.remove('hidden');
     document.getElementById('user-email').textContent = userEmail;
+    updateThemeIcon();
     loadContacts();
 }
 
@@ -124,6 +146,26 @@ function logout() {
     
     showAuthScreen();
     document.getElementById('auth-form').reset();
+}
+
+// Theme Toggle
+function toggleTheme() {
+    if (typeof themeManager !== 'undefined') {
+        themeManager.toggleTheme();
+        updateThemeIcon();
+    } else {
+        console.error('Theme manager not available');
+    }
+}
+
+function updateThemeIcon() {
+    const themeIcon = document.getElementById('theme-icon');
+    if (themeIcon && typeof themeManager !== 'undefined') {
+        const currentTheme = themeManager.getCurrentTheme();
+        // Show moon (🌙) when in light mode (to indicate dark mode is available)
+        // Show sun (☀️) when in dark mode (to indicate light mode is available)
+        themeIcon.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+    }
 }
 
 // Navigation
@@ -2091,9 +2133,26 @@ function renderSuggestions(suggestionsList) {
         return;
     }
     
-    container.innerHTML = suggestionsList.map(suggestion => {
-        const contact = contacts.find(c => c.id === suggestion.contactId);
-        const contactName = contact ? contact.name : 'Unknown';
+    // Sort by priority (higher priority first)
+    const sortedSuggestions = [...suggestionsList].sort((a, b) => b.priority - a.priority);
+    
+    container.innerHTML = sortedSuggestions.map(suggestion => {
+        const isGroup = suggestion.type === 'group';
+        
+        // Get contacts for this suggestion
+        let suggestionContacts = [];
+        if (isGroup && suggestion.contacts && suggestion.contacts.length > 0) {
+            suggestionContacts = suggestion.contacts;
+        } else if (suggestion.contactId) {
+            const contact = contacts.find(c => c.id === suggestion.contactId);
+            if (contact) {
+                suggestionContacts = [contact];
+            }
+        }
+        
+        if (suggestionContacts.length === 0) {
+            suggestionContacts = [{ id: 'unknown', name: 'Unknown', groups: [], tags: [] }];
+        }
         
         // Status badge styling
         const statusColors = {
@@ -2104,66 +2163,190 @@ function renderSuggestions(suggestionsList) {
         };
         const statusColor = statusColors[suggestion.status] || '#6b7280';
         
+        // Build contact names display
+        let contactNamesHtml = '';
+        if (isGroup) {
+            const names = suggestionContacts.map(c => escapeHtml(c.name));
+            if (names.length === 2) {
+                contactNamesHtml = `${names[0]} and ${names[1]}`;
+            } else if (names.length === 3) {
+                contactNamesHtml = `${names[0]}, ${names[1]}, and ${names[2]}`;
+            } else {
+                contactNamesHtml = names.join(', ');
+            }
+        } else {
+            contactNamesHtml = escapeHtml(suggestionContacts[0].name);
+        }
+        
+        // Build avatars display
+        let avatarsHtml = '';
+        if (isGroup) {
+            // Overlapping avatar circles for group
+            avatarsHtml = `
+                <div class="suggestion-avatars-group">
+                    ${suggestionContacts.map((contact, idx) => {
+                        const initials = contact.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                        const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                        const bgColor = colors[idx % colors.length];
+                        return `
+                            <div class="suggestion-avatar" 
+                                 style="background: ${bgColor}; z-index: ${10 - idx}; margin-left: ${idx > 0 ? '-12px' : '0'};"
+                                 data-contact-id="${contact.id}"
+                                 title="${escapeHtml(contact.name)}">
+                                ${initials}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        } else {
+            // Single avatar for individual
+            const initials = suggestionContacts[0].name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+            avatarsHtml = `
+                <div class="suggestion-avatar" 
+                     style="background: #3b82f6;"
+                     data-contact-id="${suggestionContacts[0].id}"
+                     title="${escapeHtml(suggestionContacts[0].name)}">
+                    ${initials}
+                </div>
+            `;
+        }
+        
+        // Shared context badge for group suggestions
+        let sharedContextBadge = '';
+        if (isGroup && suggestion.sharedContext) {
+            const context = suggestion.sharedContext;
+            let badgeText = '🤝 Shared Context';
+            let badgeDetails = [];
+            
+            if (context.factors.commonGroups && context.factors.commonGroups.length > 0) {
+                badgeDetails.push(`${context.factors.commonGroups.length} common group${context.factors.commonGroups.length > 1 ? 's' : ''}`);
+            }
+            if (context.factors.sharedTags && context.factors.sharedTags.length > 0) {
+                badgeDetails.push(`${context.factors.sharedTags.length} shared interest${context.factors.sharedTags.length > 1 ? 's' : ''}`);
+            }
+            if (context.factors.coMentionedInVoiceNotes > 0) {
+                badgeDetails.push(`mentioned together ${context.factors.coMentionedInVoiceNotes} time${context.factors.coMentionedInVoiceNotes > 1 ? 's' : ''}`);
+            }
+            
+            if (badgeDetails.length > 0) {
+                badgeText = `🤝 ${badgeDetails.join(', ')}`;
+            }
+            
+            sharedContextBadge = `
+                <div class="shared-context-badge" title="Shared context score: ${context.score}">
+                    ${badgeText}
+                </div>
+            `;
+        }
+        
+        // Type badge
+        const typeBadge = isGroup ? 
+            '<span class="suggestion-type-badge group-badge-type">Group Catchup</span>' : 
+            '<span class="suggestion-type-badge individual-badge-type">One-on-One</span>';
+        
         // Show different actions based on status
         let actions = '';
         if (suggestion.status === 'pending') {
-            actions = `
-                <button onclick="acceptSuggestion('${suggestion.id}')">Accept</button>
-                <button class="secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
-                <button class="secondary" onclick="snoozeSuggestion('${suggestion.id}')">Snooze</button>
-            `;
+            if (isGroup) {
+                actions = `
+                    <button onclick="acceptSuggestion('${suggestion.id}')">Accept Group Catchup</button>
+                    <button class="secondary" onclick="showGroupModifyMenu('${suggestion.id}', event)">Modify Group ▼</button>
+                    <button class="secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
+                `;
+            } else {
+                actions = `
+                    <button onclick="acceptSuggestion('${suggestion.id}')">Accept</button>
+                    <button class="secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
+                    <button class="secondary" onclick="snoozeSuggestion('${suggestion.id}')">Snooze</button>
+                `;
+            }
         } else {
             actions = `<span style="color: #6b7280; font-size: 14px;">No actions available</span>`;
         }
         
-        // Extract groups and interests from contact
-        let groupsHtml = '';
-        if (contact && contact.groups && contact.groups.length > 0) {
-            const groupNames = contact.groups
-                .map(groupId => {
-                    const group = groups.find(g => g.id === groupId);
-                    return group ? group.name : null;
-                })
-                .filter(name => name !== null);
+        // Extract common groups and interests for group suggestions
+        let commonInfoHtml = '';
+        if (isGroup && suggestion.sharedContext) {
+            const context = suggestion.sharedContext;
             
-            if (groupNames.length > 0) {
-                groupsHtml = `
+            if (context.factors.commonGroups && context.factors.commonGroups.length > 0) {
+                commonInfoHtml += `
                     <div style="margin-top: 12px;">
-                        <p style="margin: 0 0 6px 0;"><strong>Member of:</strong></p>
+                        <p style="margin: 0 0 6px 0;"><strong>Common Groups:</strong></p>
                         <div class="contact-groups">
-                            ${groupNames.map(name => `<span class="group-badge">${escapeHtml(name)}</span>`).join('')}
+                            ${context.factors.commonGroups.map(name => `<span class="group-badge">${escapeHtml(name)}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (context.factors.sharedTags && context.factors.sharedTags.length > 0) {
+                commonInfoHtml += `
+                    <div style="margin-top: 12px;">
+                        <p style="margin: 0 0 6px 0;"><strong>Shared Interests:</strong></p>
+                        <div class="contact-tags">
+                            ${context.factors.sharedTags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        } else if (!isGroup) {
+            // For individual suggestions, show their groups and interests
+            const contact = suggestionContacts[0];
+            
+            if (contact.groups && contact.groups.length > 0) {
+                const groupNames = contact.groups
+                    .map(groupId => {
+                        const group = groups.find(g => g.id === groupId);
+                        return group ? group.name : null;
+                    })
+                    .filter(name => name !== null);
+                
+                if (groupNames.length > 0) {
+                    commonInfoHtml += `
+                        <div style="margin-top: 12px;">
+                            <p style="margin: 0 0 6px 0;"><strong>Member of:</strong></p>
+                            <div class="contact-groups">
+                                ${groupNames.map(name => `<span class="group-badge">${escapeHtml(name)}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            if (contact.tags && contact.tags.length > 0) {
+                commonInfoHtml += `
+                    <div style="margin-top: 12px;">
+                        <p style="margin: 0 0 6px 0;"><strong>Interests:</strong></p>
+                        <div class="contact-tags">
+                            ${contact.tags.map(tag => `<span class="tag-badge">${escapeHtml(tag.text)}</span>`).join('')}
                         </div>
                     </div>
                 `;
             }
         }
         
-        // Extract interests from contact tags
-        let interestsHtml = '';
-        if (contact && contact.tags && contact.tags.length > 0) {
-            interestsHtml = `
-                <div style="margin-top: 12px;">
-                    <p style="margin: 0 0 6px 0;"><strong>Interests:</strong></p>
-                    <div class="contact-tags">
-                        ${contact.tags.map(tag => `<span class="tag-badge">${escapeHtml(tag.text)}</span>`).join('')}
-                    </div>
-                </div>
-            `;
-        }
-        
         return `
-            <div class="card">
+            <div class="card suggestion-card ${isGroup ? 'suggestion-card-group' : 'suggestion-card-individual'}">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-                    <h3 style="margin: 0;">Connect with ${escapeHtml(contactName)}</h3>
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                        ${avatarsHtml}
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <h3 style="margin: 0;">Connect with ${contactNamesHtml}</h3>
+                                ${typeBadge}
+                            </div>
+                            ${sharedContextBadge}
+                        </div>
+                    </div>
                     <span style="background: ${statusColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; text-transform: capitalize;">
                         ${suggestion.status}
                     </span>
                 </div>
                 <p><strong>Time:</strong> ${formatDateTime(suggestion.proposedTimeslot.start)}</p>
                 <p><strong>Reason:</strong> ${escapeHtml(suggestion.reasoning)}</p>
-                <p><strong>Type:</strong> ${suggestion.triggerType}</p>
-                ${groupsHtml}
-                ${interestsHtml}
+                ${commonInfoHtml}
                 ${suggestion.snoozedUntil ? `<p><strong>Snoozed until:</strong> ${formatDateTime(suggestion.snoozedUntil)}</p>` : ''}
                 ${suggestion.dismissalReason ? `<p><strong>Dismissal reason:</strong> ${escapeHtml(suggestion.dismissalReason)}</p>` : ''}
                 <div class="card-actions">
@@ -2172,6 +2355,185 @@ function renderSuggestions(suggestionsList) {
             </div>
         `;
     }).join('');
+    
+    // Add event listeners for contact tooltips
+    addContactTooltipListeners();
+}
+
+// Add contact tooltip listeners (Task 16.2)
+function addContactTooltipListeners() {
+    const avatars = document.querySelectorAll('.suggestion-avatar');
+    let tooltip = null;
+    
+    avatars.forEach(avatar => {
+        avatar.addEventListener('mouseenter', (e) => {
+            const contactId = avatar.dataset.contactId;
+            const contact = contacts.find(c => c.id === contactId);
+            
+            if (!contact) return;
+            
+            // Create tooltip
+            tooltip = document.createElement('div');
+            tooltip.className = 'contact-tooltip';
+            
+            let tooltipContent = `
+                <div class="contact-tooltip-name">${escapeHtml(contact.name)}</div>
+            `;
+            
+            if (contact.email) {
+                tooltipContent += `<div class="contact-tooltip-detail">📧 ${escapeHtml(contact.email)}</div>`;
+            }
+            if (contact.phone) {
+                tooltipContent += `<div class="contact-tooltip-detail">📱 ${escapeHtml(contact.phone)}</div>`;
+            }
+            if (contact.location) {
+                tooltipContent += `<div class="contact-tooltip-detail">📍 ${escapeHtml(contact.location)}</div>`;
+            }
+            if (contact.frequencyPreference) {
+                tooltipContent += `<div class="contact-tooltip-detail">🔄 ${escapeHtml(contact.frequencyPreference)}</div>`;
+            }
+            
+            tooltip.innerHTML = tooltipContent;
+            document.body.appendChild(tooltip);
+            
+            // Position tooltip
+            const rect = avatar.getBoundingClientRect();
+            tooltip.style.left = `${rect.left + rect.width / 2}px`;
+            tooltip.style.top = `${rect.bottom + 10}px`;
+            tooltip.style.transform = 'translateX(-50%)';
+            
+            // Show tooltip
+            setTimeout(() => {
+                tooltip.classList.add('show');
+            }, 10);
+        });
+        
+        avatar.addEventListener('mouseleave', () => {
+            if (tooltip) {
+                tooltip.classList.remove('show');
+                setTimeout(() => {
+                    if (tooltip && tooltip.parentNode) {
+                        tooltip.parentNode.removeChild(tooltip);
+                    }
+                    tooltip = null;
+                }, 200);
+            }
+        });
+    });
+}
+
+// Show group modify menu (Task 16.3)
+let currentGroupModifyMenu = null;
+
+function showGroupModifyMenu(suggestionId, event) {
+    event.stopPropagation();
+    
+    // Close existing menu
+    if (currentGroupModifyMenu) {
+        currentGroupModifyMenu.remove();
+        currentGroupModifyMenu = null;
+    }
+    
+    const suggestion = suggestions.find(s => s.id === suggestionId);
+    if (!suggestion || !suggestion.contacts || suggestion.contacts.length === 0) {
+        return;
+    }
+    
+    // Create menu
+    const menu = document.createElement('div');
+    menu.className = 'group-modify-menu';
+    
+    let menuHtml = '<div style="padding: 8px 16px; font-weight: 600; font-size: 12px; color: #6b7280; text-transform: uppercase;">Remove Contact</div>';
+    
+    suggestion.contacts.forEach(contact => {
+        menuHtml += `
+            <div class="group-modify-menu-item" onclick="removeContactFromGroup('${suggestionId}', '${contact.id}')">
+                <span>❌</span>
+                <span>${escapeHtml(contact.name)}</span>
+            </div>
+        `;
+    });
+    
+    menuHtml += '<div class="group-modify-menu-divider"></div>';
+    menuHtml += `
+        <div class="group-modify-menu-item danger" onclick="dismissSuggestion('${suggestionId}')">
+            <span>🗑️</span>
+            <span>Dismiss Entire Group</span>
+        </div>
+    `;
+    
+    menu.innerHTML = menuHtml;
+    document.body.appendChild(menu);
+    
+    // Position menu
+    const button = event.target;
+    const rect = button.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.left = `${rect.left}px`;
+    menu.style.top = `${rect.bottom + 5}px`;
+    
+    currentGroupModifyMenu = menu;
+    
+    // Close menu when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', closeGroupModifyMenu);
+    }, 10);
+}
+
+function closeGroupModifyMenu() {
+    if (currentGroupModifyMenu) {
+        currentGroupModifyMenu.remove();
+        currentGroupModifyMenu = null;
+    }
+    document.removeEventListener('click', closeGroupModifyMenu);
+}
+
+// Remove contact from group suggestion (Task 16.3)
+async function removeContactFromGroup(suggestionId, contactId) {
+    closeGroupModifyMenu();
+    
+    const loadingToastId = showToast('Updating group suggestion...', 'loading');
+    
+    try {
+        const response = await fetch(`${API_BASE}/suggestions/${suggestionId}/remove-contact`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ 
+                userId: userId,
+                contactId: contactId
+            })
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to remove contact from group');
+        }
+        
+        const result = await response.json();
+        
+        hideToast(loadingToastId);
+        
+        if (result.convertedToIndividual) {
+            showToast('Group converted to individual suggestion', 'success');
+        } else {
+            showToast('Contact removed from group', 'success');
+        }
+        
+        // Reload suggestions
+        loadSuggestions();
+    } catch (error) {
+        console.error('Error removing contact from group:', error);
+        hideToast(loadingToastId);
+        showToast(error.message || 'Failed to remove contact from group', 'error');
+    }
 }
 
 async function acceptSuggestion(id) {
@@ -2299,18 +2661,72 @@ function connectCalendar() {
 
 // Voice Notes
 function loadVoiceNotes() {
-    const container = document.getElementById('voice-content');
-    container.innerHTML = `
-        <div class="empty-state">
-            <h3>Voice Notes</h3>
-            <p>Record voice notes to quickly add context about your contacts</p>
-            <button onclick="recordVoiceNote()">Record Voice Note</button>
-        </div>
-    `;
+    // Setup tab switching
+    setupVoiceNoteTabs();
+    
+    // Initialize voice notes recorder if available
+    if (typeof window.initVoiceNotesPage === 'function') {
+        window.initVoiceNotesPage();
+    } else {
+        // Fallback if voice-notes.js hasn't loaded yet
+        const container = document.getElementById('voice-content');
+        container.innerHTML = `
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading voice notes...</p>
+            </div>
+        `;
+        
+        // Try again after a short delay
+        setTimeout(() => {
+            if (typeof window.initVoiceNotesPage === 'function') {
+                window.initVoiceNotesPage();
+            } else {
+                container.innerHTML = `
+                    <div class="error-state">
+                        <h3>Failed to Load Voice Notes</h3>
+                        <p>Please refresh the page to try again.</p>
+                        <button onclick="location.reload()" class="retry-btn">Refresh Page</button>
+                    </div>
+                `;
+            }
+        }, 1000);
+    }
 }
 
-function recordVoiceNote() {
-    alert('Voice recording would be implemented here');
+function setupVoiceNoteTabs() {
+    const tabs = document.querySelectorAll('.voice-tab');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab;
+            switchVoiceNoteTab(tabName);
+        });
+    });
+}
+
+function switchVoiceNoteTab(tabName) {
+    // Update active tab button
+    document.querySelectorAll('.voice-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabName);
+    });
+    
+    // Show/hide tab content
+    const recordTab = document.getElementById('voice-record-tab');
+    const historyTab = document.getElementById('voice-history-tab');
+    
+    if (tabName === 'record') {
+        recordTab.classList.remove('hidden');
+        historyTab.classList.add('hidden');
+    } else if (tabName === 'history') {
+        recordTab.classList.add('hidden');
+        historyTab.classList.remove('hidden');
+        
+        // Initialize history view if not already done
+        if (typeof window.initVoiceNotesHistoryPage === 'function') {
+            window.initVoiceNotesHistoryPage();
+        }
+    }
 }
 
 // Preferences

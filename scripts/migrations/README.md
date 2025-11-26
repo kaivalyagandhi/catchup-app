@@ -7,6 +7,13 @@ This directory contains SQL migration files for the CatchUp database schema.
 - `001_create_core_tables.sql` - Creates contacts, groups, tags, and their junction tables
 - `002_create_interaction_suggestion_tables.sql` - Creates interaction logs, suggestions, voice notes, and google calendars tables
 - `003_create_preferences_tables.sql` - Creates availability parameters, notification preferences, and OAuth token storage
+- `004_add_composite_indexes.sql` - Adds composite indexes for performance optimization
+- `005_create_users_table.sql` - Creates users table with authentication support
+- `006_create_audit_logs_table.sql` - Creates audit logs for tracking system changes
+- `007_create_calendar_events_table.sql` - Creates calendar events table
+- `008_add_unique_constraints.sql` - Adds unique constraints for data integrity
+- `009_enhance_voice_notes_schema.sql` - Enhances voice notes for real-time transcription and multi-contact support
+- `010_enhance_suggestions_for_groups.sql` - Adds group catchup support to suggestions
 
 ## Running Migrations
 
@@ -56,8 +63,11 @@ psql -d catchup_db -f scripts/migrations/003_create_preferences_tables.sql
 
 ### Interaction & Suggestion Tables
 - `interaction_logs` - History of catchup interactions
-- `suggestions` - System-generated connection suggestions
-- `voice_notes` - Voice recordings and transcriptions
+- `suggestions` - System-generated connection suggestions (individual and group)
+- `suggestion_contacts` - Junction table for suggestions to contacts (supports group suggestions)
+- `voice_notes` - Voice recordings with real-time transcription and status tracking
+- `voice_note_contacts` - Junction table for voice notes to multiple contacts
+- `enrichment_items` - Tracks enrichment proposals and acceptance status
 - `google_calendars` - Connected Google Calendar accounts
 
 ### Preferences Tables

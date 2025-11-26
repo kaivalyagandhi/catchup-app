@@ -125,3 +125,40 @@ This feature enhances the CatchUp application's test data generation capabilitie
 3. WHEN a user adds a tag THEN the system SHALL save it with the contact
 4. WHEN a user assigns a group THEN the system SHALL save the group association
 5. WHEN a user removes a tag or group THEN the system SHALL update the contact accordingly
+
+### Requirement 10
+
+**User Story:** As a developer, I want test data generation to include group suggestions, so that I can test the group catchup feature with realistic scenarios.
+
+#### Acceptance Criteria
+
+1. WHEN test data is generated THEN the system SHALL create contacts with shared groups
+2. WHEN test data is generated THEN the system SHALL create contacts with shared tags
+3. WHEN test data is generated THEN the system SHALL generate group suggestions for contacts with strong shared context
+4. WHEN group suggestions are generated THEN the system SHALL include 2-3 contacts per group suggestion
+5. WHEN group suggestions are generated THEN the system SHALL calculate and store shared context scores
+6. WHEN group suggestions are generated THEN the system SHALL include reasoning based on common groups, shared tags, and co-mentions
+
+### Requirement 11
+
+**User Story:** As a developer, I want test data generation to include voice notes, so that I can test the voice notes feature and co-mention analysis.
+
+#### Acceptance Criteria
+
+1. WHEN test data is generated THEN the system SHALL create sample voice notes for the user
+2. WHEN voice notes are created THEN the system SHALL associate them with test contacts
+3. WHEN voice notes are created THEN the system SHALL include transcriptions and extracted entities
+4. WHEN voice notes are created THEN the system SHALL create co-mentions (multiple contacts in same voice note)
+5. WHEN voice notes are created THEN the system SHALL vary the recording timestamps to simulate realistic usage patterns
+
+### Requirement 12
+
+**User Story:** As a developer, I want the clear test data function to remove all generated data including voice notes and group suggestions, so that I can reset the test environment completely.
+
+#### Acceptance Criteria
+
+1. WHEN test data is cleared THEN the system SHALL remove all test voice notes
+2. WHEN test data is cleared THEN the system SHALL remove all voice note contact associations
+3. WHEN test data is cleared THEN the system SHALL remove all group suggestions (both individual and group types)
+4. WHEN test data is cleared THEN the system SHALL remove all calendar events
+5. WHEN test data is cleared THEN the system SHALL maintain referential integrity during deletion

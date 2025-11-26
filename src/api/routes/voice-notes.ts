@@ -1,8 +1,16 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import * as voiceService from '../../voice/voice-service';
+import { VoiceNoteService } from '../../voice/voice-note-service';
+import { VoiceNoteRepository } from '../../voice/voice-repository';
+import { EnrichmentService } from '../../voice/enrichment-service';
+import { contactService } from '../../contacts/service';
+import { VoiceNoteFilters } from '../../types';
 
 const router = Router();
+const voiceNoteService = VoiceNoteService.getInstance();
+const voiceNoteRepository = new VoiceNoteRepository();
+const enrichmentService = new EnrichmentService();
 
 // Configure multer for file uploads
 const upload = multer({
@@ -20,7 +28,169 @@ const upload = multer({
   },
 });
 
-// POST /voice-notes - Upload and process a voice note
+// POST /api/voice-notes/sessions - Create recording session
+// Requirements: 1.1, 1.2, 1.3
+router.post('/sessions', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, languageCode } = req.body;
+    
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+    
+    const session = await voiceNoteService.createSession(
+      userId,
+      languageCode || 'en-US'
+    );
+    
+    res.status(201).json({
+      sessionId: session.id,
+      userId: session.userId,
+      status: session.status,
+      startTime: session.startTime,
+    });
+  } catch (error) {
+    console.error('Error creating voice note session:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ 
+      error: 'Failed to create recording session',
+      details: errorMessage 
+    });
+  }
+});
+
+// POST /api/voice-notes/:sessionId/finalize - Finalize voice note
+// Requirements: 1.7, 2.1-2.6, 3.1-3.6
+router.post('/:sessionId/finalize', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sessionId } = req.params;
+    const { userId } = req.body;
+    
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+    
+    // Get user's contacts for disambiguation
+    const userContacts = await contactService.listContacts(userId);
+    
+    // Finalize the voice note
+    const result = await voiceNoteService.finalizeVoiceNote(sessionId, userContacts);
+    
+    res.json({
+      voiceNote: result.voiceNote,
+      enrichmentProposal: result.proposal,
+    });
+  } catch (error) {
+    console.error('Error finalizing voice note:', error);
+    res.status(500).json({ 
+      error: 'Failed to finalize voice note',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// GET /api/voice-notes/:id - Get voice note by ID
+// Requirements: 13.4
+router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.query;
+    
+    if (!userId) {
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
+    }
+    
+    const voiceNote = await voiceNoteRepository.getById(id, userId as string);
+    
+    if (!voiceNote) {
+      res.status(404).json({ error: 'Voice note not found' });
+      return;
+    }
+    
+    res.json(voiceNote);
+  } catch (error) {
+    console.error('Error fetching voice note:', error);
+    res.status(500).json({ error: 'Failed to fetch voice note' });
+  }
+});
+
+// GET /api/voice-notes - List voice notes with filters
+// Requirements: 6.1-6.8, 13.4, 13.6, 13.7, 13.8
+router.get('/', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, contactIds, status, dateFrom, dateTo, searchText } = req.query;
+    
+    if (!userId) {
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
+    }
+    
+    // Build filters
+    const filters: VoiceNoteFilters = {};
+    
+    if (contactIds) {
+      filters.contactIds = Array.isArray(contactIds) 
+        ? contactIds as string[]
+        : [contactIds as string];
+    }
+    
+    if (status) {
+      filters.status = status as any;
+    }
+    
+    if (dateFrom) {
+      filters.dateFrom = new Date(dateFrom as string);
+    }
+    
+    if (dateTo) {
+      filters.dateTo = new Date(dateTo as string);
+    }
+    
+    if (searchText) {
+      filters.searchText = searchText as string;
+    }
+    
+    const voiceNotes = await voiceNoteRepository.listByUserId(
+      userId as string,
+      filters
+    );
+    
+    res.json(voiceNotes);
+  } catch (error) {
+    console.error('Error listing voice notes:', error);
+    res.status(500).json({ error: 'Failed to list voice notes' });
+  }
+});
+
+// DELETE /api/voice-notes/:id - Delete voice note
+// Requirements: 13.7
+router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.query;
+    
+    if (!userId) {
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
+    }
+    
+    await voiceNoteRepository.delete(id, userId as string);
+    
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting voice note:', error);
+    if (error instanceof Error && error.message === 'Voice note not found') {
+      res.status(404).json({ error: 'Voice note not found' });
+    } else {
+      res.status(500).json({ error: 'Failed to delete voice note' });
+    }
+  }
+});
+
+// POST /voice-notes - Upload and process a voice note (Google Speech-to-Text)
 router.post('/', upload.single('audio'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
@@ -33,36 +203,179 @@ router.post('/', upload.single('audio'), async (req: Request, res: Response) => 
       return res.status(400).json({ error: 'userId is required' });
     }
     
-    const voiceNote = await voiceService.processVoiceNote(
+    console.log(`Processing voice note upload for user ${userId}, file size: ${req.file.size} bytes`);
+    
+    // Use the new VoiceNoteService to process the audio
+    // 1. Transcribe the audio file
+    const transcriptionService = new (await import('../../voice/transcription-service')).TranscriptionService();
+    const transcriptResult = await transcriptionService.transcribeAudioFile(req.file.buffer);
+    
+    console.log(`Transcription complete: ${transcriptResult.transcript}`);
+    
+    // 2. Get user contacts and identify which ones are mentioned
+    const userContacts = await contactService.listContacts(userId);
+    const disambiguationService = new (await import('../../voice/contact-disambiguation-service')).ContactDisambiguationService();
+    const extractionService = new (await import('../../voice/entity-extraction-service')).EntityExtractionService();
+    const enrichmentServiceInstance = new (await import('../../voice/enrichment-service')).EnrichmentService();
+    
+    // 3. Disambiguate which contacts are mentioned in the transcript
+    const mentionedContacts = await disambiguationService.disambiguate(transcriptResult.transcript, userContacts);
+    console.log(`Identified ${mentionedContacts.length} mentioned contacts:`, mentionedContacts.map(c => c.name));
+    
+    // 4. Extract entities only for mentioned contacts
+    const entities = await extractionService.extractForMultipleContacts(transcriptResult.transcript, mentionedContacts);
+    console.log(`Entities extracted for mentioned contacts`);
+    
+    // 5. Create voice note record with transcript
+    const voiceNote = await voiceNoteRepository.create({
       userId,
-      req.file.buffer,
-      req.file.originalname
-    );
+      transcript: transcriptResult.transcript,
+      status: 'extracting' as any,
+    });
     
-    res.status(201).json(voiceNote);
-  } catch (error) {
-    console.error('Error processing voice note:', error);
-    res.status(500).json({ error: 'Failed to process voice note' });
-  }
-});
-
-// GET /voice-notes/:id - Get a specific voice note
-router.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const voiceNote = await voiceService.getVoiceNote(req.params.id);
+    console.log(`Voice note created: ${voiceNote.id}`);
     
-    if (!voiceNote) {
-      return res.status(404).json({ error: 'Voice note not found' });
+    // 6. Generate enrichment proposal
+    const proposal = await enrichmentServiceInstance.generateProposal(voiceNote.id, entities, mentionedContacts);
+    console.log(`Enrichment proposal generated`);
+    
+    // 7. Associate mentioned contacts with the voice note
+    if (mentionedContacts.length > 0) {
+      const contactIds = mentionedContacts.map(c => c.id);
+      await voiceNoteRepository.associateContacts(voiceNote.id, userId, contactIds);
+      console.log(`Associated ${contactIds.length} contacts with voice note`);
     }
     
-    res.json(voiceNote);
+    // 8. Update voice note with enrichment data and mark as ready
+    const updatedVoiceNote = await voiceNoteRepository.update(voiceNote.id, userId, {
+      enrichmentData: proposal,
+      status: 'ready' as any,
+    });
+    
+    console.log('Voice note updated with enrichment data');
+    res.status(201).json(updatedVoiceNote);
   } catch (error) {
-    console.error('Error fetching voice note:', error);
-    res.status(500).json({ error: 'Failed to fetch voice note' });
+    console.error('Error processing voice note:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ 
+      error: 'Failed to process voice note',
+      details: errorMessage 
+    });
   }
 });
 
-// POST /voice-notes/:id/enrichment - Apply enrichment from voice note
+// POST /api/voice-notes/:id/enrichment/apply - Apply enrichment
+// Requirements: 4.8, 4.9, 4.10, 4.11
+router.post('/:id/enrichment/apply', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { userId, enrichmentProposal } = req.body;
+    
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+    
+    if (!enrichmentProposal) {
+      res.status(400).json({ error: 'enrichmentProposal is required' });
+      return;
+    }
+    
+    // Verify voice note exists and belongs to user
+    const voiceNote = await voiceNoteRepository.getById(id, userId);
+    if (!voiceNote) {
+      res.status(404).json({ error: 'Voice note not found' });
+      return;
+    }
+    
+    // Apply enrichment using enrichment service
+    const result = await enrichmentService.applyEnrichment(enrichmentProposal, userId);
+    
+    // Update voice note status to 'applied' if successful
+    if (result.success) {
+      await voiceNoteRepository.update(id, userId, { status: 'applied' });
+    }
+    
+    res.json({
+      success: result.success,
+      results: result.results,
+      totalApplied: result.totalApplied,
+      totalFailed: result.totalFailed,
+    });
+  } catch (error) {
+    console.error('Error applying enrichment:', error);
+    res.status(500).json({ 
+      error: 'Failed to apply enrichment',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// PATCH /api/voice-notes/:id/contacts - Update contact associations
+// Requirements: 2.2, 2.6
+router.patch('/:id/contacts', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { userId, contactIds, action } = req.body;
+    
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+    
+    if (!contactIds || !Array.isArray(contactIds)) {
+      res.status(400).json({ error: 'contactIds array is required' });
+      return;
+    }
+    
+    if (!action || !['add', 'remove', 'replace'].includes(action)) {
+      res.status(400).json({ error: 'action must be one of: add, remove, replace' });
+      return;
+    }
+    
+    // Verify voice note exists and belongs to user
+    const voiceNote = await voiceNoteRepository.getById(id, userId);
+    if (!voiceNote) {
+      res.status(404).json({ error: 'Voice note not found' });
+      return;
+    }
+    
+    // Handle different actions
+    if (action === 'add') {
+      // Add new contact associations
+      await voiceNoteRepository.associateContacts(id, userId, contactIds);
+    } else if (action === 'remove') {
+      // Remove contact associations
+      for (const contactId of contactIds) {
+        await voiceNoteRepository.removeContactAssociation(id, userId, contactId);
+      }
+    } else if (action === 'replace') {
+      // Get current contacts
+      const currentContacts = await voiceNoteRepository.getAssociatedContacts(id, userId);
+      
+      // Remove all current associations
+      for (const contact of currentContacts) {
+        await voiceNoteRepository.removeContactAssociation(id, userId, contact.id);
+      }
+      
+      // Add new associations
+      await voiceNoteRepository.associateContacts(id, userId, contactIds);
+    }
+    
+    // Get updated voice note with new contacts
+    const updatedVoiceNote = await voiceNoteRepository.getById(id, userId);
+    
+    res.json(updatedVoiceNote);
+  } catch (error) {
+    console.error('Error updating contact associations:', error);
+    res.status(500).json({ 
+      error: 'Failed to update contact associations',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Legacy endpoint - POST /voice-notes/:id/enrichment - Apply enrichment from voice note
 router.post('/:id/enrichment', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, enrichmentProposal } = req.body;

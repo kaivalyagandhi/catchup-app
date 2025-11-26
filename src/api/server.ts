@@ -1,5 +1,7 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
+import { createServer as createHttpServer, Server } from 'http';
 import cors from 'cors';
+import { WebSocketServer } from 'ws';
 import authRouter from './routes/auth';
 import auditRouter from './routes/audit';
 import contactsRouter from './routes/contacts';
@@ -12,6 +14,7 @@ import accountRouter from './routes/account';
 import testDataRouter from './routes/test-data';
 import { apiRateLimiter } from '../utils/rate-limiter';
 import { enforceHttps, securityHeaders } from './middleware/security';
+import { VoiceNoteWebSocketHandler } from '../voice/websocket-handler';
 
 export function createServer(): Express {
   const app = express();
@@ -88,10 +91,24 @@ export function createServer(): Express {
   return app;
 }
 
-export function startServer(port: number = 3000): void {
+export function startServer(port: number = 3000): Server {
   const app = createServer();
+  const httpServer = createHttpServer(app);
   
-  app.listen(port, () => {
-    console.log(`CatchUp API server listening on port ${port}`);
+  // Set up WebSocket server for voice notes
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws/voice-notes'
   });
+  
+  // Initialize WebSocket handler
+  new VoiceNoteWebSocketHandler(wss);
+  console.log('WebSocket server initialized for voice notes');
+  
+  httpServer.listen(port, () => {
+    console.log(`CatchUp API server listening on port ${port}`);
+    console.log(`WebSocket server ready at ws://localhost:${port}/ws/voice-notes`);
+  });
+  
+  return httpServer;
 }

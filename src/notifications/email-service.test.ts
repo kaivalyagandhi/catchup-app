@@ -16,15 +16,29 @@ vi.mock('@sendgrid/mail', () => ({
 describe('SendGridEmailService', () => {
   describe('constructor', () => {
     it('should throw error if API key not provided', () => {
+      // Temporarily remove env vars to test validation
+      const originalApiKey = process.env.SENDGRID_API_KEY;
+      delete process.env.SENDGRID_API_KEY;
+      
       expect(() => {
         new SendGridEmailService('', 'test@example.com');
       }).toThrow('SendGrid API key not configured');
+      
+      // Restore env var
+      if (originalApiKey) process.env.SENDGRID_API_KEY = originalApiKey;
     });
 
     it('should throw error if from email not provided', () => {
+      // Temporarily remove env vars to test validation
+      const originalFromEmail = process.env.SENDGRID_FROM_EMAIL;
+      delete process.env.SENDGRID_FROM_EMAIL;
+      
       expect(() => {
         new SendGridEmailService('test_api_key', '');
       }).toThrow('SendGrid from email not configured');
+      
+      // Restore env var
+      if (originalFromEmail) process.env.SENDGRID_FROM_EMAIL = originalFromEmail;
     });
 
     it('should create instance with valid configuration', () => {

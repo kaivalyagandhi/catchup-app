@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Notes History - Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2563eb;
+            margin-bottom: 20px;
+        }
+        
+        .test-info {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            color: #0369a1;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Voice Notes History Component Test</h1>
+        
+        <div class="test-info">
+            <strong>Test Instructions:</strong>
+            <ol>
+                <li>Click "Load Mock Data" to populate with sample voice notes</li>
+                <li>Test filtering by contact, status, and date range</li>
+                <li>Test search functionality across transcripts</li>
+                <li>Click expand/collapse buttons to view details</li>
+                <li>Test delete functionality (will show confirmation)</li>
+            </ol>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <button onclick="loadMockData()">Load Mock Data</button>
+            <button onclick="clearData()">Clear Data</button>
+        </div>
+        
+        <div id="voice-history-content"></div>
+    </div>
+    
+    <script src="voice-notes-history.js"></script>
+    <script>
+        // Mock localStorage for testing
+        if (!localStorage.getItem('authToken')) {
+            localStorage.setItem('authToken', 'test-token');
+            localStorage.setItem('userId', 'test-user-123');
+        }
+        
+        // Mock fetch for testing
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            console.log('Mock fetch:', url);
+            
+            // Mock voice notes endpoint
+            if (url.includes('/api/voice-notes?')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve(getMockVoiceNotes())
+                });
+            }
+            
+            // Mock contacts endpoint
+            if (url.includes('/api/contacts?')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve(getMockContacts())
+                });
+            }
+            
+            // Mock delete endpoint
+            if (url.includes('/api/voice-notes/') && options?.method === 'DELETE') {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ success: true })
+                });
+            }
+            
+            return originalFetch(url, options);
+        };
+        
+        // Mock toast function
+        window.showToast = function(message, type) {
+            console.log(`Toast [${type}]:`, message);
+            alert(`${type.toUpperCase()}: ${message}`);
+        };
+        
+        let mockVoiceNotes = [];
+        
+        function getMockContacts() {
+            return [
+                { id: 'contact-1', name: 'John Doe' },
+                { id: 'contact-2', name: 'Jane Smith' },
+                { id: 'contact-3', name: 'Mike Johnson' },
+                { id: 'contact-4', name: 'Sarah Williams' }
+            ];
+        }
+        
+        function getMockVoiceNotes() {
+            return mockVoiceNotes;
+        }
+        
+        function loadMockData() {
+            const now = new Date();
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            mockVoiceNotes = [
+                {
+                    id: 'note-1',
+                    userId: 'test-user-123',
+                    transcript: 'Had a great coffee chat with John today. He mentioned he\'s interested in hiking and photography. We should plan a group hike soon. His email is john@example.com.',
+                    recordingTimestamp: now.toISOString(),
+                    status: 'applied',
+                    contacts: [
+                        { id: 'contact-1', name: 'John Doe' }
+                    ],
+                    extractedEntities: {
+                        'contact-1': {
+                            tags: ['hiking', 'photography'],
+                            groups: ['Outdoor Friends'],
+                            fields: {
+                                email: 'john@example.com'
+                            },
+                            lastContactDate: now.toISOString()
+                        }
+                    }
+                },
+                {
+                    id: 'note-2',
+                    userId: 'test-user-123',
+                    transcript: 'Caught up with Jane and Mike at the park. They both love running and are training for a marathon. Jane lives in Seattle now.',
+                    recordingTimestamp: yesterday.toISOString(),
+                    status: 'ready',
+                    contacts: [
+                        { id: 'contact-2', name: 'Jane Smith' },
+                        { id: 'contact-3', name: 'Mike Johnson' }
+                    ],
+                    extractedEntities: {
+                        'contact-2': {
+                            tags: ['running', 'marathon'],
+                            groups: ['Running Club'],
+                            fields: {
+                                location: 'Seattle, WA'
+                            }
+                        },
+                        'contact-3': {
+                            tags: ['running', 'marathon'],
+                            groups: ['Running Club'],
+                            fields: {}
+                        }
+                    }
+                },
+                {
+                    id: 'note-3',
+                    userId: 'test-user-123',
+                    transcript: 'Quick note about Sarah - she mentioned she\'s starting a new job at Google next month. Really excited for her! We should celebrate.',
+                    recordingTimestamp: lastWeek.toISOString(),
+                    status: 'applied',
+                    contacts: [
+                        { id: 'contact-4', name: 'Sarah Williams' }
+                    ],
+                    extractedEntities: {
+                        'contact-4': {
+                            tags: ['career', 'tech'],
+                            groups: ['Work Friends'],
+                            fields: {
+                                customNotes: 'Starting at Google next month'
+                            }
+                        }
+                    }
+                },
+                {
+                    id: 'note-4',
+                    userId: 'test-user-123',
+                    transcript: 'Test note with no contacts or enrichment data.',
+                    recordingTimestamp: lastWeek.toISOString(),
+                    status: 'transcribing',
+                    contacts: [],
+                    extractedEntities: null
+                }
+            ];
+            
+            // Refresh the history view
+            if (window.voiceNotesHistory) {
+                window.voiceNotesHistory.refresh();
+            } else {
+                initVoiceNotesHistoryPage();
+            }
+            
+            alert('Mock data loaded! You can now test the component.');
+        }
+        
+        function clearData() {
+            mockVoiceNotes = [];
+            if (window.voiceNotesHistory) {
+                window.voiceNotesHistory.refresh();
+            }
+            alert('Data cleared!');
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing Voice Notes History test page...');
+            initVoiceNotesHistoryPage();
+        });
+    </script>
+</body>
+</html>

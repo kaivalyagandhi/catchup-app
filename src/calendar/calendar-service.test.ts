@@ -47,11 +47,12 @@ async function createTestCalendar(
  * Create test user
  */
 async function createTestUser(): Promise<void> {
+  const uniqueEmail = `test-calendar-service-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
   await pool.query(
     `INSERT INTO users (id, email, name, created_at, updated_at)
      VALUES ($1, $2, $3, NOW(), NOW())
-     ON CONFLICT (id) DO NOTHING`,
-    [TEST_USER_ID, 'test@example.com', 'Test User']
+     ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email`,
+    [TEST_USER_ID, uniqueEmail, 'Test User']
   );
 }
 

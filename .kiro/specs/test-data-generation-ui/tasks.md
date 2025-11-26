@@ -173,13 +173,76 @@
 - [x] 11. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [x] 12. Manual testing and verification
+- [x] 13. Enhance test data generator to create shared groups and tags
+  - Update seedTestData to create groups and assign multiple contacts to same groups
+  - Ensure some contacts share multiple tags for strong shared context
+  - Create realistic group membership patterns (e.g., "Work Friends", "College Buddies")
+  - _Requirements: 10.1, 10.2_
+
+- [ ]* 13.1 Write property test for group suggestion membership
+  - **Property 25: Group suggestion contact membership**
+  - **Validates: Requirements 10.4**
+
+- [ ]* 13.2 Write property test for shared context scores
+  - **Property 26: Group suggestion shared context**
+  - **Validates: Requirements 10.5**
+
+- [x] 14. Implement group suggestion generation in test data
+  - Integrate GroupMatchingService to find potential groups
+  - Generate group suggestions with shared context scores
+  - Store group suggestions with type='group' and multiple contact IDs
+  - Include reasoning based on common groups, shared tags, and co-mentions
+  - _Requirements: 10.3, 10.5, 10.6_
+
+- [x] 15. Implement voice note generation in test data
+  - Create sample voice notes with realistic transcriptions
+  - Associate voice notes with test contacts
+  - Include extracted entities (names, dates, locations, interests)
+  - Vary recording timestamps across multiple days
+  - _Requirements: 11.1, 11.2, 11.3, 11.5_
+
+- [ ]* 15.1 Write property test for voice note associations
+  - **Property 27: Voice note contact associations**
+  - **Validates: Requirements 11.2**
+
+- [ ]* 15.2 Write property test for voice note timestamp variance
+  - **Property 29: Voice note timestamp variance**
+  - **Validates: Requirements 11.5**
+
+- [x] 16. Implement voice note co-mentions in test data
+  - Create voice notes that mention multiple contacts together
+  - Ensure co-mentions support group suggestion generation
+  - Store voice_note_contacts associations for co-mentioned contacts
+  - _Requirements: 11.4_
+
+- [ ]* 16.1 Write property test for co-mentions
+  - **Property 28: Voice note co-mentions**
+  - **Validates: Requirements 11.4**
+
+- [x] 17. Update clear test data to remove voice notes and group suggestions
+  - Add deletion of voice_notes table records
+  - Add deletion of voice_note_contacts table records
+  - Add deletion of group suggestions (type='group')
+  - Ensure proper deletion order to maintain referential integrity
+  - Update response to include voice notes and group suggestions counts
+  - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
+
+- [ ]* 17.1 Write property test for complete cleanup
+  - **Property 30: Complete test data cleanup**
+  - **Validates: Requirements 12.1, 12.2, 12.3, 12.4**
+
+- [x] 18. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 19. Manual testing and verification
   - Test seed test data button creates contacts with tags and groups
-  - Test generate suggestions button creates suggestions
-  - Test clear test data button removes all test data
+  - Test generate suggestions button creates both individual and group suggestions
+  - Test clear test data button removes all test data including voice notes
   - Test suggestion filters work correctly for all statuses
   - Test tag and group display in contact cards
   - Test adding and removing tags through UI
   - Test adding and removing groups through UI
+  - Verify group suggestions display correctly with multiple contacts
+  - Verify voice notes are created and associated with contacts
   - Verify error handling and loading states
   - _Requirements: All_

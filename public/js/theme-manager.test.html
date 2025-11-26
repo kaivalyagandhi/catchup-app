@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Manager Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .test-pass {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .test-fail {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        
+        .info {
+            background: #e0f2fe;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Theme Manager Test Suite</h1>
+    
+    <div class="info">
+        <strong>Current Theme:</strong> <span id="current-theme">-</span><br>
+        <strong>Data Attribute:</strong> <span id="data-attribute">-</span><br>
+        <strong>LocalStorage Value:</strong> <span id="storage-value">-</span>
+    </div>
+    
+    <div class="test-section">
+        <h2>Manual Tests</h2>
+        <button onclick="testSetLight()">Set Light Theme</button>
+        <button onclick="testSetDark()">Set Dark Theme</button>
+        <button onclick="testToggle()">Toggle Theme</button>
+        <button onclick="testInitialize()">Initialize Theme</button>
+        <button onclick="clearStorage()">Clear Storage</button>
+        <button onclick="updateDisplay()">Refresh Display</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Automated Tests</h2>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <div id="test-results"></div>
+    </div>
+    
+    <script src="/js/theme-manager.js"></script>
+    <script>
+        // Update display
+        function updateDisplay() {
+            document.getElementById('current-theme').textContent = themeManager.getCurrentTheme();
+            document.getElementById('data-attribute').textContent = 
+                document.documentElement.getAttribute('data-theme') || 'none (light)';
+            document.getElementById('storage-value').textContent = 
+                localStorage.getItem('catchup-theme') || 'none';
+        }
+        
+        // Manual test functions
+        function testSetLight() {
+            themeManager.setTheme('light');
+            updateDisplay();
+            console.log('Set to light theme');
+        }
+        
+        function testSetDark() {
+            themeManager.setTheme('dark');
+            updateDisplay();
+            console.log('Set to dark theme');
+        }
+        
+        function testToggle() {
+            themeManager.toggleTheme();
+            updateDisplay();
+            console.log('Toggled theme');
+        }
+        
+        function testInitialize() {
+            themeManager.initializeTheme();
+            updateDisplay();
+            console.log('Initialized theme');
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('catchup-theme');
+            updateDisplay();
+            console.log('Cleared storage');
+        }
+        
+        // Automated tests
+        function runAllTests() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<h3>Running tests...</h3>';
+            
+            const results = [];
+            
+            // Test 1: getCurrentTheme returns a valid theme
+            try {
+                const theme = themeManager.getCurrentTheme();
+                const isValid = theme === 'light' || theme === 'dark';
+                results.push({
+                    name: 'getCurrentTheme returns valid theme',
+                    pass: isValid,
+                    message: isValid ? `Returned: ${theme}` : `Invalid theme: ${theme}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'getCurrentTheme returns valid theme',
+                    pass: false,
+                    message: `Error: ${error.message}`
+                });
+            }
+            
+            // Test 2: setTheme to dark
+            try {
+                themeManager.setTheme('dark');
+                const isDark = themeManager.getCurrentTheme() === 'dark';
+                const hasAttr = document.documentElement.getAttribute('data-theme') === 'dark';
+                const inStorage = localStorage.getItem('catchup-theme') === 'dark';
+                const pass = isDark && hasAttr && inStorage;
+                results.push({
+                    name: 'setTheme to dark updates all state',
+                    pass: pass,
+                    message: pass ? 'All checks passed' : 
+                        `Theme: ${isDark}, Attr: ${hasAttr}, Storage: ${inStorage}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'setTheme to dark updates all state',
+                    pass: false,
+                    message: `Error: ${error.message}`
+                });
+            }
+            
+            // Test 3: setTheme to light
+            try {
+                themeManager.setTheme('light');
+                const isLight = themeManager.getCurrentTheme() === 'light';
+                const noAttr = !document.documentElement.getAttribute('data-theme');
+                const inStorage = localStorage.getItem('catchup-theme') === 'light';
+                const pass = isLight && noAttr && inStorage;
+                results.push({
+                    name: 'setTheme to light updates all state',
+                    pass: pass,
+                    message: pass ? 'All checks passed' : 
+                        `Theme: ${isLight}, No Attr: ${noAttr}, Storage: ${inStorage}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'setTheme to light updates all state',
+                    pass: false,
+                    message: `Error: ${error.message}`
+                });
+            }
+            
+            // Test 4: toggleTheme switches themes
+            try {
+                themeManager.setTheme('light');
+                themeManager.toggleTheme();
+                const isDark = themeManager.getCurrentTheme() === 'dark';
+                themeManager.toggleTheme();
+                const isLight = themeManager.getCurrentTheme() === 'light';
+                const pass = isDark && isLight;
+                results.push({
+                    name: 'toggleTheme switches between themes',
+                    pass: pass,
+                    message: pass ? 'Toggle works correctly' : 
+                        `First toggle: ${isDark}, Second toggle: ${isLight}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'toggleTheme switches between themes',
+                    pass: false,
+                    message: `Error: ${error.message}`
+                });
+            }
+            
+            // Test 5: saveThemePreference and loadThemePreference
+            try {
+                themeManager.saveThemePreference('dark');
+                const loaded = themeManager.loadThemePreference();
+                const pass = loaded === 'dark';
+                results.push({
+                    name: 'saveThemePreference and loadThemePreference work',
+                    pass: pass,
+                    message: pass ? 'Saved and loaded correctly' : 
+                        `Expected 'dark', got '${loaded}'`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'saveThemePreference and loadThemePreference work',
+                    pass: false,
+                    message: `Error: ${error.message}`
+                });
+            }
+            
+            // Test 6: initializeTheme with saved preference
+            try {
+                localStorage.setItem('catchup-theme', 'dark');
+                themeManager.initializeTheme();
+                const isDark = themeManager.getCurrentTheme() === 'dark';
+                const hasAttr = document.documentElement.getAttribute('data-theme') === 'dark';
+                const pass = isDark && hasAttr;
+                results.push({
+                    name: 'initializeTheme loads saved preference',
+                    pass: pass,
+                    message: pass ? 'Initialized with saved theme' : 
+                        `Theme: ${isDark}, Attr: ${hasAttr}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'initializeTheme loads saved preference',
+                    pass: false,
+                    message: `Error: ${error.message}`
+                });
+            }
+            
+            // Test 7: initializeTheme defaults to light when no preference
+            try {
+                localStorage.removeItem('catchup-theme');
+                themeManager.initializeTheme();
+                const isLight = themeManager.getCurrentTheme() === 'light';
+                const noAttr = !document.documentElement.getAttribute('data-theme');
+                const pass = isLight && noAttr;
+                results.push({
+                    name: 'initializeTheme defaults to light',
+                    pass: pass,
+                    message: pass ? 'Defaulted to light theme' : 
+                        `Theme: ${isLight}, No Attr: ${noAttr}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'initializeTheme defaults to light',
+                    pass: false,
+                    message: `Error: ${error.message}`
+                });
+            }
+            
+            // Test 8: Invalid theme value handling
+            try {
+                themeManager.setTheme('invalid');
+                const isLight = themeManager.getCurrentTheme() === 'light';
+                results.push({
+                    name: 'Invalid theme defaults to light',
+                    pass: isLight,
+                    message: isLight ? 'Correctly defaulted to light' : 
+                        `Expected 'light', got '${themeManager.getCurrentTheme()}'`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Invalid theme defaults to light',
+                    pass: false,
+                    message: `Error: ${error.message}`
+                });
+            }
+            
+            // Test 9: Invalid stored value handling
+            try {
+                localStorage.setItem('catchup-theme', 'invalid-value');
+                const loaded = themeManager.loadThemePreference();
+                const pass = loaded === null;
+                results.push({
+                    name: 'Invalid stored value returns null',
+                    pass: pass,
+                    message: pass ? 'Correctly returned null' : 
+                        `Expected null, got '${loaded}'`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Invalid stored value returns null',
+                    pass: false,
+                    message: `Error: ${error.message}`
+                });
+            }
+            
+            // Display results
+            let html = '<h3>Test Results</h3>';
+            const passed = results.filter(r => r.pass).length;
+            const total = results.length;
+            html += `<p><strong>${passed}/${total} tests passed</strong></p>`;
+            
+            results.forEach(result => {
+                const className = result.pass ? 'test-pass' : 'test-fail';
+                const status = result.pass ? '✓ PASS' : '✗ FAIL';
+                html += `
+                    <div class="test-result ${className}">
+                        <strong>${status}:</strong> ${result.name}<br>
+                        <small>${result.message}</small>
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = html;
+            updateDisplay();
+        }
+        
+        // Initialize display on load
+        updateDisplay();
+    </script>
+</body>
+</html>

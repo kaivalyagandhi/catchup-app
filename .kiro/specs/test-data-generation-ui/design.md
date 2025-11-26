@@ -351,6 +351,30 @@ interface TestDataMetadata {
 *For any* tag or group associated with a contact, removing it through the UI should result in the association being deleted from the database.
 **Validates: Requirements 9.5**
 
+### Property 25: Group suggestion contact membership
+*For any* generated group suggestion, the suggestion should include between 2 and 3 contacts.
+**Validates: Requirements 10.4**
+
+### Property 26: Group suggestion shared context
+*For any* generated group suggestion, the shared context score should be at least 50 points (the threshold).
+**Validates: Requirements 10.5**
+
+### Property 27: Voice note contact associations
+*For any* generated voice note, the voice note should be associated with at least one contact.
+**Validates: Requirements 11.2**
+
+### Property 28: Voice note co-mentions
+*For any* set of generated voice notes, at least one voice note should mention multiple contacts (co-mention).
+**Validates: Requirements 11.4**
+
+### Property 29: Voice note timestamp variance
+*For any* set of generated voice notes, the recording timestamps should have sufficient variance (span at least 7 days).
+**Validates: Requirements 11.5**
+
+### Property 30: Complete test data cleanup
+*For any* user with test data, clearing test data should remove all records from all tables (contacts, tags, groups, calendar_events, suggestions, voice_notes, voice_note_contacts).
+**Validates: Requirements 12.1, 12.2, 12.3, 12.4**
+
 ## Error Handling
 
 ### Test Data Generation Errors

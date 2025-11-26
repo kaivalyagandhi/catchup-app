@@ -42,13 +42,14 @@ router.post('/seed', checkTestDataEnabled, authenticate, async (req: Authenticat
     }
     
     const userId = req.userId;
-    const { contactCount, includeCalendarEvents, includeSuggestions } = req.body;
+    const { contactCount, includeCalendarEvents, includeSuggestions, includeVoiceNotes } = req.body;
     
     // Seed test data using the generator
     const result = await testDataGenerator.seedTestData(userId, {
       contactCount: contactCount || 10,
       includeCalendarEvents: includeCalendarEvents || false,
-      includeSuggestions: includeSuggestions || false
+      includeSuggestions: includeSuggestions || false,
+      includeVoiceNotes: includeVoiceNotes || false
     });
     
     // If includeSuggestions is true, generate suggestions after seeding

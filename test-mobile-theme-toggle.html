@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Theme Toggle Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+        }
+        
+        .test-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        
+        .test-section h2 {
+            margin-bottom: 15px;
+            color: #2563eb;
+        }
+        
+        .test-info {
+            background: #f0f9ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        /* Simulated header from main app */
+        .simulated-header {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .user-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .theme-toggle-btn {
+            background: #6b7280;
+            color: #ffffff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.2s;
+        }
+        
+        .theme-toggle-btn:hover {
+            background: #4b5563;
+            transform: scale(1.05);
+        }
+        
+        .preferences-btn, .logout-btn {
+            background: #6b7280;
+            color: #ffffff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        /* Mobile Styles */
+        @media (max-width: 768px) {
+            .user-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .user-actions {
+                width: 100%;
+                flex-direction: row;
+            }
+            
+            .preferences-btn,
+            .logout-btn {
+                flex: 1;
+            }
+            
+            /* Theme toggle should maintain proper size */
+            .theme-toggle-btn {
+                min-width: 44px;
+                min-height: 44px;
+            }
+        }
+        
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+            button {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            button:active {
+                transform: scale(0.98);
+            }
+        }
+        
+        /* Measurement overlay */
+        .measurement-box {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .measurement-box::after {
+            content: attr(data-size);
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2563eb;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        
+        .viewport-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #2563eb;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        
+        .test-result {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .test-result.pass {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .test-result.fail {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="viewport-indicator" id="viewport-indicator"></div>
+    
+    <h1 style="margin-bottom: 30px;">Mobile Theme Toggle Responsiveness Test</h1>
+    
+    <!-- Test 1: Button Size -->
+    <div class="test-section">
+        <h2>Test 1: Touch Target Size (Min 44x44px)</h2>
+        <div class="test-info">
+            <strong>Requirement:</strong> Theme toggle button must be at least 44x44px on mobile for proper touch interaction.
+            <br><strong>How to test:</strong> Resize browser to mobile width (&lt;768px) and check button dimensions below.
+        </div>
+        
+        <div class="simulated-header">
+            <div class="user-info">
+                <span>user@example.com</span>
+                <div class="user-actions">
+                    <button class="preferences-btn">Preferences</button>
+                    <div class="measurement-box" data-size="">
+                        <button class="theme-toggle-btn" id="test-toggle-1">
+                            <span>🌙</span>
+                        </button>
+                    </div>
+                    <button class="logout-btn">Logout</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="test1-result" class="test-result"></div>
+    </div>
+    
+    <!-- Test 2: Visibility on Mobile -->
+    <div class="test-section">
+        <h2>Test 2: Visibility on Mobile Viewports</h2>
+        <div class="test-info">
+            <strong>Requirement:</strong> Theme toggle must remain visible and accessible on mobile devices.
+            <br><strong>How to test:</strong> Resize to various mobile widths (320px, 375px, 414px, 768px) and verify toggle is visible.
+        </div>
+        
+        <div class="simulated-header">
+            <div class="user-info">
+                <span>user@example.com</span>
+                <div class="user-actions">
+                    <button class="preferences-btn">Preferences</button>
+                    <button class="theme-toggle-btn" id="test-toggle-2">
+                        <span>🌙</span>
+                    </button>
+                    <button class="logout-btn">Logout</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="test2-result" class="test-result"></div>
+    </div>
+    
+    <!-- Test 3: Layout in Responsive Mode -->
+    <div class="test-section">
+        <h2>Test 3: Layout Behavior on Mobile</h2>
+        <div class="test-info">
+            <strong>Requirement:</strong> User actions should stack properly on mobile with theme toggle maintaining its position.
+            <br><strong>How to test:</strong> On mobile width, verify user-actions section stacks and toggle remains accessible.
+        </div>
+        
+        <div class="simulated-header">
+            <div class="user-info">
+                <span style="font-size: 14px; color: #6b7280;">user@example.com</span>
+                <div class="user-actions">
+                    <button class="preferences-btn">Preferences</button>
+                    <button class="theme-toggle-btn" id="test-toggle-3">
+                        <span>🌙</span>
+                    </button>
+                    <button class="logout-btn">Logout</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="test3-result" class="test-result"></div>
+    </div>
+    
+    <!-- Test 4: Touch Interaction -->
+    <div class="test-section">
+        <h2>Test 4: Touch Interaction Feedback</h2>
+        <div class="test-info">
+            <strong>Requirement:</strong> Button should provide visual feedback on touch/click.
+            <br><strong>How to test:</strong> Click/tap the button and observe hover/active states.
+        </div>
+        
+        <div class="simulated-header">
+            <div class="user-info">
+                <span>user@example.com</span>
+                <div class="user-actions">
+                    <button class="preferences-btn">Preferences</button>
+                    <button class="theme-toggle-btn" id="test-toggle-4" onclick="handleToggleClick(this)">
+                        <span id="icon-4">🌙</span>
+                    </button>
+                    <button class="logout-btn">Logout</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="test4-result" class="test-result"></div>
+    </div>
+    
+    <script>
+        // Update viewport indicator
+        function updateViewportIndicator() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            document.getElementById('viewport-indicator').textContent = `${width}x${height}px`;
+        }
+        
+        // Test 1: Check button size
+        function testButtonSize() {
+            const button = document.getElementById('test-toggle-1');
+            const rect = button.getBoundingClientRect();
+            const width = Math.round(rect.width);
+            const height = Math.round(rect.height);
+            
+            const measurementBox = button.parentElement;
+            measurementBox.setAttribute('data-size', `${width}x${height}px`);
+            
+            const resultDiv = document.getElementById('test1-result');
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMobile) {
+                if (width >= 44 && height >= 44) {
+                    resultDiv.className = 'test-result pass';
+                    resultDiv.textContent = `✓ PASS: Button size is ${width}x${height}px (meets 44x44px minimum)`;
+                } else {
+                    resultDiv.className = 'test-result fail';
+                    resultDiv.textContent = `✗ FAIL: Button size is ${width}x${height}px (needs to be at least 44x44px)`;
+                }
+            } else {
+                resultDiv.className = 'test-result';
+                resultDiv.style.background = '#f3f4f6';
+                resultDiv.style.color = '#374151';
+                resultDiv.textContent = `ℹ INFO: Desktop mode - Button size is ${width}x${height}px. Resize to mobile (<768px) to test.`;
+            }
+        }
+        
+        // Test 2: Check visibility
+        function testVisibility() {
+            const button = document.getElementById('test-toggle-2');
+            const isVisible = button.offsetWidth > 0 && button.offsetHeight > 0;
+            const computedStyle = window.getComputedStyle(button);
+            const display = computedStyle.display;
+            const visibility = computedStyle.visibility;
+            const opacity = computedStyle.opacity;
+            
+            const resultDiv = document.getElementById('test2-result');
+            
+            if (isVisible && display !== 'none' && visibility !== 'hidden' && opacity !== '0') {
+                resultDiv.className = 'test-result pass';
+                resultDiv.textContent = '✓ PASS: Theme toggle is visible and accessible';
+            } else {
+                resultDiv.className = 'test-result fail';
+                resultDiv.textContent = '✗ FAIL: Theme toggle is not visible';
+            }
+        }
+        
+        // Test 3: Check layout
+        function testLayout() {
+            const userInfo = document.querySelector('#test-toggle-3').closest('.user-info');
+            const userActions = document.querySelector('#test-toggle-3').closest('.user-actions');
+            const computedUserInfo = window.getComputedStyle(userInfo);
+            const computedUserActions = window.getComputedStyle(userActions);
+            
+            const resultDiv = document.getElementById('test3-result');
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMobile) {
+                const isStacked = computedUserInfo.flexDirection === 'column';
+                const actionsFullWidth = userActions.offsetWidth === userInfo.offsetWidth;
+                
+                if (isStacked) {
+                    resultDiv.className = 'test-result pass';
+                    resultDiv.textContent = '✓ PASS: Layout properly stacks on mobile with theme toggle accessible';
+                } else {
+                    resultDiv.className = 'test-result fail';
+                    resultDiv.textContent = '✗ FAIL: Layout does not stack properly on mobile';
+                }
+            } else {
+                resultDiv.className = 'test-result';
+                resultDiv.style.background = '#f3f4f6';
+                resultDiv.style.color = '#374151';
+                resultDiv.textContent = 'ℹ INFO: Desktop mode - Resize to mobile (<768px) to test layout stacking.';
+            }
+        }
+        
+        // Test 4: Touch interaction
+        let clickCount = 0;
+        function handleToggleClick(button) {
+            clickCount++;
+            const icon = document.getElementById('icon-4');
+            const currentIcon = icon.textContent;
+            icon.textContent = currentIcon === '🌙' ? '☀️' : '🌙';
+            
+            const resultDiv = document.getElementById('test4-result');
+            resultDiv.className = 'test-result pass';
+            resultDiv.textContent = `✓ PASS: Button responds to clicks (${clickCount} clicks). Icon toggles correctly.`;
+        }
+        
+        // Run all tests
+        function runAllTests() {
+            updateViewportIndicator();
+            testButtonSize();
+            testVisibility();
+            testLayout();
+        }
+        
+        // Run tests on load and resize
+        window.addEventListener('load', runAllTests);
+        window.addEventListener('resize', runAllTests);
+        
+        // Initial run
+        runAllTests();
+    </script>
+</body>
+</html>

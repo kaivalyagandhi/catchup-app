@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enrichment Review Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-controls {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .test-controls h2 {
+            margin-top: 0;
+        }
+        .test-controls button {
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .hidden {
+            display: none !important;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button.secondary {
+            background: #6b7280;
+        }
+        button.secondary:hover {
+            background: #4b5563;
+        }
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+        }
+        .toast {
+            padding: 14px 18px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
+            min-width: 250px;
+        }
+        .toast-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        .toast-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+        .toast-info {
+            background: #e0e7ff;
+            color: #3730a3;
+            border-left: 4px solid #6366f1;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-controls">
+            <h2>Enrichment Review Component Test</h2>
+            <p>Test the enrichment review interface with sample data</p>
+            <button onclick="testSingleContact()">Test Single Contact</button>
+            <button onclick="testMultipleContacts()">Test Multiple Contacts</button>
+            <button onclick="testEmptyProposal()">Test Empty Proposal</button>
+            <button onclick="testMixedItems()" class="secondary">Test Mixed Items</button>
+        </div>
+        
+        <div id="enrichment-review-container"></div>
+    </div>
+    
+    <div id="toast-container"></div>
+    
+    <script src="enrichment-review.js"></script>
+    <script>
+        // Toast notification helper
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        // Test cases
+        function testSingleContact() {
+            const proposal = {
+                voiceNoteId: 'test-voice-note-1',
+                contactProposals: [
+                    {
+                        contactId: 'contact-1',
+                        contactName: 'John Doe',
+                        items: [
+                            {
+                                id: 'item-1',
+                                type: 'tag',
+                                action: 'add',
+                                value: 'hiking',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-2',
+                                type: 'tag',
+                                action: 'add',
+                                value: 'photography',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-3',
+                                type: 'field',
+                                action: 'update',
+                                field: 'location',
+                                value: 'Seattle, WA',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-4',
+                                type: 'field',
+                                action: 'add',
+                                field: 'email',
+                                value: 'john.doe@example.com',
+                                accepted: false
+                            }
+                        ]
+                    }
+                ],
+                requiresContactSelection: false
+            };
+            
+            enrichmentReview.display(proposal, async (proposal) => {
+                console.log('Applying enrichment:', proposal);
+                showToast('Enrichment applied successfully!', 'success');
+            });
+        }
+        
+        function testMultipleContacts() {
+            const proposal = {
+                voiceNoteId: 'test-voice-note-2',
+                contactProposals: [
+                    {
+                        contactId: 'contact-1',
+                        contactName: 'Alice Johnson',
+                        items: [
+                            {
+                                id: 'item-1',
+                                type: 'tag',
+                                action: 'add',
+                                value: 'hiking',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-2',
+                                type: 'group',
+                                action: 'add',
+                                value: 'Outdoor Friends',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-3',
+                                type: 'lastContactDate',
+                                action: 'update',
+                                value: '2024-01-15',
+                                accepted: true
+                            }
+                        ]
+                    },
+                    {
+                        contactId: 'contact-2',
+                        contactName: 'Bob Smith',
+                        items: [
+                            {
+                                id: 'item-4',
+                                type: 'tag',
+                                action: 'add',
+                                value: 'hiking',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-5',
+                                type: 'field',
+                                action: 'add',
+                                field: 'phone',
+                                value: '+1-555-123-4567',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-6',
+                                type: 'field',
+                                action: 'update',
+                                field: 'location',
+                                value: 'Portland, OR',
+                                accepted: false
+                            }
+                        ]
+                    },
+                    {
+                        contactId: 'contact-3',
+                        contactName: 'Carol Williams',
+                        items: [
+                            {
+                                id: 'item-7',
+                                type: 'group',
+                                action: 'add',
+                                value: 'Outdoor Friends',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-8',
+                                type: 'field',
+                                action: 'add',
+                                field: 'instagram',
+                                value: '@carolwilliams',
+                                accepted: true
+                            }
+                        ]
+                    }
+                ],
+                requiresContactSelection: false
+            };
+            
+            enrichmentReview.display(proposal, async (proposal) => {
+                console.log('Applying enrichment:', proposal);
+                showToast('Enrichment applied successfully!', 'success');
+            });
+        }
+        
+        function testEmptyProposal() {
+            const proposal = {
+                voiceNoteId: 'test-voice-note-3',
+                contactProposals: [],
+                requiresContactSelection: false
+            };
+            
+            enrichmentReview.display(proposal, async (proposal) => {
+                console.log('Applying enrichment:', proposal);
+                showToast('Enrichment applied successfully!', 'success');
+            });
+        }
+        
+        function testMixedItems() {
+            const proposal = {
+                voiceNoteId: 'test-voice-note-4',
+                contactProposals: [
+                    {
+                        contactId: 'contact-1',
+                        contactName: 'David Chen',
+                        items: [
+                            {
+                                id: 'item-1',
+                                type: 'field',
+                                action: 'add',
+                                field: 'email',
+                                value: 'david.chen@example.com',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-2',
+                                type: 'field',
+                                action: 'add',
+                                field: 'linkedIn',
+                                value: 'linkedin.com/in/davidchen',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-3',
+                                type: 'field',
+                                action: 'add',
+                                field: 'xHandle',
+                                value: '@davidchen',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-4',
+                                type: 'tag',
+                                action: 'add',
+                                value: 'tech',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-5',
+                                type: 'tag',
+                                action: 'add',
+                                value: 'startup',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-6',
+                                type: 'group',
+                                action: 'add',
+                                value: 'Tech Friends',
+                                accepted: true
+                            },
+                            {
+                                id: 'item-7',
+                                type: 'lastContactDate',
+                                action: 'add',
+                                value: '2024-02-01',
+                                accepted: true
+                            }
+                        ]
+                    }
+                ],
+                requiresContactSelection: false
+            };
+            
+            enrichmentReview.display(proposal, async (proposal) => {
+                console.log('Applying enrichment:', proposal);
+                showToast('Enrichment applied successfully!', 'success');
+            });
+        }
+        
+        // Initialize with single contact test
+        testSingleContact();
+    </script>
+</body>
+</html>

@@ -660,9 +660,9 @@ Remove a tag from a contact.
 
 ### Suggestions Endpoints
 
-#### Get Pending Suggestions
+#### Get Suggestions
 
-Retrieve all pending suggestions for a user.
+Retrieve suggestions for a user with optional status filtering. Includes both individual and group suggestions.
 
 **Endpoint:** `GET /api/suggestions`
 
@@ -670,6 +670,7 @@ Retrieve all pending suggestions for a user.
 
 **Query Parameters:**
 - `userId` (required) - User ID
+- `status` (optional) - Filter by status (pending, accepted, dismissed, snoozed, all)
 
 **Response:** `200 OK`
 ```json
@@ -677,8 +678,16 @@ Retrieve all pending suggestions for a user.
   {
     "id": "990e8400-e29b-41d4-a716-446655440004",
     "userId": "550e8400-e29b-41d4-a716-446655440000",
+    "type": "individual",
+    "contacts": [
+      {
+        "id": "660e8400-e29b-41d4-a716-446655440001",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "location": "New York City"
+      }
+    ],
     "contactId": "660e8400-e29b-41d4-a716-446655440001",
-    "contactName": "John Doe",
     "triggerType": "timebound",
     "proposedTimeslot": {
       "start": "2024-01-15T14:00:00Z",
@@ -686,26 +695,84 @@ Retrieve all pending suggestions for a user.
       "timezone": "America/New_York"
     },
     "reasoning": "It's been 3 weeks since you last connected. Based on your monthly preference, now is a good time to catch up.",
+    "priority": 85,
     "status": "pending",
-    "createdAt": "2024-01-10T12:00:00Z"
+    "createdAt": "2024-01-10T12:00:00Z",
+    "updatedAt": "2024-01-10T12:00:00Z"
   },
   {
     "id": "990e8400-e29b-41d4-a716-446655440005",
-    "contactId": "660e8400-e29b-41d4-a716-446655440002",
-    "contactName": "Jane Smith",
-    "triggerType": "shared_activity",
+    "userId": "550e8400-e29b-41d4-a716-446655440000",
+    "type": "group",
+    "contacts": [
+      {
+        "id": "660e8400-e29b-41d4-a716-446655440002",
+        "name": "Jane Smith",
+        "email": "jane@example.com"
+      },
+      {
+        "id": "660e8400-e29b-41d4-a716-446655440003",
+        "name": "Mike Johnson",
+        "email": "mike@example.com"
+      }
+    ],
+    "triggerType": "timebound",
     "proposedTimeslot": {
       "start": "2024-01-20T18:00:00Z",
       "end": "2024-01-20T20:00:00Z",
       "timezone": "America/New_York"
     },
-    "reasoning": "You have 'Tech Meetup' on your calendar. Jane shares interest in technology and is in the same city.",
+    "reasoning": "Jane and Mike share hiking interests and were mentioned together in your recent voice note. It's been 4 weeks since you all hung out.",
+    "sharedContext": {
+      "score": 75,
+      "factors": {
+        "commonGroups": ["Hiking Friends"],
+        "sharedTags": ["hiking", "outdoors"],
+        "coMentionedInVoiceNotes": 3,
+        "overlappingInterests": ["hiking", "photography"]
+      }
+    },
+    "priority": 90,
+    "status": "pending",
+    "createdAt": "2024-01-10T12:00:00Z",
+    "updatedAt": "2024-01-10T12:00:00Z"
+  },
+  {
+    "id": "990e8400-e29b-41d4-a716-446655440006",
+    "type": "individual",
+    "contacts": [
+      {
+        "id": "660e8400-e29b-41d4-a716-446655440004",
+        "name": "Sarah Lee"
+      }
+    ],
+    "contactId": "660e8400-e29b-41d4-a716-446655440004",
+    "triggerType": "shared_activity",
+    "proposedTimeslot": {
+      "start": "2024-01-22T19:00:00Z",
+      "end": "2024-01-22T21:00:00Z",
+      "timezone": "America/New_York"
+    },
+    "reasoning": "You have 'Tech Meetup' on your calendar. Sarah shares interest in technology and is in the same city.",
     "calendarEventId": "abc123",
+    "priority": 80,
     "status": "pending",
     "createdAt": "2024-01-10T12:00:00Z"
   }
 ]
 ```
+
+**Suggestion Types:**
+- `individual` - One-on-one suggestion with a single contact
+- `group` - Group suggestion with 2-3 contacts
+
+**Shared Context (Group Suggestions Only):**
+- `score` - Shared context score (0-100)
+- `factors` - Breakdown of shared context factors
+  - `commonGroups` - Groups that all contacts belong to
+  - `sharedTags` - Tags shared by all contacts
+  - `coMentionedInVoiceNotes` - Number of times mentioned together
+  - `overlappingInterests` - Common interests
 
 **Error Responses:**
 - `400 Bad Request` - Missing userId parameter
@@ -810,6 +877,72 @@ Temporarily hide a suggestion.
 
 **Error Responses:**
 - `400 Bad Request` - Missing userId or duration
+- `404 Not Found` - Suggestion not found
+- `401 Unauthorized` - Not authenticated
+
+---
+
+#### Remove Contact from Group Suggestion
+
+Remove a specific contact from a group suggestion. If only one contact remains, the suggestion is converted to an individual suggestion.
+
+**Endpoint:** `POST /api/suggestions/:id/remove-contact`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "contactId": "660e8400-e29b-41d4-a716-446655440002"
+}
+```
+
+**Response:** `200 OK`
+
+**When 2+ contacts remain:**
+```json
+{
+  "id": "990e8400-e29b-41d4-a716-446655440005",
+  "type": "group",
+  "contacts": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440003",
+      "name": "Mike Johnson"
+    }
+  ],
+  "sharedContext": {
+    "score": 60,
+    "factors": {
+      "commonGroups": ["Hiking Friends"],
+      "sharedTags": ["hiking"]
+    }
+  },
+  "status": "pending"
+}
+```
+
+**When only 1 contact remains (converted to individual):**
+```json
+{
+  "id": "990e8400-e29b-41d4-a716-446655440005",
+  "type": "individual",
+  "contacts": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440003",
+      "name": "Mike Johnson"
+    }
+  ],
+  "contactId": "660e8400-e29b-41d4-a716-446655440003",
+  "sharedContext": null,
+  "status": "pending"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Missing userId or contactId
+- `400 Bad Request` - Can only remove contacts from group suggestions
+- `400 Bad Request` - Contact not found in this suggestion
 - `404 Not Found` - Suggestion not found
 - `401 Unauthorized` - Not authenticated
 
@@ -974,96 +1107,11 @@ END:VCALENDAR
 
 ### Voice Notes Endpoints
 
-#### Upload Voice Note
+#### Create Recording Session
 
-Upload and process an audio recording.
+Create a new voice note recording session with real-time transcription.
 
-**Endpoint:** `POST /api/voice-notes`
-
-**Authentication:** Required
-
-**Content-Type:** `multipart/form-data`
-
-**Form Data:**
-- `audio` (file, required) - Audio file (max 10MB)
-- `userId` (string, required) - User ID
-
-**Supported Audio Formats:**
-- MP3
-- WAV
-- M4A
-- OGG
-- FLAC
-
-**Response:** `201 Created`
-```json
-{
-  "id": "dd0e8400-e29b-41d4-a716-446655440010",
-  "userId": "550e8400-e29b-41d4-a716-446655440000",
-  "audioUrl": "https://storage.catchup.app/voice-notes/dd0e8400.mp3",
-  "transcript": "I met John at the tech conference last week. He's really into AI and machine learning. We should catch up monthly.",
-  "contactId": "660e8400-e29b-41d4-a716-446655440001",
-  "extractedEntities": {
-    "fields": {
-      "lastContactDate": "2024-01-01"
-    },
-    "tags": ["AI", "machine learning"],
-    "groups": [],
-    "frequencyPreference": "monthly"
-  },
-  "processed": true,
-  "createdAt": "2024-01-01T12:00:00Z"
-}
-```
-
-**Error Responses:**
-- `400 Bad Request` - Missing audio file or userId
-- `400 Bad Request` - Invalid file type
-- `413 Payload Too Large` - File exceeds 10MB limit
-- `429 Too Many Requests` - Voice upload rate limit exceeded (10/hour)
-- `401 Unauthorized` - Not authenticated
-
----
-
-#### Get Voice Note
-
-Retrieve a specific voice note.
-
-**Endpoint:** `GET /api/voice-notes/:id`
-
-**Authentication:** Required
-
-**Response:** `200 OK`
-```json
-{
-  "id": "dd0e8400-e29b-41d4-a716-446655440010",
-  "userId": "550e8400-e29b-41d4-a716-446655440000",
-  "audioUrl": "https://storage.catchup.app/voice-notes/dd0e8400.mp3",
-  "transcript": "I met John at the tech conference...",
-  "contactId": "660e8400-e29b-41d4-a716-446655440001",
-  "extractedEntities": {
-    "fields": {
-      "lastContactDate": "2024-01-01"
-    },
-    "tags": ["AI", "machine learning"],
-    "groups": []
-  },
-  "processed": true,
-  "createdAt": "2024-01-01T12:00:00Z"
-}
-```
-
-**Error Responses:**
-- `404 Not Found` - Voice note not found
-- `401 Unauthorized` - Not authenticated
-
----
-
-#### Apply Enrichment
-
-Apply extracted entities to a contact.
-
-**Endpoint:** `POST /api/voice-notes/:id/enrichment`
+**Endpoint:** `POST /api/voice-notes/sessions`
 
 **Authentication:** Required
 
@@ -1071,63 +1119,438 @@ Apply extracted entities to a contact.
 ```json
 {
   "userId": "550e8400-e29b-41d4-a716-446655440000",
-  "contactId": "660e8400-e29b-41d4-a716-446655440001",
-  "enrichmentItems": [
-    {
-      "id": "item1",
-      "type": "field",
-      "action": "update",
-      "field": "lastContactDate",
-      "value": "2024-01-01",
-      "accepted": true
-    },
-    {
-      "id": "item2",
-      "type": "tag",
-      "action": "add",
-      "value": "AI",
-      "accepted": true
-    },
-    {
-      "id": "item3",
-      "type": "tag",
-      "action": "add",
-      "value": "machine learning",
-      "accepted": false
+  "languageCode": "en-US"
+}
+```
+
+**Parameters:**
+- `userId` (required) - User ID
+- `languageCode` (optional) - Language code for transcription (default: "en-US")
+
+**Response:** `201 Created`
+```json
+{
+  "sessionId": "session-abc123",
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "recording",
+  "startTime": "2024-01-01T12:00:00Z"
+}
+```
+
+**WebSocket Connection:**
+
+After creating a session, connect to the WebSocket endpoint for real-time transcription:
+
+```
+ws://localhost:3000/ws/voice-notes/:sessionId
+```
+
+**WebSocket Events:**
+
+Client → Server:
+```json
+{
+  "type": "audio_chunk",
+  "data": "<base64_encoded_audio>"
+}
+```
+
+Server → Client:
+```json
+{
+  "type": "interim_transcript",
+  "text": "I met John at the..."
+}
+```
+
+```json
+{
+  "type": "final_transcript",
+  "text": "I met John at the tech conference."
+}
+```
+
+```json
+{
+  "type": "status_change",
+  "status": "transcribing"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Missing userId
+- `401 Unauthorized` - Not authenticated
+- `500 Internal Server Error` - Failed to create session
+
+---
+
+#### Finalize Voice Note
+
+Complete a voice note recording and trigger entity extraction.
+
+**Endpoint:** `POST /api/voice-notes/:sessionId/finalize`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "voiceNote": {
+    "id": "dd0e8400-e29b-41d4-a716-446655440010",
+    "userId": "550e8400-e29b-41d4-a716-446655440000",
+    "transcript": "I met John at the tech conference last week. He's really into AI and machine learning. We should catch up monthly.",
+    "recordingTimestamp": "2024-01-01T12:00:00Z",
+    "status": "ready",
+    "contacts": [
+      {
+        "id": "660e8400-e29b-41d4-a716-446655440001",
+        "name": "John Doe"
+      }
+    ],
+    "createdAt": "2024-01-01T12:00:00Z",
+    "updatedAt": "2024-01-01T12:00:00Z"
+  },
+  "enrichmentProposal": {
+    "voiceNoteId": "dd0e8400-e29b-41d4-a716-446655440010",
+    "requiresContactSelection": false,
+    "contactProposals": [
+      {
+        "contactId": "660e8400-e29b-41d4-a716-446655440001",
+        "contactName": "John Doe",
+        "items": [
+          {
+            "id": "item1",
+            "type": "tag",
+            "action": "add",
+            "value": "AI",
+            "accepted": true
+          },
+          {
+            "id": "item2",
+            "type": "tag",
+            "action": "add",
+            "value": "machine learning",
+            "accepted": true
+          },
+          {
+            "id": "item3",
+            "type": "field",
+            "action": "update",
+            "field": "lastContactDate",
+            "value": "2024-01-01",
+            "accepted": true
+          },
+          {
+            "id": "item4",
+            "type": "field",
+            "action": "update",
+            "field": "frequencyPreference",
+            "value": "monthly",
+            "accepted": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Status Values:**
+- `recording` - Currently recording
+- `transcribing` - Transcription in progress
+- `extracting` - Entity extraction in progress
+- `ready` - Ready for enrichment review
+- `applied` - Enrichment has been applied
+- `error` - Processing error occurred
+
+**Error Responses:**
+- `400 Bad Request` - Missing userId
+- `404 Not Found` - Session not found
+- `401 Unauthorized` - Not authenticated
+- `500 Internal Server Error` - Failed to finalize voice note
+
+---
+
+#### Get Voice Note
+
+Retrieve a specific voice note by ID.
+
+**Endpoint:** `GET /api/voice-notes/:id`
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `userId` (required) - User ID
+
+**Response:** `200 OK`
+```json
+{
+  "id": "dd0e8400-e29b-41d4-a716-446655440010",
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "transcript": "I met John at the tech conference last week. He's really into AI and machine learning. We should catch up monthly.",
+  "recordingTimestamp": "2024-01-01T12:00:00Z",
+  "status": "applied",
+  "extractedEntities": {
+    "660e8400-e29b-41d4-a716-446655440001": {
+      "fields": {
+        "lastContactDate": "2024-01-01",
+        "frequencyPreference": "monthly"
+      },
+      "tags": ["AI", "machine learning"],
+      "groups": []
     }
-  ]
+  },
+  "contacts": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "name": "John Doe",
+      "email": "john@example.com"
+    }
+  ],
+  "createdAt": "2024-01-01T12:00:00Z",
+  "updatedAt": "2024-01-01T12:05:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Missing userId parameter
+- `404 Not Found` - Voice note not found
+- `401 Unauthorized` - Not authenticated
+
+---
+
+#### List Voice Notes
+
+List all voice notes with optional filtering and search.
+
+**Endpoint:** `GET /api/voice-notes`
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `userId` (required) - User ID
+- `contactIds` (optional) - Filter by contact IDs (comma-separated or array)
+- `status` (optional) - Filter by status (recording, transcribing, extracting, ready, applied, error)
+- `dateFrom` (optional) - Filter by date range start (ISO 8601 format)
+- `dateTo` (optional) - Filter by date range end (ISO 8601 format)
+- `searchText` (optional) - Search across transcripts
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "dd0e8400-e29b-41d4-a716-446655440010",
+    "userId": "550e8400-e29b-41d4-a716-446655440000",
+    "transcript": "I met John at the tech conference...",
+    "recordingTimestamp": "2024-01-01T12:00:00Z",
+    "status": "applied",
+    "contacts": [
+      {
+        "id": "660e8400-e29b-41d4-a716-446655440001",
+        "name": "John Doe"
+      }
+    ],
+    "enrichmentSummary": {
+      "tagsAdded": 2,
+      "fieldsUpdated": 2,
+      "groupsAdded": 0
+    },
+    "createdAt": "2024-01-01T12:00:00Z"
+  },
+  {
+    "id": "dd0e8400-e29b-41d4-a716-446655440011",
+    "transcript": "Had coffee with Jane and Mike...",
+    "recordingTimestamp": "2024-01-02T14:00:00Z",
+    "status": "ready",
+    "contacts": [
+      {
+        "id": "660e8400-e29b-41d4-a716-446655440002",
+        "name": "Jane Smith"
+      },
+      {
+        "id": "660e8400-e29b-41d4-a716-446655440003",
+        "name": "Mike Johnson"
+      }
+    ],
+    "createdAt": "2024-01-02T14:00:00Z"
+  }
+]
+```
+
+**Error Responses:**
+- `400 Bad Request` - Missing userId parameter
+- `401 Unauthorized` - Not authenticated
+
+---
+
+#### Delete Voice Note
+
+Permanently delete a voice note and all associated data.
+
+**Endpoint:** `DELETE /api/voice-notes/:id`
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `userId` (required) - User ID
+
+**Response:** `204 No Content`
+
+**Error Responses:**
+- `400 Bad Request` - Missing userId parameter
+- `404 Not Found` - Voice note not found
+- `401 Unauthorized` - Not authenticated
+
+---
+
+#### Apply Enrichment
+
+Apply selected enrichment items to contacts.
+
+**Endpoint:** `POST /api/voice-notes/:id/enrichment/apply`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "enrichmentProposal": {
+    "voiceNoteId": "dd0e8400-e29b-41d4-a716-446655440010",
+    "contactProposals": [
+      {
+        "contactId": "660e8400-e29b-41d4-a716-446655440001",
+        "contactName": "John Doe",
+        "items": [
+          {
+            "id": "item1",
+            "type": "tag",
+            "action": "add",
+            "value": "AI",
+            "accepted": true
+          },
+          {
+            "id": "item2",
+            "type": "tag",
+            "action": "add",
+            "value": "machine learning",
+            "accepted": false
+          },
+          {
+            "id": "item3",
+            "type": "field",
+            "action": "update",
+            "field": "lastContactDate",
+            "value": "2024-01-01",
+            "accepted": true
+          },
+          {
+            "id": "item4",
+            "type": "group",
+            "action": "add",
+            "value": "Tech Friends",
+            "accepted": true
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
 **Enrichment Item Types:**
-- `field` - Update contact field
-- `tag` - Add/update tag
-- `group` - Add to group
+- `field` - Update contact field (phone, email, location, customNotes, etc.)
+- `tag` - Add tag to contact
+- `group` - Add contact to group (creates group if it doesn't exist)
 - `lastContactDate` - Update last contact date
 
 **Response:** `200 OK`
 ```json
 {
-  "contact": {
-    "id": "660e8400-e29b-41d4-a716-446655440001",
-    "name": "John Doe",
-    "lastContactDate": "2024-01-01",
-    "tags": [
-      {
-        "id": "880e8400-e29b-41d4-a716-446655440011",
-        "text": "AI",
-        "source": "voice_memo"
+  "success": true,
+  "results": [
+    {
+      "contactId": "660e8400-e29b-41d4-a716-446655440001",
+      "contactName": "John Doe",
+      "success": true,
+      "appliedItems": 3,
+      "failedItems": 0,
+      "details": {
+        "tagsAdded": ["AI"],
+        "groupsAdded": ["Tech Friends"],
+        "fieldsUpdated": ["lastContactDate"]
       }
-    ]
-  },
-  "appliedItems": 2,
-  "skippedItems": 1
+    }
+  ],
+  "totalApplied": 3,
+  "totalFailed": 0
 }
 ```
 
 **Error Responses:**
-- `400 Bad Request` - Missing userId or enrichmentItems
-- `404 Not Found` - Voice note or contact not found
+- `400 Bad Request` - Missing userId or enrichmentProposal
+- `404 Not Found` - Voice note not found
+- `401 Unauthorized` - Not authenticated
+- `500 Internal Server Error` - Failed to apply enrichment
+
+---
+
+#### Update Contact Associations
+
+Add, remove, or replace contacts associated with a voice note.
+
+**Endpoint:** `PATCH /api/voice-notes/:id/contacts`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "contactIds": [
+    "660e8400-e29b-41d4-a716-446655440001",
+    "660e8400-e29b-41d4-a716-446655440002"
+  ],
+  "action": "add"
+}
+```
+
+**Actions:**
+- `add` - Add new contact associations
+- `remove` - Remove contact associations
+- `replace` - Replace all contact associations
+
+**Response:** `200 OK`
+```json
+{
+  "id": "dd0e8400-e29b-41d4-a716-446655440010",
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "transcript": "I met John and Jane...",
+  "contacts": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "name": "John Doe"
+    },
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440002",
+      "name": "Jane Smith"
+    }
+  ],
+  "updatedAt": "2024-01-01T12:10:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Missing userId, contactIds, or action
+- `400 Bad Request` - Invalid action value
+- `404 Not Found` - Voice note not found
 - `401 Unauthorized` - Not authenticated
 
 

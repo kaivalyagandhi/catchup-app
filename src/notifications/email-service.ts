@@ -52,11 +52,6 @@ export class SendGridEmailService implements EmailService {
     this.retryDelayMs = retryDelayMs;
   }
 
-    sgMail.setApiKey(key);
-    this.maxRetries = maxRetries;
-    this.retryDelayMs = retryDelayMs;
-  }
-
   /**
    * Send email with retry logic and rate limiting
    */

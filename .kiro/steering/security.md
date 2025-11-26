@@ -15,7 +15,7 @@
 ### Third-Party Integrations
 - **Google Calendar OAuth**: Store client secrets securely, never in code
 - **Twilio/SMS**: API keys in environment variables only
-- **OpenAI/AI APIs**: Keys must be server-side only, never exposed to client
+- **AI APIs (Google Cloud Speech-to-Text, Google Gemini)**: Keys and service account credentials must be server-side only, never exposed to client
 - **SendGrid/Email**: API keys in secure storage
 
 ### Code Review Checklist
