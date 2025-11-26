@@ -224,9 +224,6 @@ function navigateTo(page) {
         case 'suggestions':
             loadSuggestions();
             break;
-        case 'calendar':
-            loadCalendar();
-            break;
         case 'voice':
             loadVoiceNotes();
             break;
@@ -2918,37 +2915,88 @@ function switchVoiceNoteTab(tabName) {
 }
 
 // Preferences
-function loadPreferences() {
+async function loadPreferences() {
     const container = document.getElementById('preferences-content');
+    
+    // Load calendar connection status
+    let calendarConnected = false;
+    try {
+        calendarConnected = await checkCalendarConnection();
+    } catch (error) {
+        console.error('Error checking calendar connection:', error);
+    }
+    
     container.innerHTML = `
-        <h3>Notification Preferences</h3>
-        <div class="form-group">
-            <label>
-                <input type="checkbox" checked> Enable SMS notifications
-            </label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
+            <!-- Notifications Section -->
+            <div>
+                <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--border-primary); padding-bottom: 10px;">Notifications</h3>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" checked> Enable SMS notifications
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" checked> Enable email notifications
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="batch-day">Batch notification day:</label>
+                    <select id="batch-day">
+                        <option value="0" selected>Sunday</option>
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="batch-time">Batch notification time:</label>
+                    <input type="time" id="batch-time" value="09:00">
+                </div>
+                <button onclick="savePreferences()">Save Preferences</button>
+            </div>
+            
+            <!-- Integrations Section -->
+            <div>
+                <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--border-primary); padding-bottom: 10px;">Integrations</h3>
+                
+                <!-- Google Calendar -->
+                <div class="card" style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h4 style="margin: 0;">📅 Google Calendar</h4>
+                        <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; ${calendarConnected ? 'background: var(--status-success-bg); color: var(--status-success-text);' : 'background: var(--status-error-bg); color: var(--status-error-text);'}">
+                            ${calendarConnected ? 'Connected' : 'Not Connected'}
+                        </span>
+                    </div>
+                    <p style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-secondary);">
+                        Connect your Google Calendar to enable smart scheduling and availability detection.
+                    </p>
+                    ${calendarConnected ? `
+                        <button onclick="disconnectCalendar()" class="secondary" style="width: 100%;">Disconnect</button>
+                    ` : `
+                        <button onclick="connectCalendar()" style="width: 100%;">Connect Calendar</button>
+                    `}
+                </div>
+                
+                <!-- Google Contacts (Placeholder) -->
+                <div class="card" style="opacity: 0.6;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h4 style="margin: 0;">👥 Google Contacts</h4>
+                        <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: var(--status-info-bg); color: var(--status-info-text);">
+                            Coming Soon
+                        </span>
+                    </div>
+                    <p style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-secondary);">
+                        Sync your Google Contacts to automatically import and manage your relationships.
+                    </p>
+                    <button disabled style="width: 100%; opacity: 0.5; cursor: not-allowed;">Coming Soon</button>
+                </div>
+            </div>
         </div>
-        <div class="form-group">
-            <label>
-                <input type="checkbox" checked> Enable email notifications
-            </label>
-        </div>
-        <div class="form-group">
-            <label for="batch-day">Batch notification day:</label>
-            <select id="batch-day">
-                <option value="0" selected>Sunday</option>
-                <option value="1">Monday</option>
-                <option value="2">Tuesday</option>
-                <option value="3">Wednesday</option>
-                <option value="4">Thursday</option>
-                <option value="5">Friday</option>
-                <option value="6">Saturday</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="batch-time">Batch notification time:</label>
-            <input type="time" id="batch-time" value="09:00">
-        </div>
-        <button onclick="savePreferences()">Save Preferences</button>
     `;
 }
 
