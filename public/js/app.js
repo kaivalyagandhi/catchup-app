@@ -44,23 +44,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Authentication
 function checkAuth() {
-    authToken = localStorage.getItem('authToken');
-    userId = localStorage.getItem('userId');
-    userEmail = localStorage.getItem('userEmail');
+    // Show loading screen immediately
+    showLoadingScreen();
     
-    if (authToken && userId) {
-        showMainApp();
-    } else {
-        showAuthScreen();
-    }
+    // Small delay to ensure smooth transition
+    setTimeout(() => {
+        authToken = localStorage.getItem('authToken');
+        userId = localStorage.getItem('userId');
+        userEmail = localStorage.getItem('userEmail');
+        
+        if (authToken && userId) {
+            showMainApp();
+        } else {
+            showAuthScreen();
+        }
+    }, 300);
+}
+
+function showLoadingScreen() {
+    document.getElementById('loading-screen').classList.remove('hidden');
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('main-app').classList.add('hidden');
 }
 
 function showAuthScreen() {
+    document.getElementById('loading-screen').classList.add('hidden');
     document.getElementById('auth-screen').classList.remove('hidden');
     document.getElementById('main-app').classList.add('hidden');
 }
 
 function showMainApp() {
+    document.getElementById('loading-screen').classList.add('hidden');
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('main-app').classList.remove('hidden');
     document.getElementById('user-email').textContent = userEmail;
