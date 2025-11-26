@@ -2,7 +2,7 @@
 
 ## Overview
 
-This feature enhances the CatchUp application's test data generation capabilities by consolidating and improving the test data generation endpoints, adding calendar event generation, and fixing UI issues with tags, groups, and suggestion filtering. The system will provide developers with a comprehensive way to populate the application with realistic test data that reflects real-world usage patterns.
+This feature enhances the CatchUp application's test data generation capabilities by providing granular control over test data generation and removal in the user preferences panel. Users can selectively generate or remove specific types of test data (contacts, calendar events, suggestions, group suggestions, and voice notes) with a clear status display showing counts of both test and real data. The system will provide developers with a flexible way to populate the application with realistic test data while maintaining the ability to reset specific data types independently.
 
 ## Architecture
 
@@ -11,99 +11,119 @@ This feature enhances the CatchUp application's test data generation capabilitie
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                         Frontend (UI)                        │
-│  ┌────────────────┐  ┌──────────────┐  ┌─────────────────┐ │
-│  │ Contacts Page  │  │ Suggestions  │  │ Test Data       │ │
-│  │ - Tag Display  │  │ Page         │  │ Controls        │ │
-│  │ - Group Display│  │ - Filters    │  │ - Seed Button   │ │
-│  │ - Tag/Group    │  │ - Status     │  │ - Generate Btn  │ │
-│  │   Management   │  │   Badges     │  │ - Clear Button  │ │
-│  └────────────────┘  └──────────────┘  └─────────────────┘ │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ Preferences Panel                                      │ │
+│  │ ┌──────────────────────────────────────────────────┐  │ │
+│  │ │ Test Data Management Section                     │  │ │
+│  │ │ ┌────────────────────────────────────────────┐  │  │ │
+│  │ │ │ Status Panel (Test vs Real Counts)         │  │  │ │
+│  │ │ │ - Contacts: 15 test / 42 real              │  │  │ │
+│  │ │ │ - Calendar Events: 20 test / 5 real        │  │  │ │
+│  │ │ │ - Suggestions: 10 test / 3 real            │  │  │ │
+│  │ │ │ - Group Suggestions: 5 test / 1 real       │  │  │ │
+│  │ │ │ - Voice Notes: 8 test / 2 real             │  │  │ │
+│  │ │ └────────────────────────────────────────────┘  │  │ │
+│  │ │ ┌────────────────────────────────────────────┐  │  │ │
+│  │ │ │ Data Type Controls (Repeating)             │  │  │ │
+│  │ │ │ [Generate] [Remove] Contacts               │  │  │ │
+│  │ │ │ [Generate] [Remove] Calendar Events        │  │  │ │
+│  │ │ │ [Generate] [Remove] Suggestions            │  │  │ │
+│  │ │ │ [Generate] [Remove] Group Suggestions      │  │  │ │
+│  │ │ │ [Generate] [Remove] Voice Notes            │  │  │ │
+│  │ │ └────────────────────────────────────────────┘  │  │ │
+│  │ └──────────────────────────────────────────────────┘  │ │
+│  └────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                      API Layer (Express)                     │
-│  ┌────────────────┐  ┌──────────────┐  ┌─────────────────┐ │
-│  │ /api/contacts  │  │ /api/        │  │ /api/test-data  │ │
-│  │ - CRUD         │  │ suggestions  │  │ - seed          │ │
-│  │ - Tags         │  │ - Filters    │  │ - generate      │ │
-│  │ - Groups       │  │ - Actions    │  │ - clear         │ │
-│  └────────────────┘  └──────────────┘  └─────────────────┘ │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ /api/test-data                                       │  │
+│  │ - POST /generate/:dataType (contacts, calendar, etc) │  │
+│  │ - POST /remove/:dataType                             │  │
+│  │ - GET /status                                        │  │
+│  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                      Service Layer                           │
-│  ┌────────────────┐  ┌──────────────┐  ┌─────────────────┐ │
-│  │ Contact        │  │ Suggestion   │  │ Test Data       │ │
-│  │ Service        │  │ Service      │  │ Generator       │ │
-│  │ - Tag Service  │  │ - Matching   │  │ - Contact Gen   │ │
-│  │ - Group Svc    │  │ - Filtering  │  │ - Calendar Gen  │ │
-│  └────────────────┘  └──────────────┘  └─────────────────┘ │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ Test Data Service                                    │  │
+│  │ - generateContacts()                                 │  │
+│  │ - generateCalendarEvents()                           │  │
+│  │ - generateSuggestions()                              │  │
+│  │ - generateGroupSuggestions()                         │  │
+│  │ - generateVoiceNotes()                               │  │
+│  │ - removeContacts()                                   │  │
+│  │ - removeCalendarEvents()                             │  │
+│  │ - removeSuggestions()                                │  │
+│  │ - removeGroupSuggestions()                           │  │
+│  │ - removeVoiceNotes()                                 │  │
+│  │ - getStatus()                                        │  │
+│  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Repository Layer                          │
-│  ┌────────────────┐  ┌──────────────┐  ┌─────────────────┐ │
-│  │ Contact Repo   │  │ Suggestion   │  │ Calendar Repo   │ │
-│  │ Tag Repo       │  │ Repo         │  │                 │ │
-│  │ Group Repo     │  │              │  │                 │ │
-│  └────────────────┘  └──────────────┘  └─────────────────┘ │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ Contact Repo | Calendar Repo | Suggestion Repo      │  │
+│  │ Voice Repo | Tag Repo | Group Repo                  │  │
+│  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    PostgreSQL Database                       │
-│  contacts | tags | groups | contact_groups | contact_tags   │
-│  calendar_events | suggestions                               │
+│  contacts | tags | groups | calendar_events | suggestions   │
+│  voice_notes | voice_note_contacts | enrichment_items       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## Components and Interfaces
 
-### 1. Test Data Generator Service
+### 1. Test Data Service
 
-**Purpose**: Generate realistic test data for contacts, calendar events, and suggestions.
+**Purpose**: Provide granular control over test data generation and removal for each data type independently.
 
 **Interface**:
 ```typescript
-interface TestDataGenerator {
-  seedTestData(userId: string, options?: SeedOptions): Promise<SeedResult>;
-  generateSuggestions(userId: string, options?: GenerateOptions): Promise<GenerateResult>;
-  clearTestData(userId: string): Promise<ClearResult>;
-}
-
-interface SeedOptions {
-  contactCount?: number;
-  includeCalendarEvents?: boolean;
-  includeSuggestions?: boolean;
-}
-
-interface SeedResult {
-  contactsCreated: number;
-  groupsCreated: number;
-  tagsCreated: number;
-  calendarEventsCreated: number;
-  suggestionsCreated: number;
-}
-
-interface GenerateOptions {
-  daysAhead?: number;
-  slotsPerDay?: number;
+interface TestDataService {
+  generateContacts(userId: string): Promise<GenerateResult>;
+  generateCalendarEvents(userId: string): Promise<GenerateResult>;
+  generateSuggestions(userId: string): Promise<GenerateResult>;
+  generateGroupSuggestions(userId: string): Promise<GenerateResult>;
+  generateVoiceNotes(userId: string): Promise<GenerateResult>;
+  
+  removeContacts(userId: string): Promise<RemoveResult>;
+  removeCalendarEvents(userId: string): Promise<RemoveResult>;
+  removeSuggestions(userId: string): Promise<RemoveResult>;
+  removeGroupSuggestions(userId: string): Promise<RemoveResult>;
+  removeVoiceNotes(userId: string): Promise<RemoveResult>;
+  
+  getStatus(userId: string): Promise<StatusResult>;
 }
 
 interface GenerateResult {
-  suggestionsCreated: number;
-  suggestions: Suggestion[];
+  success: boolean;
+  itemsCreated: number;
+  message: string;
 }
 
-interface ClearResult {
-  contactsDeleted: number;
-  groupsDeleted: number;
-  tagsDeleted: number;
-  calendarEventsDeleted: number;
-  suggestionsDeleted: number;
+interface RemoveResult {
+  success: boolean;
+  itemsDeleted: number;
+  message: string;
+}
+
+interface StatusResult {
+  contacts: { test: number; real: number };
+  calendarEvents: { test: number; real: number };
+  suggestions: { test: number; real: number };
+  groupSuggestions: { test: number; real: number };
+  voiceNotes: { test: number; real: number };
 }
 ```
 
@@ -113,98 +133,73 @@ interface ClearResult {
 - Generate tags for contacts
 - Create calendar events representing user availability
 - Generate suggestions based on contacts and availability
-- Clean up test data
+- Generate group suggestions with shared context
+- Generate voice notes with co-mentions
+- Remove specific types of test data independently
+- Track test data vs real data counts
+- Maintain referential integrity during deletion
 
-### 2. Calendar Event Generator
+### 2. Test Data Management UI Component
 
-**Purpose**: Generate realistic calendar events for testing time-bound suggestions.
+**Purpose**: Provide a preferences panel interface for managing test data generation and removal.
 
 **Interface**:
 ```typescript
-interface CalendarEventGenerator {
-  generateAvailabilitySlots(
-    userId: string,
-    startDate: Date,
-    endDate: Date,
-    options?: SlotOptions
-  ): Promise<CalendarEvent[]>;
+interface TestDataManagementUI {
+  renderStatusPanel(status: StatusResult): HTMLElement;
+  renderControlsPanel(): HTMLElement;
+  onGenerateClick(dataType: DataType): Promise<void>;
+  onRemoveClick(dataType: DataType): Promise<void>;
+  updateStatus(status: StatusResult): void;
+  showLoadingState(dataType: DataType): void;
+  showSuccessMessage(dataType: DataType, result: GenerateResult): void;
+  showErrorMessage(dataType: DataType, error: Error): void;
 }
 
-interface SlotOptions {
-  includeWeekends?: boolean;
-  timesOfDay?: TimeOfDay[];
-  slotDuration?: number; // minutes
-}
+type DataType = 'contacts' | 'calendarEvents' | 'suggestions' | 'groupSuggestions' | 'voiceNotes';
 
-enum TimeOfDay {
-  Morning = 'morning',    // 8am-12pm
-  Afternoon = 'afternoon', // 12pm-5pm
-  Evening = 'evening'      // 5pm-9pm
+interface StatusPanel {
+  contacts: { test: number; real: number };
+  calendarEvents: { test: number; real: number };
+  suggestions: { test: number; real: number };
+  groupSuggestions: { test: number; real: number };
+  voiceNotes: { test: number; real: number };
 }
+```
 
-interface CalendarEvent {
+**Responsibilities**:
+- Display status counts for each data type
+- Render generate/remove buttons for each data type
+- Handle button clicks and API calls
+- Show loading states during operations
+- Display success/error messages
+- Refresh status counts after operations
+- Provide visual feedback to user
+
+### 3. Test Data Metadata Tracking
+
+**Purpose**: Track which data items are test data vs real data.
+
+**Interface**:
+```typescript
+interface TestDataMetadata {
   id: string;
   userId: string;
-  title: string;
-  startTime: Date;
-  endTime: Date;
-  timezone: string;
-  isAvailable: boolean;
-}
-```
-
-### 3. Tag and Group Management UI
-
-**Purpose**: Display and manage tags and groups in the contacts UI.
-
-**Interface**:
-```typescript
-interface TagGroupUI {
-  renderTags(tags: Tag[]): HTMLElement;
-  renderGroups(groups: Group[]): HTMLElement;
-  addTagToContact(contactId: string, tagText: string): Promise<void>;
-  removeTagFromContact(contactId: string, tagId: string): Promise<void>;
-  assignContactToGroup(contactId: string, groupId: string): Promise<void>;
-  removeContactFromGroup(contactId: string, groupId: string): Promise<void>;
-}
-
-interface Tag {
-  id: string;
-  text: string;
-  source: 'manual' | 'ai' | 'imported';
-  createdAt: Date;
-}
-
-interface Group {
-  id: string;
-  name: string;
+  entityType: 'contact' | 'group' | 'tag' | 'calendar_event' | 'suggestion' | 'voice_note';
+  entityId: string;
   createdAt: Date;
 }
 ```
 
-### 4. Suggestion Filter UI
-
-**Purpose**: Filter suggestions by status in the UI.
-
-**Interface**:
-```typescript
-interface SuggestionFilterUI {
-  filterSuggestions(status: SuggestionStatus | 'all'): void;
-  setActiveFilter(status: SuggestionStatus | 'all'): void;
-  renderFilteredSuggestions(suggestions: Suggestion[]): void;
-}
-
-enum SuggestionStatus {
-  Pending = 'pending',
-  Accepted = 'accepted',
-  Dismissed = 'dismissed',
-  Snoozed = 'snoozed'
-}
-```
+**Responsibilities**:
+- Mark all generated test data with metadata
+- Enable filtering of test vs real data
+- Support cleanup operations
+- Maintain referential integrity
 
 ## Data Models
 
-### Contact (Enhanced)
+### Contact
 ```typescript
 interface Contact {
   id: string;
@@ -217,8 +212,8 @@ interface Contact {
   frequencyPreference?: FrequencyOption;
   lastContactDate?: Date;
   customNotes?: string;
-  tags: Tag[];           // Enhanced: Include tags
-  groupIds: string[];    // Enhanced: Include group IDs
+  tags: Tag[];
+  groupIds: string[];
   archived: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -240,12 +235,39 @@ interface CalendarEvent {
 }
 ```
 
+### Suggestion
+```typescript
+interface Suggestion {
+  id: string;
+  userId: string;
+  contactId: string;
+  startTime: Date;
+  endTime: Date;
+  reasoning: string;
+  status: 'pending' | 'accepted' | 'dismissed' | 'snoozed';
+  source: 'algorithm' | 'test';
+  createdAt: Date;
+}
+```
+
+### Voice Note
+```typescript
+interface VoiceNote {
+  id: string;
+  userId: string;
+  transcription: string;
+  recordedAt: Date;
+  source: 'user' | 'test';
+  createdAt: Date;
+}
+```
+
 ### Test Data Metadata
 ```typescript
 interface TestDataMetadata {
   id: string;
   userId: string;
-  entityType: 'contact' | 'group' | 'tag' | 'calendar_event' | 'suggestion';
+  entityType: 'contact' | 'group' | 'tag' | 'calendar_event' | 'suggestion' | 'voice_note';
   entityId: string;
   createdAt: Date;
 }
@@ -255,125 +277,145 @@ interface TestDataMetadata {
 
 *A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
-### Property 1: Test contact data validity
-*For any* generated test contact, the contact should have a non-empty name, a valid email format (if email is provided), a real location from the city dataset, and a valid frequency preference from the allowed options.
+### Property 1: Status panel displays all data types
+*For any* user with test data management UI rendered, the status panel should display counts for all five data types (contacts, calendar events, suggestions, group suggestions, voice notes).
 **Validates: Requirements 1.2**
 
-### Property 2: Test contact date variance
-*For any* set of generated test contacts, the last contact dates should have sufficient variance (standard deviation > 0) to simulate different relationship states.
-**Validates: Requirements 1.3**
-
-### Property 3: Test contact tags presence
-*For any* generated test contact, the contact should have at least one tag with non-empty text.
+### Property 2: Status counts match database
+*For any* data type, the displayed test count should equal the actual count of test data in the database for that type.
 **Validates: Requirements 1.4**
 
-### Property 4: Test contact group assignment
-*For any* generated test contact, the contact should be assigned to at least one group.
+### Property 3: Real counts match database
+*For any* data type, the displayed real count should equal the actual count of real data in the database for that type.
 **Validates: Requirements 1.5**
 
-### Property 5: Timezone inference correctness
-*For any* location string that matches a known city in the dataset, the inferred timezone should match the expected timezone for that city.
+### Property 4: Generate/Remove buttons present for all types
+*For any* test data management UI, each of the five data types should have both a "Generate" and "Remove" button.
 **Validates: Requirements 1.6**
 
-### Property 6: Calendar events creation
-*For any* test data generation operation, if calendar event generation is enabled, the calendar_events table should contain new records after generation.
-**Validates: Requirements 2.1**
-
-### Property 7: Calendar events span multiple days
-*For any* set of generated calendar events, the events should span at least 2 different dates.
+### Property 5: Test contact data validity
+*For any* generated test contact, the contact should have a non-empty name, a valid email format, a real location from the city dataset, and a valid frequency preference.
 **Validates: Requirements 2.2**
 
-### Property 8: Calendar events include weekdays and weekends
-*For any* set of generated calendar events with weekend inclusion enabled, the events should include at least one weekday and at least one weekend day.
+### Property 6: Test contact date variance
+*For any* set of generated test contacts, the last contact dates should have sufficient variance (standard deviation > 0).
 **Validates: Requirements 2.3**
 
-### Property 9: Calendar events time variance
-*For any* set of generated calendar events, the start times should have sufficient variance (at least 2 different hours of the day).
+### Property 7: Test contact tags presence
+*For any* generated test contact, the contact should have at least one tag with non-empty text.
 **Validates: Requirements 2.4**
 
-### Property 10: Suggestion generation completeness
-*For any* generated suggestion, the suggestion should have both a valid contact ID and a valid time slot with start and end times.
+### Property 8: Test contact group assignment
+*For any* generated test contact, the contact should be assigned to at least one group.
+**Validates: Requirements 2.5**
+
+### Property 9: Timezone inference correctness
+*For any* location string that matches a known city in the dataset, the inferred timezone should match the expected timezone for that city.
+**Validates: Requirements 2.6**
+
+### Property 10: Calendar events creation
+*For any* calendar event generation operation, the calendar_events table should contain new test records after generation.
+**Validates: Requirements 3.1**
+
+### Property 11: Calendar events span multiple days
+*For any* set of generated calendar events, the events should span at least 2 different dates.
 **Validates: Requirements 3.2**
 
-### Property 11: Suggestion reasoning presence
-*For any* generated suggestion, the reasoning field should be non-empty.
+### Property 12: Calendar events include weekdays and weekends
+*For any* set of generated calendar events, the events should include at least one weekday and at least one weekend day.
 **Validates: Requirements 3.3**
 
-### Property 12: Suggestion count accuracy
+### Property 13: Calendar events time variance
+*For any* set of generated calendar events, the start times should have sufficient variance (at least 2 different hours of the day).
+**Validates: Requirements 3.4**
+
+### Property 14: Suggestion generation completeness
+*For any* generated suggestion, the suggestion should have both a valid contact ID and a valid time slot with start and end times.
+**Validates: Requirements 4.2**
+
+### Property 15: Suggestion reasoning presence
+*For any* generated suggestion, the reasoning field should be non-empty.
+**Validates: Requirements 4.3**
+
+### Property 16: Suggestion count accuracy
 *For any* suggestion generation operation, the returned count should equal the actual number of suggestions created in the database.
-**Validates: Requirements 3.5**
-
-### Property 13: Test data idempotency
-*For any* user, calling the seed test data function twice should not result in duplicate contacts (contacts with identical names and emails).
-**Validates: Requirements 4.1**
-
-### Property 14: Test data cleanup completeness
-*For any* user with test data, calling the clear test data function should remove all test data records from all related tables (contacts, tags, groups, calendar_events, suggestions).
-**Validates: Requirements 4.4**
-
-### Property 15: API response format consistency
-*For any* test data endpoint, the response should include a success indicator and details about the operation (counts or error messages).
 **Validates: Requirements 4.5**
 
-### Property 16: Authentication requirement
-*For any* test data endpoint, calling it without an authentication token should return a 401 status code.
+### Property 17: Group suggestion contact membership
+*For any* generated group suggestion, the suggestion should include between 2 and 3 contacts.
+**Validates: Requirements 5.2**
+
+### Property 18: Group suggestion shared context
+*For any* generated group suggestion, the shared context score should be present and non-null.
+**Validates: Requirements 5.3**
+
+### Property 19: Group suggestion reasoning presence
+*For any* generated group suggestion, the reasoning field should be non-empty.
+**Validates: Requirements 5.4**
+
+### Property 20: Group suggestion count accuracy
+*For any* group suggestion generation operation, the returned count should equal the actual number of group suggestions created in the database.
+**Validates: Requirements 5.5**
+
+### Property 21: Voice note creation
+*For any* voice note generation operation, the voice_notes table should contain new test records after generation.
+**Validates: Requirements 6.1**
+
+### Property 22: Voice note contact associations
+*For any* generated voice note, the voice note should be associated with at least one contact.
 **Validates: Requirements 6.2**
 
-### Property 17: User ID validation
-*For any* test data endpoint, calling it without a user ID should return a 400 status code.
+### Property 23: Voice note transcriptions and entities
+*For any* generated voice note, the transcription should be non-empty and entities should be present.
 **Validates: Requirements 6.3**
 
-### Property 18: Suggestion filtering correctness
-*For any* status value, filtering suggestions by that status should return only suggestions with that exact status.
+### Property 24: Voice note co-mentions
+*For any* set of generated voice notes, at least one voice note should mention multiple contacts.
+**Validates: Requirements 6.4**
+
+### Property 25: Voice note timestamp variance
+*For any* set of generated voice notes, the recording timestamps should have sufficient variance (span at least 7 days).
+**Validates: Requirements 6.5**
+
+### Property 26: Test data removal completeness
+*For any* data type, after clicking the "Remove" button, the count of test data for that type should be 0.
 **Validates: Requirements 7.1**
 
-### Property 19: Tag display completeness
-*For any* contact with tags, the rendered HTML should contain all tag texts from the contact's tags array.
-**Validates: Requirements 8.1**
+### Property 27: Cascading deletion for contacts
+*For any* test contacts removed, their associated test tags and group assignments should also be removed.
+**Validates: Requirements 7.2**
 
-### Property 20: Group display completeness
-*For any* contact with groups, the rendered HTML should contain all group names from the contact's groups.
-**Validates: Requirements 8.2**
+### Property 28: Real data preservation
+*For any* test data removal operation, the count of real data should remain unchanged.
+**Validates: Requirements 7.6**
 
-### Property 21: Empty tag/group section hiding
-*For any* contact without tags or groups, the rendered HTML should not contain empty tag or group section elements.
-**Validates: Requirements 8.5**
+### Property 29: Status counts refresh after operations
+*For any* test data generation or removal operation, the displayed status counts should be updated to reflect the new database state.
+**Validates: Requirements 8.4**
 
-### Property 22: Tag persistence
-*For any* valid tag text, adding it to a contact through the UI should result in the tag being saved to the database and associated with the contact.
+### Property 30: Authentication requirement
+*For any* test data endpoint, calling it without an authentication token should return a 401 status code.
+**Validates: Requirements 9.2**
+
+### Property 31: User ID validation
+*For any* test data endpoint, calling it without a user ID should return a 400 status code.
 **Validates: Requirements 9.3**
 
-### Property 23: Group assignment persistence
-*For any* valid group, assigning it to a contact through the UI should result in the association being saved to the database.
-**Validates: Requirements 9.4**
-
-### Property 24: Tag/group removal persistence
-*For any* tag or group associated with a contact, removing it through the UI should result in the association being deleted from the database.
+### Property 32: Production endpoint disabling
+*For any* test data endpoint, when the ENABLE_TEST_DATA_ENDPOINTS environment variable is false, the endpoint should return a 403 status code.
 **Validates: Requirements 9.5**
 
-### Property 25: Group suggestion contact membership
-*For any* generated group suggestion, the suggestion should include between 2 and 3 contacts.
-**Validates: Requirements 10.4**
+### Property 33: Test data idempotency
+*For any* user, calling the generate function for a data type twice should not result in duplicate data (same name/email for contacts, same timestamp for events, etc.).
+**Validates: Requirements 10.1**
 
-### Property 26: Group suggestion shared context
-*For any* generated group suggestion, the shared context score should be at least 50 points (the threshold).
+### Property 34: Test data metadata tracking
+*For any* generated test data, the data should be marked with test metadata for tracking purposes.
+**Validates: Requirements 10.3**
+
+### Property 35: Selective test data removal
+*For any* test data removal operation, only data marked as test data should be removed, not real data.
 **Validates: Requirements 10.5**
-
-### Property 27: Voice note contact associations
-*For any* generated voice note, the voice note should be associated with at least one contact.
-**Validates: Requirements 11.2**
-
-### Property 28: Voice note co-mentions
-*For any* set of generated voice notes, at least one voice note should mention multiple contacts (co-mention).
-**Validates: Requirements 11.4**
-
-### Property 29: Voice note timestamp variance
-*For any* set of generated voice notes, the recording timestamps should have sufficient variance (span at least 7 days).
-**Validates: Requirements 11.5**
-
-### Property 30: Complete test data cleanup
-*For any* user with test data, clearing test data should remove all records from all tables (contacts, tags, groups, calendar_events, suggestions, voice_notes, voice_note_contacts).
-**Validates: Requirements 12.1, 12.2, 12.3, 12.4**
 
 ## Error Handling
 
@@ -479,30 +521,49 @@ Manual testing checklist:
 
 ### Database Schema Updates
 
-No schema changes are required. The existing schema already supports:
-- Contacts with tags and groups
-- Calendar events
-- Suggestions with status
+A new table is required to track test data metadata:
+
+```sql
+CREATE TABLE test_data_metadata (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  entity_type VARCHAR(50) NOT NULL,
+  entity_id UUID NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, entity_type, entity_id)
+);
+
+CREATE INDEX idx_test_data_metadata_user_id ON test_data_metadata(user_id);
+CREATE INDEX idx_test_data_metadata_entity_type ON test_data_metadata(entity_type);
+```
+
+This table enables:
+- Tracking which data items are test data
+- Filtering test vs real data counts
+- Selective cleanup of test data
+- Idempotency checks
 
 ### API Route Organization
 
-Move test data endpoints from `/api/suggestions/test/*` to `/api/test-data/*`:
-- `POST /api/test-data/seed` - Seed test contacts, groups, tags, calendar events, and suggestions
-- `POST /api/test-data/generate-suggestions` - Generate suggestions for existing contacts
-- `POST /api/test-data/clear` - Clear all test data for a user
+Organize test data endpoints under `/api/test-data/*`:
+- `POST /api/test-data/generate/:dataType` - Generate specific type of test data
+  - dataType: 'contacts' | 'calendarEvents' | 'suggestions' | 'groupSuggestions' | 'voiceNotes'
+- `POST /api/test-data/remove/:dataType` - Remove specific type of test data
+- `GET /api/test-data/status` - Get status counts for all data types
 
-### UI Enhancements
+### UI Implementation
 
-1. **Contact Cards**: Add tag and group display sections
-2. **Contact Form**: Add tag and group management inputs
-3. **Suggestion Filters**: Fix filtering logic to properly filter by status
-4. **Test Data Controls**: Ensure buttons call correct endpoints
+1. **Preferences Panel**: Add "Test Data Management" section
+2. **Status Panel**: Display test vs real counts for each data type
+3. **Control Buttons**: Generate and Remove buttons for each data type
+4. **Feedback**: Loading states, success/error messages
+5. **Auto-refresh**: Update counts after operations
 
 ### Environment Configuration
 
 Add optional environment variable to disable test data endpoints in production:
 ```
-ENABLE_TEST_DATA_ENDPOINTS=false
+ENABLE_TEST_DATA_ENDPOINTS=true
 ```
 
 ## Performance Considerations
@@ -510,12 +571,13 @@ ENABLE_TEST_DATA_ENDPOINTS=false
 1. **Batch Operations**: Use batch inserts for test data generation
 2. **Transaction Management**: Use database transactions to ensure atomicity
 3. **Caching**: Invalidate relevant caches after test data operations
-4. **Pagination**: Consider pagination for large test data sets
+4. **Query Optimization**: Use indexes on test_data_metadata table for fast filtering
 
 ## Security Considerations
 
 1. **Authentication**: All test data endpoints require authentication
 2. **Authorization**: Users can only generate/clear test data for their own account
-3. **Production Safety**: Test data endpoints can be disabled in production
+3. **Production Safety**: Test data endpoints can be disabled in production via environment variable
 4. **Input Validation**: Validate all input parameters to prevent injection attacks
 5. **Rate Limiting**: Apply rate limiting to test data endpoints to prevent abuse
+6. **Data Isolation**: Ensure test data operations only affect the authenticated user's data
