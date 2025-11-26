@@ -6,18 +6,28 @@
 import { google } from 'googleapis';
 import type { Credentials } from 'google-auth-library';
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI,
-);
+/**
+ * Create a new OAuth2 client with current environment variables
+ */
+function createOAuth2Client() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
-export { oauth2Client };
+  if (!clientId || !clientSecret || !redirectUri) {
+    throw new Error(
+      'Google OAuth credentials not configured. Please set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI environment variables.'
+    );
+  }
+
+  return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+}
 
 /**
  * Generate OAuth authorization URL
  */
 export function getAuthorizationUrl(): string {
+  const oauth2Client = createOAuth2Client();
   const scopes = [
     'https://www.googleapis.com/auth/calendar.readonly',
     'https://www.googleapis.com/auth/userinfo.email',
@@ -35,20 +45,25 @@ export function getAuthorizationUrl(): string {
  * Exchange authorization code for tokens
  */
 export async function getTokensFromCode(code: string): Promise<Credentials | null> {
+  const oauth2Client = createOAuth2Client();
   const { tokens } = await oauth2Client.getToken(code);
   return tokens;
 }
 
 /**
- * Set credentials for API calls
+ * Get Google Calendar API client with user credentials
  */
-export function setCredentials(tokens: Credentials): void {
+export function getCalendarClient(tokens: Credentials) {
+  const oauth2Client = createOAuth2Client();
   oauth2Client.setCredentials(tokens);
+  return google.calendar({ version: 'v3', auth: oauth2Client });
 }
 
 /**
- * Get Google Calendar API client
+ * Get Google OAuth2 client for user info
  */
-export function getCalendarClient() {
-  return google.calendar({ version: 'v3', auth: oauth2Client });
+export function getOAuth2Client(tokens: Credentials) {
+  const oauth2Client = createOAuth2Client();
+  oauth2Client.setCredentials(tokens);
+  return oauth2Client;
 }

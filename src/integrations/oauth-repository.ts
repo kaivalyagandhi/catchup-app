@@ -17,6 +17,7 @@ export interface OAuthToken {
   tokenType?: string;
   expiresAt?: Date;
   scope?: string;
+  email?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +31,7 @@ interface OAuthTokenRow {
   token_type: string | null;
   expires_at: Date | null;
   scope: string | null;
+  email: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -44,6 +46,7 @@ function rowToOAuthToken(row: OAuthTokenRow): OAuthToken {
     tokenType: row.token_type || undefined,
     expiresAt: row.expires_at || undefined,
     scope: row.scope || undefined,
+    email: row.email || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -93,15 +96,16 @@ export async function upsertToken(
   refreshToken?: string,
   tokenType?: string,
   expiresAt?: Date,
-  scope?: string
+  scope?: string,
+  email?: string
 ): Promise<OAuthToken> {
   // Encrypt tokens before storage
   const encryptedAccessToken = encryptToken(accessToken);
   const encryptedRefreshToken = refreshToken ? encryptToken(refreshToken) : null;
   
   const result = await pool.query<OAuthTokenRow>(
-    `INSERT INTO oauth_tokens (user_id, provider, access_token, refresh_token, token_type, expires_at, scope)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO oauth_tokens (user_id, provider, access_token, refresh_token, token_type, expires_at, scope, email)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      ON CONFLICT (user_id, provider)
      DO UPDATE SET
        access_token = EXCLUDED.access_token,
@@ -109,9 +113,10 @@ export async function upsertToken(
        token_type = EXCLUDED.token_type,
        expires_at = EXCLUDED.expires_at,
        scope = EXCLUDED.scope,
+       email = EXCLUDED.email,
        updated_at = CURRENT_TIMESTAMP
      RETURNING *`,
-    [userId, provider, encryptedAccessToken, encryptedRefreshToken, tokenType, expiresAt, scope]
+    [userId, provider, encryptedAccessToken, encryptedRefreshToken, tokenType, expiresAt, scope, email]
   );
 
   return rowToOAuthToken(result.rows[0]);

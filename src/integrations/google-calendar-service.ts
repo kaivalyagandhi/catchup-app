@@ -4,7 +4,8 @@
  */
 
 import { google } from 'googleapis';
-import { oauth2Client, setCredentials, getCalendarClient } from './google-calendar-config';
+import { getCalendarClient, getOAuth2Client } from './google-calendar-config';
+import type { Credentials } from 'google-auth-library';
 
 export interface CalendarEvent {
   id: string;
@@ -18,13 +19,12 @@ export interface CalendarEvent {
  * Get user's calendar events for a date range
  */
 export async function getCalendarEvents(
-  tokens: any,
+  tokens: Credentials,
   startTime: Date,
   endTime: Date
 ): Promise<CalendarEvent[]> {
   try {
-    setCredentials(tokens);
-    const calendar = getCalendarClient();
+    const calendar = getCalendarClient(tokens);
 
     const response = await calendar.events.list({
       calendarId: 'primary',
@@ -53,12 +53,13 @@ export async function getCalendarEvents(
 /**
  * Get user profile info from Google
  */
-export async function getUserProfile(tokens: any) {
+export async function getUserProfile(tokens: Credentials) {
   try {
-    setCredentials(tokens);
+    const oauth2Client = getOAuth2Client(tokens);
     const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
 
     const response = await oauth2.userinfo.get();
+    console.log('Google userinfo response:', JSON.stringify(response.data, null, 2));
     return response.data;
   } catch (error) {
     console.error('Error fetching user profile:', error);
