@@ -43,8 +43,9 @@ router.get('/events', authenticate, async (req: AuthenticatedRequest, res: Respo
     const events = await getCalendarEvents(
       {
         access_token: token.accessToken,
-        refresh_token: token.refreshToken,
-        token_type: token.tokenType
+        refresh_token: token.refreshToken || undefined,
+        token_type: token.tokenType || 'Bearer',
+        expiry_date: token.expiresAt?.getTime()
       },
       start,
       end
@@ -91,8 +92,9 @@ router.get('/available-slots', authenticate, async (req: AuthenticatedRequest, r
     const slots = await getAvailableSlots(
       {
         access_token: token.accessToken,
-        refresh_token: token.refreshToken,
-        token_type: token.tokenType
+        refresh_token: token.refreshToken || undefined,
+        token_type: token.tokenType || 'Bearer',
+        expiry_date: token.expiresAt?.getTime()
       },
       start,
       end,

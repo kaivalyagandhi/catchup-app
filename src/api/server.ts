@@ -53,6 +53,20 @@ export function createServer(): Express {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // Debug endpoint to check environment variables (development only)
+  app.get('/debug/env', (_req: Request, res: Response) => {
+    if (process.env.NODE_ENV !== 'development') {
+      res.status(403).json({ error: 'Not available in production' });
+      return;
+    }
+    res.json({
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? '✓ Set' : '✗ Not set',
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? '✓ Set' : '✗ Not set',
+      GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || 'Not set',
+      NODE_ENV: process.env.NODE_ENV,
+    });
+  });
+
   // Apply rate limiting to all API routes
   app.use('/api', apiRateLimiter());
 
