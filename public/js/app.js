@@ -331,12 +331,12 @@ function renderContacts(contactsList) {
         return `
             <div class="card">
                 <h3>${escapeHtml(contact.name)}</h3>
-                <p><strong>Phone:</strong> ${contact.phone || 'N/A'}</p>
-                <p><strong>Email:</strong> ${contact.email || 'N/A'}</p>
-                <p><strong>Location:</strong> ${contact.location || 'N/A'}</p>
-                ${contact.timezone ? `<p><strong>Timezone:</strong> ${contact.timezone}</p>` : ''}
-                ${contact.frequencyPreference ? `<p><strong>Frequency:</strong> ${contact.frequencyPreference}</p>` : ''}
-                ${contact.customNotes ? `<p><strong>Notes:</strong> ${escapeHtml(contact.customNotes)}</p>` : ''}
+                <p><span style="font-size: 16px; margin-right: 8px;">📞</span><strong>Phone:</strong> ${contact.phone || 'N/A'}</p>
+                <p><span style="font-size: 16px; margin-right: 8px;">✉️</span><strong>Email:</strong> ${contact.email || 'N/A'}</p>
+                <p><span style="font-size: 16px; margin-right: 8px;">📍</span><strong>Location:</strong> ${contact.location || 'N/A'}</p>
+                ${contact.timezone ? `<p><span style="font-size: 16px; margin-right: 8px;">🌍</span><strong>Timezone:</strong> ${contact.timezone}</p>` : ''}
+                ${contact.frequencyPreference ? `<p><span style="font-size: 16px; margin-right: 8px;">📅</span><strong>Frequency:</strong> ${contact.frequencyPreference}</p>` : ''}
+                ${contact.customNotes ? `<p><span style="font-size: 16px; margin-right: 8px;">📝</span><strong>Notes:</strong> ${escapeHtml(contact.customNotes)}</p>` : ''}
                 ${tagsHtml}
                 ${groupsHtml}
                 <div class="card-actions">
@@ -2664,13 +2664,17 @@ async function loadCalendar() {
     const container = document.getElementById('calendar-content');
     
     try {
-        const isConnected = await checkCalendarConnection();
+        const calendarStatus = await checkCalendarConnection();
         
-        if (isConnected) {
+        if (calendarStatus.connected) {
+            const emailDisplay = calendarStatus.email 
+                ? `<p class="calendar-email">Connected as: <strong>${calendarStatus.email}</strong></p>` 
+                : '<p class="calendar-email" style="color: var(--text-secondary);">Connected</p>';
             container.innerHTML = `
                 <div class="calendar-connected">
                     <h3>Google Calendar Connected</h3>
                     <p>Your calendar is synced and ready for smart scheduling</p>
+                    ${emailDisplay}
                     <button onclick="disconnectCalendar()" class="btn-secondary">Disconnect Calendar</button>
                 </div>
             `;
@@ -2725,18 +2729,35 @@ async function handleCalendarOAuthCallback() {
             return;
         }
         
+        // Ensure we have a valid auth token
+        let token = authToken;
+        if (!token) {
+            token = localStorage.getItem('authToken');
+            console.log('Retrieved authToken from localStorage');
+        }
+        
+        if (!token) {
+            console.error('No authentication token available');
+            alert('You must be logged in to connect Google Calendar. Please log in and try again.');
+            window.location.href = '/';
+            return;
+        }
+        
+        console.log('Exchanging authorization code for tokens...');
         // Exchange code for tokens via backend callback endpoint
         const response = await fetch(`/api/calendar/oauth/callback?code=${code}`, {
             headers: {
-                'Authorization': `Bearer ${authToken}`
+                'Authorization': `Bearer ${token}`
             }
         });
         
+        const data = await response.json();
+        
         if (!response.ok) {
-            throw new Error('Failed to complete OAuth flow');
+            console.error('OAuth callback failed:', data);
+            throw new Error(data.details || data.error || 'Failed to complete OAuth flow');
         }
         
-        const data = await response.json();
         console.log('Calendar connected successfully:', data);
         
         // Clear the code from URL
@@ -2745,10 +2766,15 @@ async function handleCalendarOAuthCallback() {
         // Refresh calendar view
         loadCalendar();
         
+        // Refresh preferences UI if currently viewing preferences
+        if (currentPage === 'preferences') {
+            loadPreferences();
+        }
+        
         alert('Google Calendar connected successfully!');
     } catch (error) {
         console.error('Error handling OAuth callback:', error);
-        alert('Failed to connect calendar. Please try again.');
+        alert(`Failed to connect calendar: ${error.message}`);
     }
 }
 
@@ -2765,10 +2791,18 @@ async function checkCalendarConnection() {
         }
         
         const data = await response.json();
-        return data.connected;
+        return {
+            connected: data.connected,
+            email: data.email,
+            expiresAt: data.expiresAt
+        };
     } catch (error) {
         console.error('Error checking calendar connection:', error);
-        return false;
+        return {
+            connected: false,
+            email: null,
+            expiresAt: null
+        };
     }
 }
 
@@ -2778,23 +2812,46 @@ async function disconnectCalendar() {
     }
     
     try {
+        // Ensure we have a valid auth token
+        let token = authToken;
+        if (!token) {
+            token = localStorage.getItem('authToken');
+            console.log('Retrieved authToken from localStorage');
+        }
+        
+        if (!token) {
+            console.error('No authentication token available');
+            alert('You must be logged in to disconnect Google Calendar.');
+            return;
+        }
+        
+        console.log('Disconnecting Google Calendar...');
         const response = await fetch('/api/calendar/oauth/disconnect', {
             method: 'DELETE',
             headers: {
-                'Authorization': `Bearer ${authToken}`
+                'Authorization': `Bearer ${token}`
             }
         });
         
+        const data = await response.json();
+        
         if (!response.ok) {
-            throw new Error('Failed to disconnect calendar');
+            console.error('Disconnect failed:', data);
+            throw new Error(data.details || data.error || 'Failed to disconnect calendar');
         }
         
         console.log('Calendar disconnected successfully');
         loadCalendar();
+        
+        // Refresh preferences UI if currently viewing preferences
+        if (currentPage === 'preferences') {
+            loadPreferences();
+        }
+        
         alert('Google Calendar disconnected successfully!');
     } catch (error) {
         console.error('Error disconnecting calendar:', error);
-        alert('Failed to disconnect calendar. Please try again.');
+        alert(`Failed to disconnect calendar: ${error.message}`);
     }
 }
 
@@ -2919,12 +2976,14 @@ async function loadPreferences() {
     const container = document.getElementById('preferences-content');
     
     // Load calendar connection status
-    let calendarConnected = false;
+    let calendarStatus = { connected: false, email: null, expiresAt: null };
     try {
-        calendarConnected = await checkCalendarConnection();
+        calendarStatus = await checkCalendarConnection();
     } catch (error) {
         console.error('Error checking calendar connection:', error);
     }
+    
+    const calendarConnected = calendarStatus.connected;
     
     container.innerHTML = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
@@ -2967,7 +3026,10 @@ async function loadPreferences() {
                 <!-- Google Calendar -->
                 <div class="card" style="margin-bottom: 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h4 style="margin: 0;">📅 Google Calendar</h4>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="https://www.gstatic.com/marketing-cms/assets/images/d3/d1/e8596a9246608f8fbd72597729c8/calendar.png" alt="Google Calendar" style="width: 24px; height: 24px;">
+                            <h4 style="margin: 0;">Google Calendar</h4>
+                        </div>
                         <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; ${calendarConnected ? 'background: var(--status-success-bg); color: var(--status-success-text);' : 'background: var(--status-error-bg); color: var(--status-error-text);'}">
                             ${calendarConnected ? 'Connected' : 'Not Connected'}
                         </span>
@@ -2976,6 +3038,7 @@ async function loadPreferences() {
                         Connect your Google Calendar to enable smart scheduling and availability detection.
                     </p>
                     ${calendarConnected ? `
+                        ${calendarStatus.email ? `<p style="margin: 0 0 12px 0; font-size: 12px; padding: 8px; background: rgba(34, 197, 94, 0.1); border-radius: 4px;">Connected as: <strong>${calendarStatus.email}</strong></p>` : ''}
                         <button onclick="disconnectCalendar()" class="secondary" style="width: 100%;">Disconnect</button>
                     ` : `
                         <button onclick="connectCalendar()" style="width: 100%;">Connect Calendar</button>
@@ -2985,7 +3048,10 @@ async function loadPreferences() {
                 <!-- Google Contacts (Placeholder) -->
                 <div class="card" style="opacity: 0.6;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h4 style="margin: 0;">👥 Google Contacts</h4>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="https://www.gstatic.com/marketing-cms/assets/images/ff/21/95f22bf94e35bea3ec097d3f4720/contacts.png" alt="Google Contacts" style="width: 24px; height: 24px;">
+                            <h4 style="margin: 0;">Google Contacts</h4>
+                        </div>
                         <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: var(--status-info-bg); color: var(--status-info-text);">
                             Coming Soon
                         </span>
