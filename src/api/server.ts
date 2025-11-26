@@ -8,6 +8,8 @@ import contactsRouter from './routes/contacts';
 import groupsTagsRouter from './routes/groups-tags';
 import suggestionsRouter from './routes/suggestions';
 import calendarRouter from './routes/calendar';
+import calendarApiRouter from './routes/calendar-api';
+import googleCalendarOAuthRouter from './routes/google-calendar-oauth';
 import voiceNotesRouter from './routes/voice-notes';
 import preferencesRouter from './routes/preferences';
 import accountRouter from './routes/account';
@@ -61,6 +63,8 @@ export function createServer(): Express {
   app.use('/api/groups-tags', groupsTagsRouter);
   app.use('/api/suggestions', suggestionsRouter);
   app.use('/api/calendar', calendarRouter);
+  app.use('/api/calendar/api', calendarApiRouter);
+  app.use('/api/calendar/oauth', googleCalendarOAuthRouter);
   app.use('/api/voice-notes', voiceNotesRouter);
   app.use('/api/preferences', preferencesRouter);
   app.use('/api/account', accountRouter);

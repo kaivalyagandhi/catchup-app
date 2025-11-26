@@ -26,6 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     setupNavigation();
     
+    // Handle OAuth callback if present in URL
+    if (window.location.search.includes('code=')) {
+        handleCalendarOAuthCallback();
+    }
+    
     // Listen for contacts updates from voice notes enrichment
     window.addEventListener('contacts-updated', () => {
         console.log('contacts-updated event received, currentPage:', currentPage);
@@ -2658,19 +2663,188 @@ async function snoozeSuggestion(id) {
 }
 
 // Calendar Management
-function loadCalendar() {
+async function loadCalendar() {
     const container = document.getElementById('calendar-content');
-    container.innerHTML = `
-        <div class="empty-state">
-            <h3>Calendar Integration</h3>
-            <p>Connect your Google Calendar to enable smart scheduling</p>
-            <button onclick="connectCalendar()">Connect Google Calendar</button>
-        </div>
-    `;
+    
+    try {
+        const isConnected = await checkCalendarConnection();
+        
+        if (isConnected) {
+            container.innerHTML = `
+                <div class="calendar-connected">
+                    <h3>Google Calendar Connected</h3>
+                    <p>Your calendar is synced and ready for smart scheduling</p>
+                    <button onclick="disconnectCalendar()" class="btn-secondary">Disconnect Calendar</button>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3>Calendar Integration</h3>
+                    <p>Connect your Google Calendar to enable smart scheduling</p>
+                    <button onclick="connectCalendar()">Connect Google Calendar</button>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading calendar:', error);
+        container.innerHTML = `
+            <div class="error-state">
+                <h3>Error Loading Calendar</h3>
+                <p>Failed to load calendar status. Please try again.</p>
+                <button onclick="loadCalendar()">Retry</button>
+            </div>
+        `;
+    }
 }
 
-function connectCalendar() {
-    alert('Calendar OAuth flow would be implemented here');
+async function connectCalendar() {
+    try {
+        // Get the authorization URL from the backend
+        const response = await fetch('/api/calendar/oauth/authorize');
+        const data = await response.json();
+        
+        if (!data.authUrl) {
+            alert('Failed to get authorization URL');
+            return;
+        }
+        
+        // Redirect user to Google OAuth consent screen
+        window.location.href = data.authUrl;
+    } catch (error) {
+        console.error('Error initiating calendar connection:', error);
+        alert('Failed to connect calendar. Please try again.');
+    }
+}
+
+async function handleCalendarOAuthCallback() {
+    try {
+        // Get authorization code from URL
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        
+        if (!code) {
+            console.log('No authorization code in URL');
+            return;
+        }
+        
+        // Exchange code for tokens via backend callback endpoint
+        const response = await fetch(`/api/calendar/oauth/callback?code=${code}`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to complete OAuth flow');
+        }
+        
+        const data = await response.json();
+        console.log('Calendar connected successfully:', data);
+        
+        // Clear the code from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Refresh calendar view
+        loadCalendar();
+        
+        alert('Google Calendar connected successfully!');
+    } catch (error) {
+        console.error('Error handling OAuth callback:', error);
+        alert('Failed to connect calendar. Please try again.');
+    }
+}
+
+async function checkCalendarConnection() {
+    try {
+        const response = await fetch('/api/calendar/oauth/status', {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to check calendar connection');
+        }
+        
+        const data = await response.json();
+        return data.connected;
+    } catch (error) {
+        console.error('Error checking calendar connection:', error);
+        return false;
+    }
+}
+
+async function disconnectCalendar() {
+    if (!confirm('Are you sure you want to disconnect Google Calendar?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/calendar/oauth/disconnect', {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to disconnect calendar');
+        }
+        
+        console.log('Calendar disconnected successfully');
+        loadCalendar();
+        alert('Google Calendar disconnected successfully!');
+    } catch (error) {
+        console.error('Error disconnecting calendar:', error);
+        alert('Failed to disconnect calendar. Please try again.');
+    }
+}
+
+async function getCalendarEvents(startTime, endTime) {
+    try {
+        const response = await fetch(
+            `/api/calendar/api/events?startTime=${startTime}&endTime=${endTime}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            }
+        );
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch calendar events');
+        }
+        
+        const data = await response.json();
+        return data.events || [];
+    } catch (error) {
+        console.error('Error fetching calendar events:', error);
+        return [];
+    }
+}
+
+async function getAvailableSlots(startTime, endTime, slotDurationMinutes = 30) {
+    try {
+        const response = await fetch(
+            `/api/calendar/api/available-slots?startTime=${startTime}&endTime=${endTime}&slotDurationMinutes=${slotDurationMinutes}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            }
+        );
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch available slots');
+        }
+        
+        const data = await response.json();
+        return data.slots || [];
+    } catch (error) {
+        console.error('Error fetching available slots:', error);
+        return [];
+    }
 }
 
 // Voice Notes

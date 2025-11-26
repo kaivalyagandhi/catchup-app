@@ -40,10 +40,11 @@ export interface TagRepository {
 export class PostgresTagRepository implements TagRepository {
   async create(text: string, source: TagSource, userId: string): Promise<Tag> {
     const result = await pool.query(
-      `INSERT INTO tags (user_id, text, source)
-       VALUES ($1, $2, $3)
+      `INSERT INTO tags (text, source)
+       VALUES ($1, $2)
+       ON CONFLICT (LOWER(text)) DO UPDATE SET text = EXCLUDED.text
        RETURNING *`,
-      [userId, text, source]
+      [text, source]
     );
 
     return this.mapRowToTag(result.rows[0]);
@@ -52,9 +53,9 @@ export class PostgresTagRepository implements TagRepository {
   async update(id: string, text: string, userId: string): Promise<Tag> {
     const result = await pool.query(
       `UPDATE tags SET text = $1
-       WHERE id = $2 AND user_id = $3
+       WHERE id = $2
        RETURNING *`,
-      [text, id, userId]
+      [text, id]
     );
 
     if (result.rows.length === 0) {
@@ -66,8 +67,8 @@ export class PostgresTagRepository implements TagRepository {
 
   async findById(id: string, userId: string): Promise<Tag | null> {
     const result = await pool.query(
-      'SELECT * FROM tags WHERE id = $1 AND user_id = $2',
-      [id, userId]
+      'SELECT * FROM tags WHERE id = $1',
+      [id]
     );
 
     if (result.rows.length === 0) {
@@ -91,8 +92,8 @@ export class PostgresTagRepository implements TagRepository {
 
   async findByText(text: string, userId: string): Promise<Tag | null> {
     const result = await pool.query(
-      'SELECT * FROM tags WHERE user_id = $1 AND LOWER(text) = LOWER($2)',
-      [userId, text]
+      'SELECT * FROM tags WHERE LOWER(text) = LOWER($1)',
+      [text]
     );
 
     if (result.rows.length === 0) {
@@ -103,9 +104,9 @@ export class PostgresTagRepository implements TagRepository {
   }
 
   async findSimilarTags(text: string, userId: string, threshold: number): Promise<Tag[]> {
-    // Get all tags for this user and compute similarity in application code
+    // Get all tags and compute similarity in application code
     // For production, consider using PostgreSQL extensions like pg_trgm for better performance
-    const result = await pool.query('SELECT * FROM tags WHERE user_id = $1', [userId]);
+    const result = await pool.query('SELECT * FROM tags');
 
     const tags = result.rows.map((row) => this.mapRowToTag(row));
     const similarTags: Tag[] = [];
@@ -122,8 +123,8 @@ export class PostgresTagRepository implements TagRepository {
 
   async delete(id: string, userId: string): Promise<void> {
     const result = await pool.query(
-      'DELETE FROM tags WHERE id = $1 AND user_id = $2',
-      [id, userId]
+      'DELETE FROM tags WHERE id = $1',
+      [id]
     );
 
     if (result.rowCount === 0) {
@@ -134,8 +135,8 @@ export class PostgresTagRepository implements TagRepository {
   async deleteTag(id: string, userId: string): Promise<void> {
     // Delete tag and all associations (cascade should handle this)
     const result = await pool.query(
-      'DELETE FROM tags WHERE id = $1 AND user_id = $2',
-      [id, userId]
+      'DELETE FROM tags WHERE id = $1',
+      [id]
     );
 
     if (result.rowCount === 0) {
@@ -157,10 +158,10 @@ export class PostgresTagRepository implements TagRepository {
         throw new Error('Contact not found');
       }
 
-      // Verify tag exists and belongs to user
+      // Verify tag exists
       const tagCheck = await client.query(
-        'SELECT id FROM tags WHERE id = $1 AND user_id = $2',
-        [tagId, userId]
+        'SELECT id FROM tags WHERE id = $1',
+        [tagId]
       );
       if (tagCheck.rows.length === 0) {
         throw new Error('Tag not found');
@@ -244,12 +245,12 @@ export class PostgresTagRepository implements TagRepository {
 
   async getTagWithContactCount(id: string, userId: string): Promise<TagWithCount | null> {
     const result = await pool.query(
-      `SELECT t.*, COUNT(ct.contact_id) as contact_count
+      `SELECT t.*, COUNT(DISTINCT ct.contact_id) as contact_count
        FROM tags t
        LEFT JOIN contact_tags ct ON t.id = ct.tag_id
-       WHERE t.id = $1 AND t.user_id = $2
+       WHERE t.id = $1
        GROUP BY t.id`,
-      [id, userId]
+      [id]
     );
 
     if (result.rows.length === 0) {
@@ -261,10 +262,11 @@ export class PostgresTagRepository implements TagRepository {
 
   async listTagsWithContactCounts(userId: string): Promise<TagWithCount[]> {
     const result = await pool.query(
-      `SELECT t.*, COUNT(ct.contact_id) as contact_count
+      `SELECT t.*, COUNT(DISTINCT ct.contact_id) as contact_count
        FROM tags t
        LEFT JOIN contact_tags ct ON t.id = ct.tag_id
-       WHERE t.user_id = $1
+       LEFT JOIN contacts c ON ct.contact_id = c.id
+       WHERE c.user_id = $1 OR ct.contact_id IS NULL
        GROUP BY t.id
        ORDER BY t.text ASC`,
       [userId]
@@ -278,8 +280,7 @@ export class PostgresTagRepository implements TagRepository {
       `SELECT c.id, c.name, c.email, c.phone
        FROM contacts c
        INNER JOIN contact_tags ct ON c.id = ct.contact_id
-       INNER JOIN tags t ON ct.tag_id = t.id
-       WHERE ct.tag_id = $1 AND t.user_id = $2 AND c.archived = false
+       WHERE ct.tag_id = $1 AND c.user_id = $2 AND c.archived = false
        ORDER BY c.name ASC`,
       [tagId, userId]
     );
@@ -301,10 +302,10 @@ export class PostgresTagRepository implements TagRepository {
     try {
       await client.query('BEGIN');
 
-      // Verify tag exists and belongs to user
+      // Verify tag exists
       const tagCheck = await client.query(
-        'SELECT id FROM tags WHERE id = $1 AND user_id = $2',
-        [tagId, userId]
+        'SELECT id FROM tags WHERE id = $1',
+        [tagId]
       );
       if (tagCheck.rows.length === 0) {
         throw new Error('Tag not found');

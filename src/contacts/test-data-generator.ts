@@ -387,27 +387,33 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         timezone: event.timezone
       }));
 
-    // If no calendar events exist, generate some first
+    // Note: We no longer generate fake calendar events here since users can connect
+    // their real Google Calendar. If no calendar events exist, we'll use empty slots.
+    // This prevents conflicts with actual calendar events.
     if (availableSlots.length === 0) {
-      const generatedEvents = await calendarEventGenerator.generateAvailabilitySlots(
-        userId,
-        startDate,
-        endDate,
-        {
-          includeWeekends: true,
-          timesOfDay: [TimeOfDay.Morning, TimeOfDay.Afternoon, TimeOfDay.Evening],
-          slotDuration: 60
-        }
-      );
-
-      // Convert generated events to time slots
-      availableSlots.push(
-        ...generatedEvents.map(event => ({
-          start: event.startTime,
-          end: event.endTime,
-          timezone: event.timezone
-        }))
-      );
+      // Create generic available slots without storing them in the database
+      // This allows suggestions to be created even without calendar data
+      const generatedSlots = [];
+      for (let i = 0; i < daysAhead; i++) {
+        const slotDate = new Date(startDate);
+        slotDate.setDate(slotDate.getDate() + i);
+        
+        // Morning slot
+        const morningStart = new Date(slotDate);
+        morningStart.setHours(9, 0, 0, 0);
+        const morningEnd = new Date(morningStart);
+        morningEnd.setHours(10, 0, 0, 0);
+        generatedSlots.push({ start: morningStart, end: morningEnd, timezone: 'UTC' });
+        
+        // Afternoon slot
+        const afternoonStart = new Date(slotDate);
+        afternoonStart.setHours(14, 0, 0, 0);
+        const afternoonEnd = new Date(afternoonStart);
+        afternoonEnd.setHours(15, 0, 0, 0);
+        generatedSlots.push({ start: afternoonStart, end: afternoonEnd, timezone: 'UTC' });
+      }
+      
+      availableSlots.push(...generatedSlots);
     }
 
     // Import the suggestion service dynamically to avoid circular dependencies

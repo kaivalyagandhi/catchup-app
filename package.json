@@ -18,6 +18,8 @@
     "format:check": "prettier --check 'src/**/*.ts'",
     "typecheck": "tsc --noEmit",
     "db:setup": "bash scripts/setup-db.sh",
+    "db:init": "bash scripts/init-migrations.sh",
+    "db:migrate": "bash scripts/run-migrations.sh",
     "db:test": "ts-node -e \"require('./src/db/connection').testConnection()\""
   },
   "repository": {
