@@ -2073,6 +2073,11 @@ let allSuggestions = []; // Store all suggestions for filtering
 async function loadSuggestions(statusFilter) {
     const container = document.getElementById('suggestions-list');
     
+    // If statusFilter is provided, update the current filter
+    if (statusFilter !== undefined) {
+        currentSuggestionFilter = statusFilter;
+    }
+    
     // Show loading state
     container.innerHTML = `
         <div class="loading-state">
@@ -2082,11 +2087,6 @@ async function loadSuggestions(statusFilter) {
     `;
     
     try {
-        // If statusFilter is provided, update the current filter
-        if (statusFilter !== undefined) {
-            currentSuggestionFilter = statusFilter;
-        }
-        
         // Use /all endpoint to get all suggestions
         const url = `${API_BASE}/suggestions/all?userId=${userId}`;
         
@@ -2138,9 +2138,21 @@ function filterSuggestions(status) {
 function renderSuggestions(suggestionsList) {
     const container = document.getElementById('suggestions-list');
     
+    // Build filter buttons
+    const filterButtonsHtml = `
+        <div class="suggestion-filters" style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="filter-all" class="filter-btn ${currentSuggestionFilter === 'all' ? 'active' : ''}" onclick="filterSuggestions('all')">All</button>
+            <button id="filter-pending" class="filter-btn ${currentSuggestionFilter === 'pending' ? 'active' : ''}" onclick="filterSuggestions('pending')">Pending</button>
+            <button id="filter-accepted" class="filter-btn ${currentSuggestionFilter === 'accepted' ? 'active' : ''}" onclick="filterSuggestions('accepted')">Accepted</button>
+            <button id="filter-dismissed" class="filter-btn ${currentSuggestionFilter === 'dismissed' ? 'active' : ''}" onclick="filterSuggestions('dismissed')">Dismissed</button>
+            <button id="filter-snoozed" class="filter-btn ${currentSuggestionFilter === 'snoozed' ? 'active' : ''}" onclick="filterSuggestions('snoozed')">Snoozed</button>
+        </div>
+    `;
+    
     if (suggestionsList.length === 0) {
         const filterText = currentSuggestionFilter === 'all' ? '' : ` with status "${currentSuggestionFilter}"`;
         container.innerHTML = `
+            ${filterButtonsHtml}
             <div class="empty-state">
                 <h3>No suggestions${filterText}</h3>
                 <p>Suggestions will appear here based on your contacts and calendar</p>
@@ -2152,7 +2164,7 @@ function renderSuggestions(suggestionsList) {
     // Sort by priority (higher priority first)
     const sortedSuggestions = [...suggestionsList].sort((a, b) => b.priority - a.priority);
     
-    container.innerHTML = sortedSuggestions.map(suggestion => {
+    const suggestionsHtml = sortedSuggestions.map(suggestion => {
         const isGroup = suggestion.type === 'group';
         
         // Get contacts for this suggestion
@@ -2311,7 +2323,7 @@ function renderSuggestions(suggestionsList) {
             // For individual suggestions, show their groups and interests
             const contact = suggestionContacts[0];
             
-            if (contact.groups && contact.groups.length > 0) {
+            if (contact && contact.groups && contact.groups.length > 0) {
                 const groupNames = contact.groups
                     .map(groupId => {
                         const group = groups.find(g => g.id === groupId);
@@ -2372,73 +2384,12 @@ function renderSuggestions(suggestionsList) {
         `;
     }).join('');
     
+    container.innerHTML = filterButtonsHtml + suggestionsHtml;
+    
     // Add event listeners for contact tooltips
     addContactTooltipListeners();
 }
 
-// Add contact tooltip listeners (Task 16.2)
-function addContactTooltipListeners() {
-    const avatars = document.querySelectorAll('.suggestion-avatar');
-    let tooltip = null;
-    
-    avatars.forEach(avatar => {
-        avatar.addEventListener('mouseenter', (e) => {
-            const contactId = avatar.dataset.contactId;
-            const contact = contacts.find(c => c.id === contactId);
-            
-            if (!contact) return;
-            
-            // Create tooltip
-            tooltip = document.createElement('div');
-            tooltip.className = 'contact-tooltip';
-            
-            let tooltipContent = `
-                <div class="contact-tooltip-name">${escapeHtml(contact.name)}</div>
-            `;
-            
-            if (contact.email) {
-                tooltipContent += `<div class="contact-tooltip-detail">📧 ${escapeHtml(contact.email)}</div>`;
-            }
-            if (contact.phone) {
-                tooltipContent += `<div class="contact-tooltip-detail">📱 ${escapeHtml(contact.phone)}</div>`;
-            }
-            if (contact.location) {
-                tooltipContent += `<div class="contact-tooltip-detail">📍 ${escapeHtml(contact.location)}</div>`;
-            }
-            if (contact.frequencyPreference) {
-                tooltipContent += `<div class="contact-tooltip-detail">🔄 ${escapeHtml(contact.frequencyPreference)}</div>`;
-            }
-            
-            tooltip.innerHTML = tooltipContent;
-            document.body.appendChild(tooltip);
-            
-            // Position tooltip
-            const rect = avatar.getBoundingClientRect();
-            tooltip.style.left = `${rect.left + rect.width / 2}px`;
-            tooltip.style.top = `${rect.bottom + 10}px`;
-            tooltip.style.transform = 'translateX(-50%)';
-            
-            // Show tooltip
-            setTimeout(() => {
-                tooltip.classList.add('show');
-            }, 10);
-        });
-        
-        avatar.addEventListener('mouseleave', () => {
-            if (tooltip) {
-                tooltip.classList.remove('show');
-                setTimeout(() => {
-                    if (tooltip && tooltip.parentNode) {
-                        tooltip.parentNode.removeChild(tooltip);
-                    }
-                    tooltip = null;
-                }, 200);
-            }
-        });
-    });
-}
-
-// Show group modify menu (Task 16.3)
 let currentGroupModifyMenu = null;
 
 function showGroupModifyMenu(suggestionId, event) {
@@ -2658,6 +2609,71 @@ async function snoozeSuggestion(id) {
         showToast('Failed to snooze suggestion', 'error');
     }
 }
+
+// Add contact tooltip listeners (Task 16.2)
+function addContactTooltipListeners() {
+    const avatars = document.querySelectorAll('.suggestion-avatar');
+    let tooltip = null;
+    
+    avatars.forEach(avatar => {
+        avatar.addEventListener('mouseenter', (e) => {
+            const contactId = avatar.dataset.contactId;
+            const contact = contacts.find(c => c.id === contactId);
+            
+            if (!contact) return;
+            
+            // Create tooltip
+            tooltip = document.createElement('div');
+            tooltip.className = 'contact-tooltip';
+            
+            let tooltipContent = `
+                <div class="contact-tooltip-name">${escapeHtml(contact.name)}</div>
+            `;
+            
+            if (contact.email) {
+                tooltipContent += `<div class="contact-tooltip-detail">📧 ${escapeHtml(contact.email)}</div>`;
+            }
+            if (contact.phone) {
+                tooltipContent += `<div class="contact-tooltip-detail">📱 ${escapeHtml(contact.phone)}</div>`;
+            }
+            if (contact.location) {
+                tooltipContent += `<div class="contact-tooltip-detail">📍 ${escapeHtml(contact.location)}</div>`;
+            }
+            if (contact.frequencyPreference) {
+                tooltipContent += `<div class="contact-tooltip-detail">🔄 ${escapeHtml(contact.frequencyPreference)}</div>`;
+            }
+            
+            tooltip.innerHTML = tooltipContent;
+            document.body.appendChild(tooltip);
+            
+            // Position tooltip
+            const rect = avatar.getBoundingClientRect();
+            tooltip.style.left = `${rect.left + rect.width / 2}px`;
+            tooltip.style.top = `${rect.bottom + 10}px`;
+            tooltip.style.transform = 'translateX(-50%)';
+            
+            // Show tooltip
+            setTimeout(() => {
+                tooltip.classList.add('show');
+            }, 10);
+        });
+        
+        avatar.addEventListener('mouseleave', () => {
+            if (tooltip) {
+                tooltip.classList.remove('show');
+                setTimeout(() => {
+                    if (tooltip && tooltip.parentNode) {
+                        tooltip.parentNode.removeChild(tooltip);
+                    }
+                    tooltip = null;
+                }, 200);
+            }
+        });
+    });
+}
+
+// Show group modify menu (Task 16.3)
+// Suggestion action functions have been removed - all functionality relocated
 
 // Calendar Management
 async function loadCalendar() {
@@ -2985,6 +3001,19 @@ async function loadPreferences() {
     
     const calendarConnected = calendarStatus.connected;
     
+    // Load test data status
+    let testDataStatus = null;
+    try {
+        const response = await fetch(`${API_BASE}/test-data/status`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.ok) {
+            testDataStatus = await response.json();
+        }
+    } catch (error) {
+        console.error('Error loading test data status:', error);
+    }
+    
     container.innerHTML = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
             <!-- Notifications Section -->
@@ -3063,11 +3092,580 @@ async function loadPreferences() {
                 </div>
             </div>
         </div>
+        
+        <!-- Developer Section -->
+        ${testDataStatus ? `
+        <div style="margin-top: 30px;">
+            <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--border-primary); padding-bottom: 10px;">Developer</h3>
+            
+            <!-- Test Data Management -->
+            <div style="margin-bottom: 20px;">
+                <h4 style="margin-bottom: 15px; font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Test Data</h4>
+                
+                <!-- Status Overview -->
+                <div class="card" style="margin-bottom: 15px; background: var(--bg-secondary);">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+                        <div style="padding: 10px; background: var(--bg-primary); border-radius: 4px;" data-test-data-type="contacts">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">CONTACTS</div>
+                            <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
+                                <span style="color: var(--status-info-text);">${testDataStatus.contacts.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.contacts.real}</span>
+                            </div>
+                        </div>
+                        <div style="padding: 10px; background: var(--bg-primary); border-radius: 4px;" data-test-data-type="calendarEvents">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">CALENDAR</div>
+                            <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
+                                <span style="color: var(--status-info-text);">${testDataStatus.calendarEvents.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.calendarEvents.real}</span>
+                            </div>
+                        </div>
+                        <div style="padding: 10px; background: var(--bg-primary); border-radius: 4px;" data-test-data-type="suggestions">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">SUGGESTIONS</div>
+                            <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
+                                <span style="color: var(--status-info-text);">${testDataStatus.suggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.suggestions.real}</span>
+                            </div>
+                        </div>
+                        <div style="padding: 10px; background: var(--bg-primary); border-radius: 4px;" data-test-data-type="groupSuggestions">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">GROUP SUGG.</div>
+                            <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
+                                <span style="color: var(--status-info-text);">${testDataStatus.groupSuggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.groupSuggestions.real}</span>
+                            </div>
+                        </div>
+                        <div style="padding: 10px; background: var(--bg-primary); border-radius: 4px;" data-test-data-type="voiceNotes">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">VOICE NOTES</div>
+                            <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
+                                <span style="color: var(--status-info-text);">${testDataStatus.voiceNotes.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.voiceNotes.real}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Individual Controls -->
+                <div class="card">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                        <div style="padding: 10px; border: 1px solid var(--border-primary); border-radius: 4px;">
+                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Contacts</div>
+                            <button onclick="generateTestData('contacts')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
+                            <button onclick="removeTestData('contacts')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
+                        </div>
+                        <div style="padding: 10px; border: 1px solid var(--border-primary); border-radius: 4px;">
+                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Calendar Events</div>
+                            <button onclick="generateTestData('calendarEvents')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
+                            <button onclick="removeTestData('calendarEvents')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
+                        </div>
+                        <div style="padding: 10px; border: 1px solid var(--border-primary); border-radius: 4px;">
+                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Suggestions</div>
+                            <button onclick="generateTestData('suggestions')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
+                            <button onclick="removeTestData('suggestions')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
+                        </div>
+                        <div style="padding: 10px; border: 1px solid var(--border-primary); border-radius: 4px;">
+                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Group Suggestions</div>
+                            <button onclick="generateTestData('groupSuggestions')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
+                            <button onclick="removeTestData('groupSuggestions')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
+                        </div>
+                        <div style="padding: 10px; border: 1px solid var(--border-primary); border-radius: 4px;">
+                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Voice Notes</div>
+                            <button onclick="generateTestData('voiceNotes')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
+                            <button onclick="removeTestData('voiceNotes')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        ` : ''}
     `;
+    
+    // Add Account section after the main template
+    const accountSection = document.createElement('div');
+    accountSection.style.marginTop = '30px';
+    accountSection.innerHTML = `
+        <h4 style="margin-bottom: 15px; font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Account</h4>
+        
+        ${testDataStatus ? `
+        <!-- User Data Overview -->
+        <div style="margin-bottom: 15px; padding: 15px; border: 1px solid var(--border-primary); border-radius: 6px; background: var(--bg-secondary);">
+            <div style="margin-bottom: 12px;">
+                <div style="font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">User Data</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">
+                    <span style="color: var(--status-info-text); font-weight: 600;">Blue</span> = Test data | 
+                    <span style="color: var(--text-secondary); font-weight: 600;">Grey</span> = Your data
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 12px;">
+                <div style="padding: 8px; background: var(--bg-primary); border-radius: 4px;">
+                    <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">CONTACTS</div>
+                    <div style="font-size: 12px; font-weight: bold;">
+                        <span style="color: var(--status-info-text);">${testDataStatus.contacts.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.contacts.real}</span>
+                    </div>
+                </div>
+                <div style="padding: 8px; background: var(--bg-primary); border-radius: 4px;">
+                    <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">CALENDAR</div>
+                    <div style="font-size: 12px; font-weight: bold;">
+                        <span style="color: var(--status-info-text);">${testDataStatus.calendarEvents.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.calendarEvents.real}</span>
+                    </div>
+                </div>
+                <div style="padding: 8px; background: var(--bg-primary); border-radius: 4px;">
+                    <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">SUGGESTIONS</div>
+                    <div style="font-size: 12px; font-weight: bold;">
+                        <span style="color: var(--status-info-text);">${testDataStatus.suggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.suggestions.real}</span>
+                    </div>
+                </div>
+                <div style="padding: 8px; background: var(--bg-primary); border-radius: 4px;">
+                    <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">VOICE NOTES</div>
+                    <div style="font-size: 12px; font-weight: bold;">
+                        <span style="color: var(--status-info-text);">${testDataStatus.voiceNotes.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.voiceNotes.real}</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="bulkAddTestData()" style="flex: 1; padding: 10px 20px; background: var(--status-success-text); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Generate Test Data</button>
+                <button onclick="clearAllTestData()" style="flex: 1; padding: 10px 20px; background: var(--status-info-text); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Clear Test Data</button>
+            </div>
+        </div>
+        ` : ''}
+        
+        <!-- Clear All User Data -->
+        <div class="card" style="border: 2px solid var(--status-error-text); background: rgba(239, 68, 68, 0.05);">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
+                <div>
+                    <div style="font-weight: bold; margin-bottom: 5px; color: var(--status-error-text);">Clear All Data</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Permanently delete all your data including user-added and test contacts, events, suggestions, and voice notes</div>
+                </div>
+                <button onclick="deleteAllUserData()" style="background: var(--status-error-text); color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap; font-weight: bold;">Clear All</button>
+            </div>
+        </div>
+    `;
+    container.appendChild(accountSection);
 }
 
 function savePreferences() {
     alert('Preferences saved!');
+}
+
+// Test Data Management Functions
+
+// Store feedback messages for UI display
+let testDataFeedback = {
+    message: null,
+    type: null, // 'success', 'error', 'loading'
+    timestamp: null
+};
+
+/**
+ * Display feedback message in the UI
+ * Requirements: 8.1, 8.2, 8.3
+ */
+function showTestDataFeedback(message, type = 'info', duration = 5000) {
+    const feedbackContainer = document.getElementById('test-data-feedback');
+    if (!feedbackContainer) {
+        // Create feedback container if it doesn't exist
+        const container = document.getElementById('preferences-content');
+        const feedback = document.createElement('div');
+        feedback.id = 'test-data-feedback';
+        feedback.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 400px;
+        `;
+        document.body.appendChild(feedback);
+    }
+    
+    const feedback = document.getElementById('test-data-feedback');
+    
+    // Set background color based on type
+    let bgColor, textColor, borderColor;
+    switch (type) {
+        case 'success':
+            bgColor = 'var(--status-success-bg)';
+            textColor = 'var(--status-success-text)';
+            borderColor = 'var(--status-success-text)';
+            break;
+        case 'error':
+            bgColor = 'var(--status-error-bg)';
+            textColor = 'var(--status-error-text)';
+            borderColor = 'var(--status-error-text)';
+            break;
+        case 'loading':
+            bgColor = 'var(--status-info-bg)';
+            textColor = 'var(--status-info-text)';
+            borderColor = 'var(--status-info-text)';
+            break;
+        default:
+            bgColor = 'var(--bg-secondary)';
+            textColor = 'var(--text-primary)';
+            borderColor = 'var(--border-primary)';
+    }
+    
+    feedback.style.backgroundColor = bgColor;
+    feedback.style.color = textColor;
+    feedback.style.borderLeft = `4px solid ${borderColor}`;
+    feedback.textContent = message;
+    feedback.style.display = 'block';
+    
+    // Auto-hide after duration (unless it's a loading message)
+    if (type !== 'loading' && duration > 0) {
+        setTimeout(() => {
+            feedback.style.display = 'none';
+        }, duration);
+    }
+}
+
+/**
+ * Refresh test data status counts
+ * Requirements: 8.4, 8.5
+ * Property 25: Status counts refresh after operations
+ */
+async function refreshTestDataStatus() {
+    try {
+        const response = await fetch(`${API_BASE}/test-data/status`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch test data status');
+        }
+        
+        const testDataStatus = await response.json();
+        
+        // Update status panel with new counts
+        const statusCards = document.querySelectorAll('[data-test-data-type]');
+        statusCards.forEach(card => {
+            const dataType = card.getAttribute('data-test-data-type');
+            const counts = testDataStatus[dataType];
+            
+            if (counts) {
+                const countElement = card.querySelector('[data-test-data-counts]');
+                if (countElement) {
+                    countElement.innerHTML = `
+                        <span style="color: var(--status-info-text);">${counts.test}</span> test / 
+                        <span style="color: var(--text-secondary);">${counts.real}</span> real
+                    `;
+                }
+            }
+        });
+        
+        return testDataStatus;
+    } catch (error) {
+        console.error('Error refreshing test data status:', error);
+        return null;
+    }
+}
+
+async function generateTestData(dataType) {
+    try {
+        const button = event.target;
+        const originalText = button.textContent;
+        
+        // Show loading indicator
+        button.disabled = true;
+        button.textContent = 'Generating...';
+        showTestDataFeedback(`Generating ${dataType}...`, 'loading');
+        
+        const response = await fetch(`${API_BASE}/test-data/generate/${dataType}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.details || `Failed to generate ${dataType}`);
+        }
+        
+        const result = await response.json();
+        
+        // Show success message with item count
+        showTestDataFeedback(
+            `Successfully generated ${result.itemsCreated} ${dataType}`,
+            'success',
+            5000
+        );
+        
+        // Refresh the status counts after a short delay to ensure database is updated
+        setTimeout(() => {
+            refreshTestDataStatus();
+        }, 500);
+    } catch (error) {
+        console.error(`Error generating ${dataType}:`, error);
+        showTestDataFeedback(
+            `Error generating ${dataType}: ${error.message}`,
+            'error',
+            5000
+        );
+    } finally {
+        if (event.target) {
+            event.target.disabled = false;
+            event.target.textContent = 'Generate';
+        }
+    }
+}
+
+async function removeTestData(dataType) {
+    if (!confirm(`Are you sure you want to remove all test ${dataType}?`)) {
+        return;
+    }
+    
+    try {
+        const button = event.target;
+        const originalText = button.textContent;
+        
+        // Show loading indicator
+        button.disabled = true;
+        button.textContent = 'Removing...';
+        showTestDataFeedback(`Removing ${dataType}...`, 'loading');
+        
+        const response = await fetch(`${API_BASE}/test-data/remove/${dataType}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.details || `Failed to remove ${dataType}`);
+        }
+        
+        const result = await response.json();
+        
+        // Show success message with item count
+        showTestDataFeedback(
+            `Successfully removed ${result.itemsDeleted} test ${dataType}`,
+            'success',
+            5000
+        );
+        
+        // Refresh the status counts after a short delay to ensure database is updated
+        setTimeout(() => {
+            refreshTestDataStatus();
+        }, 500);
+    } catch (error) {
+        console.error(`Error removing ${dataType}:`, error);
+        showTestDataFeedback(
+            `Error removing ${dataType}: ${error.message}`,
+            'error',
+            5000
+        );
+    } finally {
+        if (event.target) {
+            event.target.disabled = false;
+            event.target.textContent = 'Remove';
+        }
+    }
+}
+
+async function clearAllTestData() {
+    if (!confirm('Are you sure you want to permanently delete ALL test data? This action cannot be undone.')) {
+        return;
+    }
+    
+    if (!confirm('This will delete all test contacts, calendar events, suggestions, and voice notes. Are you absolutely sure?')) {
+        return;
+    }
+    
+    try {
+        const button = event.target;
+        
+        // Show loading indicator
+        button.disabled = true;
+        button.textContent = 'Clearing...';
+        showTestDataFeedback('Clearing all test data...', 'loading');
+        
+        const response = await fetch(`${API_BASE}/test-data/clear`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.details || 'Failed to clear test data');
+        }
+        
+        const result = await response.json();
+        
+        // Show success message with summary
+        const summary = [
+            result.contactsDeleted > 0 && `${result.contactsDeleted} contacts`,
+            result.calendarEventsDeleted > 0 && `${result.calendarEventsDeleted} calendar events`,
+            result.suggestionsDeleted > 0 && `${result.suggestionsDeleted} suggestions`,
+            result.voiceNotesDeleted > 0 && `${result.voiceNotesDeleted} voice notes`
+        ].filter(Boolean).join(', ');
+        
+        showTestDataFeedback(
+            `Successfully cleared all test data (${summary})`,
+            'success',
+            5000
+        );
+        
+        // Refresh the status counts after a short delay to ensure database is updated
+        setTimeout(() => {
+            refreshTestDataStatus();
+        }, 500);
+    } catch (error) {
+        console.error('Error clearing all test data:', error);
+        showTestDataFeedback(
+            `Error clearing test data: ${error.message}`,
+            'error',
+            5000
+        );
+    } finally {
+        if (event.target) {
+            event.target.disabled = false;
+            event.target.textContent = 'Clear All';
+        }
+    }
+}
+
+async function bulkAddTestData() {
+    try {
+        const button = event.target;
+        const originalText = button.textContent;
+        
+        // Show loading indicator
+        button.disabled = true;
+        button.textContent = 'Generating...';
+        showTestDataFeedback('Generating all test data...', 'loading');
+        
+        const dataTypes = ['contacts', 'calendarEvents', 'suggestions', 'groupSuggestions', 'voiceNotes'];
+        const results = {};
+        let totalItemsCreated = 0;
+        
+        for (const dataType of dataTypes) {
+            try {
+                const response = await fetch(`${API_BASE}/test-data/generate/${dataType}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    results[dataType] = result.itemsCreated;
+                    totalItemsCreated += result.itemsCreated;
+                    console.log(`Generated ${result.itemsCreated} ${dataType}`);
+                } else {
+                    console.warn(`Failed to generate ${dataType}`);
+                    results[dataType] = 0;
+                }
+            } catch (error) {
+                console.error(`Error generating ${dataType}:`, error);
+                results[dataType] = 0;
+            }
+            
+            // Small delay between requests to avoid overwhelming the server
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        
+        // Build summary message
+        const summary = [
+            results.contacts > 0 && `${results.contacts} contacts`,
+            results.calendarEvents > 0 && `${results.calendarEvents} calendar events`,
+            results.suggestions > 0 && `${results.suggestions} suggestions`,
+            results.groupSuggestions > 0 && `${results.groupSuggestions} group suggestions`,
+            results.voiceNotes > 0 && `${results.voiceNotes} voice notes`
+        ].filter(Boolean).join(', ');
+        
+        showTestDataFeedback(
+            `Successfully generated all test data (${summary})`,
+            'success',
+            5000
+        );
+        
+        // Refresh the status counts after a short delay to ensure database is updated
+        setTimeout(() => {
+            refreshTestDataStatus();
+        }, 500);
+    } catch (error) {
+        console.error('Error in bulk add test data:', error);
+        showTestDataFeedback(
+            `Error generating test data: ${error.message}`,
+            'error',
+            5000
+        );
+    } finally {
+        if (event.target) {
+            event.target.disabled = false;
+            event.target.textContent = 'Bulk Add All Test Data';
+        }
+    }
+}
+
+async function deleteAllUserData() {
+    if (!confirm('Are you sure you want to delete all your data? This action cannot be undone.')) {
+        return;
+    }
+    
+    if (!confirm('This will permanently delete all your contacts, events, suggestions, and voice notes. Your account will remain active. Are you absolutely sure?')) {
+        return;
+    }
+    
+    try {
+        const button = event.target;
+        
+        // Show loading indicator
+        button.disabled = true;
+        button.textContent = 'Clearing...';
+        showTestDataFeedback('Clearing all your data...', 'loading');
+        
+        const response = await fetch(`${API_BASE}/account/clear-data`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to clear data');
+        }
+        
+        const result = await response.json();
+        
+        // Build summary message
+        const summary = [
+            result.contactsDeleted > 0 && `${result.contactsDeleted} contacts`,
+            result.calendarEventsDeleted > 0 && `${result.calendarEventsDeleted} calendar events`,
+            result.suggestionsDeleted > 0 && `${result.suggestionsDeleted} suggestions`,
+            result.voiceNotesDeleted > 0 && `${result.voiceNotesDeleted} voice notes`
+        ].filter(Boolean).join(', ');
+        
+        showTestDataFeedback(
+            `All your data has been cleared (${summary})`,
+            'success',
+            5000
+        );
+        
+        // Refresh the page after a delay to show empty state
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+    } catch (error) {
+        console.error('Error clearing user data:', error);
+        showTestDataFeedback(
+            `Error clearing data: ${error.message}`,
+            'error',
+            5000
+        );
+        
+        if (event.target) {
+            event.target.disabled = false;
+            event.target.textContent = 'Clear All User Data';
+        }
+    }
 }
 
 // Test Data Functions

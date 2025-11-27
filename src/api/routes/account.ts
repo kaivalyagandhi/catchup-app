@@ -48,6 +48,33 @@ router.delete('/', authenticate, async (req: AuthenticatedRequest, res: Response
 });
 
 /**
+ * POST /api/account/clear-data
+ * Clear all user data (contacts, events, suggestions, etc.) but keep account active
+ */
+router.post('/clear-data', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const result = await accountService.clearAllUserData(req.userId);
+
+    res.json({
+      message: 'All user data cleared successfully',
+      ...result
+    });
+  } catch (error) {
+    console.error('Error clearing user data:', error);
+    if (error instanceof Error && error.message === 'User not found') {
+      res.status(404).json({ error: 'User not found' });
+    } else {
+      res.status(500).json({ error: 'Failed to clear user data' });
+    }
+  }
+});
+
+/**
  * GET /api/account/export
  * Export all user data for GDPR compliance
  */

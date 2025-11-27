@@ -138,4 +138,80 @@ router.post('/clear', checkTestDataEnabled, authenticate, async (req: Authentica
   }
 });
 
+/**
+ * GET /api/test-data/status
+ * Get status counts for all test data types
+ */
+router.get('/status', checkTestDataEnabled, authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+    
+    const userId = req.userId;
+    const status = await testDataGenerator.getStatus(userId);
+    
+    res.json(status);
+  } catch (error) {
+    console.error('Error fetching test data status:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch test data status',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * POST /api/test-data/generate/:dataType
+ * Generate specific type of test data
+ */
+router.post('/generate/:dataType', checkTestDataEnabled, authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+    
+    const userId = req.userId;
+    const { dataType } = req.params;
+    
+    const result = await testDataGenerator.generateByType(userId, dataType);
+    
+    res.json(result);
+  } catch (error) {
+    console.error(`Error generating ${req.params.dataType}:`, error);
+    res.status(500).json({ 
+      error: `Failed to generate ${req.params.dataType}`,
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * POST /api/test-data/remove/:dataType
+ * Remove specific type of test data
+ */
+router.post('/remove/:dataType', checkTestDataEnabled, authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+    
+    const userId = req.userId;
+    const { dataType } = req.params;
+    
+    const result = await testDataGenerator.removeByType(userId, dataType);
+    
+    res.json(result);
+  } catch (error) {
+    console.error(`Error removing ${req.params.dataType}:`, error);
+    res.status(500).json({ 
+      error: `Failed to remove ${req.params.dataType}`,
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;

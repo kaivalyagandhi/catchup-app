@@ -40,11 +40,11 @@ export interface TagRepository {
 export class PostgresTagRepository implements TagRepository {
   async create(text: string, source: TagSource, userId: string): Promise<Tag> {
     const result = await pool.query(
-      `INSERT INTO tags (text, source)
-       VALUES ($1, $2)
-       ON CONFLICT (LOWER(text)) DO UPDATE SET text = EXCLUDED.text
+      `INSERT INTO tags (text, source, user_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, LOWER(text)) DO UPDATE SET text = EXCLUDED.text
        RETURNING *`,
-      [text, source]
+      [text, source, userId]
     );
 
     return this.mapRowToTag(result.rows[0]);
@@ -92,8 +92,8 @@ export class PostgresTagRepository implements TagRepository {
 
   async findByText(text: string, userId: string): Promise<Tag | null> {
     const result = await pool.query(
-      'SELECT * FROM tags WHERE LOWER(text) = LOWER($1)',
-      [text]
+      'SELECT * FROM tags WHERE LOWER(text) = LOWER($1) AND user_id = $2',
+      [text, userId]
     );
 
     if (result.rows.length === 0) {

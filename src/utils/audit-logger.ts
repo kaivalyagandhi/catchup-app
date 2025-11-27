@@ -21,6 +21,7 @@ export enum AuditAction {
   
   // Data operations
   DATA_EXPORTED = 'data_exported',
+  DATA_CLEARED = 'data_cleared',
   CONTACT_DELETED = 'contact_deleted',
   BULK_CONTACTS_IMPORTED = 'bulk_contacts_imported',
   

@@ -17,6 +17,27 @@ export interface TestDataGenerator {
   seedTestData(userId: string, options?: SeedOptions): Promise<SeedResult>;
   generateSuggestions(userId: string, options?: GenerateOptions): Promise<GenerateResult>;
   clearTestData(userId: string): Promise<ClearResult>;
+  getStatus(userId: string): Promise<StatusResult>;
+  generateByType(userId: string, dataType: string): Promise<GenerateByTypeResult>;
+  removeByType(userId: string, dataType: string): Promise<RemoveByTypeResult>;
+}
+
+export interface StatusResult {
+  contacts: { test: number; real: number };
+  calendarEvents: { test: number; real: number };
+  suggestions: { test: number; real: number };
+  groupSuggestions: { test: number; real: number };
+  voiceNotes: { test: number; real: number };
+}
+
+export interface GenerateByTypeResult {
+  itemsCreated: number;
+  message: string;
+}
+
+export interface RemoveByTypeResult {
+  itemsDeleted: number;
+  message: string;
 }
 
 export interface SeedOptions {
@@ -254,14 +275,25 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           if (existingTag.rows.length > 0) {
             tagId = existingTag.rows[0].id;
           } else {
-            // Create new tag for this user
+            // Create new tag
             const tagResult = await client.query(
-              `INSERT INTO tags (user_id, text, source)
+              `INSERT INTO tags (text, source, user_id)
                VALUES ($1, $2, $3)
+               ON CONFLICT (user_id, LOWER(text)) DO NOTHING
                RETURNING id`,
-              [userId, tagText, TagSource.MANUAL]
+              [tagText, TagSource.MANUAL, userId]
             );
-            tagId = tagResult.rows[0].id;
+            
+            if (tagResult.rows.length > 0) {
+              tagId = tagResult.rows[0].id;
+            } else {
+              // If insert failed due to conflict, fetch the existing tag for this user
+              const fetchResult = await client.query(
+                `SELECT id FROM tags WHERE user_id = $1 AND LOWER(text) = LOWER($2)`,
+                [userId, tagText]
+              );
+              tagId = fetchResult.rows[0].id;
+            }
           }
           
           // Associate tag with contact
@@ -319,6 +351,10 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
 
       await client.query('COMMIT');
 
+      // Invalidate contact cache after creating contacts
+      const { invalidateContactCache } = await import('../utils/cache');
+      await invalidateContactCache(userId);
+
       // Generate calendar events if requested (outside transaction)
       let calendarEventsCreated = 0;
       if (includeCalendarEvents) {
@@ -345,12 +381,19 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         voiceNotesCreated = await this.generateVoiceNotes(userId, contactIds);
       }
 
+      // Generate suggestions if requested (outside transaction)
+      let suggestionsCreated = 0;
+      if (includeSuggestions && contactIds.length > 0) {
+        const suggestionResult = await this.generateSuggestions(userId, { daysAhead: 7 });
+        suggestionsCreated = suggestionResult.suggestionsCreated;
+      }
+
       return {
         contactsCreated: contactIds.length,
         groupsCreated: groupIds.length,
         tagsCreated: parseInt(tagsResult.rows[0].count),
         calendarEventsCreated,
-        suggestionsCreated: 0,
+        suggestionsCreated,
         voiceNotesCreated
       };
     } catch (error) {
@@ -366,6 +409,18 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
    */
   async generateSuggestions(userId: string, options: GenerateOptions = {}): Promise<GenerateResult> {
     const { daysAhead = 7 } = options;
+
+    // First, verify that contacts exist for this user
+    const contactsResult = await pool.query(
+      'SELECT COUNT(*) as count FROM contacts WHERE user_id = $1',
+      [userId]
+    );
+    
+    const contactCount = parseInt(contactsResult.rows[0].count);
+    if (contactCount === 0) {
+      // No contacts to generate suggestions for
+      return { suggestionsCreated: 0 };
+    }
 
     // Get calendar events for the user
     const startDate = new Date();
@@ -419,12 +474,49 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
     // Import the suggestion service dynamically to avoid circular dependencies
     const { generateSuggestions } = await import('../matching/suggestion-service');
 
-    // Generate both individual and group suggestions using the enhanced matching service
-    const suggestions = await generateSuggestions(userId, availableSlots);
+    try {
+      // Verify contacts exist before generating suggestions
+      const contactCheck = await pool.query(
+        'SELECT COUNT(*) as count FROM contacts WHERE user_id = $1',
+        [userId]
+      );
+      const contactCount = parseInt(contactCheck.rows[0].count);
+      
+      if (contactCount === 0) {
+        console.warn('No contacts found for suggestion generation');
+        return { suggestionsCreated: 0 };
+      }
 
-    return {
-      suggestionsCreated: suggestions.length
-    };
+      console.log(`Generating suggestions for ${contactCount} contacts`);
+
+      // Generate both individual and group suggestions using the enhanced matching service
+      const suggestions = await generateSuggestions(userId, availableSlots);
+
+      console.log(`Generated ${suggestions.length} suggestions`);
+
+      // Mark suggestions as test data by prepending "Test: " to reasoning
+      if (suggestions.length > 0) {
+        const suggestionIds = suggestions.map(s => s.id);
+        await pool.query(
+          `UPDATE suggestions 
+           SET reasoning = 'Test: ' || reasoning 
+           WHERE id = ANY($1)`,
+          [suggestionIds]
+        );
+      }
+
+      return {
+        suggestionsCreated: suggestions.length
+      };
+    } catch (error: any) {
+      // If suggestion generation fails due to missing contacts, return 0
+      if (error.message && error.message.includes('foreign key')) {
+        console.warn('Suggestion generation failed: foreign key constraint violation', error.message);
+        return { suggestionsCreated: 0 };
+      }
+      console.error('Suggestion generation error:', error);
+      return { suggestionsCreated: 0 };
+    }
   }
 
   /**
@@ -538,9 +630,14 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         [userId]
       );
 
-      // 9. Delete all tags for this user (now that tags are user-specific)
+      // 9. Delete orphaned tags (tags with no contact associations)
+      // Only delete tags for this user to avoid affecting other users' data
       const tagsResult = await client.query(
-        'DELETE FROM tags WHERE user_id = $1',
+        `DELETE FROM tags 
+         WHERE user_id = $1
+         AND id NOT IN (
+          SELECT DISTINCT tag_id FROM contact_tags
+        )`,
         [userId]
       );
       const tagsDeleted = tagsResult.rowCount || 0;
@@ -561,6 +658,136 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Generate group suggestions based on contacts with strong shared context
+   * Requirements: 5.1, 5.2, 5.3, 5.4, 5.5
+   * Property 17: Group suggestion contact membership
+   * Property 18: Group suggestion shared context
+   */
+  async generateGroupSuggestions(userId: string): Promise<number> {
+    // Import group matching service
+    const { groupMatchingService } = await import('../matching/group-matching-service');
+    
+    // Get all contacts for the user with their tags and groups
+    const contactsResult = await pool.query(
+      `SELECT c.*, 
+              array_agg(DISTINCT jsonb_build_object('id', t.id, 'text', t.text, 'source', t.source, 'createdAt', t.created_at)) FILTER (WHERE t.id IS NOT NULL) as tags,
+              array_agg(DISTINCT g.id) FILTER (WHERE g.id IS NOT NULL) as group_ids
+       FROM contacts c
+       LEFT JOIN contact_tags ct ON c.id = ct.contact_id
+       LEFT JOIN tags t ON ct.tag_id = t.id
+       LEFT JOIN contact_groups cg ON c.id = cg.contact_id
+       LEFT JOIN groups g ON cg.group_id = g.id
+       WHERE c.user_id = $1
+       GROUP BY c.id`,
+      [userId]
+    );
+
+    if (contactsResult.rows.length < 2) {
+      // Need at least 2 contacts to create group suggestions
+      return 0;
+    }
+
+    // Convert database rows to Contact objects
+    const contacts = contactsResult.rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      name: row.name,
+      email: row.email,
+      phone: row.phone,
+      location: row.location,
+      timezone: row.timezone,
+      frequencyPreference: row.frequency_preference,
+      lastContactDate: row.last_contact_date,
+      customNotes: row.custom_notes,
+      archived: row.archived,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      tags: (row.tags || []).filter((t: any) => t && t.id),
+      groups: row.group_ids || []
+    }));
+
+    // Find potential groups with strong shared context
+    const potentialGroups = await groupMatchingService.findPotentialGroups(contacts);
+
+    if (potentialGroups.length === 0) {
+      return 0;
+    }
+
+    // Get available time slots for suggestions
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 7);
+
+    const calendarEvents = await pool.query(
+      `SELECT * FROM calendar_events 
+       WHERE user_id = $1 
+       AND start_time >= $2 
+       AND end_time <= $3
+       AND is_available = true
+       ORDER BY start_time
+       LIMIT 5`,
+      [userId, startDate, endDate]
+    );
+
+    // If no calendar events, create generic time slots
+    let timeSlots: Array<{ start: Date; end: Date; timezone: string }> = [];
+    
+    if (calendarEvents.rows.length > 0) {
+      timeSlots = calendarEvents.rows.map(event => ({
+        start: new Date(event.start_time),
+        end: new Date(event.end_time),
+        timezone: event.timezone
+      }));
+    } else {
+      // Create generic slots for the next 7 days
+      for (let i = 0; i < 7; i++) {
+        const slotDate = new Date(startDate);
+        slotDate.setDate(slotDate.getDate() + i);
+        
+        // Afternoon slot
+        const slotStart = new Date(slotDate);
+        slotStart.setHours(14, 0, 0, 0);
+        const slotEnd = new Date(slotStart);
+        slotEnd.setHours(15, 30, 0, 0);
+        
+        timeSlots.push({
+          start: slotStart,
+          end: slotEnd,
+          timezone: 'UTC'
+        });
+      }
+    }
+
+    // Create group suggestions
+    let createdCount = 0;
+    const { generateGroupSuggestion } = await import('../matching/suggestion-service');
+
+    for (const group of potentialGroups) {
+      // Use first available time slot
+      if (timeSlots.length === 0) break;
+      
+      const timeSlot = timeSlots[0];
+
+      try {
+        const suggestion = await generateGroupSuggestion(
+          userId,
+          group,
+          timeSlot
+        );
+
+        if (suggestion) {
+          createdCount++;
+        }
+      } catch (error) {
+        // Log error but continue with next group
+        console.error('Error creating group suggestion:', error);
+      }
+    }
+
+    return createdCount;
   }
 
   /**
@@ -605,7 +832,10 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
 
         // Generate transcript based on template
         const template = this.randomElement(this.voiceNoteTemplates);
-        const transcript = this.generateTranscript(template, mentionedContacts);
+        let transcript = this.generateTranscript(template, mentionedContacts);
+        
+        // Mark as test data by prepending "Test: " to transcript
+        transcript = `Test: ${transcript}`;
 
         // Extract entities from the mentioned contacts
         const extractedEntities: Record<string, any> = {};
@@ -731,6 +961,283 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
   private randomElements<T>(array: T[], count: number): T[] {
     const shuffled = [...array].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, Math.min(count, array.length));
+  }
+
+  /**
+   * Get status counts for all test data types
+   * Property 1, 2, 3: Status panel displays all data types and counts match database
+   */
+  async getStatus(userId: string): Promise<StatusResult> {
+    const client = await pool.connect();
+    
+    try {
+      // Check which tables exist
+      let calendarEventsExists = true;
+      let voiceNotesExists = true;
+      
+      try {
+        await client.query('SELECT 1 FROM calendar_events LIMIT 1');
+      } catch (error: any) {
+        if (error.code === '42P01') calendarEventsExists = false;
+      }
+      
+      try {
+        await client.query('SELECT 1 FROM voice_notes LIMIT 1');
+      } catch (error: any) {
+        if (error.code === '42P01') voiceNotesExists = false;
+      }
+
+      // Count contacts
+      const contactsResult = await client.query(
+        `SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN custom_notes ILIKE '%Test contact%' THEN 1 END) as test_count
+         FROM contacts WHERE user_id = $1`,
+        [userId]
+      );
+      
+      // Handle case where no rows are returned
+      if (contactsResult.rows.length === 0) {
+        return {
+          contacts: { test: 0, real: 0 },
+          calendarEvents: { test: 0, real: 0 },
+          suggestions: { test: 0, real: 0 },
+          groupSuggestions: { test: 0, real: 0 },
+          voiceNotes: { test: 0, real: 0 }
+        };
+      }
+      const contactsTotal = parseInt(contactsResult.rows[0].total);
+      const contactsTest = parseInt(contactsResult.rows[0].test_count);
+
+      // Count calendar events
+      let calendarEventsTotal = 0;
+      let calendarEventsTest = 0;
+      if (calendarEventsExists) {
+        const calendarResult = await client.query(
+          `SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN source = 'test' THEN 1 END) as test_count
+           FROM calendar_events WHERE user_id = $1`,
+          [userId]
+        );
+        calendarEventsTotal = parseInt(calendarResult.rows[0].total);
+        calendarEventsTest = parseInt(calendarResult.rows[0].test_count);
+      }
+
+      // Count suggestions
+      const suggestionsResult = await client.query(
+        `SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN reasoning ILIKE '%Test%' THEN 1 END) as test_count
+         FROM suggestions WHERE user_id = $1`,
+        [userId]
+      );
+      const suggestionsTotal = parseInt(suggestionsResult.rows[0].total);
+      const suggestionsTest = parseInt(suggestionsResult.rows[0].test_count);
+
+      // Count group suggestions (type='group')
+      const groupSuggestionsResult = await client.query(
+        `SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN reasoning ILIKE '%Test%' AND type = 'group' THEN 1 END) as test_count
+         FROM suggestions WHERE user_id = $1 AND type = 'group'`,
+        [userId]
+      );
+      const groupSuggestionsTotal = parseInt(groupSuggestionsResult.rows[0].total);
+      const groupSuggestionsTest = parseInt(groupSuggestionsResult.rows[0].test_count);
+
+      // Count voice notes
+      let voiceNotesTotal = 0;
+      let voiceNotesTest = 0;
+      if (voiceNotesExists) {
+        const voiceNotesResult = await client.query(
+          `SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN transcript ILIKE '%Test%' THEN 1 END) as test_count
+           FROM voice_notes WHERE user_id = $1`,
+          [userId]
+        );
+        voiceNotesTotal = parseInt(voiceNotesResult.rows[0].total);
+        voiceNotesTest = parseInt(voiceNotesResult.rows[0].test_count);
+      }
+
+      return {
+        contacts: { test: contactsTest, real: contactsTotal - contactsTest },
+        calendarEvents: { test: calendarEventsTest, real: calendarEventsTotal - calendarEventsTest },
+        suggestions: { test: suggestionsTest, real: suggestionsTotal - suggestionsTest },
+        groupSuggestions: { test: groupSuggestionsTest, real: groupSuggestionsTotal - groupSuggestionsTest },
+        voiceNotes: { test: voiceNotesTest, real: voiceNotesTotal - voiceNotesTest }
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Generate specific type of test data
+   * Property 5-25: Generate specific data types with validation
+   */
+  async generateByType(userId: string, dataType: string): Promise<GenerateByTypeResult> {
+    switch (dataType) {
+      case 'contacts':
+        const contactResult = await this.seedTestData(userId, { contactCount: 10 });
+        return {
+          itemsCreated: contactResult.contactsCreated,
+          message: `Generated ${contactResult.contactsCreated} test contacts`
+        };
+      
+      case 'calendarEvents':
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + 14);
+        const calendarEvents = await calendarEventGenerator.generateAvailabilitySlots(
+          userId,
+          startDate,
+          endDate,
+          {
+            includeWeekends: true,
+            timesOfDay: [TimeOfDay.Morning, TimeOfDay.Afternoon, TimeOfDay.Evening],
+            slotDuration: 60
+          }
+        );
+        return {
+          itemsCreated: calendarEvents.length,
+          message: `Generated ${calendarEvents.length} test calendar events`
+        };
+      
+      case 'suggestions':
+        const suggestionResult = await this.generateSuggestions(userId, { daysAhead: 7 });
+        return {
+          itemsCreated: suggestionResult.suggestionsCreated,
+          message: `Generated ${suggestionResult.suggestionsCreated} test suggestions`
+        };
+      
+      case 'groupSuggestions':
+        // Generate group suggestions based on existing contacts
+        const existingContactsResult = await pool.query(
+          'SELECT id FROM contacts WHERE user_id = $1 LIMIT 20',
+          [userId]
+        );
+        
+        if (existingContactsResult.rows.length < 2) {
+          // Generate contacts first if not enough exist
+          await this.seedTestData(userId, { contactCount: 10 });
+        }
+        
+        const groupSuggestionsCount = await this.generateGroupSuggestions(userId);
+        return {
+          itemsCreated: groupSuggestionsCount,
+          message: `Generated ${groupSuggestionsCount} test group suggestions`
+        };
+      
+      case 'voiceNotes':
+        // Get existing contacts to associate with voice notes
+        const contactsResult = await pool.query(
+          'SELECT id FROM contacts WHERE user_id = $1 LIMIT 10',
+          [userId]
+        );
+        const contactIds = contactsResult.rows.map(row => row.id);
+        
+        if (contactIds.length === 0) {
+          // Generate contacts first
+          await this.seedTestData(userId, { contactCount: 5 });
+          const newContactsResult = await pool.query(
+            'SELECT id FROM contacts WHERE user_id = $1 LIMIT 10',
+            [userId]
+          );
+          contactIds.push(...newContactsResult.rows.map(row => row.id));
+        }
+        
+        const voiceNotesCount = await this.generateVoiceNotes(userId, contactIds);
+        return {
+          itemsCreated: voiceNotesCount,
+          message: `Generated ${voiceNotesCount} test voice notes`
+        };
+      
+      default:
+        throw new Error(`Unknown data type: ${dataType}`);
+    }
+  }
+
+  /**
+   * Remove specific type of test data
+   * Property 26-28: Remove test data while preserving real data
+   */
+  async removeByType(userId: string, dataType: string): Promise<RemoveByTypeResult> {
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      let itemsDeleted = 0;
+
+      switch (dataType) {
+        case 'contacts':
+          // Delete test contacts (marked with 'Test contact' in custom_notes)
+          const contactsResult = await client.query(
+            `DELETE FROM contacts 
+             WHERE user_id = $1 AND custom_notes LIKE '%Test contact%'`,
+            [userId]
+          );
+          itemsDeleted = contactsResult.rowCount || 0;
+          break;
+        
+        case 'calendarEvents':
+          // Delete test calendar events
+          const calendarResult = await client.query(
+            `DELETE FROM calendar_events 
+             WHERE user_id = $1 AND source = 'test'`,
+            [userId]
+          );
+          itemsDeleted = calendarResult.rowCount || 0;
+          break;
+        
+        case 'suggestions':
+          // Delete test suggestions (excluding group suggestions)
+          const suggestionsResult = await client.query(
+            `DELETE FROM suggestions 
+             WHERE user_id = $1 AND reasoning ILIKE '%Test%' AND type != 'group'`,
+            [userId]
+          );
+          itemsDeleted = suggestionsResult.rowCount || 0;
+          break;
+        
+        case 'groupSuggestions':
+          // Delete test group suggestions
+          const groupSuggestionsResult = await client.query(
+            `DELETE FROM suggestions 
+             WHERE user_id = $1 AND reasoning ILIKE '%Test%' AND type = 'group'`,
+            [userId]
+          );
+          itemsDeleted = groupSuggestionsResult.rowCount || 0;
+          break;
+        
+        case 'voiceNotes':
+          // Delete test voice notes
+          const voiceNotesResult = await client.query(
+            `DELETE FROM voice_notes 
+             WHERE user_id = $1 AND transcript ILIKE '%Test%'`,
+            [userId]
+          );
+          itemsDeleted = voiceNotesResult.rowCount || 0;
+          break;
+        
+        default:
+          throw new Error(`Unknown data type: ${dataType}`);
+      }
+
+      await client.query('COMMIT');
+
+      return {
+        itemsDeleted,
+        message: `Removed ${itemsDeleted} test ${dataType}`
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
 

@@ -27,7 +27,9 @@
         "@executeautomation/playwright-mcp-server"
       ],
       "disabled": false,
-      "autoApprove": []
+      "autoApprove": [
+        "playwright_screenshot"
+      ]
     },
     "Context7": {
       "command": "npx",

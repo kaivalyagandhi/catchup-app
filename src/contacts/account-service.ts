@@ -13,9 +13,20 @@ import { logAuditEvent, AuditAction } from '../utils/audit-logger';
  */
 export interface AccountService {
   deleteUserAccount(userId: string): Promise<void>;
+  clearAllUserData(userId: string): Promise<ClearDataResult>;
   createTestUser(email: string, name?: string): Promise<TestUser>;
   isTestUser(userId: string): Promise<boolean>;
   exportUserData(userId: string, format: 'json' | 'csv'): Promise<UserDataExport>;
+}
+
+export interface ClearDataResult {
+  contactsDeleted: number;
+  groupsDeleted: number;
+  tagsDeleted: number;
+  suggestionsDeleted: number;
+  interactionLogsDeleted: number;
+  voiceNotesDeleted: number;
+  calendarEventsDeleted: number;
 }
 
 export interface TestUser {
@@ -99,6 +110,144 @@ export class AccountServiceImpl implements AccountService {
       
       // Log failed deletion attempt
       await logAuditEvent(AuditAction.ACCOUNT_DELETED, {
+        userId,
+        success: false,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      });
+      
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Clear all user data while keeping the account active
+   * 
+   * Deletes all user data including:
+   * - Contacts (and associated groups, tags via junction tables)
+   * - Groups
+   * - Tags (via contact_tags junction)
+   * - Suggestions
+   * - Interaction logs
+   * - Voice notes
+   * - Calendar events
+   * 
+   * But preserves:
+   * - User account
+   * - OAuth tokens
+   * - Notification preferences
+   * - Availability parameters
+   */
+  async clearAllUserData(userId: string): Promise<ClearDataResult> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Verify user exists
+      const userResult = await client.query('SELECT id FROM users WHERE id = $1', [userId]);
+      
+      if (userResult.rows.length === 0) {
+        throw new Error('User not found');
+      }
+
+      // Delete in proper order to maintain referential integrity
+      
+      // 1. Delete enrichment items (references voice_notes)
+      const enrichmentResult = await client.query(
+        `DELETE FROM enrichment_items
+         WHERE voice_note_id IN (SELECT id FROM voice_notes WHERE user_id = $1)`,
+        [userId]
+      );
+
+      // 2. Delete voice notes (voice_note_contacts cascades)
+      const voiceNotesResult = await client.query(
+        'DELETE FROM voice_notes WHERE user_id = $1',
+        [userId]
+      );
+
+      // 3. Delete suggestions (suggestion_contacts cascades)
+      const suggestionsResult = await client.query(
+        'DELETE FROM suggestions WHERE user_id = $1',
+        [userId]
+      );
+
+      // 4. Delete interaction logs
+      const interactionLogsResult = await client.query(
+        'DELETE FROM interaction_logs WHERE user_id = $1',
+        [userId]
+      );
+
+      // 5. Delete calendar events
+      const calendarEventsResult = await client.query(
+        'DELETE FROM calendar_events WHERE user_id = $1',
+        [userId]
+      );
+
+      // 6. Delete contact_tags associations
+      await client.query(
+        `DELETE FROM contact_tags
+         WHERE contact_id IN (SELECT id FROM contacts WHERE user_id = $1)`,
+        [userId]
+      );
+
+      // 7. Delete contact_groups associations
+      await client.query(
+        `DELETE FROM contact_groups
+         WHERE contact_id IN (SELECT id FROM contacts WHERE user_id = $1)`,
+        [userId]
+      );
+
+      // 8. Delete contacts
+      const contactsResult = await client.query(
+        'DELETE FROM contacts WHERE user_id = $1',
+        [userId]
+      );
+
+      // 9. Delete groups (only if they have no other contacts)
+      const groupsResult = await client.query(
+        `DELETE FROM groups
+         WHERE user_id = $1
+         AND id NOT IN (SELECT DISTINCT group_id FROM contact_groups)`,
+        [userId]
+      );
+
+      // 10. Delete orphaned tags (tags with no contact associations)
+      const tagsResult = await client.query(
+        `DELETE FROM tags 
+         WHERE user_id = $1
+         AND id NOT IN (
+          SELECT DISTINCT tag_id FROM contact_tags
+        )`,
+        [userId]
+      );
+
+      await client.query('COMMIT');
+
+      const result: ClearDataResult = {
+        contactsDeleted: contactsResult.rowCount || 0,
+        groupsDeleted: groupsResult.rowCount || 0,
+        tagsDeleted: tagsResult.rowCount || 0,
+        suggestionsDeleted: suggestionsResult.rowCount || 0,
+        interactionLogsDeleted: interactionLogsResult.rowCount || 0,
+        voiceNotesDeleted: voiceNotesResult.rowCount || 0,
+        calendarEventsDeleted: calendarEventsResult.rowCount || 0
+      };
+
+      // Log audit event for data clearing
+      await logAuditEvent(AuditAction.DATA_CLEARED, {
+        userId,
+        metadata: result,
+        success: true
+      });
+
+      console.log(`All user data cleared successfully for user: ${userId}`, result);
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      
+      // Log failed clearing attempt
+      await logAuditEvent(AuditAction.DATA_CLEARED, {
         userId,
         success: false,
         errorMessage: error instanceof Error ? error.message : 'Unknown error'

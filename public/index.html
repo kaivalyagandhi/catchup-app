@@ -370,27 +370,6 @@
             text-decoration: underline;
         }
         
-        .filter-btn {
-            background: var(--filter-btn-bg);
-            color: var(--filter-btn-color);
-            border: 1px solid var(--filter-btn-border);
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        
-        .filter-btn:hover {
-            background: var(--filter-btn-hover-bg);
-            border-color: var(--filter-btn-hover-border);
-        }
-        
-        .filter-btn.active {
-            background: var(--color-primary);
-            color: var(--text-inverse);
-            border-color: var(--color-primary);
-        }
         
         .hidden {
             display: none !important;
@@ -473,6 +452,35 @@
         .card-actions button {
             padding: 6px 12px;
             font-size: 12px;
+        }
+        
+        .suggestion-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            font-size: 13px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .filter-btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border-secondary);
+        }
+        
+        .filter-btn.active {
+            background: var(--color-primary);
+            color: var(--text-inverse);
+            border-color: var(--color-primary);
         }
         
         .search-bar {
@@ -1201,7 +1209,7 @@
                 width: 95%;
             }
             
-            /* Suggestions page filters */
+            /* Suggestions page buttons */
             #suggestions-page > div:first-child {
                 flex-direction: column;
                 align-items: stretch !important;
@@ -1213,13 +1221,6 @@
             
             #suggestions-page > div:first-child button {
                 width: 100%;
-            }
-            
-            /* Filter buttons */
-            .filter-btn {
-                flex: 1;
-                min-width: 80px;
-                padding: 10px 12px;
             }
         }
         
@@ -1286,12 +1287,6 @@
             .management-item-count {
                 font-size: 11px;
                 padding: 3px 8px;
-            }
-            
-            /* Filter buttons more compact */
-            .filter-btn {
-                padding: 8px 10px;
-                font-size: 13px;
             }
             
             /* Ensure theme toggle maintains minimum touch target size */
@@ -1618,6 +1613,19 @@
             color: var(--tooltip-detail);
         }
         
+        
+        /* Feedback message animation */
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
         /* Group Modify Menu */
         .group-modify-menu {
             position: absolute;
@@ -1770,27 +1778,7 @@
             
             <!-- Suggestions Page -->
             <div id="suggestions-page" class="page hidden">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2>Suggestions</h2>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button onclick="seedTestData()">Seed Test Data</button>
-                        <button onclick="generateSuggestions()" class="secondary">Generate Suggestions</button>
-                        <button onclick="clearTestData()" class="secondary" style="background: #ef4444;">Clear Test Data</button>
-                    </div>
-                </div>
-                
-                <!-- Filter Buttons -->
-                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <button onclick="filterSuggestions('all')" id="filter-all" class="filter-btn active">All</button>
-                    <button onclick="filterSuggestions('pending')" id="filter-pending" class="filter-btn">Pending</button>
-                    <button onclick="filterSuggestions('accepted')" id="filter-accepted" class="filter-btn">Accepted</button>
-                    <button onclick="filterSuggestions('dismissed')" id="filter-dismissed" class="filter-btn">Dismissed</button>
-                    <button onclick="filterSuggestions('snoozed')" id="filter-snoozed" class="filter-btn">Snoozed</button>
-                </div>
-                
-                <div id="suggestions-info" style="background: #e0f2fe; padding: 15px; border-radius: 4px; margin-bottom: 20px; display: none;">
-                    <p style="margin: 0; color: #0369a1;"><strong>💡 Tip:</strong> <span id="suggestions-info-text"></span></p>
-                </div>
+                <h2 style="margin-bottom: 20px;">Suggestions</h2>
                 <div id="suggestions-list"></div>
             </div>
             
