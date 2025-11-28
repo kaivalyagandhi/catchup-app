@@ -1738,6 +1738,20 @@
                     <input type="text" id="contact-search" placeholder="Search contacts..." onkeyup="searchContacts()">
                 </div>
                 
+                <!-- Contact Filters -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button class="filter-btn active" onclick="filterContactsBySource('all')" id="filter-all">
+                        All Contacts
+                    </button>
+                    <button class="filter-btn" onclick="filterContactsBySource('google')" id="filter-google">
+                        <img src="https://www.gstatic.com/marketing-cms/assets/images/ff/21/95f22bf94e35bea3ec097d3f4720/contacts.png" alt="Google" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">
+                        Google Contacts
+                    </button>
+                    <button class="filter-btn" onclick="filterContactsBySource('manual')" id="filter-manual">
+                        Manual Contacts
+                    </button>
+                </div>
+                
                 <div id="contacts-list"></div>
             </div>
             
@@ -2047,6 +2061,7 @@
     <script src="/js/voice-notes-history.js"></script>
     <script src="/js/contact-selector.js"></script>
     <script src="/js/enrichment-review.js"></script>
+    <script src="/js/google-contacts.js"></script>
     <script src="/js/app.js"></script>
 </body>
 </html>

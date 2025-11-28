@@ -11,3 +11,4 @@ export * from './scheduler';
 export * from './processors/suggestion-generation-processor';
 export * from './processors/batch-notification-processor';
 export * from './processors/calendar-sync-processor';
+export * from './processors/google-contacts-sync-processor';

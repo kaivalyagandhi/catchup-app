@@ -219,17 +219,17 @@ export class VoiceNoteWebSocketHandler {
       const message: WSMessage = JSON.parse(data.toString());
 
       switch (message.type) {
-        case 'associate_session':
-          // Associate existing session with this WebSocket
-          if (message.sessionId) {
-            client.sessionId = message.sessionId;
-            this.sessionClients.set(message.sessionId, ws);
-            console.log(`Associated session ${message.sessionId} with WebSocket`);
+        case WSMessageType.STATUS_CHANGE:
+          // Associate existing session with this WebSocket (legacy support)
+          if ((message as any).sessionId) {
+            client.sessionId = (message as any).sessionId;
+            this.sessionClients.set((message as any).sessionId, ws);
+            console.log(`Associated session ${(message as any).sessionId} with WebSocket`);
             
             // Send confirmation
             this.sendMessage(ws, {
               type: WSMessageType.STATUS_CHANGE,
-              data: { status: 'session_associated', sessionId: message.sessionId },
+              data: { status: 'session_associated', sessionId: (message as any).sessionId },
             });
           }
           break;

@@ -8,6 +8,7 @@ import {
   suggestionGenerationQueue,
   batchNotificationQueue,
   calendarSyncQueue,
+  googleContactsSyncQueue,
 } from './queue';
 import * as oauthRepository from '../integrations/oauth-repository';
 import * as preferencesRepository from '../notifications/preferences-repository';
@@ -15,6 +16,7 @@ import {
   SuggestionGenerationJobData,
   BatchNotificationJobData,
   CalendarSyncJobData,
+  GoogleContactsSyncJobData,
 } from './types';
 
 /**
@@ -259,6 +261,95 @@ export async function removeUserCalendarSync(userId: string): Promise<void> {
 }
 
 /**
+ * Schedule Google Contacts sync for all users
+ *
+ * Creates individual jobs for each user to run once daily.
+ * Requirements: 3.7
+ */
+export async function scheduleGoogleContactsSync(): Promise<void> {
+  console.log('Scheduling Google Contacts sync jobs...');
+
+  // Get all users with Google Contacts connected
+  const allUserIds = await oauthRepository.getUsersWithProvider(
+    'google_contacts'
+  );
+
+  let scheduledCount = 0;
+
+  for (const userId of allUserIds) {
+    try {
+      const jobData: GoogleContactsSyncJobData = {
+        userId,
+        syncType: 'incremental',
+      };
+
+      // Schedule to run once daily at 2 AM UTC
+      await googleContactsSyncQueue.add(jobData, {
+        repeat: {
+          cron: '0 2 * * *', // Daily at 2 AM
+          tz: 'UTC',
+        },
+        jobId: `google-contacts-sync-${userId}`,
+      });
+
+      scheduledCount++;
+    } catch (error) {
+      console.error(
+        `Error scheduling Google Contacts sync for user ${userId}:`,
+        error
+      );
+    }
+  }
+
+  console.log(`Google Contacts sync scheduled for ${scheduledCount} users`);
+}
+
+/**
+ * Schedule Google Contacts sync for a specific user
+ *
+ * Used when a user connects their Google Contacts.
+ */
+export async function scheduleUserGoogleContactsSync(
+  userId: string
+): Promise<void> {
+  console.log(`Scheduling Google Contacts sync for user ${userId}`);
+
+  // Remove existing job if any
+  await removeUserGoogleContactsSync(userId);
+
+  const jobData: GoogleContactsSyncJobData = {
+    userId,
+    syncType: 'incremental',
+  };
+
+  // Schedule to run once daily at 2 AM UTC
+  await googleContactsSyncQueue.add(jobData, {
+    repeat: {
+      cron: '0 2 * * *', // Daily at 2 AM
+      tz: 'UTC',
+    },
+    jobId: `google-contacts-sync-${userId}`,
+  });
+
+  console.log(`Google Contacts sync scheduled for user ${userId}`);
+}
+
+/**
+ * Remove Google Contacts sync schedule for a specific user
+ */
+export async function removeUserGoogleContactsSync(userId: string): Promise<void> {
+  const jobId = `google-contacts-sync-${userId}`;
+  const repeatableJobs = await googleContactsSyncQueue.getRepeatableJobs();
+
+  for (const job of repeatableJobs) {
+    if (job.id === jobId) {
+      await googleContactsSyncQueue.removeRepeatableByKey(job.key);
+      console.log(`Removed Google Contacts sync schedule for user ${userId}`);
+    }
+  }
+}
+
+/**
  * Initialize all scheduled jobs
  *
  * Call this on application startup to set up all recurring jobs.
@@ -270,6 +361,7 @@ export async function initializeScheduler(): Promise<void> {
     await scheduleSuggestionGeneration();
     await scheduleBatchNotifications();
     await scheduleCalendarSync();
+    await scheduleGoogleContactsSync();
 
     console.log('Job scheduler initialized successfully');
   } catch (error) {
@@ -290,6 +382,7 @@ export async function clearAllSchedules(): Promise<void> {
     suggestionGenerationQueue,
     batchNotificationQueue,
     calendarSyncQueue,
+    googleContactsSyncQueue,
   ];
 
   for (const queue of queues) {

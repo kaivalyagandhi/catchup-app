@@ -119,7 +119,13 @@ export class ContactServiceImpl implements ContactService {
       }
     }
 
-    // Update contact
+    // LOCAL EDIT HANDLING - Requirements: 15.4
+    // When a user edits a contact in CatchUp, changes are persisted ONLY to the local database.
+    // NO API calls are made to Google Contacts.
+    // Google metadata (google_resource_name, google_etag, source) is preserved for future syncs.
+    // The repository layer ensures Google metadata fields are not modified during updates.
+    
+    // Update contact (local database only)
     const contact = await this.repository.update(id, userId, data);
 
     // Invalidate caches

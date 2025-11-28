@@ -55,6 +55,12 @@ export class GroupServiceImpl implements GroupService {
       throw new Error('A group with this name already exists');
     }
 
+    // LOCAL GROUP CREATION - Requirements: 15.5
+    // When a user creates a new group in CatchUp, it is created ONLY in the local database.
+    // NO API calls are made to Google Contacts.
+    // CatchUp groups are independent of Google Contact Groups.
+    // Google Contact Groups can be mapped to CatchUp groups through the mapping approval process.
+    
     return await this.repository.create(userId, trimmedName);
   }
 

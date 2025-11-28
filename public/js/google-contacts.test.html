@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Contacts UI Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            color: #2563eb;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+        
+        .test-section h2 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background: #1d4ed8;
+        }
+        
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-connected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Google Contacts UI Component Test</h1>
+        
+        <!-- Test 1: Connected State -->
+        <div class="test-section">
+            <h2>Test 1: Connected State</h2>
+            <div id="test-connected"></div>
+            <button onclick="testConnectedState()">Render Connected State</button>
+        </div>
+        
+        <!-- Test 2: Disconnected State -->
+        <div class="test-section">
+            <h2>Test 2: Disconnected State</h2>
+            <div id="test-disconnected"></div>
+            <button onclick="testDisconnectedState()">Render Disconnected State</button>
+        </div>
+        
+        <!-- Test 3: Group Mappings -->
+        <div class="test-section">
+            <h2>Test 3: Group Mapping Review</h2>
+            <div id="test-mappings"></div>
+            <button onclick="testGroupMappings()">Render Group Mappings</button>
+        </div>
+        
+        <!-- Test 4: Contact Source Indicators -->
+        <div class="test-section">
+            <h2>Test 4: Contact Source Indicators</h2>
+            <div id="test-contacts"></div>
+            <button onclick="testContactSources()">Render Contacts</button>
+        </div>
+    </div>
+    
+    <script>
+        // Mock functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatRelativeTime(timestamp) {
+            const now = new Date();
+            const then = new Date(timestamp);
+            const diffMs = now - then;
+            const diffHours = Math.floor(diffMs / 3600000);
+            
+            if (diffHours < 1) return 'Just now';
+            if (diffHours < 24) return `${diffHours} hours ago`;
+            return then.toLocaleDateString();
+        }
+        
+        // Test 1: Connected State
+        function testConnectedState() {
+            const status = {
+                connected: true,
+                email: 'test@example.com',
+                lastSyncAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+                totalContactsSynced: 247,
+                lastSyncError: null,
+                autoSyncEnabled: true
+            };
+            
+            const html = renderGoogleContactsCard(status);
+            document.getElementById('test-connected').innerHTML = html;
+        }
+        
+        // Test 2: Disconnected State
+        function testDisconnectedState() {
+            const status = {
+                connected: false,
+                email: null,
+                lastSyncAt: null,
+                totalContactsSynced: 0,
+                lastSyncError: null,
+                autoSyncEnabled: false
+            };
+            
+            const html = renderGoogleContactsCard(status);
+            document.getElementById('test-disconnected').innerHTML = html;
+        }
+        
+        // Test 3: Group Mappings
+        function testGroupMappings() {
+            const pendingMappings = [
+                {
+                    id: '1',
+                    googleName: 'Work Colleagues',
+                    memberCount: 15,
+                    confidenceScore: 0.85,
+                    suggestedAction: 'map_to_existing',
+                    suggestedGroupName: 'Coworkers',
+                    suggestionReason: 'High name similarity (85%) and 60% member overlap'
+                },
+                {
+                    id: '2',
+                    googleName: 'Family',
+                    memberCount: 8,
+                    confidenceScore: 0.95,
+                    suggestedAction: 'create_new',
+                    suggestedGroupName: 'Family',
+                    suggestionReason: 'No similar existing group found'
+                }
+            ];
+            
+            const approvedMappings = [
+                {
+                    id: '3',
+                    googleName: 'Friends',
+                    memberCount: 25,
+                    mappingStatus: 'approved'
+                }
+            ];
+            
+            const rejectedMappings = [
+                {
+                    id: '4',
+                    googleName: 'Spam',
+                    memberCount: 3,
+                    mappingStatus: 'rejected'
+                }
+            ];
+            
+            const html = renderGroupMappingReview(pendingMappings, approvedMappings, rejectedMappings);
+            document.getElementById('test-mappings').innerHTML = html;
+        }
+        
+        // Test 4: Contact Sources
+        function testContactSources() {
+            const contacts = [
+                {
+                    id: '1',
+                    name: 'John Doe',
+                    email: 'john@example.com',
+                    phone: '+1234567890',
+                    source: 'google',
+                    lastSyncedAt: new Date(Date.now() - 7200000).toISOString() // 2 hours ago
+                },
+                {
+                    id: '2',
+                    name: 'Jane Smith',
+                    email: 'jane@example.com',
+                    phone: '+0987654321',
+                    source: 'manual',
+                    lastSyncedAt: null
+                }
+            ];
+            
+            let html = '<div style="display: grid; gap: 15px;">';
+            contacts.forEach(contact => {
+                let sourceBadge = '';
+                if (contact.source === 'google') {
+                    sourceBadge = `
+                        <span style="display: inline-flex; align-items: center; gap: 4px; background: #4285f4; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-bottom: 8px;">
+                            Google
+                        </span>
+                    `;
+                }
+                
+                let lastSyncInfo = '';
+                if (contact.source === 'google' && contact.lastSyncedAt) {
+                    lastSyncInfo = `
+                        <p style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                            🔄 Last synced: ${formatRelativeTime(contact.lastSyncedAt)}
+                        </p>
+                    `;
+                }
+                
+                html += `
+                    <div class="card">
+                        ${sourceBadge}
+                        <h3>${escapeHtml(contact.name)}</h3>
+                        <p>📞 <strong>Phone:</strong> ${contact.phone}</p>
+                        <p>✉️ <strong>Email:</strong> ${contact.email}</p>
+                        ${lastSyncInfo}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            document.getElementById('test-contacts').innerHTML = html;
+        }
+        
+        // Include the actual functions from google-contacts.js
+        function renderGoogleContactsCard(status) {
+            const connected = status.connected;
+            
+            return `
+                <div class="card">
+                    <!-- One-Way Sync Notice -->
+                    <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 16px; border-radius: 6px; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 24px;">ℹ️</span>
+                            <h4 style="margin: 0; font-size: 16px; font-weight: 600;">One-Way Sync (Read-Only)</h4>
+                        </div>
+                        <p style="margin: 0; font-size: 13px; line-height: 1.5; opacity: 0.95;">
+                            CatchUp imports your contacts from Google but <strong>never modifies your Google Contacts</strong>. 
+                            All edits you make in CatchUp stay local and won't affect your Google account.
+                        </p>
+                    </div>
+                    
+                    <!-- Connection Status -->
+                    <div style="margin-bottom: 12px;">
+                        <span class="status-badge ${connected ? 'status-connected' : 'status-disconnected'}">
+                            ${connected ? '✓ Connected (Read-Only)' : 'Not Connected'}
+                        </span>
+                    </div>
+                    
+                    ${connected ? `
+                        <p><strong>Email:</strong> ${status.email}</p>
+                        <p><strong>Last Sync:</strong> ${status.lastSyncAt ? formatRelativeTime(status.lastSyncAt) : 'Never'}</p>
+                        <p><strong>Contacts Synced:</strong> ${status.totalContactsSynced}</p>
+                        <p style="color: #10b981; margin-top: 10px;">✓ Your Google Contacts remain unchanged</p>
+                    ` : `
+                        <p>Connect your Google Contacts to automatically import and sync your contacts.</p>
+                        <p style="color: #10b981; margin-top: 10px;">✓ Safe to connect without risk of data loss</p>
+                    `}
+                </div>
+            `;
+        }
+        
+        function renderGroupMappingReview(pendingMappings, approvedMappings, rejectedMappings) {
+            return `
+                <div>
+                    <h3>Pending Mappings (${pendingMappings.length})</h3>
+                    ${pendingMappings.map(m => `
+                        <div class="card" style="border-left: 4px solid #f59e0b;">
+                            <h4>${escapeHtml(m.googleName)}</h4>
+                            <p>👥 ${m.memberCount} members | ${Math.round(m.confidenceScore * 100)}% confidence</p>
+                            <p><strong>Suggested:</strong> ${m.suggestedAction === 'create_new' ? 'Create New' : 'Map to Existing'}</p>
+                            <p style="font-size: 12px; color: #6b7280;">${m.suggestionReason}</p>
+                        </div>
+                    `).join('')}
+                    
+                    <h3 style="margin-top: 20px;">Approved Mappings (${approvedMappings.length})</h3>
+                    ${approvedMappings.map(m => `
+                        <div class="card" style="border-left: 4px solid #10b981;">
+                            <h4>${escapeHtml(m.googleName)}</h4>
+                            <p>👥 ${m.memberCount} members</p>
+                            <span class="status-badge status-connected">✓ APPROVED</span>
+                        </div>
+                    `).join('')}
+                    
+                    <h3 style="margin-top: 20px;">Rejected Mappings (${rejectedMappings.length})</h3>
+                    ${rejectedMappings.map(m => `
+                        <div class="card" style="border-left: 4px solid #ef4444;">
+                            <h4>${escapeHtml(m.googleName)}</h4>
+                            <p>👥 ${m.memberCount} members</p>
+                            <span class="status-badge status-disconnected">✗ REJECTED</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -5,7 +5,7 @@
  * Extracts suggestion actions and contact metadata using NLP.
  */
 
-import { Contact, ExtractedEntities, EnrichmentProposal, Suggestion, SuggestionStatus } from '../types';
+import { Contact, ExtractedEntities, EnrichmentProposal, Suggestion, SuggestionStatus, InteractionType } from '../types';
 import * as voiceService from '../voice/voice-service';
 import * as suggestionRepository from '../matching/suggestion-repository';
 import * as contactRepository from '../contacts/repository';
@@ -243,7 +243,7 @@ export class ReplyProcessingService {
           userId,
           contactId: suggestion.contactId,
           date: suggestion.proposedTimeslot.start,
-          type: 'hangout',
+          type: InteractionType.HANGOUT,
           suggestionId: action.suggestionId,
         });
         break;

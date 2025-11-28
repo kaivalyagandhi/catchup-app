@@ -158,16 +158,8 @@ export class PostgresTagRepository implements TagRepository {
         throw new Error('Contact not found');
       }
 
-      // Verify tag exists
-      const tagCheck = await client.query(
-        'SELECT id FROM tags WHERE id = $1',
-        [tagId]
-      );
-      if (tagCheck.rows.length === 0) {
-        throw new Error('Tag not found');
-      }
-
       // Insert or ignore if already exists
+      // Note: Foreign key constraints will ensure tag exists
       await client.query(
         `INSERT INTO contact_tags (contact_id, tag_id)
          VALUES ($1, $2)

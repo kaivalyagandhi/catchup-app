@@ -16,9 +16,12 @@ export interface ContactRepository {
   update(id: string, userId: string, data: ContactUpdateData): Promise<Contact>;
   findById(id: string, userId: string): Promise<Contact | null>;
   findAll(userId: string, filters?: ContactFilters): Promise<Contact[]>;
+  findByGoogleResourceName(userId: string, resourceName: string): Promise<Contact | null>;
+  findBySource(userId: string, source: 'manual' | 'google' | 'calendar' | 'voice_note'): Promise<Contact[]>;
   delete(id: string, userId: string): Promise<void>;
   archive(id: string, userId: string): Promise<void>;
   unarchive(id: string, userId: string): Promise<void>;
+  clearGoogleSyncMetadata(userId: string): Promise<void>;
 }
 
 export interface ContactCreateData {
@@ -34,8 +37,21 @@ export interface ContactCreateData {
   customNotes?: string;
   lastContactDate?: Date;
   frequencyPreference?: FrequencyOption;
+  source?: 'manual' | 'google' | 'calendar' | 'voice_note';
+  googleResourceName?: string;
+  googleEtag?: string;
+  lastSyncedAt?: Date;
 }
 
+/**
+ * Contact Update Data
+ * 
+ * IMPORTANT - Requirements: 15.4
+ * When updating contacts from user edits, DO NOT include Google metadata fields
+ * (source, googleResourceName, googleEtag, lastSyncedAt).
+ * These fields should only be updated during sync operations from Google.
+ * This ensures local edits stay local and don't trigger Google API calls.
+ */
 export interface ContactUpdateData {
   name?: string;
   phone?: string;
@@ -49,12 +65,18 @@ export interface ContactUpdateData {
   customNotes?: string;
   lastContactDate?: Date;
   frequencyPreference?: FrequencyOption;
+  // Google metadata fields - only updated during sync operations
+  source?: 'manual' | 'google' | 'calendar' | 'voice_note';
+  googleResourceName?: string;
+  googleEtag?: string;
+  lastSyncedAt?: Date;
 }
 
 export interface ContactFilters {
   archived?: boolean;
   groupId?: string;
   search?: string;
+  source?: 'manual' | 'google' | 'calendar' | 'voice_note';
 }
 
 /**
@@ -70,8 +92,9 @@ export class PostgresContactRepository implements ContactRepository {
         `INSERT INTO contacts (
           user_id, name, phone, email, linked_in, instagram, x_handle,
           other_social_media, location, timezone, custom_notes,
-          last_contact_date, frequency_preference
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          last_contact_date, frequency_preference, source,
+          google_resource_name, google_etag, last_synced_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         RETURNING *`,
         [
           userId,
@@ -87,6 +110,10 @@ export class PostgresContactRepository implements ContactRepository {
           data.customNotes || null,
           data.lastContactDate || null,
           data.frequencyPreference || null,
+          data.source || 'manual',
+          data.googleResourceName || null,
+          data.googleEtag || null,
+          data.lastSyncedAt || null,
         ]
       );
 
@@ -105,6 +132,12 @@ export class PostgresContactRepository implements ContactRepository {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+
+      // LOCAL EDIT HANDLING - Requirements: 15.4
+      // This method updates ONLY the fields provided in the data parameter.
+      // Google metadata fields (google_resource_name, google_etag, last_synced_at, source)
+      // are preserved unless explicitly provided (which only happens during sync operations).
+      // User edits from the UI never include these fields, ensuring Google metadata is preserved.
 
       // Build dynamic update query
       const updates: string[] = [];
@@ -158,6 +191,22 @@ export class PostgresContactRepository implements ContactRepository {
       if (data.frequencyPreference !== undefined) {
         updates.push(`frequency_preference = $${paramCount++}`);
         values.push(data.frequencyPreference || null);
+      }
+      if (data.source !== undefined) {
+        updates.push(`source = $${paramCount++}`);
+        values.push(data.source || 'manual');
+      }
+      if (data.googleResourceName !== undefined) {
+        updates.push(`google_resource_name = $${paramCount++}`);
+        values.push(data.googleResourceName || null);
+      }
+      if (data.googleEtag !== undefined) {
+        updates.push(`google_etag = $${paramCount++}`);
+        values.push(data.googleEtag || null);
+      }
+      if (data.lastSyncedAt !== undefined) {
+        updates.push(`last_synced_at = $${paramCount++}`);
+        values.push(data.lastSyncedAt || null);
       }
 
       if (updates.length === 0) {
@@ -225,6 +274,39 @@ export class PostgresContactRepository implements ContactRepository {
     return this.mapRowToContact(result.rows[0]);
   }
 
+  async findByGoogleResourceName(userId: string, resourceName: string): Promise<Contact | null> {
+    const result = await pool.query(
+      `SELECT c.*,
+        COALESCE(
+          json_agg(DISTINCT g.id) FILTER (WHERE g.id IS NOT NULL),
+          '[]'
+        ) as group_ids,
+        COALESCE(
+          json_agg(DISTINCT jsonb_build_object(
+            'id', t.id,
+            'text', t.text,
+            'source', t.source,
+            'createdAt', t.created_at
+          )) FILTER (WHERE t.id IS NOT NULL),
+          '[]'
+        ) as tags
+      FROM contacts c
+      LEFT JOIN contact_groups cg ON c.id = cg.contact_id
+      LEFT JOIN groups g ON cg.group_id = g.id
+      LEFT JOIN contact_tags ct ON c.id = ct.contact_id
+      LEFT JOIN tags t ON ct.tag_id = t.id
+      WHERE c.user_id = $1 AND c.google_resource_name = $2
+      GROUP BY c.id`,
+      [userId, resourceName]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToContact(result.rows[0]);
+  }
+
   async findAll(userId: string, filters?: ContactFilters): Promise<Contact[]> {
     let query = `
       SELECT c.*,
@@ -268,9 +350,44 @@ export class PostgresContactRepository implements ContactRepository {
       paramCount++;
     }
 
+    if (filters?.source) {
+      query += ` AND c.source = $${paramCount++}`;
+      values.push(filters.source);
+    }
+
     query += ` GROUP BY c.id ORDER BY c.name ASC`;
 
     const result = await pool.query(query, values);
+
+    return result.rows.map((row) => this.mapRowToContact(row));
+  }
+
+  async findBySource(userId: string, source: 'manual' | 'google' | 'calendar' | 'voice_note'): Promise<Contact[]> {
+    const result = await pool.query(
+      `SELECT c.*,
+        COALESCE(
+          json_agg(DISTINCT g.id) FILTER (WHERE g.id IS NOT NULL),
+          '[]'
+        ) as group_ids,
+        COALESCE(
+          json_agg(DISTINCT jsonb_build_object(
+            'id', t.id,
+            'text', t.text,
+            'source', t.source,
+            'createdAt', t.created_at
+          )) FILTER (WHERE t.id IS NOT NULL),
+          '[]'
+        ) as tags
+      FROM contacts c
+      LEFT JOIN contact_groups cg ON c.id = cg.contact_id
+      LEFT JOIN groups g ON cg.group_id = g.id
+      LEFT JOIN contact_tags ct ON c.id = ct.contact_id
+      LEFT JOIN tags t ON ct.tag_id = t.id
+      WHERE c.user_id = $1 AND c.source = $2
+      GROUP BY c.id
+      ORDER BY c.name ASC`,
+      [userId, source]
+    );
 
     return result.rows.map((row) => this.mapRowToContact(row));
   }
@@ -344,6 +461,22 @@ export class PostgresContactRepository implements ContactRepository {
     }
   }
 
+  /**
+   * Clear Google sync metadata for all contacts of a user
+   * Used when disconnecting Google Contacts
+   * Preserves contacts but removes sync-related fields
+   */
+  async clearGoogleSyncMetadata(userId: string): Promise<void> {
+    await pool.query(
+      `UPDATE contacts
+       SET google_resource_name = NULL,
+           google_etag = NULL,
+           last_synced_at = NULL
+       WHERE user_id = $1 AND source = 'google'`,
+      [userId]
+    );
+  }
+
   private mapRowToContact(row: any): Contact {
     return {
       id: row.id,
@@ -363,6 +496,10 @@ export class PostgresContactRepository implements ContactRepository {
       groups: row.group_ids || [],
       tags: row.tags || [],
       archived: row.archived,
+      source: row.source || undefined,
+      googleResourceName: row.google_resource_name || undefined,
+      googleEtag: row.google_etag || undefined,
+      lastSyncedAt: row.last_synced_at ? new Date(row.last_synced_at) : undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     };
@@ -409,3 +546,11 @@ export async function getContactsByIds(userId: string, contactIds: string[]): Pr
     return (repo as any).mapRowToContact(row);
   });
 }
+
+// Default instance for backward compatibility
+const defaultRepository = new PostgresContactRepository();
+
+export const findById = (id: string, userId: string) => defaultRepository.findById(id, userId);
+export const findAll = (userId: string, filters?: ContactFilters) => defaultRepository.findAll(userId, filters);
+export const create = (userId: string, data: ContactCreateData) => defaultRepository.create(userId, data);
+export const update = (id: string, userId: string, data: ContactUpdateData) => defaultRepository.update(id, userId, data);

@@ -175,8 +175,8 @@ export async function handleGoogleCalendarError<T>(
     // Log error for monitoring
     console.error('Google Calendar API error:', {
       type: errorType,
-      message: error.message,
-      stack: error.stack,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
     });
 
     // If fallback value provided, return it
@@ -226,12 +226,12 @@ export async function handleNotificationDelivery<T>(
     // Log error for monitoring
     console.error(`${channel.toUpperCase()} delivery error:`, {
       type: errorType,
-      message: error.message,
+      message: error instanceof Error ? error.message : String(error),
     });
 
     return {
       success: false,
-      error: `Failed to deliver ${channel}: ${error.message}`,
+      error: `Failed to deliver ${channel}: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
@@ -266,7 +266,7 @@ export async function handleTranscription(
     // Log error for monitoring
     console.error('Transcription error:', {
       type: errorType,
-      message: error.message,
+      message: error instanceof Error ? error.message : String(error),
     });
 
     return {
@@ -307,7 +307,7 @@ export async function handleNLPOperation<T>(
     // Log error for monitoring
     console.error('NLP operation error:', {
       type: errorType,
-      message: error.message,
+      message: error instanceof Error ? error.message : String(error),
     });
 
     // If fallback value provided, return it
@@ -357,8 +357,8 @@ export async function handleDatabaseOperation<T>(
     // Log error for monitoring
     console.error('Database operation error:', {
       type: errorType,
-      message: error.message,
-      stack: error.stack,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
     });
 
     throw new DatabaseError('Database operation failed', error, errorType);
