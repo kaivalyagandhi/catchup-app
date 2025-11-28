@@ -29,6 +29,7 @@ import { EnrichmentService } from './enrichment-service';
 import { VoiceNoteRepository } from './voice-repository';
 import { Contact, VoiceNote, VoiceNoteStatus } from '../types';
 import { MultiContactEnrichmentProposal } from './enrichment-service';
+import { IncrementalEnrichmentAnalyzer, EnrichmentSuggestion } from './incremental-enrichment-analyzer';
 
 /**
  * Voice note session state
@@ -41,7 +42,19 @@ export interface VoiceNoteSession {
   finalTranscript: string;
   startTime: Date;
   status: VoiceNoteStatus;
+  pausedAt?: Date;
+  totalPausedDuration: number; // in milliseconds
+  pauseTimeoutId?: NodeJS.Timeout;
+  audioSegments: Buffer[]; // For long recording segmentation
+  lastSegmentTime: Date;
+  userContacts?: Contact[]; // User's contacts for incremental enrichment context
 }
+
+/**
+ * Configuration constants
+ */
+const LONG_RECORDING_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+const PAUSE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Session event types
@@ -53,6 +66,7 @@ export enum SessionEvent {
   ERROR = 'error',
   RECONNECTING = 'reconnecting',
   RECONNECTED = 'reconnected',
+  PAUSE_TIMEOUT = 'pause_timeout',
 }
 
 /**
@@ -66,6 +80,7 @@ export class VoiceNoteService extends EventEmitter {
   private transcriptionService: TranscriptionService;
   private disambiguationService: ContactDisambiguationService;
   private extractionService: EntityExtractionService;
+  private enrichmentAnalyzer: IncrementalEnrichmentAnalyzer;
   private enrichmentService: EnrichmentService;
   private repository: VoiceNoteRepository;
   
@@ -84,6 +99,7 @@ export class VoiceNoteService extends EventEmitter {
     this.extractionService = extractionService || new EntityExtractionService();
     this.enrichmentService = enrichmentService || new EnrichmentService();
     this.repository = repository || new VoiceNoteRepository();
+    this.enrichmentAnalyzer = new IncrementalEnrichmentAnalyzer(this.extractionService);
   }
 
   /**
@@ -133,6 +149,9 @@ export class VoiceNoteService extends EventEmitter {
       finalTranscript: '',
       startTime: new Date(),
       status: 'recording',
+      totalPausedDuration: 0,
+      audioSegments: [],
+      lastSegmentTime: new Date(),
     };
 
     // Store active session
@@ -153,8 +172,9 @@ export class VoiceNoteService extends EventEmitter {
    * Process an audio chunk for a session
    * 
    * Streams audio to Google Speech-to-Text for real-time transcription.
+   * Handles long recording segmentation for recordings exceeding 10 minutes.
    * 
-   * Requirements: 1.3, 1.4, 1.5
+   * Requirements: 1.3, 1.4, 1.5, 7.5
    * 
    * @param sessionId - Session ID
    * @param audioChunk - Audio data buffer
@@ -172,6 +192,19 @@ export class VoiceNoteService extends EventEmitter {
 
     if (session.status !== 'recording') {
       throw new Error(`Session ${sessionId} is not in recording state`);
+    }
+
+    // Store audio chunk for segmentation
+    session.audioSegments.push(audioChunk);
+
+    // Check if recording exceeds 10 minutes
+    const recordingDuration = this.getElapsedRecordingTime(sessionId);
+    if (recordingDuration >= LONG_RECORDING_THRESHOLD_MS) {
+      // Check if we need to create a new segment (every 10 minutes of recording time)
+      const timeSinceLastSegment = Date.now() - session.lastSegmentTime.getTime();
+      if (timeSinceLastSegment >= LONG_RECORDING_THRESHOLD_MS) {
+        await this.segmentLongRecording(sessionId);
+      }
     }
 
     // Send audio chunk to transcription stream
@@ -246,22 +279,92 @@ export class VoiceNoteService extends EventEmitter {
         status: 'extracting',
       });
 
-      // Step 1: Disambiguate contacts
-      const disambiguationResult = await this.disambiguationService.disambiguateDetailed(
-        transcript,
-        userContacts
-      );
+      // Check if we have incremental enrichment results to use
+      const incrementalSuggestions = this.enrichmentAnalyzer.getSuggestions(sessionId);
+      
+      let identifiedContacts: Contact[] = [];
+      let entitiesMap: Map<string, ExtractedEntities> = new Map();
 
-      // Combine high-confidence matches
-      const identifiedContacts = disambiguationResult.matches;
+      if (incrementalSuggestions && incrementalSuggestions.length > 0) {
+        // Use incremental results - convert suggestions back to entities format
+        console.log(`Using ${incrementalSuggestions.length} incremental suggestions for finalization`);
+        
+        // Get unique contact names from suggestions
+        const contactNames = new Set<string>();
+        for (const suggestion of incrementalSuggestions) {
+          if (suggestion.contactHint) {
+            contactNames.add(suggestion.contactHint);
+          }
+        }
 
-      // Step 2: Extract entities for each contact
-      const entitiesMap = identifiedContacts.length > 0
-        ? await this.extractionService.extractForMultipleContacts(
-            transcript,
-            identifiedContacts
-          )
-        : new Map();
+        // Match contact names to actual contacts
+        for (const name of contactNames) {
+          const contact = userContacts.find(c => 
+            c.name.toLowerCase() === name.toLowerCase()
+          );
+          if (contact) {
+            identifiedContacts.push(contact);
+          }
+        }
+
+        // Convert suggestions to entities map
+        for (const contact of identifiedContacts) {
+          const contactSuggestions = incrementalSuggestions.filter(
+            s => s.contactHint?.toLowerCase() === contact.name.toLowerCase()
+          );
+          
+          const entities: ExtractedEntities = {
+            fields: {},
+            tags: [],
+            groups: [],
+            lastContactDate: undefined,
+          };
+
+          for (const suggestion of contactSuggestions) {
+            switch (suggestion.type) {
+              case 'location':
+                entities.fields.location = suggestion.value;
+                break;
+              case 'phone':
+                entities.fields.phone = suggestion.value;
+                break;
+              case 'email':
+                entities.fields.email = suggestion.value;
+                break;
+              case 'note':
+                entities.fields.customNotes = suggestion.value;
+                break;
+              case 'tag':
+                entities.tags.push(suggestion.value);
+                break;
+              case 'interest':
+                entities.groups.push(suggestion.value);
+                break;
+            }
+          }
+
+          entitiesMap.set(contact.id, entities);
+        }
+      } else {
+        // No incremental results - run full extraction (fallback)
+        console.log('No incremental suggestions, running full extraction');
+        
+        // Step 1: Disambiguate contacts
+        const disambiguationResult = await this.disambiguationService.disambiguateDetailed(
+          transcript,
+          userContacts
+        );
+
+        identifiedContacts = disambiguationResult.matches;
+
+        // Step 2: Extract entities for each contact
+        entitiesMap = identifiedContacts.length > 0
+          ? await this.extractionService.extractForMultipleContacts(
+              transcript,
+              identifiedContacts
+            )
+          : new Map();
+      }
 
       // Step 3: Generate enrichment proposal
       const proposal = await this.enrichmentService.generateProposal(
@@ -297,6 +400,7 @@ export class VoiceNoteService extends EventEmitter {
 
       // Clean up session
       this.activeSessions.delete(sessionId);
+      this.enrichmentAnalyzer.clearSession(sessionId);
 
       return {
         voiceNote: updatedVoiceNote,
@@ -327,6 +431,83 @@ export class VoiceNoteService extends EventEmitter {
   }
 
   /**
+   * Pause an active session
+   * 
+   * Stops capturing audio and preserves the current transcript state.
+   * Tracks when the session was paused to calculate total paused duration.
+   * Starts a 5-minute timeout timer to prompt the user.
+   * 
+   * Requirements: 6.1, 6.2, 6.4
+   * 
+   * @param sessionId - Session ID
+   */
+  async pauseSession(sessionId: string): Promise<void> {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    if (session.status !== 'recording') {
+      throw new Error(`Session ${sessionId} is not in recording state`);
+    }
+
+    // Record pause time
+    session.pausedAt = new Date();
+    session.status = 'paused';
+    
+    // Start 5-minute timeout
+    session.pauseTimeoutId = setTimeout(() => {
+      this.handlePauseTimeout(sessionId);
+    }, PAUSE_TIMEOUT_MS);
+    
+    this.emitSessionEvent(sessionId, SessionEvent.STATUS_CHANGE, {
+      status: 'paused',
+      pausedAt: session.pausedAt,
+    });
+  }
+
+  /**
+   * Resume a paused session
+   * 
+   * Continues capturing audio and appending to the existing transcript.
+   * Calculates and accumulates the paused duration.
+   * 
+   * Requirements: 6.1, 6.2
+   * 
+   * @param sessionId - Session ID
+   */
+  async resumeSession(sessionId: string): Promise<void> {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    if (session.status !== 'paused') {
+      throw new Error(`Session ${sessionId} is not in paused state`);
+    }
+
+    // Calculate paused duration
+    if (session.pausedAt) {
+      const pauseDuration = Date.now() - session.pausedAt.getTime();
+      session.totalPausedDuration += pauseDuration;
+      session.pausedAt = undefined;
+    }
+
+    // Clear pause timeout if it exists
+    if (session.pauseTimeoutId) {
+      clearTimeout(session.pauseTimeoutId);
+      session.pauseTimeoutId = undefined;
+    }
+
+    session.status = 'recording';
+    
+    this.emitSessionEvent(sessionId, SessionEvent.STATUS_CHANGE, {
+      status: 'recording',
+      totalPausedDuration: session.totalPausedDuration,
+    });
+  }
+
+  /**
    * Cancel an active session
    * 
    * @param sessionId - Session ID
@@ -337,11 +518,18 @@ export class VoiceNoteService extends EventEmitter {
       throw new Error(`Session ${sessionId} not found`);
     }
 
+    // Clear pause timeout if it exists
+    if (session.pauseTimeoutId) {
+      clearTimeout(session.pauseTimeoutId);
+      session.pauseTimeoutId = undefined;
+    }
+
     // Close transcription stream
     await this.transcriptionService.closeStream(session.transcriptionStream);
 
     // Remove session
     this.activeSessions.delete(sessionId);
+    this.enrichmentAnalyzer.clearSession(sessionId);
 
     // Emit status change
     this.emitSessionEvent(sessionId, SessionEvent.STATUS_CHANGE, {
@@ -359,6 +547,97 @@ export class VoiceNoteService extends EventEmitter {
     return Array.from(this.activeSessions.values()).filter(
       session => session.userId === userId
     );
+  }
+
+  /**
+   * Get elapsed recording time for a session (excluding paused duration)
+   * 
+   * @param sessionId - Session ID
+   * @returns Elapsed time in milliseconds
+   */
+  getElapsedRecordingTime(sessionId: string): number {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    const totalElapsed = Date.now() - session.startTime.getTime();
+    
+    // If currently paused, add the current pause duration
+    let currentPauseDuration = 0;
+    if (session.status === 'paused' && session.pausedAt) {
+      currentPauseDuration = Date.now() - session.pausedAt.getTime();
+    }
+
+    return totalElapsed - session.totalPausedDuration - currentPauseDuration;
+  }
+
+  /**
+   * Handle pause timeout (5 minutes)
+   * 
+   * Emits a timeout event to prompt the user to continue or finalize.
+   * 
+   * Requirements: 6.4
+   * 
+   * @param sessionId - Session ID
+   * @private
+   */
+  private handlePauseTimeout(sessionId: string): void {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      return; // Session may have been finalized or cancelled
+    }
+
+    if (session.status !== 'paused') {
+      return; // Session was resumed before timeout
+    }
+
+    // Emit timeout event
+    this.emitSessionEvent(sessionId, SessionEvent.PAUSE_TIMEOUT, {
+      pausedDuration: session.pausedAt 
+        ? Date.now() - session.pausedAt.getTime() 
+        : 0,
+    });
+  }
+
+  /**
+   * Segment long recording into manageable chunks
+   * 
+   * For recordings exceeding 10 minutes, this method creates a segment
+   * boundary and prepares for the next segment. This helps with processing
+   * and prevents memory issues with very long recordings.
+   * 
+   * Requirements: 7.5
+   * 
+   * @param sessionId - Session ID
+   * @private
+   */
+  private async segmentLongRecording(sessionId: string): Promise<void> {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      return;
+    }
+
+    console.log(`Segmenting long recording for session ${sessionId}`);
+
+    // Mark the current segment boundary in the transcript
+    // This helps identify where segments were split during processing
+    session.finalTranscript += ' [SEGMENT] ';
+
+    // Update last segment time
+    session.lastSegmentTime = new Date();
+
+    // Clear old audio segments to free memory
+    // Keep only recent segments (last 1 minute worth)
+    const recentSegmentCount = Math.min(session.audioSegments.length, 600); // ~1 min at 100ms chunks
+    session.audioSegments = session.audioSegments.slice(-recentSegmentCount);
+
+    // Emit event for monitoring/logging
+    this.emitSessionEvent(sessionId, SessionEvent.STATUS_CHANGE, {
+      status: session.status,
+      segmented: true,
+      recordingDuration: this.getElapsedRecordingTime(sessionId),
+    });
   }
 
   /**
@@ -392,6 +671,11 @@ export class VoiceNoteService extends EventEmitter {
           transcript: result.transcript,
           fullTranscript: session.finalTranscript,
           confidence: result.confidence,
+        });
+        
+        // Trigger incremental enrichment analysis
+        this.analyzeForEnrichment(session.id, result.transcript).catch(err => {
+          console.error('Error in incremental enrichment:', err);
         });
       }
     });
@@ -430,6 +714,59 @@ export class VoiceNoteService extends EventEmitter {
       sessionId,
       ...data,
     });
+  }
+
+  /**
+   * Analyze transcript for incremental enrichment
+   * 
+   * Triggers enrichment analysis at natural breakpoints and emits suggestions.
+   * 
+   * @param sessionId - Session ID
+   * @param newText - New transcript text to analyze
+   * @private
+   */
+  private async analyzeForEnrichment(sessionId: string, newText: string): Promise<void> {
+    try {
+      // Get session to access user contacts
+      const session = this.activeSessions.get(sessionId);
+      const userContacts = session?.userContacts || [];
+      
+      // Process the new text with user contacts for context (Proposal A & B)
+      const triggered = await this.enrichmentAnalyzer.processTranscript(
+        sessionId, 
+        newText, 
+        true, 
+        userContacts
+      );
+      
+      // If enrichment was triggered, get and emit the suggestions
+      if (triggered) {
+        const suggestions = this.enrichmentAnalyzer.getSuggestions(sessionId);
+        if (suggestions && suggestions.length > 0) {
+          console.log(`Emitting ${suggestions.length} enrichment suggestions for session ${sessionId}`);
+          this.emit('enrichment_update', {
+            sessionId,
+            suggestions,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error analyzing for enrichment:', error);
+    }
+  }
+
+  /**
+   * Set user contacts for a session (for incremental enrichment context)
+   * 
+   * @param sessionId - Session ID
+   * @param contacts - User's contacts
+   */
+  setSessionContacts(sessionId: string, contacts: Contact[]): void {
+    const session = this.activeSessions.get(sessionId);
+    if (session) {
+      session.userContacts = contacts;
+      console.log(`Set ${contacts.length} contacts for session ${sessionId}`);
+    }
   }
 }
 

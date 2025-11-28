@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TranscriptManager Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .test-section h2 {
+            margin-bottom: 15px;
+            color: #1f2937;
+            font-size: 18px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background: #1d4ed8;
+        }
+        
+        button.secondary {
+            background: #6b7280;
+        }
+        
+        button.secondary:hover {
+            background: #4b5563;
+        }
+        
+        .output {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            min-height: 100px;
+        }
+        
+        .output h3 {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .transcript-container {
+            line-height: 1.6;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .transcript-segment {
+            display: inline;
+        }
+        
+        .transcript-final {
+            color: #333;
+        }
+        
+        .transcript-interim {
+            color: #6b7280;
+            font-style: italic;
+        }
+        
+        .confidence-high {
+            font-weight: 600;
+            opacity: 1;
+        }
+        
+        .confidence-medium {
+            font-weight: 400;
+            opacity: 1;
+        }
+        
+        .confidence-low {
+            font-weight: 300;
+            opacity: 0.7;
+            color: #9ca3af;
+        }
+        
+        .transcript-pause-marker {
+            display: inline-block;
+            margin: 0 8px;
+            padding: 2px 6px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #6b7280;
+            vertical-align: middle;
+        }
+        
+        .stats {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        
+        .test-result.pass {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .test-result.fail {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        pre {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TranscriptManager Test Suite</h1>
+        
+        <!-- Test 1: Basic Functionality -->
+        <div class="test-section">
+            <h2>Test 1: Basic Interim and Final Text</h2>
+            <div class="controls">
+                <button onclick="test1_addInterim()">Add Interim Text</button>
+                <button onclick="test1_finalize()">Finalize Text</button>
+                <button onclick="test1_clear()" class="secondary">Clear</button>
+            </div>
+            <div class="output" id="test1-output"></div>
+            <div class="stats" id="test1-stats"></div>
+        </div>
+        
+        <!-- Test 2: Confidence Levels -->
+        <div class="test-section">
+            <h2>Test 2: Confidence-Based Styling</h2>
+            <div class="controls">
+                <button onclick="test2_addHigh()">Add High Confidence (0.95)</button>
+                <button onclick="test2_addMedium()">Add Medium Confidence (0.8)</button>
+                <button onclick="test2_addLow()">Add Low Confidence (0.5)</button>
+                <button onclick="test2_clear()" class="secondary">Clear</button>
+            </div>
+            <div class="output" id="test2-output"></div>
+        </div>
+        
+        <!-- Test 3: Pause Markers -->
+        <div class="test-section">
+            <h2>Test 3: Pause Markers</h2>
+            <div class="controls">
+                <button onclick="test3_addText()">Add Text</button>
+                <button onclick="test3_addPause()">Insert Pause</button>
+                <button onclick="test3_clear()" class="secondary">Clear</button>
+            </div>
+            <div class="output" id="test3-output"></div>
+        </div>
+        
+        <!-- Test 4: Property Tests -->
+        <div class="test-section">
+            <h2>Test 4: Correctness Properties</h2>
+            <div class="controls">
+                <button onclick="test4_finalPreservation()">Test Final Transcript Preservation</button>
+                <button onclick="test4_wordCount()">Test Word Count Accuracy</button>
+                <button onclick="test4_interimReplacement()">Test Interim Replacement</button>
+            </div>
+            <div class="output" id="test4-output"></div>
+        </div>
+        
+        <!-- Test 5: Complex Scenario -->
+        <div class="test-section">
+            <h2>Test 5: Complex Recording Scenario</h2>
+            <div class="controls">
+                <button onclick="test5_simulate()">Simulate Recording Session</button>
+                <button onclick="test5_clear()" class="secondary">Clear</button>
+            </div>
+            <div class="output" id="test5-output"></div>
+            <div class="stats" id="test5-stats"></div>
+        </div>
+    </div>
+    
+    <script src="transcript-manager.js"></script>
+    <script>
+        // Test instances
+        let manager1 = new TranscriptManager();
+        let manager2 = new TranscriptManager();
+        let manager3 = new TranscriptManager();
+        let manager5 = new TranscriptManager();
+        
+        // Test 1: Basic Functionality
+        function test1_addInterim() {
+            manager1.addInterimText('Hello this is a test', 0.85);
+            updateTest1Display();
+        }
+        
+        function test1_finalize() {
+            manager1.finalizeText('Hello this is a test', 0.92);
+            updateTest1Display();
+        }
+        
+        function test1_clear() {
+            manager1.clear();
+            updateTest1Display();
+        }
+        
+        function updateTest1Display() {
+            const output = document.getElementById('test1-output');
+            output.innerHTML = '';
+            output.appendChild(manager1.render());
+            
+            const stats = document.getElementById('test1-stats');
+            stats.innerHTML = `
+                <strong>Stats:</strong><br>
+                Word Count: ${manager1.getWordCount()}<br>
+                Final Transcript: "${manager1.getFinalTranscript()}"<br>
+                Full Transcript: "${manager1.getFullTranscript()}"<br>
+                Segments: ${manager1.getSegments().length}<br>
+                Has Interim: ${manager1.getCurrentInterim() !== null}
+            `;
+        }
+        
+        // Test 2: Confidence Levels
+        function test2_addHigh() {
+            manager2.finalizeText('This is high confidence text', 0.95);
+            updateTest2Display();
+        }
+        
+        function test2_addMedium() {
+            manager2.finalizeText('This is medium confidence text', 0.8);
+            updateTest2Display();
+        }
+        
+        function test2_addLow() {
+            manager2.finalizeText('This is low confidence text', 0.5);
+            updateTest2Display();
+        }
+        
+        function test2_clear() {
+            manager2.clear();
+            updateTest2Display();
+        }
+        
+        function updateTest2Display() {
+            const output = document.getElementById('test2-output');
+            output.innerHTML = '';
+            output.appendChild(manager2.render());
+        }
+        
+        // Test 3: Pause Markers
+        function test3_addText() {
+            manager3.finalizeText('Text before pause', 0.9);
+            updateTest3Display();
+        }
+        
+        function test3_addPause() {
+            manager3.insertPauseMarker();
+            updateTest3Display();
+        }
+        
+        function test3_clear() {
+            manager3.clear();
+            updateTest3Display();
+        }
+        
+        function updateTest3Display() {
+            const output = document.getElementById('test3-output');
+            output.innerHTML = '';
+            output.appendChild(manager3.render());
+        }
+        
+        // Test 4: Property Tests
+        function test4_finalPreservation() {
+            const output = document.getElementById('test4-output');
+            output.innerHTML = '<h3>Testing Final Transcript Preservation</h3>';
+            
+            const testManager = new TranscriptManager();
+            const results = [];
+            
+            // Add some final text
+            testManager.finalizeText('First sentence', 0.9);
+            const firstFinal = testManager.getFinalTranscript();
+            results.push(`Initial final: "${firstFinal}"`);
+            
+            // Add interim text
+            testManager.addInterimText('interim text', 0.7);
+            const afterInterim = testManager.getFinalTranscript();
+            results.push(`After interim: "${afterInterim}"`);
+            
+            // Check if final text preserved
+            const preserved = firstFinal === afterInterim;
+            results.push(`<div class="test-result ${preserved ? 'pass' : 'fail'}">
+                ${preserved ? '✓ PASS' : '✗ FAIL'}: Final transcript ${preserved ? 'preserved' : 'modified'}
+            </div>`);
+            
+            // Add more final text
+            testManager.finalizeText('Second sentence', 0.85);
+            const finalFinal = testManager.getFinalTranscript();
+            results.push(`Final result: "${finalFinal}"`);
+            
+            output.innerHTML += '<pre>' + results.join('\n') + '</pre>';
+        }
+        
+        function test4_wordCount() {
+            const output = document.getElementById('test4-output');
+            output.innerHTML = '<h3>Testing Word Count Accuracy</h3>';
+            
+            const testManager = new TranscriptManager();
+            const results = [];
+            
+            // Test 1: Simple sentence
+            testManager.finalizeText('Hello world', 0.9);
+            const count1 = testManager.getWordCount();
+            results.push(`"Hello world" → ${count1} words (expected: 2) ${count1 === 2 ? '✓' : '✗'}`);
+            
+            // Test 2: Add more words
+            testManager.finalizeText('This is a test', 0.9);
+            const count2 = testManager.getWordCount();
+            results.push(`Added "This is a test" → ${count2} words (expected: 6) ${count2 === 6 ? '✓' : '✗'}`);
+            
+            // Test 3: Interim doesn't count
+            testManager.addInterimText('interim words here', 0.7);
+            const count3 = testManager.getWordCount();
+            results.push(`Added interim → ${count3} words (expected: 6) ${count3 === 6 ? '✓' : '✗'}`);
+            
+            const allPass = count1 === 2 && count2 === 6 && count3 === 6;
+            results.push(`<div class="test-result ${allPass ? 'pass' : 'fail'}">
+                ${allPass ? '✓ PASS' : '✗ FAIL'}: Word count accuracy
+            </div>`);
+            
+            output.innerHTML += '<pre>' + results.join('\n') + '</pre>';
+        }
+        
+        function test4_interimReplacement() {
+            const output = document.getElementById('test4-output');
+            output.innerHTML = '<h3>Testing Interim Text Replacement</h3>';
+            
+            const testManager = new TranscriptManager();
+            const results = [];
+            
+            // Add first interim
+            testManager.addInterimText('first interim', 0.7);
+            const interim1 = testManager.getCurrentInterim();
+            results.push(`First interim: "${interim1.text}"`);
+            
+            // Add second interim (should replace)
+            testManager.addInterimText('second interim', 0.8);
+            const interim2 = testManager.getCurrentInterim();
+            results.push(`Second interim: "${interim2.text}"`);
+            
+            const replaced = interim2.text === 'second interim';
+            results.push(`<div class="test-result ${replaced ? 'pass' : 'fail'}">
+                ${replaced ? '✓ PASS' : '✗ FAIL'}: Interim text ${replaced ? 'replaced' : 'not replaced'}
+            </div>`);
+            
+            output.innerHTML += '<pre>' + results.join('\n') + '</pre>';
+        }
+        
+        // Test 5: Complex Scenario
+        function test5_simulate() {
+            manager5.clear();
+            
+            // Simulate a recording session
+            setTimeout(() => {
+                manager5.addInterimText('Hello', 0.6);
+                updateTest5Display();
+            }, 100);
+            
+            setTimeout(() => {
+                manager5.addInterimText('Hello I am', 0.7);
+                updateTest5Display();
+            }, 300);
+            
+            setTimeout(() => {
+                manager5.finalizeText('Hello I am recording', 0.92);
+                updateTest5Display();
+            }, 600);
+            
+            setTimeout(() => {
+                manager5.addInterimText('a voice', 0.65);
+                updateTest5Display();
+            }, 900);
+            
+            setTimeout(() => {
+                manager5.finalizeText('a voice note', 0.88);
+                updateTest5Display();
+            }, 1200);
+            
+            setTimeout(() => {
+                manager5.insertPauseMarker();
+                updateTest5Display();
+            }, 1500);
+            
+            setTimeout(() => {
+                manager5.addInterimText('continuing', 0.7);
+                updateTest5Display();
+            }, 1800);
+            
+            setTimeout(() => {
+                manager5.finalizeText('continuing after pause', 0.9);
+                updateTest5Display();
+            }, 2100);
+        }
+        
+        function test5_clear() {
+            manager5.clear();
+            updateTest5Display();
+        }
+        
+        function updateTest5Display() {
+            const output = document.getElementById('test5-output');
+            output.innerHTML = '';
+            output.appendChild(manager5.render());
+            
+            const stats = document.getElementById('test5-stats');
+            stats.innerHTML = `
+                <strong>Session Stats:</strong><br>
+                Word Count: ${manager5.getWordCount()}<br>
+                Segments: ${manager5.getSegments().length}<br>
+                Has Interim: ${manager5.getCurrentInterim() !== null}<br>
+                Full Transcript: "${manager5.getFullTranscript()}"
+            `;
+        }
+        
+        // Initialize displays
+        updateTest1Display();
+        updateTest2Display();
+        updateTest3Display();
+        updateTest5Display();
+    </script>
+</body>
+</html>

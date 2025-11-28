@@ -8,12 +8,50 @@ class EnrichmentReview {
     this.proposal = null;
     this.container = null;
     this.onApplyCallback = null;
+    this.isRecording = false;
     
     this.init();
   }
   
   init() {
     this.setupStyles();
+  }
+  
+  /**
+   * Show the panel in recording mode (waiting for suggestions)
+   */
+  showRecordingMode() {
+    this.isRecording = true;
+    this.proposal = null;
+    
+    const container = document.getElementById('enrichment-review-container');
+    if (!container) return;
+    
+    this.container = container;
+    container.innerHTML = `
+      <div class="enrichment-review">
+        <div class="enrichment-header">
+          <h2>🎤 Live Enrichment</h2>
+          <p class="enrichment-subtitle">Suggestions will appear as you speak...</p>
+        </div>
+        
+        <div class="enrichment-recording-state">
+          <div class="recording-pulse"></div>
+          <p>Listening for contact information, locations, and other details...</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  /**
+   * Hide the panel
+   */
+  hide() {
+    this.isRecording = false;
+    const container = document.getElementById('enrichment-review-container');
+    if (container) {
+      container.innerHTML = '';
+    }
   }
   
   /**
@@ -38,6 +76,24 @@ class EnrichmentReview {
     this.container = container;
     
     if (!this.proposal || !this.proposal.contactProposals || this.proposal.contactProposals.length === 0) {
+      // If recording, show waiting state instead of empty
+      if (this.isRecording) {
+        container.innerHTML = `
+          <div class="enrichment-review">
+            <div class="enrichment-header">
+              <h2>🎤 Live Enrichment</h2>
+              <p class="enrichment-subtitle">Suggestions will appear as you speak...</p>
+            </div>
+            
+            <div class="enrichment-recording-state">
+              <div class="recording-pulse"></div>
+              <p>Listening for contact information, locations, and other details...</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
       container.innerHTML = `
         <div class="enrichment-empty">
           <p>No enrichment proposals available.</p>
@@ -52,6 +108,24 @@ class EnrichmentReview {
     );
     
     if (contactsWithItems.length === 0) {
+      // If recording, show waiting state
+      if (this.isRecording) {
+        container.innerHTML = `
+          <div class="enrichment-review">
+            <div class="enrichment-header">
+              <h2>🎤 Live Enrichment</h2>
+              <p class="enrichment-subtitle">Suggestions will appear as you speak...</p>
+            </div>
+            
+            <div class="enrichment-recording-state">
+              <div class="recording-pulse"></div>
+              <p>Listening for contact information, locations, and other details...</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
       container.innerHTML = `
         <div class="enrichment-empty">
           <p>No enrichment items to review.</p>
@@ -139,7 +213,7 @@ class EnrichmentReview {
     }
     
     // Get icon for item type
-    const icon = this.getItemIcon(type);
+    const icon = this.getItemIcon(type, field);
     
     return `
       <div class="enrichment-item ${accepted ? 'accepted' : 'rejected'}" data-item-id="${id}">
@@ -214,7 +288,23 @@ class EnrichmentReview {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
   
-  getItemIcon(type) {
+  getItemIcon(type, field) {
+    // Field-specific icons
+    if (type === 'field' && field) {
+      const fieldIcons = {
+        location: '📍',
+        phone: '📞',
+        email: '✉️',
+        customNotes: '📝',
+        linkedIn: '💼',
+        instagram: '📷',
+        xHandle: '🐦'
+      };
+      if (fieldIcons[field]) {
+        return fieldIcons[field];
+      }
+    }
+    
     const icons = {
       tag: '🏷️',
       group: '👥',
@@ -903,6 +993,40 @@ class EnrichmentReview {
       
       .enrichment-success p {
         color: #6b7280;
+      }
+      
+      /* Recording state styles */
+      .enrichment-recording-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #6b7280;
+      }
+      
+      .enrichment-recording-state p {
+        margin: 0;
+        font-size: 15px;
+      }
+      
+      .recording-pulse {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 20px;
+        background: #ef4444;
+        border-radius: 50%;
+        animation: recordingPulse 1.5s ease-in-out infinite;
+      }
+      
+      @keyframes recordingPulse {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 1;
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 0.8;
+          box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
+        }
       }
       
       @media (max-width: 768px) {

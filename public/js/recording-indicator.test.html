@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recording Indicator Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --text-primary: #333333;
+            --text-secondary: #6b7280;
+            --color-primary: #2563eb;
+            --color-danger: #ef4444;
+            --color-warning: #f59e0b;
+            --color-success: #10b981;
+            --status-error-bg: #fee2e2;
+            --status-error-text: #991b1b;
+            --status-warning: #fef3c7;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: var(--bg-secondary);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+        }
+
+        .test-section h2 {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+            font-size: 18px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        button.primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        button.primary:hover {
+            background: #1d4ed8;
+        }
+
+        button.danger {
+            background: var(--color-danger);
+            color: white;
+        }
+
+        button.danger:hover {
+            background: #dc2626;
+        }
+
+        button.warning {
+            background: var(--color-warning);
+            color: white;
+        }
+
+        button.warning:hover {
+            background: #d97706;
+        }
+
+        button.success {
+            background: var(--color-success);
+            color: white;
+        }
+
+        button.success:hover {
+            background: #059669;
+        }
+
+        .info {
+            padding: 15px;
+            background: #e0f2fe;
+            border-left: 4px solid var(--color-primary);
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #0369a1;
+        }
+
+        .status-display {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .status-display div {
+            margin: 5px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Recording Indicator Test</h1>
+
+        <!-- Basic Controls -->
+        <div class="test-section">
+            <h2>Basic Controls</h2>
+            <div class="button-group">
+                <button class="primary" onclick="testShowRecording()">Show Recording</button>
+                <button class="warning" onclick="testShowPaused()">Show Paused</button>
+                <button class="danger" onclick="testHide()">Hide Indicator</button>
+            </div>
+            <div class="info">
+                Test the basic show/hide functionality of the recording indicator.
+            </div>
+        </div>
+
+        <!-- Time Updates -->
+        <div class="test-section">
+            <h2>Time Updates</h2>
+            <div class="button-group">
+                <button class="primary" onclick="testTimeUpdate(30)">Set 30 seconds</button>
+                <button class="primary" onclick="testTimeUpdate(90)">Set 1:30</button>
+                <button class="primary" onclick="testTimeUpdate(3661)">Set 1:01:01</button>
+                <button class="success" onclick="testAutoIncrement()">Auto Increment (10s)</button>
+            </div>
+            <div class="info">
+                Test time display formatting and updates.
+            </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="test-section">
+            <h2>Connection Status</h2>
+            <div class="button-group">
+                <button class="success" onclick="testConnectionStatus('connected')">Connected</button>
+                <button class="warning" onclick="testConnectionStatus('reconnecting', 1)">Reconnecting (1)</button>
+                <button class="warning" onclick="testConnectionStatus('reconnecting', 3)">Reconnecting (3)</button>
+                <button class="danger" onclick="testConnectionStatus('disconnected')">Disconnected</button>
+            </div>
+            <div class="info">
+                Test different connection status displays.
+            </div>
+        </div>
+
+        <!-- Navigation Warning -->
+        <div class="test-section">
+            <h2>Navigation Warning</h2>
+            <div class="button-group">
+                <button class="primary" onclick="testNavigationWarning()">Test Navigation Warning</button>
+                <button class="warning" onclick="testBeforeUnload()">Test Browser Navigation (try closing tab)</button>
+            </div>
+            <div class="info">
+                Test navigation warning dialogs. The beforeunload handler will show a browser confirmation when you try to close/reload the page.
+            </div>
+        </div>
+
+        <!-- Tab Focus/Blur -->
+        <div class="test-section">
+            <h2>Tab Focus/Blur Handling</h2>
+            <div class="button-group">
+                <button class="primary" onclick="testTabFocus()">Enable & Test (switch tabs)</button>
+            </div>
+            <div class="info">
+                Click the button, then switch to another tab and come back. You should see a notification.
+            </div>
+        </div>
+
+        <!-- State Display -->
+        <div class="test-section">
+            <h2>Current State</h2>
+            <div class="button-group">
+                <button class="primary" onclick="updateStateDisplay()">Refresh State</button>
+            </div>
+            <div class="status-display" id="state-display">
+                Click "Refresh State" to see current indicator state
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" style="position: fixed; top: 80px; right: 20px; z-index: 10001;"></div>
+
+    <!-- Load RecordingIndicator -->
+    <script src="recording-indicator.js"></script>
+
+    <!-- Toast Function -->
+    <script>
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.style.cssText = `
+                padding: 12px 20px;
+                background: ${type === 'success' ? '#d1fae5' : type === 'error' ? '#fee2e2' : '#e0f2fe'};
+                color: ${type === 'success' ? '#065f46' : type === 'error' ? '#991b1b' : '#0369a1'};
+                border-radius: 6px;
+                margin-bottom: 10px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideIn 0.3s ease-out;
+            `;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+
+    <!-- Test Functions -->
+    <script>
+        let indicator;
+        let autoIncrementInterval;
+
+        // Initialize indicator
+        window.addEventListener('DOMContentLoaded', () => {
+            indicator = new RecordingIndicator();
+            showToast('Recording Indicator initialized', 'success');
+        });
+
+        function testShowRecording() {
+            indicator.show({
+                isRecording: true,
+                isPaused: false,
+                elapsedTime: 0,
+                connectionStatus: 'connected'
+            });
+            showToast('Showing recording indicator', 'info');
+        }
+
+        function testShowPaused() {
+            indicator.show({
+                isRecording: true,
+                isPaused: true,
+                elapsedTime: 45,
+                connectionStatus: 'connected'
+            });
+            showToast('Showing paused state', 'info');
+        }
+
+        function testHide() {
+            indicator.hide();
+            showToast('Indicator hidden', 'info');
+        }
+
+        function testTimeUpdate(seconds) {
+            indicator.updateTime(seconds);
+            showToast(`Time updated to ${seconds} seconds`, 'info');
+        }
+
+        function testAutoIncrement() {
+            if (autoIncrementInterval) {
+                clearInterval(autoIncrementInterval);
+                autoIncrementInterval = null;
+                showToast('Auto increment stopped', 'info');
+                return;
+            }
+
+            let time = 0;
+            indicator.show({
+                isRecording: true,
+                isPaused: false,
+                elapsedTime: time,
+                connectionStatus: 'connected'
+            });
+
+            autoIncrementInterval = setInterval(() => {
+                time++;
+                indicator.updateTime(time);
+                if (time >= 10) {
+                    clearInterval(autoIncrementInterval);
+                    autoIncrementInterval = null;
+                    showToast('Auto increment completed', 'success');
+                }
+            }, 1000);
+
+            showToast('Auto incrementing for 10 seconds', 'info');
+        }
+
+        function testConnectionStatus(status, attempt = 0) {
+            indicator.updateConnectionStatus(status, attempt);
+            showToast(`Connection status: ${status}${attempt ? ` (attempt ${attempt})` : ''}`, 'info');
+        }
+
+        function testNavigationWarning() {
+            indicator.showNavigationWarning().then(confirmed => {
+                if (confirmed) {
+                    showToast('User confirmed navigation', 'success');
+                } else {
+                    showToast('User cancelled navigation', 'info');
+                }
+            });
+        }
+
+        function testBeforeUnload() {
+            indicator.show({
+                isRecording: true,
+                isPaused: false,
+                elapsedTime: 30,
+                connectionStatus: 'connected'
+            });
+            showToast('Try closing or reloading the page now', 'warning');
+        }
+
+        function testTabFocus() {
+            indicator.show({
+                isRecording: true,
+                isPaused: false,
+                elapsedTime: 15,
+                connectionStatus: 'connected'
+            });
+            showToast('Switch to another tab and come back', 'info');
+        }
+
+        function updateStateDisplay() {
+            const state = indicator.getState();
+            const display = document.getElementById('state-display');
+            display.innerHTML = `
+                <div><strong>Is Recording:</strong> ${state.isRecording}</div>
+                <div><strong>Is Paused:</strong> ${state.isPaused}</div>
+                <div><strong>Elapsed Time:</strong> ${state.elapsedTime}s</div>
+                <div><strong>Connection Status:</strong> ${state.connectionStatus}</div>
+                <div><strong>Reconnect Attempt:</strong> ${state.reconnectAttempt}</div>
+            `;
+            showToast('State refreshed', 'success');
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (autoIncrementInterval) {
+                clearInterval(autoIncrementInterval);
+            }
+        });
+    </script>
+</body>
+</html>

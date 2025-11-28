@@ -23,6 +23,11 @@ import { GoogleGenerativeAI, GenerativeModel, SchemaType } from '@google/generat
 export const ENTITY_EXTRACTION_SCHEMA = {
   type: SchemaType.OBJECT as const,
   properties: {
+    contactNames: {
+      type: SchemaType.ARRAY as const,
+      items: { type: SchemaType.STRING as const },
+      description: 'Person names mentioned in the transcript (e.g., "John", "Sarah Smith")',
+    },
     fields: {
       type: SchemaType.OBJECT as const,
       properties: {
@@ -52,7 +57,7 @@ export const ENTITY_EXTRACTION_SCHEMA = {
       description: 'ISO 8601 date string if a specific interaction date is mentioned',
     },
   },
-  required: ['fields', 'tags', 'groups'],
+  required: ['contactNames', 'fields', 'tags', 'groups'],
 };
 
 /**
