@@ -205,7 +205,7 @@ export async function matchContactsToTimeslot(
  * Property 38: Timebound suggestion generation
  *
  * Generates suggestions when time since last contact exceeds frequency threshold.
- * Matches suggestions to available calendar slots.
+ * Matches suggestions to available calendar slots that don't conflict with events.
  */
 export async function generateTimeboundSuggestions(
   userId: string,

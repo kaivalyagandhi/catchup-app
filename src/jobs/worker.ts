@@ -8,10 +8,12 @@ import {
   suggestionGenerationQueue,
   batchNotificationQueue,
   calendarSyncQueue,
+  suggestionRegenerationQueue,
 } from './queue';
 import { processSuggestionGeneration } from './processors/suggestion-generation-processor';
 import { processBatchNotification } from './processors/batch-notification-processor';
 import { processCalendarSync } from './processors/calendar-sync-processor';
+import { processSuggestionRegeneration } from './processors/suggestion-regeneration';
 
 /**
  * Start the job worker
@@ -39,6 +41,12 @@ export function startWorker(): void {
     return processCalendarSync(job);
   });
 
+  // Register suggestion regeneration processor
+  suggestionRegenerationQueue.process(async (job) => {
+    console.log(`Processing suggestion regeneration job ${job.id}`);
+    return processSuggestionRegeneration(job);
+  });
+
   console.log('Job worker started successfully');
 
   // Log queue events
@@ -56,6 +64,10 @@ export function startWorker(): void {
   calendarSyncQueue.on('completed', (job, result) => {
     console.log(`Calendar sync job ${job.id} completed:`, result);
   });
+
+  suggestionRegenerationQueue.on('completed', (job, result) => {
+    console.log(`Suggestion regeneration job ${job.id} completed:`, result);
+  });
 }
 
 /**
@@ -70,6 +82,7 @@ export async function stopWorker(): Promise<void> {
     suggestionGenerationQueue.close(),
     batchNotificationQueue.close(),
     calendarSyncQueue.close(),
+    suggestionRegenerationQueue.close(),
   ]);
 
   console.log('Job worker stopped');

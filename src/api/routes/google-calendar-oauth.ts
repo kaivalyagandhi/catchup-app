@@ -108,6 +108,28 @@ router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Res
     }
 
     console.log('Calendar connection successful for user:', req.userId);
+    
+    // Trigger initial calendar sync and suggestion regeneration
+    try {
+      const { forceRefreshCalendarEvents } = await import('../../calendar/calendar-service');
+      await forceRefreshCalendarEvents(
+        req.userId,
+        tokens.access_token,
+        tokens.refresh_token || undefined
+      );
+      
+      // Enqueue suggestion regeneration
+      const { enqueueJob } = await import('../../jobs/queue');
+      await enqueueJob('suggestion-regeneration', {
+        userId: req.userId,
+        reason: 'calendar_sync',
+      });
+      console.log(`Initial calendar sync and suggestion regeneration queued for user ${req.userId}`);
+    } catch (syncError) {
+      console.error('Failed to sync calendar or enqueue suggestion regeneration:', syncError);
+      // Don't fail the OAuth flow if sync fails
+    }
+    
     res.json({
       message: 'Google Calendar connected successfully',
       email: profile.email,

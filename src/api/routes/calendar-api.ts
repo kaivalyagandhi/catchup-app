@@ -111,6 +111,7 @@ router.get('/available-slots', authenticate, async (req: AuthenticatedRequest, r
 /**
  * POST /api/calendar/refresh
  * Force refresh calendar events from Google Calendar
+ * Also regenerates suggestions to avoid conflicts
  */
 router.post('/refresh', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -136,7 +137,30 @@ router.post('/refresh', authenticate, async (req: AuthenticatedRequest, res: Res
       token.refreshToken || undefined
     );
 
-    res.json(result);
+    // Regenerate suggestions synchronously to ensure conflicts are resolved immediately
+    let regenerationResult = { dismissed: 0, created: 0 };
+    try {
+      const { processSuggestionRegeneration } = await import('../../jobs/processors/suggestion-regeneration');
+      
+      // Create a mock job object for synchronous execution
+      const mockJob = {
+        data: {
+          userId: req.userId,
+          reason: 'calendar_sync' as const,
+        },
+      } as any;
+      
+      regenerationResult = await processSuggestionRegeneration(mockJob);
+    } catch (regenError) {
+      console.error('Failed to regenerate suggestions:', regenError);
+      // Don't fail the request if regeneration fails
+    }
+
+    res.json({
+      ...result,
+      suggestionsRegenerated: true,
+      regenerationResult,
+    });
   } catch (error) {
     console.error('Error refreshing calendar:', error);
     res.status(500).json({ error: 'Failed to refresh calendar events' });

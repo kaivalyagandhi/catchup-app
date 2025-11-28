@@ -18,6 +18,7 @@ export const QUEUE_NAMES = {
   SUGGESTION_GENERATION: 'suggestion-generation',
   BATCH_NOTIFICATIONS: 'batch-notifications',
   CALENDAR_SYNC: 'calendar-sync',
+  SUGGESTION_REGENERATION: 'suggestion-regeneration',
 } as const;
 
 // Default job options with exponential backoff
@@ -86,6 +87,22 @@ export const calendarSyncQueue = new Bull(QUEUE_NAMES.CALENDAR_SYNC, {
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
+export const suggestionRegenerationQueue = new Bull(QUEUE_NAMES.SUGGESTION_REGENERATION, {
+  createClient: (type) => {
+    switch (type) {
+      case 'client':
+        return createRedisClient();
+      case 'subscriber':
+        return createRedisClient();
+      case 'bclient':
+        return createRedisClient();
+      default:
+        return createRedisClient();
+    }
+  },
+  defaultJobOptions: DEFAULT_JOB_OPTIONS,
+});
+
 // Queue event handlers for logging
 suggestionGenerationQueue.on('error', (error) => {
   console.error('Suggestion generation queue error:', error);
@@ -114,11 +131,43 @@ calendarSyncQueue.on('failed', (job, error) => {
   console.error(`Calendar sync job ${job.id} failed:`, error.message);
 });
 
+suggestionRegenerationQueue.on('error', (error) => {
+  console.error('Suggestion regeneration queue error:', error);
+});
+
+suggestionRegenerationQueue.on('failed', (job, error) => {
+  console.error(`Suggestion regeneration job ${job.id} failed:`, error.message);
+});
+
 // Graceful shutdown
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     suggestionGenerationQueue.close(),
     batchNotificationQueue.close(),
     calendarSyncQueue.close(),
+    suggestionRegenerationQueue.close(),
   ]);
+}
+
+/**
+ * Enqueue a job to a specific queue
+ */
+export async function enqueueJob(
+  queueName: keyof typeof QUEUE_NAMES,
+  data: any,
+  options?: Bull.JobOptions
+): Promise<Bull.Job> {
+  const queueMap = {
+    'suggestion-generation': suggestionGenerationQueue,
+    'batch-notifications': batchNotificationQueue,
+    'calendar-sync': calendarSyncQueue,
+    'suggestion-regeneration': suggestionRegenerationQueue,
+  };
+
+  const queue = queueMap[queueName];
+  if (!queue) {
+    throw new Error(`Unknown queue: ${queueName}`);
+  }
+
+  return queue.add(data, options);
 }
