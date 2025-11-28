@@ -2275,22 +2275,30 @@ function renderSuggestions(suggestionsList) {
         
         // Show different actions based on status
         let actions = '';
+        // View Schedule button is always available
+        const viewScheduleBtn = `<button class="secondary" onclick="openSchedulePreview('${suggestion.id}')" title="View your calendar for this day">📅 View Schedule</button>`;
+        
         if (suggestion.status === 'pending') {
             if (isGroup) {
                 actions = `
                     <button onclick="acceptSuggestion('${suggestion.id}')">Accept Group Catchup</button>
+                    ${viewScheduleBtn}
                     <button class="secondary" onclick="showGroupModifyMenu('${suggestion.id}', event)">Modify Group ▼</button>
                     <button class="secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
                 `;
             } else {
                 actions = `
                     <button onclick="acceptSuggestion('${suggestion.id}')">Accept</button>
+                    ${viewScheduleBtn}
                     <button class="secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
                     <button class="secondary" onclick="snoozeSuggestion('${suggestion.id}')">Snooze</button>
                 `;
             }
         } else {
-            actions = `<span style="color: #6b7280; font-size: 14px;">No actions available</span>`;
+            actions = `
+                ${viewScheduleBtn}
+                <span style="color: #6b7280; font-size: 14px; margin-left: 10px;">No other actions available</span>
+            `;
         }
         
         // Extract common groups and interests for group suggestions
@@ -2372,7 +2380,7 @@ function renderSuggestions(suggestionsList) {
                         ${suggestion.status}
                     </span>
                 </div>
-                <p><strong>Time:</strong> ${formatDateTime(suggestion.proposedTimeslot.start)}</p>
+                <p><strong>Time:</strong> ${formatDateTime(suggestion.proposedTimeslot.start)} <span id="calendar-count-${suggestion.id}" class="calendar-day-count"></span></p>
                 <p><strong>Reason:</strong> ${escapeHtml(suggestion.reasoning)}</p>
                 ${commonInfoHtml}
                 ${suggestion.snoozedUntil ? `<p><strong>Snoozed until:</strong> ${formatDateTime(suggestion.snoozedUntil)}</p>` : ''}
@@ -2388,6 +2396,9 @@ function renderSuggestions(suggestionsList) {
     
     // Add event listeners for contact tooltips
     addContactTooltipListeners();
+    
+    // Fetch calendar event counts for each suggestion (async, non-blocking)
+    loadCalendarEventCounts(suggestionsList);
 }
 
 let currentGroupModifyMenu = null;
