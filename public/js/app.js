@@ -688,6 +688,105 @@ async function deleteContact(id) {
     }
 }
 
+// Test Data Functions
+async function seedTestData() {
+    if (!confirm('This will create test contacts, groups, tags, and suggestions. Continue?')) return;
+    
+    const loadingToastId = showToast('Loading test data...', 'loading');
+    
+    try {
+        const response = await fetch(`${API_BASE}/test-data/seed`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                contactCount: 10,
+                includeCalendarEvents: false,
+                includeSuggestions: true,
+                includeVoiceNotes: true
+            })
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to seed test data');
+        }
+        
+        const result = await response.json();
+        
+        hideToast(loadingToastId);
+        showToast(`Test data loaded! Created ${result.contactsCreated} contacts, ${result.groupsCreated || 0} groups, ${result.tagsCreated || 0} tags, ${result.suggestionsCreated || 0} suggestions`, 'success');
+        
+        // Reload current page data
+        if (currentPage === 'contacts') {
+            loadContacts();
+        } else if (currentPage === 'groups-tags') {
+            loadGroupsTagsManagement();
+        } else if (currentPage === 'suggestions') {
+            loadSuggestions();
+        } else if (currentPage === 'voice') {
+            loadVoiceNotes();
+        }
+    } catch (error) {
+        console.error('Error seeding test data:', error);
+        hideToast(loadingToastId);
+        showToast(error.message || 'Failed to load test data', 'error');
+    }
+}
+
+async function clearTestData() {
+    if (!confirm('This will delete ALL your contacts, groups, tags, suggestions, and voice notes. This cannot be undone. Continue?')) return;
+    
+    const loadingToastId = showToast('Clearing all data...', 'loading');
+    
+    try {
+        const response = await fetch(`${API_BASE}/test-data/clear`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to clear test data');
+        }
+        
+        const result = await response.json();
+        
+        hideToast(loadingToastId);
+        showToast(`All data cleared! Deleted ${result.contactsDeleted} contacts, ${result.groupsDeleted || 0} groups, ${result.tagsDeleted || 0} tags, ${result.suggestionsDeleted || 0} suggestions`, 'success');
+        
+        // Reload current page data
+        if (currentPage === 'contacts') {
+            loadContacts();
+        } else if (currentPage === 'groups-tags') {
+            loadGroupsTagsManagement();
+        } else if (currentPage === 'suggestions') {
+            loadSuggestions();
+        } else if (currentPage === 'voice') {
+            loadVoiceNotes();
+        }
+    } catch (error) {
+        console.error('Error clearing test data:', error);
+        hideToast(loadingToastId);
+        showToast(error.message || 'Failed to clear data', 'error');
+    }
+}
+
 // Tag Management Functions
 function populateGroupDropdown() {
     const select = document.getElementById('contact-group-select');
@@ -2340,22 +2439,30 @@ function renderSuggestions(suggestionsList) {
         
         // Show different actions based on status
         let actions = '';
+        // View Schedule button is always available
+        const viewScheduleBtn = `<button class="secondary" onclick="openSchedulePreview('${suggestion.id}')" title="View your calendar for this day">📅 View Schedule</button>`;
+        
         if (suggestion.status === 'pending') {
             if (isGroup) {
                 actions = `
                     <button onclick="acceptSuggestion('${suggestion.id}')">Accept Group Catchup</button>
+                    ${viewScheduleBtn}
                     <button class="secondary" onclick="showGroupModifyMenu('${suggestion.id}', event)">Modify Group ▼</button>
                     <button class="secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
                 `;
             } else {
                 actions = `
                     <button onclick="acceptSuggestion('${suggestion.id}')">Accept</button>
+                    ${viewScheduleBtn}
                     <button class="secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
                     <button class="secondary" onclick="snoozeSuggestion('${suggestion.id}')">Snooze</button>
                 `;
             }
         } else {
-            actions = `<span style="color: #6b7280; font-size: 14px;">No actions available</span>`;
+            actions = `
+                ${viewScheduleBtn}
+                <span style="color: #6b7280; font-size: 14px; margin-left: 10px;">No other actions available</span>
+            `;
         }
         
         // Extract common groups and interests for group suggestions
@@ -2437,7 +2544,7 @@ function renderSuggestions(suggestionsList) {
                         ${suggestion.status}
                     </span>
                 </div>
-                <p><strong>Time:</strong> ${formatDateTime(suggestion.proposedTimeslot.start)}</p>
+                <p><strong>Time:</strong> ${formatDateTime(suggestion.proposedTimeslot.start)} <span id="calendar-count-${suggestion.id}" class="calendar-day-count"></span></p>
                 <p><strong>Reason:</strong> ${escapeHtml(suggestion.reasoning)}</p>
                 ${commonInfoHtml}
                 ${suggestion.snoozedUntil ? `<p><strong>Snoozed until:</strong> ${formatDateTime(suggestion.snoozedUntil)}</p>` : ''}
@@ -2453,6 +2560,9 @@ function renderSuggestions(suggestionsList) {
     
     // Add event listeners for contact tooltips
     addContactTooltipListeners();
+    
+    // Fetch calendar event counts for each suggestion (async, non-blocking)
+    loadCalendarEventCounts(suggestionsList);
 }
 
 let currentGroupModifyMenu = null;
@@ -2887,6 +2997,57 @@ async function checkCalendarConnection() {
     }
 }
 
+async function refreshCalendar() {
+    const btn = document.getElementById('refresh-calendar-btn');
+    if (!btn) return;
+    
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Syncing...';
+    
+    try {
+        const response = await fetch(`${API_BASE}/calendar/api/refresh`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to refresh calendar');
+        }
+        
+        const data = await response.json();
+        console.log('Calendar refreshed:', data);
+        
+        // Show success feedback with event count
+        btn.innerHTML = `✓ ${data.eventCount} events`;
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, 2000);
+        
+        // Reload preferences to show updated sync time
+        setTimeout(() => {
+            loadPreferences();
+            // Also refresh calendar view if visible
+            if (currentPage === 'calendar') {
+                loadCalendar();
+            }
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Error refreshing calendar:', error);
+        btn.innerHTML = '✗ Failed';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, 2000);
+        alert(`Failed to refresh calendar: ${error.message}`);
+    }
+}
+
 async function disconnectCalendar() {
     if (!confirm('Are you sure you want to disconnect Google Calendar?')) {
         return;
@@ -3066,6 +3227,22 @@ async function loadPreferences() {
     
     const calendarConnected = calendarStatus.connected;
     
+    // Load calendar sync status
+    let lastSync = null;
+    if (calendarConnected) {
+        try {
+            const syncResponse = await fetch(`${API_BASE}/calendar/api/sync-status`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            if (syncResponse.ok) {
+                const syncData = await syncResponse.json();
+                lastSync = syncData.lastSync;
+            }
+        } catch (error) {
+            console.error('Error loading sync status:', error);
+        }
+    }
+    
     // Load Google Contacts connection status
     let googleContactsStatus = { connected: false };
     try {
@@ -3140,7 +3317,18 @@ async function loadPreferences() {
                         Connect your Google Calendar to enable smart scheduling and availability detection.
                     </p>
                     ${calendarConnected ? `
-                        ${calendarStatus.email ? `<p style="margin: 0 0 12px 0; font-size: 12px; padding: 8px; background: rgba(34, 197, 94, 0.1); border-radius: 4px;">Connected as: <strong>${calendarStatus.email}</strong></p>` : ''}
+                        ${calendarStatus.email ? `<p style="margin: 0 0 8px 0; font-size: 12px; padding: 8px; background: rgba(34, 197, 94, 0.1); border-radius: 4px;">Connected as: <strong>${calendarStatus.email}</strong></p>` : ''}
+                        <div style="margin: 0 0 12px 0; font-size: 12px; padding: 8px; background: var(--bg-secondary); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--text-secondary);">
+                                ${lastSync 
+                                    ? `Last synced: <strong style="color: var(--text-primary);">${formatRelativeTime(new Date(lastSync))}</strong>`
+                                    : `<strong style="color: var(--text-tertiary);">Not synced yet</strong>`
+                                }
+                            </span>
+                            <button onclick="refreshCalendar()" id="refresh-calendar-btn" class="secondary" style="padding: 4px 12px; font-size: 11px; min-width: auto;">
+                                🔄 ${lastSync ? 'Refresh' : 'Sync Now'}
+                            </button>
+                        </div>
                         <button onclick="disconnectCalendar()" class="secondary" style="width: 100%;">Disconnect</button>
                     ` : `
                         <button onclick="connectCalendar()" style="width: 100%;">Connect Calendar</button>
@@ -4090,6 +4278,22 @@ async function executeWithConcurrencyControl(key, operation) {
 function formatDateTime(dateString) {
     const date = new Date(dateString);
     return date.toLocaleString();
+}
+
+function formatRelativeTime(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    
+    // For older dates, show the actual date
+    return date.toLocaleDateString();
 }
 
 function showError(containerId, message) {

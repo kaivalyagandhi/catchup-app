@@ -10,6 +10,7 @@
 
 import { AvailabilityParams, TimeSlot, TimeBlock, CommuteWindow } from '../types';
 import * as availabilityRepository from './availability-repository';
+import * as calendarEventsRepository from './calendar-events-repository';
 
 /**
  * Get availability parameters for a user
@@ -91,6 +92,130 @@ export function applyAvailabilityParameters(
   }
 
   return filteredSlots;
+}
+
+/**
+ * Filter out time slots that overlap with calendar events (busy times)
+ * 
+ * This ensures suggestions are only made during truly free time.
+ */
+export function filterByCalendarEvents(
+  slots: TimeSlot[],
+  busySlots: TimeSlot[]
+): TimeSlot[] {
+  const result: TimeSlot[] = [];
+
+  for (const slot of slots) {
+    let hasConflict = false;
+
+    // Check if this slot overlaps with any busy time
+    for (const busySlot of busySlots) {
+      if (slotsOverlap(slot, busySlot)) {
+        hasConflict = true;
+        break;
+      }
+    }
+
+    // Only include slots that don't conflict with busy times
+    if (!hasConflict) {
+      result.push(slot);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Check if two time slots overlap
+ */
+function slotsOverlap(slot1: TimeSlot, slot2: TimeSlot): boolean {
+  return slot1.start < slot2.end && slot1.end > slot2.start;
+}
+
+/**
+ * Get truly available time slots by filtering out calendar busy times
+ * 
+ * This is the main function to use when generating suggestions to ensure
+ * they don't overlap with existing calendar events.
+ */
+export async function getAvailableSlots(
+  userId: string,
+  dateRange: { start: Date; end: Date },
+  params?: AvailabilityParams
+): Promise<TimeSlot[]> {
+  // Get cached calendar events
+  const calendarEvents = await calendarEventsRepository.getCachedEvents(
+    userId,
+    dateRange.start,
+    dateRange.end
+  );
+
+  // Convert busy events to time slots
+  const busySlots: TimeSlot[] = calendarEvents
+    .filter(event => event.isBusy && !event.isAllDay)
+    .map(event => ({
+      start: new Date(event.startTime),
+      end: new Date(event.endTime),
+      timezone: event.timezone,
+    }));
+
+  // Generate potential time slots (e.g., business hours)
+  const potentialSlots = generatePotentialSlots(dateRange);
+
+  // Filter out busy times
+  let availableSlots = filterByCalendarEvents(potentialSlots, busySlots);
+
+  // Apply user availability parameters if provided
+  if (params) {
+    availableSlots = applyAvailabilityParameters(availableSlots, params);
+  }
+
+  return availableSlots;
+}
+
+/**
+ * Generate potential time slots during reasonable hours
+ * (9 AM - 9 PM by default)
+ */
+function generatePotentialSlots(dateRange: { start: Date; end: Date }): TimeSlot[] {
+  const slots: TimeSlot[] = [];
+  const slotDuration = 60; // 1 hour slots
+  const startHour = 9; // 9 AM
+  const endHour = 21; // 9 PM
+
+  const currentDate = new Date(dateRange.start);
+  currentDate.setHours(startHour, 0, 0, 0);
+
+  while (currentDate < dateRange.end) {
+    const slotStart = new Date(currentDate);
+    const slotEnd = new Date(currentDate);
+    slotEnd.setMinutes(slotEnd.getMinutes() + slotDuration);
+
+    // Only add slots within the date range and reasonable hours
+    if (
+      slotStart >= dateRange.start &&
+      slotEnd <= dateRange.end &&
+      slotStart.getHours() >= startHour &&
+      slotStart.getHours() < endHour
+    ) {
+      slots.push({
+        start: slotStart,
+        end: slotEnd,
+        timezone: 'UTC', // TODO: Use user's timezone
+      });
+    }
+
+    // Move to next slot
+    currentDate.setMinutes(currentDate.getMinutes() + slotDuration);
+
+    // If we've passed the end hour, jump to next day
+    if (currentDate.getHours() >= endHour) {
+      currentDate.setDate(currentDate.getDate() + 1);
+      currentDate.setHours(startHour, 0, 0, 0);
+    }
+  }
+
+  return slots;
 }
 
 /**
