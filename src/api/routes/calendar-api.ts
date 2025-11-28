@@ -108,4 +108,60 @@ router.get('/available-slots', authenticate, async (req: AuthenticatedRequest, r
   }
 });
 
+/**
+ * POST /api/calendar/refresh
+ * Force refresh calendar events from Google Calendar
+ */
+router.post('/refresh', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    // Get OAuth token
+    const token = await getToken(req.userId, 'google_calendar');
+
+    if (!token) {
+      res.status(403).json({ error: 'Google Calendar not connected' });
+      return;
+    }
+
+    // Import the force refresh function
+    const { forceRefreshCalendarEvents } = await import('../../calendar/calendar-service');
+
+    const result = await forceRefreshCalendarEvents(
+      req.userId,
+      token.accessToken,
+      token.refreshToken || undefined
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error refreshing calendar:', error);
+    res.status(500).json({ error: 'Failed to refresh calendar events' });
+  }
+});
+
+/**
+ * GET /api/calendar/sync-status
+ * Get last calendar sync time
+ */
+router.get('/sync-status', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { getLastCalendarSync } = await import('../../calendar/calendar-service');
+    const lastSync = await getLastCalendarSync(req.userId);
+
+    res.json({ lastSync });
+  } catch (error) {
+    console.error('Error getting sync status:', error);
+    res.status(500).json({ error: 'Failed to get sync status' });
+  }
+});
+
 export default router;

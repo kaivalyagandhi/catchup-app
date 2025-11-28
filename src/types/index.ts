@@ -231,11 +231,17 @@ export interface EnrichmentItem {
 export interface CalendarEvent {
   id: string;
   userId: string;
-  title: string;
+  googleEventId: string;
+  calendarId: string;
+  summary: string;
+  description?: string;
   startTime: Date;
   endTime: Date;
   timezone: string;
-  isAvailable: boolean;
-  source: string;
+  isAllDay: boolean;
+  isBusy: boolean;
+  location?: string;
+  syncedAt: Date;
   createdAt: Date;
+  updatedAt: Date;
 }

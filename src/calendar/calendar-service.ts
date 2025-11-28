@@ -9,6 +9,7 @@ import { google, calendar_v3 } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { GoogleCalendar, TimeSlot, DateRange, AvailabilityParams } from '../types';
 import * as calendarRepository from './calendar-repository';
+import * as calendarEventsRepository from './calendar-events-repository';
 import * as availabilityService from './availability-service';
 import * as oauthRepository from '../integrations/oauth-repository';
 import {
@@ -208,9 +209,9 @@ async function fetchEventsFromGoogle(
   auth: OAuth2Client,
   calendarIds: string[],
   dateRange: DateRange
-): Promise<calendar_v3.Schema$Event[]> {
+): Promise<Array<{ event: calendar_v3.Schema$Event; calendarId: string }>> {
   const calendar = google.calendar({ version: 'v3', auth });
-  const allEvents: calendar_v3.Schema$Event[] = [];
+  const allEvents: Array<{ event: calendar_v3.Schema$Event; calendarId: string }> = [];
 
   for (const calendarId of calendarIds) {
     try {
@@ -223,7 +224,7 @@ async function fetchEventsFromGoogle(
       });
 
       if (response.data.items) {
-        allEvents.push(...response.data.items);
+        allEvents.push(...response.data.items.map(event => ({ event, calendarId })));
       }
     } catch (error) {
       console.error(`Error fetching events from calendar ${calendarId}:`, error);
@@ -235,25 +236,72 @@ async function fetchEventsFromGoogle(
 }
 
 /**
- * Convert Google Calendar event to a time slot
+ * Sync calendar events from Google to database cache
  */
-function eventToTimeSlot(event: calendar_v3.Schema$Event, timezone: string): TimeSlot | null {
+async function syncEventsToCache(
+  userId: string,
+  auth: OAuth2Client,
+  calendarIds: string[],
+  dateRange: DateRange
+): Promise<void> {
+  // Fetch events from Google
+  const googleEvents = await fetchEventsFromGoogle(auth, calendarIds, dateRange);
+
+  // Convert to our format
+  const eventsToCache = googleEvents
+    .map(({ event, calendarId }) => {
+      if (!event.id) return null;
+
+      // Skip all-day events or events without proper time data
+      const startTime = event.start?.dateTime;
+      const endTime = event.end?.dateTime;
+      const isAllDay = !!(event.start?.date || event.end?.date);
+
+      return {
+        googleEventId: event.id,
+        calendarId,
+        summary: event.summary || null,
+        description: event.description || null,
+        startTime: startTime ? new Date(startTime) : new Date(event.start?.date || ''),
+        endTime: endTime ? new Date(endTime) : new Date(event.end?.date || ''),
+        timezone: event.start?.timeZone || 'UTC',
+        isAllDay,
+        isBusy: event.transparency !== 'transparent',
+        location: event.location || null,
+      };
+    })
+    .filter((e): e is NonNullable<typeof e> => e !== null);
+
+  // Store in database
+  await calendarEventsRepository.upsertEvents(userId, eventsToCache);
+
+  // Update last sync time
+  await calendarEventsRepository.updateLastSyncTime(userId);
+
+  // Clean up old events
+  await calendarEventsRepository.deleteOldEvents(userId);
+
+  console.log(`Synced ${eventsToCache.length} calendar events for user ${userId}`);
+}
+
+/**
+ * Convert cached calendar event to a time slot
+ */
+function cachedEventToTimeSlot(event: any): TimeSlot | null {
   // Skip all-day events
-  if (event.start?.date || event.end?.date) {
+  if (event.isAllDay) {
     return null;
   }
 
-  const start = event.start?.dateTime;
-  const end = event.end?.dateTime;
-
-  if (!start || !end) {
+  // Only include busy events
+  if (!event.isBusy) {
     return null;
   }
 
   return {
-    start: new Date(start),
-    end: new Date(end),
-    timezone,
+    start: new Date(event.startTime),
+    end: new Date(event.endTime),
+    timezone: event.timezone,
   };
 }
 
@@ -328,6 +376,7 @@ function identifyFreeSlots(
  * - Identifies gaps between events as free time slots
  * - Applies availability parameters to filter slots
  * - Supports calendar refresh on data changes
+ * - Uses daily cached events to reduce API calls
  */
 export async function getFreeTimeSlots(
   userId: string,
@@ -335,7 +384,8 @@ export async function getFreeTimeSlots(
   dateRange: DateRange,
   refreshToken?: string,
   minSlotDuration: number = 30,
-  applyAvailabilityFilters: boolean = true
+  applyAvailabilityFilters: boolean = true,
+  forceRefresh: boolean = false
 ): Promise<TimeSlot[]> {
   // Create cache key based on date range
   const dateKey = `${dateRange.start.toISOString().split('T')[0]}_${dateRange.end.toISOString().split('T')[0]}`;
@@ -352,20 +402,37 @@ export async function getFreeTimeSlots(
         throw new Error('No calendars selected for availability detection');
       }
 
-      // Create authenticated client
-      const auth = getAuthenticatedClient(accessToken, refreshToken);
-
-      // Fetch events from all selected calendars
       const calendarIds = selectedCalendars.map((cal) => cal.calendarId);
-      const events = await fetchEventsFromGoogle(auth, calendarIds, dateRange);
+
+      // Check if we need to refresh from Google (once per day or force refresh)
+      const needsSync = forceRefresh || await calendarEventsRepository.needsRefresh(userId);
+
+      if (needsSync) {
+        console.log(`Syncing calendar events from Google for user ${userId} (force: ${forceRefresh})`);
+        const auth = getAuthenticatedClient(accessToken, refreshToken);
+        
+        // Sync a wider range (30 days) to cache more events
+        const syncRange: DateRange = {
+          start: new Date(),
+          end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        };
+        
+        await syncEventsToCache(userId, auth, calendarIds, syncRange);
+      }
+
+      // Get cached events for the requested date range
+      const cachedEvents = await calendarEventsRepository.getCachedEvents(
+        userId,
+        dateRange.start,
+        dateRange.end
+      );
 
       // Determine timezone (use first selected calendar's timezone or default to UTC)
-      // In a real implementation, we might want to use the user's timezone preference
       const timezone = 'UTC'; // TODO: Get from user preferences
 
-      // Convert events to time slots (filter out all-day events)
-      const busySlots = events
-        .map((event) => eventToTimeSlot(event, timezone))
+      // Convert cached events to time slots (filter out all-day events and non-busy)
+      const busySlots = cachedEvents
+        .map((event) => cachedEventToTimeSlot(event))
         .filter((slot): slot is TimeSlot => slot !== null);
 
       // Identify free time slots between busy slots
@@ -405,8 +472,84 @@ export async function refreshCalendarData(
   // Sync calendars from Google to ensure we have the latest calendar list
   await syncCalendarsFromGoogle(userId, accessToken, refreshToken);
 
-  // Get fresh free time slots
-  return getFreeTimeSlots(userId, accessToken, dateRange, refreshToken);
+  // Get fresh free time slots with force refresh
+  return getFreeTimeSlots(userId, accessToken, dateRange, refreshToken, 30, true, true);
+}
+
+/**
+ * Force refresh calendar events from Google
+ * 
+ * Bypasses the daily cache and fetches fresh events from Google Calendar API.
+ * Useful when user knows their calendar has changed and wants immediate update.
+ */
+export async function forceRefreshCalendarEvents(
+  userId: string,
+  accessToken: string,
+  refreshToken?: string
+): Promise<{ success: boolean; eventCount: number; lastSync: Date; message?: string }> {
+  try {
+    // Invalidate all calendar caches
+    await invalidateCalendarCache(userId);
+
+    // First, sync calendar list from Google
+    await syncCalendarsFromGoogle(userId, accessToken, refreshToken);
+
+    // Get selected calendars
+    let selectedCalendars = await calendarRepository.getSelectedCalendars(userId);
+    
+    // If no calendars selected, auto-select the primary calendar
+    if (selectedCalendars.length === 0) {
+      const allCalendars = await calendarRepository.getUserCalendars(userId);
+      
+      if (allCalendars.length === 0) {
+        throw new Error('No calendars found. Please reconnect your Google Calendar.');
+      }
+
+      // Auto-select primary calendar or first calendar
+      const primaryCalendar = allCalendars.find(cal => cal.isPrimary) || allCalendars[0];
+      await calendarRepository.updateCalendarSelection(userId, primaryCalendar.calendarId, true);
+      selectedCalendars = [primaryCalendar];
+      
+      console.log(`Auto-selected calendar: ${primaryCalendar.name}`);
+    }
+
+    const calendarIds = selectedCalendars.map((cal) => cal.calendarId);
+    const auth = getAuthenticatedClient(accessToken, refreshToken);
+
+    // Sync next 30 days
+    const syncRange: DateRange = {
+      start: new Date(),
+      end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    };
+
+    await syncEventsToCache(userId, auth, calendarIds, syncRange);
+
+    // Get event count
+    const events = await calendarEventsRepository.getCachedEvents(
+      userId,
+      syncRange.start,
+      syncRange.end
+    );
+
+    const lastSync = await calendarEventsRepository.getLastSyncTime(userId);
+
+    return {
+      success: true,
+      eventCount: events.length,
+      lastSync: lastSync || new Date(),
+      message: `Synced ${events.length} events from ${selectedCalendars.length} calendar(s)`,
+    };
+  } catch (error) {
+    console.error('Error force refreshing calendar events:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get last calendar sync time for a user
+ */
+export async function getLastCalendarSync(userId: string): Promise<Date | null> {
+  return calendarEventsRepository.getLastSyncTime(userId);
 }
 
 /**
