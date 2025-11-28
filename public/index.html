@@ -1975,9 +1975,13 @@
         <div class="content">
             <!-- Contacts Page -->
             <div id="contacts-page" class="page">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                     <h2>Contacts</h2>
-                    <button onclick="showAddContactModal()">Add Contact</button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="showAddContactModal()">Add Contact</button>
+                        <button class="secondary" onclick="seedTestData()">Load Test Data</button>
+                        <button class="secondary" onclick="clearTestData()" style="background: var(--color-danger);">Clear Test Data</button>
+                    </div>
                 </div>
                 
                 <div class="search-bar">

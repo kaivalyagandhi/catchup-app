@@ -623,6 +623,105 @@ async function deleteContact(id) {
     }
 }
 
+// Test Data Functions
+async function seedTestData() {
+    if (!confirm('This will create test contacts, groups, tags, and suggestions. Continue?')) return;
+    
+    const loadingToastId = showToast('Loading test data...', 'loading');
+    
+    try {
+        const response = await fetch(`${API_BASE}/test-data/seed`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                contactCount: 10,
+                includeCalendarEvents: false,
+                includeSuggestions: true,
+                includeVoiceNotes: true
+            })
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to seed test data');
+        }
+        
+        const result = await response.json();
+        
+        hideToast(loadingToastId);
+        showToast(`Test data loaded! Created ${result.contactsCreated} contacts, ${result.groupsCreated || 0} groups, ${result.tagsCreated || 0} tags, ${result.suggestionsCreated || 0} suggestions`, 'success');
+        
+        // Reload current page data
+        if (currentPage === 'contacts') {
+            loadContacts();
+        } else if (currentPage === 'groups-tags') {
+            loadGroupsTagsManagement();
+        } else if (currentPage === 'suggestions') {
+            loadSuggestions();
+        } else if (currentPage === 'voice') {
+            loadVoiceNotes();
+        }
+    } catch (error) {
+        console.error('Error seeding test data:', error);
+        hideToast(loadingToastId);
+        showToast(error.message || 'Failed to load test data', 'error');
+    }
+}
+
+async function clearTestData() {
+    if (!confirm('This will delete ALL your contacts, groups, tags, suggestions, and voice notes. This cannot be undone. Continue?')) return;
+    
+    const loadingToastId = showToast('Clearing all data...', 'loading');
+    
+    try {
+        const response = await fetch(`${API_BASE}/test-data/clear`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to clear test data');
+        }
+        
+        const result = await response.json();
+        
+        hideToast(loadingToastId);
+        showToast(`All data cleared! Deleted ${result.contactsDeleted} contacts, ${result.groupsDeleted || 0} groups, ${result.tagsDeleted || 0} tags, ${result.suggestionsDeleted || 0} suggestions`, 'success');
+        
+        // Reload current page data
+        if (currentPage === 'contacts') {
+            loadContacts();
+        } else if (currentPage === 'groups-tags') {
+            loadGroupsTagsManagement();
+        } else if (currentPage === 'suggestions') {
+            loadSuggestions();
+        } else if (currentPage === 'voice') {
+            loadVoiceNotes();
+        }
+    } catch (error) {
+        console.error('Error clearing test data:', error);
+        hideToast(loadingToastId);
+        showToast(error.message || 'Failed to clear data', 'error');
+    }
+}
+
 // Tag Management Functions
 function populateGroupDropdown() {
     const select = document.getElementById('contact-group-select');
