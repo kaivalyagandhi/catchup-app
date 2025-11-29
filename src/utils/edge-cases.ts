@@ -15,7 +15,7 @@ import { FrequencyOption } from '../types';
 /**
  * Default frequency preference when none is set
  */
-export const DEFAULT_FREQUENCY_PREFERENCE: FrequencyOption = 'monthly';
+export const DEFAULT_FREQUENCY_PREFERENCE: FrequencyOption = FrequencyOption.MONTHLY;
 
 /**
  * Get frequency preference with fallback to default

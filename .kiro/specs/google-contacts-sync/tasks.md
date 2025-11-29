@@ -1,0 +1,492 @@
+# Implementation Plan
+
+- [x] 1. Database schema migrations
+  - [x] 1.1 Create migration for contact source tracking
+    - Add source, google_resource_name, google_etag, last_synced_at columns to contacts table
+    - Create indexes for performance
+    - Add unique constraint on user_id + google_resource_name
+    - _Requirements: 2.4, 5.1_
+  - [x] 1.2 Create migration for sync state table
+    - Create google_contacts_sync_state table with sync token and status tracking
+    - Add indexes and triggers
+    - _Requirements: 2.5, 3.5, 8.1_
+  - [x] 1.3 Create migration for contact group mapping table
+    - Create google_contact_groups table for mapping Google groups to CatchUp groups
+    - Add mapping_status, suggested_action, suggested_group_id, suggested_group_name fields
+    - Add confidence_score and suggestion_reason fields for AI suggestions
+    - Add indexes for efficient lookups (including mapping_status)
+    - _Requirements: 6.1, 6.3, 6.4_
+
+- [x] 2. OAuth infrastructure
+  - [x] 2.1 Create Google Contacts OAuth configuration
+    - Implement OAuth2 client setup for Google Contacts
+    - Configure authorization URL generation with contacts scope
+    - Add environment variable validation
+    - _Requirements: 1.1, 11.3_
+  - [x] 2.2 Implement OAuth service
+    - Create GoogleContactsOAuthService with authorization, callback, and token management
+    - Implement token refresh logic
+    - Add connection status checking
+    - _Requirements: 1.2, 1.4, 10.2_
+  - [ ]* 2.3 Write property test for OAuth token encryption
+    - **Property 1: OAuth token encryption round-trip**
+    - **Validates: Requirements 1.3, 11.1**
+  - [x] 2.4 Create OAuth API routes
+    - Implement /api/contacts/oauth/authorize endpoint
+    - Implement /api/contacts/oauth/callback endpoint
+    - Implement /api/contacts/oauth/status endpoint
+    - Implement /api/contacts/oauth/disconnect endpoint
+    - _Requirements: 1.1, 1.5, 7.1, 7.2, 8.1_
+  - [ ]* 2.4.1 Write unit tests for OAuth routes
+    - Test authorization URL generation
+    - Test callback handling
+    - Test status endpoint
+    - Test disconnect endpoint
+    - _Requirements: 1.1, 7.1, 8.1_
+
+- [x] 3. Sync state management
+  - [x] 3.1 Create sync state repository
+    - Implement SyncStateRepository with CRUD operations
+    - Add methods for updating sync status and tokens
+    - _Requirements: 2.5, 3.5, 10.5_
+  - [x] 3.2 Create group mapping repository
+    - Implement repository for google_contact_groups table
+    - Add methods for finding and updating group mappings
+    - _Requirements: 6.3, 6.5_
+  - [ ]* 3.3 Write unit tests for repositories
+    - Test sync state CRUD operations
+    - Test group mapping operations
+    - _Requirements: 2.5, 6.3_
+
+- [-] 4. Rate limiting implementation
+  - [x] 4.1 Create rate limiter service
+    - Implement RateLimiter class with request throttling
+    - Add exponential backoff for 429 errors
+    - Implement sliding window rate limiting (500 requests/minute)
+    - _Requirements: 9.1, 9.2, 9.3_
+  - [ ]* 4.2 Write property test for rate limiting
+    - **Property 21: Rate limiting enforcement**
+    - **Validates: Requirements 9.1, 9.3**
+  - [ ]* 4.3 Write unit tests for rate limiter
+    - Test request throttling
+    - Test backoff behavior
+    - Test window reset
+    - _Requirements: 9.1, 9.2, 9.3_
+
+- [x] 5. Enhanced import service
+  - [x] 5.1 Extend import service with Google metadata support
+    - Add methods for extracting contact data from Google Person objects
+    - Implement source tracking (mark contacts as "google")
+    - Store google_resource_name and google_etag
+    - _Requirements: 2.3, 2.4_
+  - [x] 5.2 Implement deduplication logic
+    - Add findByGoogleResourceName method
+    - Implement fallback deduplication by email and phone
+    - Ensure updates instead of creates for duplicates
+    - _Requirements: 2.6, 2.7, 13.1, 13.2, 13.3, 13.4_
+  - [ ]* 5.3 Write property test for contact field extraction
+    - **Property 4: Contact field extraction completeness**
+    - **Validates: Requirements 2.3**
+  - [ ]* 5.4 Write property test for deduplication
+    - **Property 7: Deduplication prevents duplicates**
+    - **Validates: Requirements 2.6, 2.7, 13.1, 13.2, 13.3, 13.4**
+  - [x] 5.5 Implement deleted contact handling
+    - Add handleDeletedContact method to archive contacts
+    - Update contact status when metadata.deleted=true
+    - _Requirements: 3.3_
+  - [ ]* 5.6 Write property test for deleted contacts
+    - **Property 10: Deleted contacts are archived**
+    - **Validates: Requirements 3.3**
+  - [ ]* 5.7 Write unit tests for import service
+    - Test contact data extraction
+    - Test deduplication scenarios
+    - Test metadata storage
+    - Test deleted contact handling
+    - _Requirements: 2.3, 2.4, 2.6, 3.3_
+
+- [x] 6. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 7. Google Contacts sync service
+  - [x] 7.1 Create sync service core
+    - Implement GoogleContactsSyncService class
+    - Add methods for full and incremental sync
+    - Integrate with rate limiter
+    - _Requirements: 2.1, 2.2, 3.1, 3.2_
+  - [x] 7.2 Implement full sync logic
+    - Fetch all contacts with pagination (pageSize=1000)
+    - Process each page and import contacts
+    - Store sync token after completion
+    - Handle pagination tokens correctly
+    - _Requirements: 2.2, 2.5, 12.1, 12.2_
+  - [ ]* 7.3 Write property test for full sync pagination
+    - **Property 3: Full sync pagination completeness**
+    - **Validates: Requirements 2.2, 12.2**
+  - [ ]* 7.4 Write property test for sync token persistence
+    - **Property 6: Sync token persistence**
+    - **Validates: Requirements 2.5, 3.5**
+  - [x] 7.5 Implement incremental sync logic
+    - Use stored sync token for incremental updates
+    - Process only changed contacts
+    - Handle deleted contacts
+    - Update sync token after completion
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+  - [ ]* 7.6 Write property test for incremental sync
+    - **Property 9: Incremental sync uses sync token**
+    - **Validates: Requirements 3.1, 3.2**
+  - [x] 7.7 Implement sync token expiration handling
+    - Detect 410 Gone errors
+    - Automatically trigger full sync on token expiration
+    - Log token expiration events
+    - _Requirements: 3.6_
+  - [ ]* 7.8 Write property test for sync result accuracy
+    - **Property 8: Sync result accuracy**
+    - **Validates: Requirements 2.8, 4.3**
+  - [x] 7.9 Add error handling and retry logic
+    - Implement network error retry with exponential backoff
+    - Handle API errors (401, 403, 429, 500)
+    - Log errors with context
+    - Continue processing on individual contact failures
+    - _Requirements: 10.1, 10.2, 10.4, 10.6_
+  - [ ]* 7.10 Write property test for network error retry
+    - **Property 22: Network error retry with backoff**
+    - **Validates: Requirements 10.1**
+  - [ ]* 7.11 Write property test for error isolation
+    - **Property 24: Error isolation during import**
+    - **Validates: Requirements 10.4**
+  - [ ]* 7.12 Write unit tests for sync service
+    - Test full sync flow
+    - Test incremental sync flow
+    - Test token expiration handling
+    - Test error scenarios
+    - _Requirements: 2.1, 2.2, 3.1, 3.2, 3.6, 10.1_
+
+- [x] 8. Group synchronization with mapping suggestions
+  - [x] 8.1 Create group sync service
+    - Implement GroupSyncService class
+    - Add methods for syncing contact groups
+    - Implement group mapping suggestion logic
+    - _Requirements: 6.1, 6.2, 6.3_
+  - [x] 8.2 Implement mapping suggestion algorithm
+    - Implement string similarity calculation (Levenshtein distance)
+    - Implement member overlap calculation (Jaccard index)
+    - Create confidence scoring logic
+    - Generate human-readable suggestion reasons
+    - _Requirements: 6.2, 6.3_
+  - [x] 8.3 Implement group import with suggestions
+    - Fetch all contact groups from Google
+    - Generate mapping suggestions for each group
+    - Store suggestions with status="pending"
+    - Do NOT automatically create CatchUp groups
+    - _Requirements: 6.1, 6.2, 6.3, 6.4_
+  - [ ]* 8.4 Write property test for suggestion generation
+    - **Property 27: Group mapping suggestions are generated**
+    - **Validates: Requirements 6.1, 6.2, 6.3**
+  - [ ]* 8.5 Write property test for metadata storage
+    - **Property 5: Google metadata storage**
+    - **Validates: Requirements 2.4, 6.3**
+  - [x] 8.6 Implement mapping approval logic
+    - Create approveMappingSuggestion method
+    - Create or link CatchUp group on approval
+    - Update mapping status to "approved"
+    - _Requirements: 6.6_
+  - [ ]* 8.7 Write property test for approved mappings
+    - **Property 28: Approved mappings create groups**
+    - **Validates: Requirements 6.6**
+  - [x] 8.8 Implement mapping rejection logic
+    - Create rejectMappingSuggestion method
+    - Update mapping status to "rejected"
+    - Exclude from membership sync
+    - _Requirements: 6.7_
+  - [ ]* 8.9 Write property test for rejected mappings
+    - **Property 29: Rejected mappings exclude groups**
+    - **Validates: Requirements 6.7**
+  - [x] 8.10 Implement group membership sync (approved only)
+    - Process contact memberships from Google
+    - Add contacts ONLY to groups with status="approved"
+    - Skip pending and rejected mappings
+    - Handle membership updates
+    - _Requirements: 6.8_
+  - [ ]* 8.11 Write property test for approved-only membership sync
+    - **Property 30: Only approved mappings sync memberships**
+    - **Validates: Requirements 6.8**
+  - [x] 8.12 Implement group update handling
+    - Detect group name changes
+    - Update CatchUp group names for approved mappings only
+    - Handle deleted groups
+    - _Requirements: 6.9, 6.10_
+  - [ ]* 8.13 Write property test for group name sync
+    - **Property 17: Group name synchronization**
+    - **Validates: Requirements 6.9**
+  - [ ]* 8.14 Write unit tests for group sync service
+    - Test suggestion generation
+    - Test approval/rejection flows
+    - Test membership sync (approved only)
+    - Test group updates
+    - Test deleted groups
+    - _Requirements: 6.1, 6.2, 6.3, 6.6, 6.7, 6.8, 6.9, 6.10_
+
+- [ ] 9. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 10. Sync API routes
+  - [x] 10.1 Create sync API routes
+    - Implement POST /api/contacts/sync/full endpoint
+    - Implement POST /api/contacts/sync/incremental endpoint
+    - Implement GET /api/contacts/sync/status endpoint
+    - Add authentication middleware
+    - _Requirements: 4.1, 8.1, 8.2, 8.3_
+  - [x] 10.2 Implement sync job queueing
+    - Queue sync jobs instead of running synchronously
+    - Prevent duplicate sync jobs for same user
+    - Return job status to user
+    - _Requirements: 4.5_
+  - [ ]* 10.3 Write property test for concurrent sync prevention
+    - **Property 12: Concurrent sync prevention**
+    - **Validates: Requirements 4.5**
+  - [ ]* 10.4 Write property test for OAuth callback triggering sync
+    - **Property 2: OAuth callback triggers full sync**
+    - **Validates: Requirements 2.1**
+  - [ ]* 10.5 Write unit tests for sync routes
+    - Test full sync endpoint
+    - Test incremental sync endpoint
+    - Test status endpoint
+    - Test authentication
+    - _Requirements: 4.1, 8.1_
+
+- [x] 11. Background sync jobs
+  - [x] 11.1 Create sync job processor
+    - Implement processGoogleContactsSync function
+    - Handle job data and execute sync
+    - Update sync state on completion/failure
+    - _Requirements: 3.7, 10.5_
+  - [x] 11.2 Implement scheduled sync job
+    - Create daily cron job for automatic sync
+    - Find all users with connected Google Contacts
+    - Queue incremental sync for each user
+    - _Requirements: 3.7_
+  - [ ]* 11.3 Write property test for sync error persistence
+    - **Property 25: Sync error persistence**
+    - **Validates: Requirements 10.5**
+  - [ ]* 11.4 Write unit tests for job processor
+    - Test job execution
+    - Test error handling
+    - Test sync state updates
+    - _Requirements: 3.7, 10.5_
+
+- [x] 12. Disconnect functionality
+  - [x] 12.1 Implement disconnect logic
+    - Delete OAuth tokens from database
+    - Clear sync state
+    - Stop scheduled sync jobs
+    - Preserve contacts but clear sync metadata
+    - _Requirements: 7.2, 7.3, 7.4_
+  - [ ]* 12.2 Write property test for disconnect token removal
+    - **Property 18: Disconnect removes tokens**
+    - **Validates: Requirements 7.2, 11.4**
+  - [ ]* 12.3 Write property test for disconnect contact preservation
+    - **Property 19: Disconnect preserves contacts**
+    - **Validates: Requirements 7.4**
+  - [x] 12.4 Implement reconnect logic
+    - Trigger full sync on reconnection
+    - Reset sync state
+    - _Requirements: 7.5_
+  - [ ]* 12.5 Write property test for reconnect
+    - **Property 20: Reconnect triggers full sync**
+    - **Validates: Requirements 7.5**
+  - [ ]* 12.6 Write unit tests for disconnect/reconnect
+    - Test disconnect flow
+    - Test token deletion
+    - Test contact preservation
+    - Test reconnect flow
+    - _Requirements: 7.2, 7.3, 7.4, 7.5_
+
+- [x] 13. Contact source tracking and filtering
+  - [x] 13.1 Update contact repository with source filtering
+    - Add methods to filter contacts by source
+    - Implement source designation persistence
+    - _Requirements: 5.3, 5.4_
+  - [ ]* 13.2 Write property test for source filtering
+    - **Property 13: Contact source filtering**
+    - **Validates: Requirements 5.3**
+  - [ ]* 13.3 Write property test for source persistence
+    - **Property 14: Source designation persistence**
+    - **Validates: Requirements 5.4**
+  - [ ]* 13.4 Write unit tests for source tracking
+    - Test source filtering
+    - Test source persistence on edits
+    - _Requirements: 5.3, 5.4_
+
+- [x] 14. Status and monitoring endpoints
+  - [x] 14.1 Enhance status endpoint
+    - Return connection status
+    - Return last sync timestamp
+    - Return total contacts synced
+    - Return sync errors if any
+    - Return auto-sync enabled status
+    - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
+  - [ ]* 14.2 Write unit tests for status endpoint
+    - Test status response format
+    - Test with various sync states
+    - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
+
+- [x] 15. Token refresh and security
+  - [x] 15.1 Implement automatic token refresh
+    - Detect expired tokens (401 errors)
+    - Refresh using refresh token
+    - Update stored tokens
+    - Retry original request
+    - _Requirements: 10.2, 10.3_
+  - [ ]* 15.2 Write property test for token refresh
+    - **Property 23: Token refresh on expiration**
+    - **Validates: Requirements 10.2**
+  - [ ]* 15.3 Write unit tests for token refresh
+    - Test refresh on expiration
+    - Test refresh failure handling
+    - Test retry after refresh
+    - _Requirements: 10.2, 10.3_
+
+- [x] 16. Performance optimizations
+  - [x] 16.1 Implement batch database operations
+    - Batch contact inserts (100 per batch)
+    - Batch contact updates (100 per batch)
+    - Use transactions for consistency
+    - _Requirements: 12.3_
+  - [ ]* 16.2 Write property test for batch operations
+    - **Property 26: Batch database operations**
+    - **Validates: Requirements 12.3**
+  - [x] 16.3 Add performance monitoring
+    - Log sync duration
+    - Log performance warnings for slow syncs (>2 min for 500 contacts)
+    - Track API request counts
+    - _Requirements: 12.4_
+  - [ ]* 16.4 Write unit tests for performance monitoring
+    - Test duration logging
+    - Test performance warnings
+    - _Requirements: 12.4_
+
+- [ ] 17. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 18. Contact data preservation
+  - [x] 18.1 Implement smart contact updates
+    - Preserve manually added CatchUp-specific fields during sync
+    - Update only Google-sourced fields
+    - Maintain data integrity
+    - _Requirements: 3.4, 13.5_
+  - [ ]* 18.2 Write property test for data preservation
+    - **Property 11: Contact updates preserve data**
+    - **Validates: Requirements 3.4, 13.5**
+  - [ ]* 18.3 Write unit tests for contact updates
+    - Test field preservation
+    - Test selective updates
+    - _Requirements: 3.4, 13.5_
+
+- [x] 19. Frontend UI components
+  - [x] 19.1 Create Google Contacts settings UI with one-way sync notice
+    - Add prominent "One-Way Sync (Read-Only)" notice at top
+    - Explain that CatchUp never modifies Google Contacts
+    - Add "Connect Google Contacts" button
+    - Display connection status with "Read-Only" indicator
+    - Show last sync timestamp and contact count
+    - Add "Sync Now" button
+    - Add "Disconnect" button with confirmation
+    - Include "Your Google Contacts remain unchanged" text
+    - _Requirements: 1.1, 4.1, 7.1, 8.1, 8.2, 8.3, 15.1, 15.6_
+  - [x] 19.2 Create group mapping review UI
+    - Display section for "Pending Group Mappings"
+    - Show list of all pending mapping suggestions
+    - Display Google group name, member count, and confidence score
+    - Show suggested action (create new vs map to existing)
+    - Display suggestion reason
+    - Add "Approve" and "Reject" buttons for each suggestion
+    - Show approved and rejected mappings in separate sections
+    - _Requirements: 6.5, 6.6, 6.7_
+  - [x] 19.3 Implement group mapping API routes
+    - Implement GET /api/contacts/groups/mappings/pending endpoint
+    - Implement POST /api/contacts/groups/mappings/:id/approve endpoint
+    - Implement POST /api/contacts/groups/mappings/:id/reject endpoint
+    - Implement GET /api/contacts/groups/mappings endpoint (all statuses)
+    - _Requirements: 6.5, 6.6, 6.7_
+  - [x] 19.4 Add contact source indicators
+    - Display "Google" badge for Google-sourced contacts
+    - Show last sync timestamp in contact details
+    - Add filter for Google contacts
+    - _Requirements: 5.1, 5.2, 5.3_
+  - [x] 19.5 Implement sync status display
+    - Show loading indicator during sync
+    - Display sync results (contacts updated/deleted, suggestions generated)
+    - Show error messages with actionable steps
+    - Display auto-sync enabled status
+    - Include "Your Google Contacts remain unchanged" confirmation
+    - _Requirements: 4.2, 4.3, 4.4, 8.5, 15.6_
+  - [ ]* 19.6 Write unit tests for UI components
+    - Test button interactions
+    - Test status display
+    - Test error display
+    - Test group mapping review interactions
+    - Test one-way sync notice display
+    - _Requirements: 1.1, 4.1, 5.1, 6.5, 8.1, 15.1_
+
+- [x] 20. Read-only sync implementation and verification
+  - [x] 20.1 Configure read-only OAuth scopes
+    - Use only contacts.readonly and contacts.other.readonly scopes
+    - Remove any write scopes from configuration
+    - Verify scope configuration in OAuth service
+    - _Requirements: 15.2_
+  - [x] 20.2 Implement API client safeguards
+    - Restrict GoogleContactsClient to GET requests only
+    - Add explicit errors for write method calls
+    - Add request method validation
+    - _Requirements: 15.3_
+  - [ ]* 20.3 Write property test for read-only operations
+    - **Property 31: Read-only API operations**
+    - **Validates: Requirements 15.2, 15.3**
+  - [x] 20.4 Implement local edit handling
+    - Ensure contact updates only modify local database
+    - Verify no Google API calls on local edits
+    - Preserve Google metadata during local edits
+    - _Requirements: 15.4_
+  - [ ]* 20.5 Write property test for local edits
+    - **Property 32: Local edits stay local**
+    - **Validates: Requirements 15.4**
+  - [x] 20.6 Implement group creation safeguards
+    - Ensure new CatchUp groups are local only
+    - Verify no Google API calls when creating groups
+    - _Requirements: 15.5_
+  - [ ]* 20.7 Write unit tests for read-only guarantees
+    - Test OAuth scope configuration
+    - Test API client method restrictions
+    - Test local edit isolation
+    - Test group creation isolation
+    - _Requirements: 15.2, 15.3, 15.4, 15.5_
+
+- [x] 21. Documentation and deployment
+  - [x] 21.1 Update environment variable documentation
+    - Document GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET
+    - Document GOOGLE_CONTACTS_REDIRECT_URI
+    - Document read-only scope requirements
+    - Update .env.example file
+    - _Requirements: 1.1, 11.2, 15.2_
+  - [x] 21.2 Create Google Cloud Console setup guide
+    - Document People API enablement (read-only access)
+    - Document OAuth consent screen configuration
+    - Document redirect URI setup
+    - Emphasize read-only scope selection
+    - _Requirements: 1.1, 14.1, 15.2_
+  - [x] 21.3 Update API documentation
+    - Document all OAuth endpoints
+    - Document all sync endpoints
+    - Document group mapping endpoints
+    - Include request/response examples
+    - Clarify one-way sync behavior
+    - _Requirements: 1.1, 4.1, 6.5, 7.1, 8.1, 15.1_
+  - [x] 21.4 Create user-facing documentation
+    - Explain one-way sync concept
+    - Document group mapping review process
+    - Provide FAQ about data safety
+    - Include screenshots of UI
+    - _Requirements: 14.2, 15.1_
+
+- [x] 22. Final checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

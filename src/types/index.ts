@@ -58,6 +58,10 @@ export interface Contact {
   groups: string[];
   tags: Tag[];
   archived: boolean;
+  source?: 'manual' | 'google' | 'calendar' | 'voice_note';
+  googleResourceName?: string;
+  googleEtag?: string;
+  lastSyncedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

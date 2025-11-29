@@ -15,6 +15,11 @@ export interface CalendarSyncJobData {
   userId: string;
 }
 
+export interface GoogleContactsSyncJobData {
+  userId: string;
+  syncType: 'full' | 'incremental';
+}
+
 // Job result types
 export interface SuggestionGenerationResult {
   usersProcessed: number;
@@ -36,5 +41,16 @@ export interface CalendarSyncResult {
   userId: string;
   calendarsRefreshed: number;
   eventsProcessed: number;
+  errors: string[];
+}
+
+export interface GoogleContactsSyncResult {
+  userId: string;
+  syncType: 'full' | 'incremental';
+  contactsImported?: number;
+  contactsUpdated?: number;
+  contactsDeleted?: number;
+  groupsImported?: number;
+  duration: number;
   errors: string[];
 }

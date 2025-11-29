@@ -9,11 +9,13 @@ import {
   batchNotificationQueue,
   calendarSyncQueue,
   suggestionRegenerationQueue,
+  googleContactsSyncQueue,
 } from './queue';
 import { processSuggestionGeneration } from './processors/suggestion-generation-processor';
 import { processBatchNotification } from './processors/batch-notification-processor';
 import { processCalendarSync } from './processors/calendar-sync-processor';
 import { processSuggestionRegeneration } from './processors/suggestion-regeneration';
+import { processGoogleContactsSync } from './processors/google-contacts-sync-processor';
 
 /**
  * Start the job worker
@@ -47,6 +49,12 @@ export function startWorker(): void {
     return processSuggestionRegeneration(job);
   });
 
+  // Register Google Contacts sync processor
+  googleContactsSyncQueue.process(async (job) => {
+    console.log(`Processing Google Contacts sync job ${job.id}`);
+    return processGoogleContactsSync(job);
+  });
+
   console.log('Job worker started successfully');
 
   // Log queue events
@@ -68,6 +76,10 @@ export function startWorker(): void {
   suggestionRegenerationQueue.on('completed', (job, result) => {
     console.log(`Suggestion regeneration job ${job.id} completed:`, result);
   });
+
+  googleContactsSyncQueue.on('completed', (job, result) => {
+    console.log(`Google Contacts sync job ${job.id} completed:`, result);
+  });
 }
 
 /**
@@ -83,6 +95,7 @@ export async function stopWorker(): Promise<void> {
     batchNotificationQueue.close(),
     calendarSyncQueue.close(),
     suggestionRegenerationQueue.close(),
+    googleContactsSyncQueue.close(),
   ]);
 
   console.log('Job worker stopped');

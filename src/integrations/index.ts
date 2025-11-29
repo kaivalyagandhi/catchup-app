@@ -8,7 +8,29 @@
  * - Rate limiting
  */
 
-// Export integration clients and utilities
-// TODO: Implement integration clients
+// Google Contacts Integration
+export { GoogleContactsOAuthService, googleContactsOAuthService } from './google-contacts-oauth-service';
+export { GoogleContactsSyncService, googleContactsSyncService } from './google-contacts-sync-service';
+export { GoogleContactsRateLimiter, googleContactsRateLimiter } from './google-contacts-rate-limiter';
 
-export {};
+// Repositories
+export { 
+  SyncStateRepository, 
+  PostgresSyncStateRepository,
+  getSyncState,
+  upsertSyncState,
+  updateSyncToken,
+  markSyncInProgress,
+  markSyncComplete,
+  markSyncFailed,
+  type SyncState,
+  type SyncResult,
+  type SyncError,
+} from './sync-state-repository';
+
+export {
+  GroupMappingRepository,
+  PostgresGroupMappingRepository,
+  type GroupMapping,
+  type GroupMappingSuggestion,
+} from './group-mapping-repository';

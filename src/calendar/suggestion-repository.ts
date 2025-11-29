@@ -6,8 +6,8 @@
  */
 
 import { Pool } from 'pg';
-import { Suggestion, SuggestionStatus, TriggerType } from '../types';
-import { getPool } from '../db/connection';
+import { Suggestion, SuggestionStatus, TriggerType, Contact } from '../types';
+import pool from '../db/connection';
 
 /**
  * Convert database row to Suggestion object
@@ -17,6 +17,8 @@ function rowToSuggestion(row: any): Suggestion {
     id: row.id,
     userId: row.user_id,
     contactId: row.contact_id,
+    contacts: [], // Will be populated by caller if needed
+    type: 'individual',
     triggerType: row.trigger_type as TriggerType,
     proposedTimeslot: {
       start: new Date(row.proposed_timeslot_start),
@@ -28,6 +30,7 @@ function rowToSuggestion(row: any): Suggestion {
     dismissalReason: row.dismissal_reason || undefined,
     calendarEventId: row.calendar_event_id || undefined,
     snoozedUntil: row.snoozed_until ? new Date(row.snoozed_until) : undefined,
+    priority: row.priority || 0,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -40,7 +43,7 @@ export async function getUserSuggestions(
   userId: string,
   statuses?: SuggestionStatus[]
 ): Promise<Suggestion[]> {
-  const pool = getPool();
+  // Use imported pool
   
   let query = 'SELECT * FROM suggestions WHERE user_id = $1';
   const params: any[] = [userId];
@@ -60,7 +63,7 @@ export async function getUserSuggestions(
  * Get a single suggestion by ID
  */
 export async function getSuggestionById(suggestionId: string): Promise<Suggestion | null> {
-  const pool = getPool();
+  // Use imported pool
   
   const result = await pool.query(
     'SELECT * FROM suggestions WHERE id = $1',

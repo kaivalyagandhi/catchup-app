@@ -28,7 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Handle OAuth callback if present in URL
     if (window.location.search.includes('code=')) {
-        handleCalendarOAuthCallback();
+        // Check if this is a Google Contacts callback
+        if (window.location.search.includes('state=google_contacts') || 
+            (!window.location.search.includes('state=') && typeof handleGoogleContactsOAuthCallback === 'function')) {
+            handleGoogleContactsOAuthCallback();
+        } else {
+            handleCalendarOAuthCallback();
+        }
     }
     
     // Listen for contacts updates from voice notes enrichment
@@ -328,8 +334,44 @@ function renderContacts(contactsList) {
             }
         }
         
+        // Render source badge
+        let sourceBadge = '';
+        if (contact.source === 'google') {
+            sourceBadge = `
+                <span style="display: inline-flex; align-items: center; gap: 4px; background: #4285f4; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-bottom: 8px;">
+                    <img src="https://www.gstatic.com/marketing-cms/assets/images/ff/21/95f22bf94e35bea3ec097d3f4720/contacts.png" alt="Google" style="width: 12px; height: 12px;">
+                    Google
+                </span>
+            `;
+        }
+        
+        // Render last sync timestamp for Google contacts
+        let lastSyncInfo = '';
+        if (contact.source === 'google' && contact.lastSyncedAt) {
+            const syncDate = new Date(contact.lastSyncedAt);
+            const now = new Date();
+            const diffMs = now - syncDate;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            let timeAgo = '';
+            if (diffMins < 1) timeAgo = 'Just now';
+            else if (diffMins < 60) timeAgo = `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+            else if (diffHours < 24) timeAgo = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            else if (diffDays < 7) timeAgo = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            else timeAgo = syncDate.toLocaleDateString();
+            
+            lastSyncInfo = `
+                <p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+                    <span style="margin-right: 4px;">🔄</span>Last synced: ${timeAgo}
+                </p>
+            `;
+        }
+        
         return `
             <div class="card">
+                ${sourceBadge}
                 <h3>${escapeHtml(contact.name)}</h3>
                 <p><span style="font-size: 16px; margin-right: 8px;">📞</span><strong>Phone:</strong> ${contact.phone || 'N/A'}</p>
                 <p><span style="font-size: 16px; margin-right: 8px;">✉️</span><strong>Email:</strong> ${contact.email || 'N/A'}</p>
@@ -337,6 +379,7 @@ function renderContacts(contactsList) {
                 ${contact.timezone ? `<p><span style="font-size: 16px; margin-right: 8px;">🌍</span><strong>Timezone:</strong> ${contact.timezone}</p>` : ''}
                 ${contact.frequencyPreference ? `<p><span style="font-size: 16px; margin-right: 8px;">📅</span><strong>Frequency:</strong> ${contact.frequencyPreference}</p>` : ''}
                 ${contact.customNotes ? `<p><span style="font-size: 16px; margin-right: 8px;">📝</span><strong>Notes:</strong> ${escapeHtml(contact.customNotes)}</p>` : ''}
+                ${lastSyncInfo}
                 ${tagsHtml}
                 ${groupsHtml}
                 <div class="card-actions">
@@ -348,14 +391,36 @@ function renderContacts(contactsList) {
     }).join('');
 }
 
+// Track current filter
+let currentContactFilter = 'all';
+
 function searchContacts() {
     const query = document.getElementById('contact-search').value.toLowerCase();
-    const filtered = contacts.filter(c => 
+    let filtered = contacts.filter(c => 
         c.name.toLowerCase().includes(query) ||
         (c.email && c.email.toLowerCase().includes(query)) ||
         (c.phone && c.phone.includes(query))
     );
+    
+    // Apply source filter
+    if (currentContactFilter !== 'all') {
+        filtered = filtered.filter(c => c.source === currentContactFilter);
+    }
+    
     renderContacts(filtered);
+}
+
+function filterContactsBySource(source) {
+    currentContactFilter = source;
+    
+    // Update active filter button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById(`filter-${source}`).classList.add('active');
+    
+    // Apply filter
+    searchContacts();
 }
 
 function showAddContactModal() {
@@ -3178,6 +3243,14 @@ async function loadPreferences() {
         }
     }
     
+    // Load Google Contacts connection status
+    let googleContactsStatus = { connected: false };
+    try {
+        googleContactsStatus = await loadGoogleContactsStatus();
+    } catch (error) {
+        console.error('Error loading Google Contacts status:', error);
+    }
+    
     // Load test data status
     let testDataStatus = null;
     try {
@@ -3264,21 +3337,9 @@ async function loadPreferences() {
                     `}
                 </div>
                 
-                <!-- Google Contacts (Placeholder) -->
-                <div class="card" style="opacity: 0.6;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <img src="https://www.gstatic.com/marketing-cms/assets/images/ff/21/95f22bf94e35bea3ec097d3f4720/contacts.png" alt="Google Contacts" style="width: 24px; height: 24px;">
-                            <h4 style="margin: 0;">Google Contacts</h4>
-                        </div>
-                        <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: var(--status-info-bg); color: var(--status-info-text);">
-                            Coming Soon
-                        </span>
-                    </div>
-                    <p style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-secondary);">
-                        Sync your Google Contacts to automatically import and manage your relationships.
-                    </p>
-                    <button disabled style="width: 100%; opacity: 0.5; cursor: not-allowed;">Coming Soon</button>
+                <!-- Google Contacts -->
+                <div id="google-contacts-card">
+                    <!-- Will be populated by loadGoogleContactsStatus() -->
                 </div>
             </div>
         </div>
@@ -3425,6 +3486,30 @@ async function loadPreferences() {
         </div>
     `;
     container.appendChild(accountSection);
+    
+    // Render Google Contacts card
+    const googleContactsCard = document.getElementById('google-contacts-card');
+    if (googleContactsCard && typeof renderGoogleContactsCard === 'function') {
+        googleContactsCard.innerHTML = renderGoogleContactsCard(googleContactsStatus);
+    }
+    
+    // Load and render group mappings if connected
+    if (googleContactsStatus.connected && typeof loadAllGroupMappings === 'function') {
+        try {
+            const allMappings = await loadAllGroupMappings();
+            const pendingMappings = allMappings.filter(m => m.mappingStatus === 'pending');
+            const approvedMappings = allMappings.filter(m => m.mappingStatus === 'approved');
+            const rejectedMappings = allMappings.filter(m => m.mappingStatus === 'rejected');
+            
+            if (allMappings.length > 0 && typeof renderGroupMappingReview === 'function') {
+                const groupMappingSection = document.createElement('div');
+                groupMappingSection.innerHTML = renderGroupMappingReview(pendingMappings, approvedMappings, rejectedMappings);
+                container.appendChild(groupMappingSection);
+            }
+        } catch (error) {
+            console.error('Error loading group mappings:', error);
+        }
+    }
 }
 
 function savePreferences() {
@@ -3698,10 +3783,19 @@ async function clearAllTestData() {
             5000
         );
         
-        // Refresh the status counts after a short delay to ensure database is updated
-        setTimeout(() => {
-            refreshTestDataStatus();
-        }, 500);
+        // Refresh current view immediately
+        if (currentPage === 'contacts') {
+            await loadContacts();
+        } else if (currentPage === 'suggestions') {
+            await loadSuggestions();
+        } else if (currentPage === 'groups-tags') {
+            await loadGroupsTagsManagement();
+        } else if (currentPage === 'voice') {
+            await loadVoiceNotes();
+        }
+        
+        // Refresh the status counts
+        await refreshTestDataStatus();
     } catch (error) {
         console.error('Error clearing all test data:', error);
         showTestDataFeedback(
@@ -3839,10 +3933,26 @@ async function deleteAllUserData() {
             5000
         );
         
-        // Refresh the page after a delay to show empty state
-        setTimeout(() => {
-            location.reload();
-        }, 2000);
+        // Clear local state immediately
+        contacts = [];
+        suggestions = [];
+        groups = [];
+        allGroups = [];
+        allTags = [];
+        
+        // Refresh current view
+        if (currentPage === 'contacts') {
+            await loadContacts();
+        } else if (currentPage === 'suggestions') {
+            await loadSuggestions();
+        } else if (currentPage === 'groups-tags') {
+            await loadGroupsTagsManagement();
+        } else if (currentPage === 'voice') {
+            await loadVoiceNotes();
+        }
+        
+        // Also refresh test data counts
+        await refreshTestDataStatus();
     } catch (error) {
         console.error('Error clearing user data:', error);
         showTestDataFeedback(
@@ -3853,7 +3963,13 @@ async function deleteAllUserData() {
         
         if (event.target) {
             event.target.disabled = false;
-            event.target.textContent = 'Clear All User Data';
+            event.target.textContent = 'Clear All';
+        }
+    } finally {
+        // Re-enable button
+        if (event.target) {
+            event.target.disabled = false;
+            event.target.textContent = 'Clear All';
         }
     }
 }

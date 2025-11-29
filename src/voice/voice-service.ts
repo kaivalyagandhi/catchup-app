@@ -514,7 +514,7 @@ export async function processVoiceNote(
   const { VoiceNoteRepository } = await import('./voice-repository');
   const { contactService } = await import('../contacts/service');
 
-  const voiceNoteRepo = new VoiceNoteRepository(pool);
+  const voiceNoteRepo = new VoiceNoteRepository();
 
   // Transcribe audio
   const transcript = await transcribeAudio(audioData, filename);
@@ -539,13 +539,12 @@ export async function processVoiceNote(
   );
 
   // Create voice note record
-  const voiceNote = await voiceNoteRepo.create(
+  const voiceNote = await voiceNoteRepo.create({
     userId,
-    audioUrl,
     transcript,
-    contact?.id,
-    entities
-  );
+    status: 'ready',
+    extractedEntities: contact?.id ? { [contact.id]: entities } : undefined,
+  });
 
   return {
     id: voiceNote.id,
@@ -560,10 +559,10 @@ export async function processVoiceNote(
  * @param id - Voice note ID
  * @returns Voice note or null if not found
  */
-export async function getVoiceNote(id: string): Promise<any> {
+export async function getVoiceNote(id: string, userId: string): Promise<any> {
   const pool = (await import('../db/connection')).default;
   const { VoiceNoteRepository } = await import('./voice-repository');
 
-  const voiceNoteRepo = new VoiceNoteRepository(pool);
-  return voiceNoteRepo.getById(id);
+  const voiceNoteRepo = new VoiceNoteRepository();
+  return voiceNoteRepo.getById(id, userId);
 }

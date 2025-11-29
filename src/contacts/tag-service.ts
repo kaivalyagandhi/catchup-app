@@ -117,6 +117,7 @@ export class TagServiceImpl implements TagService {
 
       const similarTags = await this.repository.findSimilarTags(
         tag.text,
+        userId,
         this.DEFAULT_SIMILARITY_THRESHOLD
       );
 
