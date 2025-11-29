@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EnrichmentPanel Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-tertiary: #f9fafb;
+            --text-primary: #333333;
+            --text-secondary: #6b7280;
+            --text-inverse: #ffffff;
+            --border-primary: #e5e7eb;
+            --card-bg: #ffffff;
+            --card-shadow: rgba(0, 0, 0, 0.1);
+            --color-primary: #2563eb;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-secondary: #6b7280;
+            --status-success-bg: #d1fae5;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-secondary);
+            padding: 20px;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        
+        .test-description {
+            margin-bottom: 30px;
+            color: var(--text-secondary);
+        }
+        
+        .test-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+        
+        button.secondary {
+            background: var(--color-secondary);
+        }
+        
+        button.secondary:hover {
+            background: #4b5563;
+        }
+        
+        .transcript-container {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border: 2px solid var(--border-primary);
+            border-radius: 8px;
+        }
+        
+        .transcript-container h3 {
+            margin-bottom: 10px;
+        }
+        
+        .test-info {
+            margin-top: 30px;
+            padding: 15px;
+            background: #e0f2fe;
+            border-left: 4px solid #0284c7;
+            border-radius: 4px;
+        }
+        
+        .test-info h3 {
+            margin-bottom: 8px;
+            color: #0369a1;
+        }
+        
+        .test-info ul {
+            margin-left: 20px;
+            color: #0c4a6e;
+        }
+        
+        .test-info li {
+            margin-bottom: 4px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>EnrichmentPanel Component Test</h1>
+        <p class="test-description">
+            Test the EnrichmentPanel component with various scenarios including progressive updates,
+            animations, and different suggestion types.
+        </p>
+        
+        <div class="test-controls">
+            <button onclick="testShowPanel()">Show Panel</button>
+            <button onclick="testHidePanel()">Hide Panel</button>
+            <button onclick="testClearPanel()">Clear Panel</button>
+            <button onclick="testAddSuggestions()">Add Initial Suggestions</button>
+            <button onclick="testAddMoreSuggestions()">Add More Suggestions</button>
+            <button onclick="testMergeSuggestions()">Merge Suggestions</button>
+            <button onclick="testAllTypes()">Test All Types</button>
+            <button onclick="testConfidenceLevels()">Test Confidence Levels</button>
+            <button class="secondary" onclick="testResetAll()">Reset All</button>
+        </div>
+        
+        <!-- Simulated transcript container -->
+        <div class="transcript-container">
+            <h3>Transcript</h3>
+            <p>This is a simulated transcript area. The enrichment panel will appear below this.</p>
+        </div>
+        
+        <!-- Enrichment panel will be inserted here by the component -->
+        <div id="voice-content"></div>
+        
+        <div class="test-info">
+            <h3>Test Instructions</h3>
+            <ul>
+                <li><strong>Show Panel:</strong> Display the enrichment panel</li>
+                <li><strong>Hide Panel:</strong> Hide the enrichment panel</li>
+                <li><strong>Clear Panel:</strong> Remove all suggestions</li>
+                <li><strong>Add Initial Suggestions:</strong> Add first batch of suggestions</li>
+                <li><strong>Add More Suggestions:</strong> Add additional suggestions (watch for animations)</li>
+                <li><strong>Merge Suggestions:</strong> Update existing suggestions with new confidence</li>
+                <li><strong>Test All Types:</strong> Display all suggestion types (tags, notes, interests, events)</li>
+                <li><strong>Test Confidence Levels:</strong> Display suggestions with different confidence levels</li>
+                <li><strong>Reset All:</strong> Clear and hide the panel</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script src="enrichment-panel.js"></script>
+    <script>
+        // Initialize the panel
+        const panel = window.enrichmentPanel;
+        
+        // Test data
+        let suggestionIdCounter = 1;
+        
+        function createSuggestion(type, value, confidence, contactHint = null) {
+            return {
+                id: `suggestion-${suggestionIdCounter++}`,
+                type: type,
+                value: value,
+                confidence: confidence,
+                sourceText: 'Sample source text',
+                contactHint: contactHint
+            };
+        }
+        
+        function testShowPanel() {
+            panel.show();
+            console.log('Panel shown');
+        }
+        
+        function testHidePanel() {
+            panel.hide();
+            console.log('Panel hidden');
+        }
+        
+        function testClearPanel() {
+            panel.clear();
+            console.log('Panel cleared');
+        }
+        
+        function testAddSuggestions() {
+            const suggestions = [
+                createSuggestion('tag', 'hiking', 0.85, 'John Smith'),
+                createSuggestion('tag', 'photography', 0.92, 'John Smith'),
+                createSuggestion('note', 'Mentioned planning a trip to Colorado', 0.78, 'John Smith')
+            ];
+            
+            panel.updateSuggestions(suggestions);
+            panel.show();
+            console.log('Added initial suggestions:', suggestions);
+        }
+        
+        function testAddMoreSuggestions() {
+            // Get current suggestions and add new ones
+            const currentSuggestions = [...panel.suggestions];
+            const newSuggestions = [
+                createSuggestion('interest', 'mountain climbing', 0.88, 'John Smith'),
+                createSuggestion('event', 'Coffee meeting next Tuesday', 0.75, 'Sarah Johnson')
+            ];
+            
+            const allSuggestions = [...currentSuggestions, ...newSuggestions];
+            panel.updateSuggestions(allSuggestions);
+            panel.show();
+            console.log('Added more suggestions (watch for animations):', newSuggestions);
+        }
+        
+        function testMergeSuggestions() {
+            // Update existing suggestions with modified confidence
+            const suggestions = panel.suggestions.map(s => ({
+                ...s,
+                confidence: Math.min(s.confidence + 0.15, 1.0)
+            }));
+            
+            panel.updateSuggestions(suggestions);
+            console.log('Merged suggestions with updated confidence (watch for merge animation)');
+        }
+        
+        function testAllTypes() {
+            const suggestions = [
+                createSuggestion('tag', 'technology', 0.90, 'Alice Brown'),
+                createSuggestion('tag', 'startup', 0.85, 'Alice Brown'),
+                createSuggestion('note', 'Working on a new AI project', 0.82, 'Alice Brown'),
+                createSuggestion('note', 'Recently moved to San Francisco', 0.88, 'Alice Brown'),
+                createSuggestion('interest', 'machine learning', 0.93, 'Alice Brown'),
+                createSuggestion('interest', 'entrepreneurship', 0.87, 'Alice Brown'),
+                createSuggestion('event', 'Tech conference in March', 0.79, 'Alice Brown'),
+                createSuggestion('event', 'Product launch next month', 0.84, 'Alice Brown')
+            ];
+            
+            panel.updateSuggestions(suggestions);
+            panel.show();
+            console.log('Displaying all suggestion types:', suggestions);
+        }
+        
+        function testConfidenceLevels() {
+            const suggestions = [
+                createSuggestion('tag', 'High confidence tag', 0.95, 'Test User'),
+                createSuggestion('tag', 'Medium confidence tag', 0.70, 'Test User'),
+                createSuggestion('tag', 'Low confidence tag', 0.45, 'Test User'),
+                createSuggestion('note', 'High confidence note', 0.88, 'Test User'),
+                createSuggestion('note', 'Medium confidence note', 0.65, 'Test User'),
+                createSuggestion('note', 'Low confidence note', 0.50, 'Test User')
+            ];
+            
+            panel.updateSuggestions(suggestions);
+            panel.show();
+            console.log('Displaying different confidence levels:', suggestions);
+        }
+        
+        function testResetAll() {
+            panel.clear();
+            panel.hide();
+            suggestionIdCounter = 1;
+            console.log('Reset complete');
+        }
+        
+        // Auto-show panel on load with sample data
+        window.addEventListener('load', () => {
+            console.log('EnrichmentPanel test page loaded');
+            console.log('Use the buttons above to test different scenarios');
+        });
+    </script>
+</body>
+</html>

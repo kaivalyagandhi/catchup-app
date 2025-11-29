@@ -1021,12 +1021,13 @@ describe('TestDataGenerator', () => {
             // Required fields
             expect(event.id).toBeTruthy();
             expect(event.user_id).toBe(testUserId);
-            expect(event.title).toBeTruthy();
+            expect(event.summary).toBeTruthy();
+            expect(event.google_event_id).toBeTruthy();
+            expect(event.calendar_id).toBe('test-calendar');
             expect(event.start_time).toBeTruthy();
             expect(event.end_time).toBeTruthy();
             expect(event.timezone).toBeTruthy();
-            expect(event.is_available).toBe(true);
-            expect(event.source).toBe('test');
+            expect(event.is_busy).toBe(false); // Test events are available (not busy)
 
             // Start time should be before end time
             expect(new Date(event.start_time).getTime()).toBeLessThan(
@@ -1789,7 +1790,7 @@ describe('TestDataGenerator', () => {
       // Verify calendar events are marked as test data (using source column)
       const testCalendarEventsResult = await pool.query(
         `SELECT COUNT(*) as count FROM calendar_events 
-         WHERE user_id = $1 AND source = 'test'`,
+         WHERE user_id = $1 AND calendar_id = 'test-calendar'`,
         [testUserId]
       );
       const testCalendarEventsCount = parseInt(testCalendarEventsResult.rows[0].count);
@@ -1847,10 +1848,10 @@ describe('TestDataGenerator', () => {
 
       // Create real calendar event (source != 'test')
       const realCalendarEventResult = await pool.query(
-        `INSERT INTO calendar_events (user_id, title, start_time, end_time, timezone, is_available, source)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO calendar_events (user_id, google_event_id, calendar_id, summary, start_time, end_time, timezone, is_busy)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING id`,
-        [testUserId, 'Real Event', new Date(), new Date(Date.now() + 3600000), 'UTC', true, 'google']
+        [testUserId, 'real-google-event-123', 'real-calendar', 'Real Event', new Date(), new Date(Date.now() + 3600000), 'UTC', false]
       );
       const realCalendarEventId = realCalendarEventResult.rows[0].id;
 
@@ -1873,7 +1874,7 @@ describe('TestDataGenerator', () => {
       const calendarEventsBeforeResult = await pool.query(
         `SELECT 
           COUNT(*) as total,
-          COUNT(CASE WHEN source = 'test' THEN 1 END) as test_count
+          COUNT(CASE WHEN calendar_id = 'test-calendar' THEN 1 END) as test_count
          FROM calendar_events WHERE user_id = $1`,
         [testUserId]
       );

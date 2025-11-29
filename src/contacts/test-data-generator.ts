@@ -1182,10 +1182,10 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           break;
         
         case 'calendarEvents':
-          // Delete test calendar events
+          // Delete test calendar events (identified by calendar_id = 'test-calendar')
           const calendarResult = await client.query(
             `DELETE FROM calendar_events 
-             WHERE user_id = $1 AND source = 'test'`,
+             WHERE user_id = $1 AND calendar_id = 'test-calendar'`,
             [userId]
           );
           itemsDeleted = calendarResult.rowCount || 0;

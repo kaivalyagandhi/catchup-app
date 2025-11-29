@@ -59,7 +59,7 @@ export class ContactDisambiguationService {
   private model: GenerativeModel;
   
   /** Threshold for automatic matching (0-1) */
-  private readonly EXACT_MATCH_THRESHOLD = 0.9;
+  private readonly EXACT_MATCH_THRESHOLD = 0.85;
   
   /** Threshold for partial matching (0-1) */
   private readonly PARTIAL_MATCH_THRESHOLD = 0.6;
@@ -97,12 +97,18 @@ export class ContactDisambiguationService {
     // Step 1: Extract person names from transcript using Gemini
     const names = await this.identifyContactNames(transcript);
     
+    console.log(`[Disambiguation] Extracted names from transcript: ${JSON.stringify(names)}`);
+    
     if (names.length === 0) {
       return [];
     }
 
     // Step 2: Match names to user's contacts
     const result = await this.matchToContacts(names, userContacts);
+    
+    console.log(`[Disambiguation] Matches: ${result.matches.map(c => c.name).join(', ')}`);
+    console.log(`[Disambiguation] Partial matches: ${JSON.stringify(result.partialMatches.map(p => ({ name: p.extractedName, candidates: p.candidates.map(c => ({ name: c.contact.name, score: c.score })) })))}`);
+    console.log(`[Disambiguation] Unmatched: ${result.unmatchedNames.join(', ')}`);
     
     // Return only high-confidence matches
     // Partial matches and unmatched names trigger manual selection UI
@@ -124,6 +130,8 @@ export class ContactDisambiguationService {
   ): Promise<DisambiguationResult> {
     const names = await this.identifyContactNames(transcript);
     
+    console.log(`[Disambiguation] Extracted names from transcript: ${JSON.stringify(names)}`);
+    
     if (names.length === 0) {
       return {
         matches: [],
@@ -132,7 +140,13 @@ export class ContactDisambiguationService {
       };
     }
 
-    return await this.matchToContacts(names, userContacts);
+    const result = await this.matchToContacts(names, userContacts);
+    
+    console.log(`[Disambiguation] Matches: ${result.matches.map(c => c.name).join(', ')}`);
+    console.log(`[Disambiguation] Partial matches: ${JSON.stringify(result.partialMatches.map(p => ({ name: p.extractedName, candidates: p.candidates.map(c => ({ name: c.contact.name, score: c.score })) })))}`);
+    console.log(`[Disambiguation] Unmatched: ${result.unmatchedNames.join(', ')}`);
+    
+    return result;
   }
 
   /**

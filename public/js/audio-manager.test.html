@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AudioManager Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    
+    .test-section {
+      margin: 30px 0;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 10px 20px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+    }
+    
+    button:hover {
+      background: #1d4ed8;
+    }
+    
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    
+    .status {
+      padding: 15px;
+      background: #f3f4f6;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-family: monospace;
+    }
+    
+    .warning {
+      padding: 10px;
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      margin: 10px 0;
+    }
+    
+    .error {
+      padding: 10px;
+      background: #fee2e2;
+      border-left: 4px solid #ef4444;
+      margin: 10px 0;
+    }
+    
+    .success {
+      padding: 10px;
+      background: #d1fae5;
+      border-left: 4px solid #10b981;
+      margin: 10px 0;
+    }
+    
+    canvas {
+      width: 100%;
+      height: 100px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #f9fafb;
+    }
+  </style>
+</head>
+<body>
+  <h1>AudioManager Test Suite</h1>
+  
+  <div class="test-section">
+    <h2>Basic Recording Controls</h2>
+    <div class="controls">
+      <button id="start-btn">Start Recording</button>
+      <button id="pause-btn" disabled>Pause</button>
+      <button id="resume-btn" disabled>Resume</button>
+      <button id="stop-btn" disabled>Stop</button>
+    </div>
+    
+    <div class="status" id="status">
+      State: <span id="state">inactive</span><br>
+      Elapsed Time: <span id="elapsed">0.00s</span><br>
+      Buffer Size: <span id="buffer">0 bytes</span><br>
+      Audio Level: <span id="level">-∞ dB</span>
+    </div>
+    
+    <div id="messages"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Audio Visualization</h2>
+    <canvas id="waveform" width="600" height="100"></canvas>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test Results</h2>
+    <div id="test-results"></div>
+  </div>
+  
+  <script src="audio-manager.js"></script>
+  <script>
+    let audioManager = null;
+    let updateInterval = null;
+    let animationFrame = null;
+    
+    // UI Elements
+    const startBtn = document.getElementById('start-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const resumeBtn = document.getElementById('resume-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const stateSpan = document.getElementById('state');
+    const elapsedSpan = document.getElementById('elapsed');
+    const bufferSpan = document.getElementById('buffer');
+    const levelSpan = document.getElementById('level');
+    const messagesDiv = document.getElementById('messages');
+    const testResultsDiv = document.getElementById('test-results');
+    const canvas = document.getElementById('waveform');
+    const ctx = canvas.getContext('2d');
+    
+    // Event Handlers
+    startBtn.addEventListener('click', async () => {
+      try {
+        audioManager = new AudioManager({
+          chunkIntervalMs: 100,
+          silenceTimeoutMs: 3000,
+          lowLevelThresholdDb: -40,
+          clippingThresholdDb: 0
+        });
+        
+        // Setup callbacks
+        audioManager.onAudioChunk = (chunk) => {
+          addMessage(`Audio chunk received: ${chunk.size} bytes`, 'success');
+        };
+        
+        audioManager.onLevelChange = (level) => {
+          // Updated in UI loop
+        };
+        
+        audioManager.onSilenceDetected = () => {
+          addMessage('Silence detected (3+ seconds)', 'warning');
+        };
+        
+        audioManager.onLowLevelDetected = () => {
+          addMessage('Low audio level detected', 'warning');
+        };
+        
+        audioManager.onClippingDetected = () => {
+          addMessage('Audio clipping detected!', 'error');
+        };
+        
+        await audioManager.start();
+        addMessage('Recording started', 'success');
+        updateUI();
+        startUIUpdate();
+        startWaveform();
+        
+      } catch (error) {
+        addMessage(`Error: ${error.message}`, 'error');
+      }
+    });
+    
+    pauseBtn.addEventListener('click', () => {
+      try {
+        audioManager.pause();
+        addMessage('Recording paused', 'success');
+        updateUI();
+      } catch (error) {
+        addMessage(`Error: ${error.message}`, 'error');
+      }
+    });
+    
+    resumeBtn.addEventListener('click', () => {
+      try {
+        audioManager.resume();
+        addMessage('Recording resumed', 'success');
+        updateUI();
+      } catch (error) {
+        addMessage(`Error: ${error.message}`, 'error');
+      }
+    });
+    
+    stopBtn.addEventListener('click', async () => {
+      try {
+        const blob = await audioManager.stop();
+        addMessage(`Recording stopped. Audio blob: ${blob.size} bytes`, 'success');
+        stopUIUpdate();
+        stopWaveform();
+        updateUI();
+        
+        // Run tests
+        runTests(blob);
+        
+      } catch (error) {
+        addMessage(`Error: ${error.message}`, 'error');
+      }
+    });
+    
+    function updateUI() {
+      if (!audioManager) {
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+        resumeBtn.disabled = true;
+        stopBtn.disabled = true;
+        stateSpan.textContent = 'inactive';
+        return;
+      }
+      
+      const isRecording = audioManager.isRecording();
+      const isPaused = audioManager.isPaused();
+      
+      startBtn.disabled = isRecording || isPaused;
+      pauseBtn.disabled = !isRecording;
+      resumeBtn.disabled = !isPaused;
+      stopBtn.disabled = !isRecording && !isPaused;
+      
+      stateSpan.textContent = audioManager.state;
+      elapsedSpan.textContent = (audioManager.getElapsedTime() / 1000).toFixed(2) + 's';
+      bufferSpan.textContent = formatBytes(audioManager.getBufferSize());
+      
+      const level = audioManager.getCurrentLevel();
+      levelSpan.textContent = isFinite(level) ? level.toFixed(1) + ' dB' : '-∞ dB';
+    }
+    
+    function startUIUpdate() {
+      updateInterval = setInterval(updateUI, 100);
+    }
+    
+    function stopUIUpdate() {
+      if (updateInterval) {
+        clearInterval(updateInterval);
+        updateInterval = null;
+      }
+    }
+    
+    function startWaveform() {
+      function draw() {
+        if (!audioManager || !audioManager.analyser) {
+          return;
+        }
+        
+        const dataArray = audioManager.dataArray;
+        if (!dataArray) return;
+        
+        audioManager.analyser.getByteTimeDomainData(dataArray);
+        
+        ctx.fillStyle = '#f9fafb';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#2563eb';
+        ctx.beginPath();
+        
+        const sliceWidth = canvas.width / dataArray.length;
+        let x = 0;
+        
+        for (let i = 0; i < dataArray.length; i++) {
+          const v = dataArray[i] / 128.0;
+          const y = (v * canvas.height) / 2;
+          
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+          
+          x += sliceWidth;
+        }
+        
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+        
+        animationFrame = requestAnimationFrame(draw);
+      }
+      
+      draw();
+    }
+    
+    function stopWaveform() {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = null;
+      }
+    }
+    
+    function addMessage(text, type = 'success') {
+      const div = document.createElement('div');
+      div.className = type;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 bytes';
+      const k = 1024;
+      const sizes = ['bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+    
+    function runTests(blob) {
+      testResultsDiv.innerHTML = '<h3>Running Tests...</h3>';
+      
+      const tests = [];
+      
+      // Test 1: Audio blob created
+      tests.push({
+        name: 'Audio blob created',
+        passed: blob && blob.size > 0,
+        details: `Blob size: ${blob ? blob.size : 0} bytes`
+      });
+      
+      // Test 2: State management
+      tests.push({
+        name: 'State returned to inactive',
+        passed: audioManager.state === 'inactive',
+        details: `Current state: ${audioManager.state}`
+      });
+      
+      // Test 3: Elapsed time tracking
+      tests.push({
+        name: 'Elapsed time tracked',
+        passed: audioManager.getElapsedTime() === 0,
+        details: `Elapsed time after stop: ${audioManager.getElapsedTime()}ms`
+      });
+      
+      // Display results
+      let html = '<h3>Test Results</h3>';
+      let passed = 0;
+      let failed = 0;
+      
+      tests.forEach(test => {
+        if (test.passed) {
+          passed++;
+          html += `<div class="success">✓ ${test.name}: ${test.details}</div>`;
+        } else {
+          failed++;
+          html += `<div class="error">✗ ${test.name}: ${test.details}</div>`;
+        }
+      });
+      
+      html += `<div class="status"><strong>Summary:</strong> ${passed} passed, ${failed} failed</div>`;
+      testResultsDiv.innerHTML = html;
+    }
+  </script>
+</body>
+</html>

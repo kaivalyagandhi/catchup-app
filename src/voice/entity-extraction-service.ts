@@ -80,6 +80,24 @@ export class EntityExtractionService {
   }
 
   /**
+   * Extract entities with user's contact list for context
+   * 
+   * Uses the contact list to improve name matching and provide context.
+   * This is used for incremental enrichment during recording.
+   * 
+   * @param transcript - Voice note transcript text
+   * @param userContacts - User's contact list for context
+   * @returns Extracted entities with better name matching
+   */
+  async extractWithContactContext(
+    transcript: string,
+    userContacts: Contact[]
+  ): Promise<ExtractedEntities> {
+    const prompt = this.buildContextAwarePrompt(transcript, userContacts);
+    return this.extractEntities(prompt);
+  }
+
+  /**
    * Extract entities for multiple contacts mentioned in the same voice note
    * 
    * Processes each contact separately to identify which information applies to whom.
@@ -103,10 +121,14 @@ export class EntityExtractionService {
   ): Promise<Map<string, ExtractedEntities>> {
     const results = new Map<string, ExtractedEntities>();
 
+    console.log(`[EntityExtraction] Extracting for ${contacts.length} contacts from: "${transcript}"`);
+
     // Extract entities for each contact separately
     for (const contact of contacts) {
       try {
+        console.log(`[EntityExtraction] Extracting for contact: ${contact.name}`);
         const entities = await this.extractForContact(transcript, contact);
+        console.log(`[EntityExtraction] ${contact.name} entities:`, JSON.stringify(entities, null, 2));
         results.set(contact.id, entities);
       } catch (error) {
         console.error(`Failed to extract entities for contact ${contact.id}:`, error);
@@ -152,9 +174,11 @@ export class EntityExtractionService {
    * @private
    */
   private buildPromptForContact(transcript: string, contact: Contact): string {
-    return `Extract contact information from the following voice note transcript about ${contact.name}.
+    return `Extract information ONLY about ${contact.name} from the following voice note transcript.
 
-Current contact information:
+IMPORTANT: The transcript may mention multiple people. You must ONLY extract information that is specifically about ${contact.name}. Do NOT include information about other people mentioned in the transcript.
+
+Current contact information for ${contact.name}:
 - Name: ${contact.name}
 ${contact.phone ? `- Phone: ${contact.phone}` : ''}
 ${contact.email ? `- Email: ${contact.email}` : ''}
@@ -165,15 +189,15 @@ ${contact.groups.length > 0 ? `- Existing groups: ${contact.groups.join(', ')}` 
 Transcript:
 ${transcript}
 
-Extract any NEW information mentioned in the transcript:
-- Contact fields (phone, email, social media handles, location, notes)
-- Tags (1-3 word descriptors of interests, hobbies, or characteristics)
-- Groups (relationship categories like "College Friends", "Work Friends")
-- Last contact date (if a specific interaction date is mentioned)
+Extract ONLY information that is explicitly about ${contact.name}:
+- Contact fields (phone, email, location, notes) - ONLY if mentioned in relation to ${contact.name}
+- Tags (interests, hobbies) - ONLY if ${contact.name} is associated with them
+- Groups (relationship categories)
+- Last contact date (if mentioned for ${contact.name})
 
-Only include information that is explicitly mentioned or strongly implied in the transcript.
-Do not repeat information that already exists in the current contact information.
-Return empty arrays/null values if no new information is found.`;
+CRITICAL: If a phone number, location, or other detail is mentioned for a DIFFERENT person in the transcript, do NOT include it here. Only include information specifically about ${contact.name}.
+
+Return empty arrays/null values if no information about ${contact.name} is found.`;
   }
 
   /**
@@ -190,12 +214,64 @@ Transcript:
 ${transcript}
 
 Extract any information mentioned in the transcript:
-- Contact fields (phone, email, social media handles, location, notes)
-- Tags (1-3 word descriptors of interests, hobbies, or characteristics)
+- Contact names (any person names mentioned, e.g., "John", "Sarah", "Mike Smith")
+- Contact fields (phone, email, social media handles, location, notes about the person)
+- Tags (1-3 word descriptors of interests, hobbies, or characteristics mentioned)
 - Groups (relationship categories like "College Friends", "Work Friends")
 - Last contact date (if a specific interaction date is mentioned)
 
+IMPORTANT: Pay close attention to any names mentioned in the transcript. Names are often mentioned at the beginning like "I talked to John today" or "Had lunch with Sarah".
+
 Only include information that is explicitly mentioned or strongly implied in the transcript.
+Return empty arrays/null values if no information is found.`;
+  }
+
+  /**
+   * Build prompt with user's contact list for context-aware extraction
+   * 
+   * @param transcript - Voice note transcript
+   * @param userContacts - User's contact list
+   * @returns Formatted prompt with contact context
+   * @private
+   */
+  private buildContextAwarePrompt(transcript: string, userContacts: Contact[]): string {
+    // Create a list of contact names for context
+    const contactNames = userContacts
+      .map(c => c.name)
+      .filter(name => name && name.trim())
+      .slice(0, 50) // Limit to 50 contacts to avoid token limits
+      .join(', ');
+
+    return `Extract contact information from the following voice note transcript.
+
+The user has these contacts in their address book: ${contactNames}
+
+Transcript:
+${transcript}
+
+Extract any information mentioned in the transcript into these categories:
+
+1. CONTACT NAMES: Match names to the user's contacts above when possible
+   - If transcript says "John" and user has "John Smith", return "John Smith"
+   - Pay attention to partial name matches and nicknames
+
+2. CONTACT FIELDS (return in "fields" object):
+   - location: City/place if someone is "moving to", "lives in", "relocated to" somewhere (e.g., "San Francisco", "New York")
+   - phone: Phone numbers mentioned
+   - email: Email addresses mentioned
+   - customNotes: Important facts or updates about the person
+
+3. TAGS: 1-3 word descriptors of interests, hobbies, or characteristics
+
+4. GROUPS: Relationship categories like "College Friends", "Work Friends"
+
+IMPORTANT EXTRACTION RULES:
+- "Alice is moving to San Francisco" → fields.location = "San Francisco"
+- "John's new number is 555-1234" → fields.phone = "555-1234"
+- "She loves hiking" → tags = ["hiking"]
+- Extract the CITY NAME for location, not the full phrase
+
+Only include information that is explicitly mentioned or strongly implied.
 Return empty arrays/null values if no information is found.`;
   }
 
@@ -208,6 +284,7 @@ Return empty arrays/null values if no information is found.`;
    */
   private validateAndTransform(parsed: any): ExtractedEntities {
     // Ensure required fields exist
+    const contactNames = Array.isArray(parsed.contactNames) ? parsed.contactNames : [];
     const fields = parsed.fields || {};
     const tags = Array.isArray(parsed.tags) ? parsed.tags : [];
     const groups = Array.isArray(parsed.groups) ? parsed.groups : [];
@@ -227,6 +304,7 @@ Return empty arrays/null values if no information is found.`;
     }
 
     return {
+      contactNames,
       fields,
       tags,
       groups,

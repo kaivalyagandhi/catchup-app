@@ -192,6 +192,7 @@ export interface VoiceNote {
 
 export type VoiceNoteStatus = 
   | 'recording' 
+  | 'paused'
   | 'transcribing' 
   | 'extracting' 
   | 'ready' 
@@ -199,6 +200,7 @@ export type VoiceNoteStatus =
   | 'error';
 
 export interface ExtractedEntities {
+  contactNames?: string[];
   fields: Record<string, any>;
   tags: string[];
   groups: string[];

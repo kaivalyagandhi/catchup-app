@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recording Indicator Controls Test</title>
+  <style>
+    :root {
+      --status-error-bg: #fee;
+      --status-error-text: #c00;
+      --status-warning: #ffc;
+      --color-danger: #d00;
+      --color-warning: #f90;
+      --color-success: #0a0;
+      --text-primary: #333;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-controls {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .test-controls h2 {
+      margin-top: 0;
+    }
+    
+    .test-controls button {
+      margin: 5px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .test-controls button:hover {
+      background: #0056b3;
+    }
+    
+    .log {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .log-entry {
+      margin: 2px 0;
+    }
+    
+    .log-entry.info {
+      color: #0ff;
+    }
+    
+    .log-entry.success {
+      color: #0f0;
+    }
+    
+    .log-entry.warning {
+      color: #ff0;
+    }
+    
+    .log-entry.error {
+      color: #f00;
+    }
+  </style>
+</head>
+<body>
+  <h1>Recording Indicator Controls Test</h1>
+  
+  <div class="test-controls">
+    <h2>Test Controls</h2>
+    <button onclick="testShowRecording()">Show Recording</button>
+    <button onclick="testShowPaused()">Show Paused</button>
+    <button onclick="testHide()">Hide Indicator</button>
+    <button onclick="testUpdateTime()">Update Time (30s)</button>
+    <button onclick="testConnectionStatus()">Cycle Connection Status</button>
+    <button onclick="clearLog()">Clear Log</button>
+  </div>
+  
+  <div class="test-controls">
+    <h2>Event Log</h2>
+    <div id="log" class="log"></div>
+  </div>
+  
+  <script src="recording-indicator.js"></script>
+  <script>
+    let indicator;
+    let connectionStatusIndex = 0;
+    const connectionStatuses = ['connected', 'reconnecting', 'disconnected'];
+    
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+      log('Log cleared', 'info');
+    }
+    
+    function testShowRecording() {
+      indicator.show({
+        isRecording: true,
+        isPaused: false,
+        elapsedTime: 0,
+        connectionStatus: 'connected'
+      });
+      log('Showing recording indicator', 'success');
+    }
+    
+    function testShowPaused() {
+      indicator.show({
+        isRecording: true,
+        isPaused: true,
+        elapsedTime: 45,
+        connectionStatus: 'connected'
+      });
+      log('Showing paused indicator', 'warning');
+    }
+    
+    function testHide() {
+      indicator.hide();
+      log('Hiding indicator', 'info');
+    }
+    
+    function testUpdateTime() {
+      indicator.updateTime(30);
+      log('Updated time to 30 seconds', 'info');
+    }
+    
+    function testConnectionStatus() {
+      connectionStatusIndex = (connectionStatusIndex + 1) % connectionStatuses.length;
+      const status = connectionStatuses[connectionStatusIndex];
+      indicator.updateConnectionStatus(status, status === 'reconnecting' ? 2 : 0);
+      log(`Updated connection status to: ${status}`, 'info');
+    }
+    
+    // Initialize indicator
+    document.addEventListener('DOMContentLoaded', () => {
+      indicator = new RecordingIndicator();
+      
+      // Attach event handlers
+      indicator.onPauseClick = () => {
+        const currentState = indicator.getState();
+        if (currentState.isPaused) {
+          log('Resume button clicked!', 'success');
+          indicator.show({
+            ...currentState,
+            isPaused: false
+          });
+        } else {
+          log('Pause button clicked!', 'warning');
+          indicator.show({
+            ...currentState,
+            isPaused: true
+          });
+        }
+      };
+      
+      indicator.onStopClick = () => {
+        log('Stop button clicked!', 'error');
+        indicator.hide();
+      };
+      
+      log('Recording Indicator initialized', 'success');
+      log('Click "Show Recording" to display the indicator', 'info');
+    });
+  </script>
+</body>
+</html>
