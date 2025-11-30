@@ -1010,18 +1010,17 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
       const contactsTest = parseInt(contactsResult.rows[0].test_count);
 
       // Count calendar events
+      // Note: calendar_events table doesn't have a 'source' column to distinguish test data
+      // All calendar events are treated as real (synced from Google Calendar)
       let calendarEventsTotal = 0;
       let calendarEventsTest = 0;
       if (calendarEventsExists) {
         const calendarResult = await client.query(
-          `SELECT 
-            COUNT(*) as total,
-            COUNT(CASE WHEN source = 'test' THEN 1 END) as test_count
-           FROM calendar_events WHERE user_id = $1`,
+          `SELECT COUNT(*) as total FROM calendar_events WHERE user_id = $1`,
           [userId]
         );
         calendarEventsTotal = parseInt(calendarResult.rows[0].total);
-        calendarEventsTest = parseInt(calendarResult.rows[0].test_count);
+        // calendarEventsTest stays 0 since we can't distinguish test events
       }
 
       // Count suggestions
@@ -1183,10 +1182,10 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           break;
         
         case 'calendarEvents':
-          // Delete test calendar events
+          // Delete test calendar events (identified by calendar_id = 'test-calendar')
           const calendarResult = await client.query(
             `DELETE FROM calendar_events 
-             WHERE user_id = $1 AND source = 'test'`,
+             WHERE user_id = $1 AND calendar_id = 'test-calendar'`,
             [userId]
           );
           itemsDeleted = calendarResult.rowCount || 0;

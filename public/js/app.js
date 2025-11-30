@@ -3280,6 +3280,8 @@ async function loadPreferences() {
         });
         if (response.ok) {
             testDataStatus = await response.json();
+        } else {
+            console.error('Test data status request failed:', response.status, response.statusText);
         }
     } catch (error) {
         console.error('Error loading test data status:', error);

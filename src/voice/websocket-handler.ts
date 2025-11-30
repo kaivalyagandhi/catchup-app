@@ -23,6 +23,8 @@ export enum WSMessageType {
   // Client -> Server
   START_SESSION = 'start_session',
   AUDIO_CHUNK = 'audio_chunk',
+  PAUSE_SESSION = 'pause_session',
+  RESUME_SESSION = 'resume_session',
   END_SESSION = 'end_session',
   CANCEL_SESSION = 'cancel_session',
   
@@ -30,6 +32,8 @@ export enum WSMessageType {
   SESSION_STARTED = 'session_started',
   INTERIM_TRANSCRIPT = 'interim_transcript',
   FINAL_TRANSCRIPT = 'final_transcript',
+  ENRICHMENT_UPDATE = 'enrichment_update',
+  CONNECTION_STATUS = 'connection_status',
   STATUS_CHANGE = 'status_change',
   ERROR = 'error',
   RECONNECTING = 'reconnecting',
@@ -199,6 +203,19 @@ export class VoiceNoteWebSocketHandler {
         });
       }
     });
+
+    // Enrichment update events (will be implemented in task 6)
+    this.voiceNoteService.on('enrichment_update', (event: any) => {
+      const ws = this.sessionClients.get(event.sessionId);
+      if (ws) {
+        this.sendMessage(ws, {
+          type: WSMessageType.ENRICHMENT_UPDATE,
+          data: {
+            suggestions: event.suggestions,
+          },
+        });
+      }
+    });
   }
 
   /**
@@ -211,12 +228,14 @@ export class VoiceNoteWebSocketHandler {
   private async handleClientMessage(ws: WebSocket, data: Buffer): Promise<void> {
     const client = this.clients.get(ws);
     if (!client) {
+      console.error('Client not found in clients map');
       return;
     }
 
     try {
       // Try to parse as JSON message
       const message: WSMessage = JSON.parse(data.toString());
+      console.log('Received WebSocket message:', message.type, message.data);
 
       switch (message.type) {
         case WSMessageType.STATUS_CHANGE:
@@ -236,6 +255,14 @@ export class VoiceNoteWebSocketHandler {
 
         case WSMessageType.START_SESSION:
           await this.handleStartSession(ws, client, message.data);
+          break;
+
+        case WSMessageType.PAUSE_SESSION:
+          await this.handlePauseSession(ws, client);
+          break;
+
+        case WSMessageType.RESUME_SESSION:
+          await this.handleResumeSession(ws, client);
           break;
 
         case WSMessageType.END_SESSION:
@@ -273,19 +300,33 @@ export class VoiceNoteWebSocketHandler {
     data: any
   ): Promise<void> {
     try {
-      const languageCode = data.languageCode || 'en-US';
+      console.log('handleStartSession called for user:', client.userId);
+      console.log('handleStartSession data:', JSON.stringify(data));
+      const languageCode = data?.languageCode || 'en-US';
+      const userContacts: Contact[] = data?.userContacts || [];
+      console.log(`handleStartSession received ${userContacts.length} contacts`);
       
       // Create voice note session
+      console.log('Creating session with languageCode:', languageCode);
       const session = await this.voiceNoteService.createSession(
         client.userId,
         languageCode
       );
+
+      console.log('Session created:', session.id);
+
+      // Set user contacts for incremental enrichment context (Proposal B)
+      if (userContacts.length > 0) {
+        this.voiceNoteService.setSessionContacts(session.id, userContacts);
+        console.log(`Set ${userContacts.length} contacts for incremental enrichment`);
+      }
 
       // Associate session with client
       client.sessionId = session.id;
       this.sessionClients.set(session.id, ws);
 
       // Send session started confirmation
+      console.log('Sending session_started message');
       this.sendMessage(ws, {
         type: WSMessageType.SESSION_STARTED,
         data: {
@@ -293,7 +334,9 @@ export class VoiceNoteWebSocketHandler {
           startTime: session.startTime,
         },
       });
+      console.log('session_started message sent');
     } catch (error) {
+      console.error('Error in handleStartSession:', error);
       this.sendMessage(ws, {
         type: WSMessageType.ERROR,
         data: {
@@ -324,6 +367,78 @@ export class VoiceNoteWebSocketHandler {
           },
         });
       }
+    }
+  }
+
+  /**
+   * Handle pause session request
+   * 
+   * @param ws - WebSocket connection
+   * @param client - Client connection metadata
+   * @private
+   */
+  private async handlePauseSession(
+    ws: WebSocket,
+    client: ClientConnection
+  ): Promise<void> {
+    if (!client.sessionId) {
+      this.sendMessage(ws, {
+        type: WSMessageType.ERROR,
+        data: { error: 'No active session' },
+      });
+      return;
+    }
+
+    try {
+      await this.voiceNoteService.pauseSession(client.sessionId);
+      
+      this.sendMessage(ws, {
+        type: WSMessageType.STATUS_CHANGE,
+        data: { status: 'paused' },
+      });
+    } catch (error) {
+      this.sendMessage(ws, {
+        type: WSMessageType.ERROR,
+        data: {
+          error: error instanceof Error ? error.message : 'Failed to pause session',
+        },
+      });
+    }
+  }
+
+  /**
+   * Handle resume session request
+   * 
+   * @param ws - WebSocket connection
+   * @param client - Client connection metadata
+   * @private
+   */
+  private async handleResumeSession(
+    ws: WebSocket,
+    client: ClientConnection
+  ): Promise<void> {
+    if (!client.sessionId) {
+      this.sendMessage(ws, {
+        type: WSMessageType.ERROR,
+        data: { error: 'No active session' },
+      });
+      return;
+    }
+
+    try {
+      await this.voiceNoteService.resumeSession(client.sessionId);
+      
+      this.sendMessage(ws, {
+        type: WSMessageType.STATUS_CHANGE,
+        data: { status: 'recording' },
+      });
+    } catch (error) {
+      this.sendMessage(ws, {
+        type: WSMessageType.ERROR,
+        data: {
+          error: error instanceof Error ? error.message : 'Failed to resume session',
+        },
+      });
     }
   }
 
@@ -500,6 +615,27 @@ export class VoiceNoteWebSocketHandler {
         this.sendMessage(client.ws, message);
       }
     });
+  }
+
+  /**
+   * Send connection status update to a session
+   * 
+   * @param sessionId - Session ID
+   * @param status - Connection status
+   * @param attempt - Reconnection attempt number (optional)
+   */
+  sendConnectionStatus(
+    sessionId: string,
+    status: 'connected' | 'reconnecting' | 'disconnected',
+    attempt?: number
+  ): void {
+    const ws = this.sessionClients.get(sessionId);
+    if (ws) {
+      this.sendMessage(ws, {
+        type: WSMessageType.CONNECTION_STATUS,
+        data: { status, attempt },
+      });
+    }
   }
 
   /**

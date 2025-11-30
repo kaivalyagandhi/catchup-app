@@ -72,26 +72,28 @@ export class CalendarEventGenerator {
           const result = await client.query<{
             id: string;
             user_id: string;
-            title: string;
+            summary: string;
             start_time: Date;
             end_time: Date;
             timezone: string;
-            is_available: boolean;
-            source: string;
+            is_busy: boolean;
+            google_event_id: string;
+            calendar_id: string;
             created_at: Date;
           }>(
             `INSERT INTO calendar_events (
-              user_id, title, start_time, end_time, timezone, is_available, source
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+              user_id, google_event_id, calendar_id, summary, start_time, end_time, timezone, is_busy
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *`,
             [
               userId,
-              slot.title,
+              `test-event-${Date.now()}-${Math.random()}`, // google_event_id
+              'test-calendar', // calendar_id
+              slot.title, // summary
               slot.startTime,
               slot.endTime,
               slot.timezone,
-              slot.isAvailable,
-              'test'
+              !slot.isAvailable // is_busy (inverse of isAvailable)
             ]
           );
 
@@ -99,12 +101,12 @@ export class CalendarEventGenerator {
           events.push({
             id: row.id,
             userId: row.user_id,
-            title: row.title,
+            title: row.summary,
             startTime: row.start_time,
             endTime: row.end_time,
             timezone: row.timezone,
-            isAvailable: row.is_available,
-            source: row.source,
+            isAvailable: !row.is_busy, // Convert is_busy back to isAvailable
+            source: 'test',
             createdAt: row.created_at
           });
         }
@@ -189,12 +191,11 @@ export class CalendarEventGenerator {
     const result = await pool.query<{
       id: string;
       user_id: string;
-      title: string;
+      summary: string;
       start_time: Date;
       end_time: Date;
       timezone: string;
-      is_available: boolean;
-      source: string;
+      is_busy: boolean;
       created_at: Date;
     }>(
       `SELECT * FROM calendar_events
@@ -208,12 +209,12 @@ export class CalendarEventGenerator {
     return result.rows.map(row => ({
       id: row.id,
       userId: row.user_id,
-      title: row.title,
+      title: row.summary,
       startTime: row.start_time,
       endTime: row.end_time,
       timezone: row.timezone,
-      isAvailable: row.is_available,
-      source: row.source,
+      isAvailable: !row.is_busy, // Convert is_busy to isAvailable
+      source: 'test',
       createdAt: row.created_at
     }));
   }

@@ -1912,6 +1912,78 @@
                 width: 100%;
             }
         }
+        
+        /* ============================================
+           TRANSCRIPT MANAGER STYLES
+           ============================================ */
+        
+        .transcript-container {
+            line-height: 1.6;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+        
+        .transcript-segment {
+            display: inline;
+        }
+        
+        /* Final transcript segments */
+        .transcript-final {
+            color: var(--text-primary);
+        }
+        
+        /* Interim (temporary) transcript segments */
+        .transcript-interim {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        /* Confidence-based styling */
+        .confidence-high {
+            font-weight: 600;
+            opacity: 1;
+        }
+        
+        .confidence-medium {
+            font-weight: 400;
+            opacity: 1;
+        }
+        
+        .confidence-low {
+            font-weight: 300;
+            opacity: 0.7;
+            color: var(--text-tertiary);
+        }
+        
+        /* Pause markers */
+        .transcript-pause-marker {
+            display: inline-block;
+            margin: 0 8px;
+            padding: 2px 6px;
+            background-color: var(--bg-secondary);
+            border-radius: 4px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            vertical-align: middle;
+        }
+        
+        /* Dark theme adjustments */
+        [data-theme="dark"] .transcript-container {
+            color: var(--text-primary);
+        }
+        
+        [data-theme="dark"] .transcript-interim {
+            color: var(--text-secondary);
+        }
+        
+        [data-theme="dark"] .confidence-low {
+            color: var(--text-tertiary);
+        }
+        
+        [data-theme="dark"] .transcript-pause-marker {
+            background-color: var(--bg-secondary);
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -2324,6 +2396,10 @@
     </div>
     
     <script src="/js/theme-manager.js"></script>
+    <script src="/js/audio-manager.js"></script>
+    <script src="/js/transcript-manager.js"></script>
+    <script src="/js/recording-indicator.js"></script>
+    <script src="/js/enrichment-panel.js"></script>
     <script src="/js/voice-notes.js"></script>
     <script src="/js/voice-notes-history.js"></script>
     <script src="/js/contact-selector.js"></script>

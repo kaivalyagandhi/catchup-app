@@ -13,6 +13,25 @@ import {
 describe('Rate Limiter', () => {
   const testUserId = 'test-user-rate-limit';
 
+  beforeEach(async () => {
+    // Clean up test keys before each test to avoid interference
+    const Redis = (await import('ioredis')).default;
+    const redis = new Redis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      password: process.env.REDIS_PASSWORD,
+      db: parseInt(process.env.REDIS_DB || '0', 10),
+    });
+    
+    // Delete all test-related keys
+    const keys = await redis.keys('ratelimit:*:test-user-rate-limit*');
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
+    
+    await redis.quit();
+  });
+
   afterAll(async () => {
     await closeRateLimiter();
   });
