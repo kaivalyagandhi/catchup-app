@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gamification UI Test</title>
+  <link rel="stylesheet" href="../css/gamification-ui.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .test-header {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .test-header h1 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+
+    .test-header p {
+      margin: 0;
+      color: #666;
+    }
+
+    .test-controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .test-controls h2 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .test-button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #4ECDC4;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .test-button:hover {
+      background: #45B7D1;
+    }
+
+    .test-button:active {
+      transform: scale(0.98);
+    }
+
+    .test-button.secondary {
+      background: #95a5a6;
+    }
+
+    .test-button.secondary:hover {
+      background: #7f8c8d;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>Gamification UI Test</h1>
+      <p>Test the gamification features including progress bars, achievements, streaks, and network health.</p>
+    </div>
+
+    <div class="test-controls">
+      <h2>Test Controls</h2>
+      <div class="button-group">
+        <button class="test-button" onclick="loadMockData()">Load Mock Data</button>
+        <button class="test-button" onclick="simulateProgress(25)">Simulate 25% Progress</button>
+        <button class="test-button" onclick="simulateProgress(50)">Simulate 50% Progress</button>
+        <button class="test-button" onclick="simulateProgress(75)">Simulate 75% Progress</button>
+        <button class="test-button" onclick="simulateProgress(100)">Simulate 100% Progress</button>
+        <button class="test-button" onclick="testMilestone()">Test Milestone</button>
+        <button class="test-button" onclick="testStreak()">Test Streak</button>
+        <button class="test-button secondary" onclick="resetData()">Reset</button>
+      </div>
+    </div>
+
+    <div id="gamification-container"></div>
+  </div>
+
+  <script src="gamification-ui.js"></script>
+  <script>
+    let gamificationUI;
+
+    // Initialize the component
+    function initGamificationUI() {
+      gamificationUI = new GamificationUI('gamification-container', {
+        apiBaseUrl: '/api',
+        onMilestoneReached: (milestone) => {
+          console.log('Milestone reached:', milestone);
+        },
+        onAchievementEarned: (achievement) => {
+          console.log('Achievement earned:', achievement);
+        },
+      });
+    }
+
+    // Load mock data
+    function loadMockData() {
+      gamificationUI.state.progress = {
+        totalContacts: 100,
+        categorizedContacts: 45,
+        uncategorizedContacts: 55,
+        percentComplete: 45,
+        currentMilestone: 'Quarter Complete',
+        nextMilestone: 'Halfway There',
+        milestonesReached: ['first_contact', 'quarter_complete'],
+      };
+
+      gamificationUI.state.achievements = [
+        {
+          id: '1',
+          userId: 'test-user',
+          achievementType: 'first_contact_categorized',
+          earnedAt: new Date(),
+        },
+        {
+          id: '2',
+          userId: 'test-user',
+          achievementType: 'week_streak_3',
+          earnedAt: new Date(),
+        },
+      ];
+
+      gamificationUI.state.streakInfo = {
+        currentStreak: 5,
+        longestStreak: 12,
+        lastActivityDate: new Date(),
+      };
+
+      gamificationUI.state.networkHealth = {
+        overallScore: 78,
+        circleBalanceScore: 85,
+        engagementScore: 72,
+        maintenanceScore: 76,
+        details: {
+          circleBalance: 'Good - Minor adjustments recommended',
+          engagement: 'Good - Most circles have contacts',
+          maintenance: 'Good - Regular activity',
+        },
+      };
+
+      gamificationUI.render();
+    }
+
+    // Simulate progress
+    function simulateProgress(percent) {
+      const totalContacts = 100;
+      const categorizedContacts = Math.round((percent / 100) * totalContacts);
+
+      const milestonesReached = [];
+      if (percent >= 1) milestonesReached.push('first_contact');
+      if (percent >= 25) milestonesReached.push('quarter_complete');
+      if (percent >= 50) milestonesReached.push('half_complete');
+      if (percent >= 75) milestonesReached.push('three_quarters');
+      if (percent >= 100) milestonesReached.push('all_categorized');
+
+      gamificationUI.state.progress = {
+        totalContacts,
+        categorizedContacts,
+        uncategorizedContacts: totalContacts - categorizedContacts,
+        percentComplete: percent,
+        currentMilestone: getMilestoneForPercent(percent),
+        nextMilestone: getNextMilestone(percent),
+        milestonesReached,
+      };
+
+      gamificationUI.render();
+    }
+
+    // Test milestone celebration
+    function testMilestone() {
+      gamificationUI.celebrateMilestone('half_complete');
+    }
+
+    // Test streak update
+    function testStreak() {
+      const currentStreak = (gamificationUI.state.streakInfo?.currentStreak || 0) + 1;
+      gamificationUI.state.streakInfo = {
+        currentStreak,
+        longestStreak: Math.max(currentStreak, gamificationUI.state.streakInfo?.longestStreak || 0),
+        lastActivityDate: new Date(),
+      };
+      gamificationUI.render();
+    }
+
+    // Reset data
+    function resetData() {
+      gamificationUI.state = {
+        progress: null,
+        achievements: [],
+        streakInfo: null,
+        networkHealth: null,
+        celebrationQueue: [],
+      };
+      gamificationUI.render();
+    }
+
+    // Helper functions
+    function getMilestoneForPercent(percent) {
+      if (percent >= 100) return 'Complete';
+      if (percent >= 75) return '75% Complete';
+      if (percent >= 50) return 'Halfway There';
+      if (percent >= 25) return '25% Complete';
+      if (percent >= 1) return 'First Contact';
+      return 'Getting Started';
+    }
+
+    function getNextMilestone(percent) {
+      if (percent >= 100) return 'Maintain Your Network';
+      if (percent >= 75) return 'All Categorized';
+      if (percent >= 50) return '75% Complete';
+      if (percent >= 25) return 'Halfway There';
+      if (percent >= 1) return '25% Complete';
+      return 'First Contact';
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      initGamificationUI();
+      loadMockData();
+    });
+  </script>
+</body>
+</html>

@@ -14,6 +14,13 @@ This directory contains SQL migration files for the CatchUp database schema.
 - `008_add_unique_constraints.sql` - Adds unique constraints for data integrity
 - `009_enhance_voice_notes_schema.sql` - Enhances voice notes for real-time transcription and multi-contact support
 - `010_enhance_suggestions_for_groups.sql` - Adds group catchup support to suggestions
+- `011_make_tags_user_specific.sql` - Makes tags user-specific instead of global
+- `012_add_name_to_users.sql` - Adds name field to users table
+- `013_add_google_contacts_source_tracking.sql` - Adds Google Contacts source tracking to contacts
+- `014_create_google_contacts_sync_state.sql` - Creates sync state tracking for Google Contacts
+- `015_create_google_contact_groups.sql` - Creates Google Contact groups table
+- `016_add_group_mapping_suggestions.sql` - Adds group mapping suggestions for Google Contacts
+- `017_create_contact_onboarding_schema.sql` - Creates contact onboarding schema with Dunbar circles, onboarding state, achievements, and weekly catchup sessions
 
 ## Running Migrations
 
@@ -74,6 +81,14 @@ psql -d catchup_db -f scripts/migrations/003_create_preferences_tables.sql
 - `availability_params` - User availability configuration
 - `notification_preferences` - Notification delivery preferences
 - `oauth_tokens` - OAuth credentials for third-party integrations
+
+### Contact Onboarding Tables
+- `onboarding_state` - Tracks user progress through the contact onboarding flow
+- `circle_assignments` - Historical record of all circle assignments for contacts (Dunbar circles: inner, close, active, casual, acquaintance)
+- `ai_circle_overrides` - Records user corrections to AI suggestions for learning
+- `weekly_catchup_sessions` - Manages weekly contact review sessions
+- `onboarding_achievements` - Tracks gamification achievements earned by users
+- `network_health_scores` - Historical record of network health metrics
 
 ## Database Enums
 

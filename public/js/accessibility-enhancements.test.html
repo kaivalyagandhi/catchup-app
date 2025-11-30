@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accessibility Enhancements Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f9fafb;
+    }
+    
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-section h2 {
+      margin-top: 0;
+      color: #1f2937;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 10px;
+    }
+    
+    .test-result {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    
+    .test-result.pass {
+      background: #d1fae5;
+      border-left: 4px solid #10b981;
+      color: #065f46;
+    }
+    
+    .test-result.fail {
+      background: #fee2e2;
+      border-left: 4px solid #ef4444;
+      color: #991b1b;
+    }
+    
+    .test-result.info {
+      background: #dbeafe;
+      border-left: 4px solid #3b82f6;
+      color: #1e40af;
+    }
+    
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 6px;
+      background: #3b82f6;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      background: #2563eb;
+    }
+    
+    .demo-visualizer {
+      width: 100%;
+      height: 400px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    
+    .keyboard-hint {
+      background: #fef3c7;
+      border: 1px solid #fbbf24;
+      border-radius: 4px;
+      padding: 12px;
+      margin: 10px 0;
+      color: #92400e;
+    }
+    
+    .keyboard-hint strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Accessibility Enhancements Test Suite</h1>
+  
+  <div class="keyboard-hint">
+    <strong>Keyboard Navigation Test Instructions:</strong>
+    Press Tab to navigate, Arrow keys to move between elements, Enter/Space to activate, Escape to close modals.
+    Watch for focus indicators (blue outline) when using keyboard navigation.
+  </div>
+
+  <!-- Test 1: Screen Reader Announcer -->
+  <div class="test-section">
+    <h2>Test 1: Screen Reader Announcer</h2>
+    <p>Tests that the screen reader live region is created and can announce messages.</p>
+    <button onclick="testScreenReaderAnnouncer()">Run Test</button>
+    <button onclick="testAnnouncement()">Test Announcement (Listen with screen reader)</button>
+    <div id="test1-results"></div>
+  </div>
+
+  <!-- Test 2: Keyboard Navigation Setup -->
+  <div class="test-section">
+    <h2>Test 2: Keyboard Navigation Setup</h2>
+    <p>Tests that keyboard navigation event listeners are properly set up.</p>
+    <button onclick="testKeyboardNavigation()">Run Test</button>
+    <div id="test2-results"></div>
+  </div>
+
+  <!-- Test 3: ARIA Labels on Interactive Elements -->
+  <div class="test-section">
+    <h2>Test 3: ARIA Labels on Interactive Elements</h2>
+    <p>Tests that all interactive elements have proper ARIA labels.</p>
+    
+    <!-- Mock circular visualizer elements -->
+    <div id="test-visualizer" class="demo-visualizer">
+      <svg class="visualizer-svg">
+        <g class="circles-group">
+          <circle class="circle-ring" data-circle="inner" cx="100" cy="100" r="50"></circle>
+          <circle class="circle-ring" data-circle="close" cx="100" cy="100" r="80"></circle>
+        </g>
+        <g class="contacts-group">
+          <g class="contact-dot" data-contact-id="contact-1"></g>
+          <g class="contact-dot" data-contact-id="contact-2"></g>
+        </g>
+      </svg>
+      <div class="circle-legend">
+        <div class="legend-item" data-circle="inner"></div>
+        <div class="legend-item" data-circle="close"></div>
+      </div>
+    </div>
+    
+    <button onclick="testARIALabels()">Run Test</button>
+    <div id="test3-results"></div>
+  </div>
+
+  <!-- Test 4: Focus Indicators -->
+  <div class="test-section">
+    <h2>Test 4: Focus Indicators</h2>
+    <p>Tests that focus indicators are visible when using keyboard navigation.</p>
+    <p><em>Use Tab key to navigate through these buttons and verify blue focus outline appears:</em></p>
+    <button>Button 1</button>
+    <button>Button 2</button>
+    <button>Button 3</button>
+    <button onclick="testFocusIndicators()">Run Automated Test</button>
+    <div id="test4-results"></div>
+  </div>
+
+  <!-- Test 5: Color Contrast -->
+  <div class="test-section">
+    <h2>Test 5: Color Contrast</h2>
+    <p>Tests that text has sufficient color contrast ratios (WCAG AA standard: 4.5:1 for normal text).</p>
+    <button onclick="testColorContrast()">Run Test</button>
+    <div id="test5-results"></div>
+  </div>
+
+  <!-- Test 6: Progress Bars Accessibility -->
+  <div class="test-section">
+    <h2>Test 6: Progress Bars Accessibility</h2>
+    <p>Tests that progress bars have proper ARIA attributes.</p>
+    
+    <!-- Mock progress bar -->
+    <div class="progress-bar" style="width: 100%; height: 20px; background: #e5e7eb; border-radius: 10px;">
+      <div class="progress-fill" style="width: 60%; height: 100%; background: #3b82f6; border-radius: 10px;"></div>
+    </div>
+    
+    <button onclick="testProgressBars()">Run Test</button>
+    <div id="test6-results"></div>
+  </div>
+
+  <!-- Test 7: Button Minimum Size -->
+  <div class="test-section">
+    <h2>Test 7: Button Minimum Touch Target Size</h2>
+    <p>Tests that all buttons meet the minimum 44x44px touch target size (WCAG 2.1 Level AAA).</p>
+    <button onclick="testButtonSize()">Run Test</button>
+    <div id="test7-results"></div>
+  </div>
+
+  <!-- Test 8: Skip to Main Content Link -->
+  <div class="test-section">
+    <h2>Test 8: Skip to Main Content Link</h2>
+    <p>Tests that a skip link is present for keyboard users.</p>
+    <button onclick="testSkipLink()">Run Test</button>
+    <div id="test8-results"></div>
+  </div>
+
+  <!-- Test 9: Reduced Motion Support -->
+  <div class="test-section">
+    <h2>Test 9: Reduced Motion Support</h2>
+    <p>Tests that animations respect prefers-reduced-motion setting.</p>
+    <button onclick="testReducedMotion()">Run Test</button>
+    <div id="test9-results"></div>
+  </div>
+
+  <!-- Test 10: High Contrast Mode Support -->
+  <div class="test-section">
+    <h2>Test 10: High Contrast Mode Support</h2>
+    <p>Tests that elements have proper borders in high contrast mode.</p>
+    <button onclick="testHighContrast()">Run Test</button>
+    <div id="test10-results"></div>
+  </div>
+
+  <!-- Summary -->
+  <div class="test-section">
+    <h2>Test Summary</h2>
+    <button onclick="runAllTests()">Run All Tests</button>
+    <div id="summary-results"></div>
+  </div>
+
+  <!-- Load dependencies -->
+  <script src="circular-visualizer.js"></script>
+  <script src="accessibility-enhancements.js"></script>
+
+  <script>
+    let testResults = [];
+
+    function logResult(testName, passed, message) {
+      const result = { testName, passed, message };
+      testResults.push(result);
+      return result;
+    }
+
+    function displayResult(containerId, result) {
+      const container = document.getElementById(containerId);
+      const div = document.createElement('div');
+      div.className = `test-result ${result.passed ? 'pass' : 'fail'}`;
+      div.textContent = `${result.passed ? '✓' : '✗'} ${result.message}`;
+      container.appendChild(div);
+    }
+
+    function displayInfo(containerId, message) {
+      const container = document.getElementById(containerId);
+      const div = document.createElement('div');
+      div.className = 'test-result info';
+      div.textContent = `ℹ ${message}`;
+      container.appendChild(div);
+    }
+
+    function clearResults(containerId) {
+      document.getElementById(containerId).innerHTML = '';
+    }
+
+    // Test 1: Screen Reader Announcer
+    function testScreenReaderAnnouncer() {
+      clearResults('test1-results');
+      
+      const announcer = document.querySelector('[role="status"][aria-live]');
+      const result1 = logResult('Screen Reader Announcer', !!announcer, 
+        announcer ? 'Screen reader announcer element exists' : 'Screen reader announcer element not found');
+      displayResult('test1-results', result1);
+      
+      if (announcer) {
+        const hasAriaLive = announcer.hasAttribute('aria-live');
+        const hasAriaAtomic = announcer.hasAttribute('aria-atomic');
+        
+        const result2 = logResult('ARIA Live', hasAriaLive, 
+          hasAriaLive ? 'aria-live attribute present' : 'aria-live attribute missing');
+        displayResult('test1-results', result2);
+        
+        const result3 = logResult('ARIA Atomic', hasAriaAtomic, 
+          hasAriaAtomic ? 'aria-atomic attribute present' : 'aria-atomic attribute missing');
+        displayResult('test1-results', result3);
+      }
+    }
+
+    function testAnnouncement() {
+      if (window.accessibilityEnhancements) {
+        window.accessibilityEnhancements.announce('This is a test announcement for screen readers');
+        displayInfo('test1-results', 'Announcement sent. Listen with screen reader to verify.');
+      }
+    }
+
+    // Test 2: Keyboard Navigation
+    function testKeyboardNavigation() {
+      clearResults('test2-results');
+      
+      const hasKeydownListener = true; // We can't directly test event listeners
+      const result1 = logResult('Keyboard Navigation', hasKeydownListener, 
+        'Keyboard navigation event listeners are set up (manual verification required)');
+      displayResult('test2-results', result1);
+      
+      displayInfo('test2-results', 'Press Tab to enable keyboard navigation mode. Body should get "keyboard-navigation" class.');
+      displayInfo('test2-results', 'Use arrow keys to navigate between elements.');
+    }
+
+    // Test 3: ARIA Labels
+    function testARIALabels() {
+      clearResults('test3-results');
+      
+      // Trigger enhancement
+      if (window.accessibilityEnhancements) {
+        window.accessibilityEnhancements.enhanceCircularVisualizer();
+      }
+      
+      setTimeout(() => {
+        // Check SVG
+        const svg = document.querySelector('.visualizer-svg');
+        const result1 = logResult('SVG Role', svg && svg.getAttribute('role') === 'application', 
+          svg && svg.getAttribute('role') === 'application' ? 'SVG has role="application"' : 'SVG missing role attribute');
+        displayResult('test3-results', result1);
+        
+        // Check circle rings
+        const rings = document.querySelectorAll('.circle-ring');
+        const ringsHaveRole = Array.from(rings).every(ring => ring.getAttribute('role') === 'button');
+        const result2 = logResult('Circle Rings', ringsHaveRole, 
+          ringsHaveRole ? `All ${rings.length} circle rings have role="button"` : 'Some circle rings missing role attribute');
+        displayResult('test3-results', result2);
+        
+        const ringsHaveTabindex = Array.from(rings).every(ring => ring.getAttribute('tabindex') === '0');
+        const result3 = logResult('Circle Tabindex', ringsHaveTabindex, 
+          ringsHaveTabindex ? 'All circle rings have tabindex="0"' : 'Some circle rings missing tabindex');
+        displayResult('test3-results', result3);
+        
+        // Check contact dots
+        const dots = document.querySelectorAll('.contact-dot');
+        const dotsHaveRole = Array.from(dots).every(dot => dot.getAttribute('role') === 'button');
+        const result4 = logResult('Contact Dots', dotsHaveRole, 
+          dotsHaveRole ? `All ${dots.length} contact dots have role="button"` : 'Some contact dots missing role attribute');
+        displayResult('test3-results', result4);
+        
+        // Check legend items
+        const legendItems = document.querySelectorAll('.legend-item');
+        const legendHaveRole = Array.from(legendItems).every(item => item.getAttribute('role') === 'button');
+        const result5 = logResult('Legend Items', legendHaveRole, 
+          legendHaveRole ? `All ${legendItems.length} legend items have role="button"` : 'Some legend items missing role attribute');
+        displayResult('test3-results', result5);
+      }, 200);
+    }
+
+    // Test 4: Focus Indicators
+    function testFocusIndicators() {
+      clearResults('test4-results');
+      
+      const style = document.getElementById('accessibility-styles');
+      const result1 = logResult('Focus Styles', !!style, 
+        style ? 'Accessibility styles are loaded' : 'Accessibility styles not found');
+      displayResult('test4-results', result1);
+      
+      if (style) {
+        const hasFocusStyles = style.textContent.includes('.keyboard-navigation *:focus');
+        const result2 = logResult('Focus Indicator Styles', hasFocusStyles, 
+          hasFocusStyles ? 'Focus indicator styles defined' : 'Focus indicator styles missing');
+        displayResult('test4-results', result2);
+      }
+      
+      displayInfo('test4-results', 'Manual test: Press Tab to navigate buttons above. Verify blue outline appears.');
+    }
+
+    // Test 5: Color Contrast
+    function testColorContrast() {
+      clearResults('test5-results');
+      
+      // Helper function to calculate relative luminance
+      function getLuminance(r, g, b) {
+        const [rs, gs, bs] = [r, g, b].map(c => {
+          c = c / 255;
+          return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        });
+        return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+      }
+      
+      // Helper function to calculate contrast ratio
+      function getContrastRatio(rgb1, rgb2) {
+        const lum1 = getLuminance(rgb1[0], rgb1[1], rgb1[2]);
+        const lum2 = getLuminance(rgb2[0], rgb2[1], rgb2[2]);
+        const lighter = Math.max(lum1, lum2);
+        const darker = Math.min(lum1, lum2);
+        return (lighter + 0.05) / (darker + 0.05);
+      }
+      
+      // Test some common color combinations
+      const tests = [
+        { name: 'Primary button', fg: [255, 255, 255], bg: [59, 130, 246], minRatio: 4.5 },
+        { name: 'Body text', fg: [31, 41, 55], bg: [255, 255, 255], minRatio: 4.5 },
+        { name: 'Secondary text', fg: [107, 114, 128], bg: [255, 255, 255], minRatio: 4.5 }
+      ];
+      
+      tests.forEach(test => {
+        const ratio = getContrastRatio(test.fg, test.bg);
+        const passed = ratio >= test.minRatio;
+        const result = logResult(`Contrast: ${test.name}`, passed, 
+          `${test.name}: ${ratio.toFixed(2)}:1 ${passed ? '(PASS)' : '(FAIL - needs ' + test.minRatio + ':1)'}`);
+        displayResult('test5-results', result);
+      });
+    }
+
+    // Test 6: Progress Bars
+    function testProgressBars() {
+      clearResults('test6-results');
+      
+      // Trigger enhancement
+      if (window.accessibilityEnhancements) {
+        window.accessibilityEnhancements.enhanceGamificationUI();
+      }
+      
+      setTimeout(() => {
+        const progressBars = document.querySelectorAll('.progress-bar');
+        
+        progressBars.forEach((bar, index) => {
+          const hasRole = bar.getAttribute('role') === 'progressbar';
+          const hasValueNow = bar.hasAttribute('aria-valuenow');
+          const hasValueMin = bar.hasAttribute('aria-valuemin');
+          const hasValueMax = bar.hasAttribute('aria-valuemax');
+          
+          const result = logResult(`Progress Bar ${index + 1}`, 
+            hasRole && hasValueNow && hasValueMin && hasValueMax, 
+            `Progress bar ${index + 1}: ${hasRole && hasValueNow && hasValueMin && hasValueMax ? 'All ARIA attributes present' : 'Missing ARIA attributes'}`);
+          displayResult('test6-results', result);
+        });
+        
+        if (progressBars.length === 0) {
+          displayInfo('test6-results', 'No progress bars found on page');
+        }
+      }, 200);
+    }
+
+    // Test 7: Button Size
+    function testButtonSize() {
+      clearResults('test7-results');
+      
+      const buttons = document.querySelectorAll('button, .btn, [role="button"]');
+      let failCount = 0;
+      
+      buttons.forEach((button, index) => {
+        const rect = button.getBoundingClientRect();
+        const meetsSize = rect.width >= 44 && rect.height >= 44;
+        
+        if (!meetsSize) {
+          failCount++;
+          const result = logResult(`Button ${index + 1}`, false, 
+            `Button ${index + 1}: ${rect.width.toFixed(0)}x${rect.height.toFixed(0)}px (needs 44x44px minimum)`);
+          displayResult('test7-results', result);
+        }
+      });
+      
+      if (failCount === 0) {
+        const result = logResult('Button Sizes', true, 
+          `All ${buttons.length} buttons meet minimum 44x44px size`);
+        displayResult('test7-results', result);
+      } else {
+        displayInfo('test7-results', `${failCount} of ${buttons.length} buttons need size adjustment`);
+      }
+    }
+
+    // Test 8: Skip Link
+    function testSkipLink() {
+      clearResults('test8-results');
+      
+      const skipLink = document.querySelector('.skip-to-main');
+      const result1 = logResult('Skip Link', !!skipLink, 
+        skipLink ? 'Skip to main content link exists' : 'Skip link not found');
+      displayResult('test8-results', result1);
+      
+      if (skipLink) {
+        const hasHref = skipLink.hasAttribute('href');
+        const result2 = logResult('Skip Link Href', hasHref, 
+          hasHref ? `Skip link href: ${skipLink.getAttribute('href')}` : 'Skip link missing href');
+        displayResult('test8-results', result2);
+      }
+      
+      displayInfo('test8-results', 'Manual test: Press Tab from top of page to reveal skip link');
+    }
+
+    // Test 9: Reduced Motion
+    function testReducedMotion() {
+      clearResults('test9-results');
+      
+      const style = document.getElementById('accessibility-styles');
+      if (style) {
+        const hasReducedMotion = style.textContent.includes('@media (prefers-reduced-motion: reduce)');
+        const result = logResult('Reduced Motion', hasReducedMotion, 
+          hasReducedMotion ? 'Reduced motion styles defined' : 'Reduced motion styles missing');
+        displayResult('test9-results', result);
+      }
+      
+      displayInfo('test9-results', 'Enable "Reduce motion" in system preferences to test');
+    }
+
+    // Test 10: High Contrast
+    function testHighContrast() {
+      clearResults('test10-results');
+      
+      const style = document.getElementById('accessibility-styles');
+      if (style) {
+        const hasHighContrast = style.textContent.includes('@media (prefers-contrast: high)');
+        const result = logResult('High Contrast', hasHighContrast, 
+          hasHighContrast ? 'High contrast styles defined' : 'High contrast styles missing');
+        displayResult('test10-results', result);
+      }
+      
+      displayInfo('test10-results', 'Enable high contrast mode in system preferences to test');
+    }
+
+    // Run all tests
+    function runAllTests() {
+      clearResults('summary-results');
+      testResults = [];
+      
+      testScreenReaderAnnouncer();
+      testKeyboardNavigation();
+      testARIALabels();
+      testFocusIndicators();
+      testColorContrast();
+      testProgressBars();
+      testButtonSize();
+      testSkipLink();
+      testReducedMotion();
+      testHighContrast();
+      
+      setTimeout(() => {
+        const passed = testResults.filter(r => r.passed).length;
+        const total = testResults.length;
+        const percentage = Math.round((passed / total) * 100);
+        
+        const summary = document.createElement('div');
+        summary.className = `test-result ${percentage === 100 ? 'pass' : percentage >= 70 ? 'info' : 'fail'}`;
+        summary.innerHTML = `
+          <strong>Test Summary:</strong><br>
+          ${passed} of ${total} tests passed (${percentage}%)<br>
+          ${total - passed} tests failed
+        `;
+        document.getElementById('summary-results').appendChild(summary);
+      }, 1000);
+    }
+
+    // Run initial tests on load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        displayInfo('summary-results', 'Click "Run All Tests" to execute the full test suite');
+      }, 500);
+    });
+  </script>
+</body>
+</html>

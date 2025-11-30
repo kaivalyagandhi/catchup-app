@@ -16,9 +16,16 @@ import voiceNotesRouter from './routes/voice-notes';
 import preferencesRouter from './routes/preferences';
 import accountRouter from './routes/account';
 import testDataRouter from './routes/test-data';
+import onboardingRouter from './routes/onboarding';
+import circlesRouter from './routes/circles';
+import aiSuggestionsRouter from './routes/ai-suggestions';
+import gamificationRouter from './routes/gamification';
+import weeklyCatchupRouter from './routes/weekly-catchup';
+import privacyRouter from './routes/privacy';
 import { apiRateLimiter } from '../utils/rate-limiter';
 import { enforceHttps, securityHeaders } from './middleware/security';
 import { VoiceNoteWebSocketHandler } from '../voice/websocket-handler';
+import { errorHandler, notFoundHandler } from './middleware/error-handler';
 
 export function createServer(): Express {
   const app = express();
@@ -86,6 +93,12 @@ export function createServer(): Express {
   app.use('/api/voice-notes', voiceNotesRouter);
   app.use('/api/preferences', preferencesRouter);
   app.use('/api/account', accountRouter);
+  app.use('/api/onboarding', onboardingRouter);
+  app.use('/api/circles', circlesRouter);
+  app.use('/api/ai', aiSuggestionsRouter);
+  app.use('/api/gamification', gamificationRouter);
+  app.use('/api/weekly-catchup', weeklyCatchupRouter);
+  app.use('/api/privacy', privacyRouter);
   
   // Test data routes (for development/testing)
   try {
@@ -96,19 +109,20 @@ export function createServer(): Express {
   }
 
   // Serve index.html for all other routes (SPA support)
-  app.use((req: Request, res: Response) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     if (!req.path.startsWith('/api')) {
       res.sendFile('index.html', { root: 'public' });
     } else {
-      res.status(404).json({ error: 'Not found' });
+      // API route not found - pass to 404 handler
+      next();
     }
   });
 
-  // Error handling middleware
-  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('Unhandled error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  });
+  // 404 handler for API routes
+  app.use('/api/*', notFoundHandler);
+
+  // Global error handling middleware (must be last)
+  app.use(errorHandler);
 
   return app;
 }

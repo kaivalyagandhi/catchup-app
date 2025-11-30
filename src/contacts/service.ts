@@ -32,6 +32,7 @@ export interface ContactService {
   listContacts(userId: string, filters?: ContactFilters): Promise<Contact[]>;
   deleteContact(id: string, userId: string): Promise<void>;
   archiveContact(id: string, userId: string): Promise<void>;
+  unarchiveContact(id: string, userId: string): Promise<void>;
   inferTimezoneFromLocation(location: string): string | null;
   getCityDataset(): CityTimezoneData[];
 }
@@ -172,6 +173,13 @@ export class ContactServiceImpl implements ContactService {
 
   async archiveContact(id: string, userId: string): Promise<void> {
     await this.repository.archive(id, userId);
+
+    // Invalidate caches
+    await invalidateContactCache(userId, id);
+  }
+
+  async unarchiveContact(id: string, userId: string): Promise<void> {
+    await this.repository.unarchive(id, userId);
 
     // Invalidate caches
     await invalidateContactCache(userId, id);

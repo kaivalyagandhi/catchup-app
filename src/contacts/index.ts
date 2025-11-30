@@ -68,8 +68,35 @@ export { FrequencyService, FrequencyServiceImpl, frequencyService } from './freq
 // Export import service
 export { ImportService, ImportServiceImpl, importService, ImportResult, ImportedContact } from './import-service';
 
-// Export onboarding service
-export { OnboardingService, OnboardingServiceImpl, onboardingService, ImportPreview, ArchivalSelection } from './onboarding-service';
+// Export onboarding service (contact organization flow)
+export {
+  OnboardingService,
+  PostgresOnboardingService,
+  OnboardingTrigger,
+  CircleAssignment,
+  OnboardingProgress,
+  initializeOnboarding,
+  getOnboardingState,
+  updateProgress,
+  completeOnboarding,
+  getUncategorizedContacts,
+  batchCategorizeContacts,
+  getProgress,
+  markStepComplete,
+  resumeOnboarding,
+  exitOnboarding,
+} from './onboarding-service';
+
+// Export onboarding repository
+export {
+  OnboardingRepository,
+  PostgresOnboardingRepository,
+  OnboardingStateRecord,
+  OnboardingStep,
+  OnboardingTriggerType,
+  OnboardingStateCreateData,
+  OnboardingStateUpdateData,
+} from './onboarding-repository';
 
 // Export calendar friend service
 export { CalendarFriendService, CalendarFriendServiceImpl, calendarFriendService, FrequentContact } from './calendar-friend-service';

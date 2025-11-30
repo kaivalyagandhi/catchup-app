@@ -1,0 +1,274 @@
+/**
+ * Uncategorized Contact Tracker Styles
+ * 
+ * Visual styles for uncategorized contact count display,
+ * incomplete onboarding indicators, and completion status.
+ */
+
+/* Uncategorized Count Badge */
+.uncategorized-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.uncategorized-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.badge-icon {
+  font-size: 18px;
+}
+
+.badge-count {
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+}
+
+.badge-label {
+  font-size: 13px;
+  opacity: 0.95;
+}
+
+/* Incomplete Onboarding Indicator */
+.incomplete-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+  border-left: 4px solid #f39c12;
+  border-radius: 8px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(243, 156, 18, 0.2);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.indicator-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.indicator-message {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: #2d3436;
+}
+
+.indicator-action {
+  padding: 8px 16px;
+  background: white;
+  color: #f39c12;
+  border: 2px solid #f39c12;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.indicator-action:hover {
+  background: #f39c12;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(243, 156, 18, 0.3);
+}
+
+.indicator-action:active {
+  transform: translateY(0);
+}
+
+/* Completion Status Display */
+.completion-status {
+  padding: 24px;
+  border-radius: 12px;
+  margin: 20px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.completion-status.complete {
+  background: linear-gradient(135deg, #a8e6cf 0%, #56ab2f 100%);
+  color: white;
+}
+
+.completion-status.incomplete {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+  color: #2d3436;
+}
+
+.status-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.status-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.status-content p {
+  margin: 8px 0;
+  font-size: 16px;
+  opacity: 0.95;
+}
+
+.completion-date {
+  font-size: 14px !important;
+  opacity: 0.8 !important;
+  font-style: italic;
+}
+
+/* Progress Bar */
+.status-progress {
+  margin-bottom: 16px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 6px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+}
+
+.progress-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.status-action {
+  margin-top: 16px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.status-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.status-action:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .incomplete-indicator {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .indicator-action {
+    width: 100%;
+    text-align: center;
+  }
+
+  .completion-status {
+    padding: 16px;
+  }
+
+  .status-content h3 {
+    font-size: 20px;
+  }
+
+  .status-content p {
+    font-size: 14px;
+  }
+
+  .status-icon {
+    font-size: 36px;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .completion-status.incomplete {
+    background: linear-gradient(135deg, #2d3436 0%, #1e272e 100%);
+    color: #dfe6e9;
+  }
+
+  .indicator-message {
+    color: #2d3436;
+  }
+
+  .progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Accessibility */
+.uncategorized-badge:focus,
+.indicator-action:focus,
+.status-action:focus {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* Animation for count updates */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.badge-count.updated {
+  animation: pulse 0.3s ease-in-out;
+}

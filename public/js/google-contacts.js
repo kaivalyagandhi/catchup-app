@@ -282,6 +282,13 @@ async function pollSyncStatus(jobId) {
                 if (status.lastSyncStatus === 'success') {
                     const contactsUpdated = status.totalContactsSynced || 0;
                     showToast(`✓ Sync completed! ${contactsUpdated} contacts synced`, 'success');
+                    
+                    // Trigger post-import onboarding if contacts were imported
+                    if (contactsUpdated > 0 && typeof triggerPostImportOnboarding === 'function') {
+                        setTimeout(() => {
+                            triggerPostImportOnboarding(contactsUpdated);
+                        }, 2000);
+                    }
                 } else if (status.lastSyncStatus === 'failed' && status.lastSyncError) {
                     showToast(`Sync failed: ${status.lastSyncError}`, 'error');
                 }

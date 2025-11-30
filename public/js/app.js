@@ -285,6 +285,12 @@ async function loadContacts() {
         
         contacts = await response.json();
         renderContacts(contacts);
+        
+        // Check onboarding status after contacts are loaded
+        // Use setTimeout to avoid blocking the UI
+        setTimeout(() => {
+            checkOnboardingStatus();
+        }, 500);
     } catch (error) {
         console.error('Error loading contacts:', error);
         showError('contacts-list', 'Failed to load contacts');
@@ -369,6 +375,20 @@ function renderContacts(contactsList) {
             `;
         }
         
+        // Render circle assignment
+        let circleHtml = '';
+        if (contact.dunbarCircle) {
+            const circleInfo = getCircleInfo(contact.dunbarCircle);
+            circleHtml = `
+                <div style="margin-top: 12px; padding: 8px; background: ${circleInfo.color}15; border-left: 3px solid ${circleInfo.color}; border-radius: 4px;">
+                    <p style="font-size: 12px; font-weight: 600; color: ${circleInfo.color}; margin: 0;">
+                        <span style="margin-right: 6px;">${circleInfo.emoji}</span>${circleInfo.name}
+                    </p>
+                    ${contact.circleConfidence ? `<p style="font-size: 11px; color: var(--text-secondary); margin: 4px 0 0 0;">Confidence: ${Math.round(contact.circleConfidence * 100)}%</p>` : ''}
+                </div>
+            `;
+        }
+        
         return `
             <div class="card">
                 ${sourceBadge}
@@ -380,6 +400,7 @@ function renderContacts(contactsList) {
                 ${contact.frequencyPreference ? `<p><span style="font-size: 16px; margin-right: 8px;">📅</span><strong>Frequency:</strong> ${contact.frequencyPreference}</p>` : ''}
                 ${contact.customNotes ? `<p><span style="font-size: 16px; margin-right: 8px;">📝</span><strong>Notes:</strong> ${escapeHtml(contact.customNotes)}</p>` : ''}
                 ${lastSyncInfo}
+                ${circleHtml}
                 ${tagsHtml}
                 ${groupsHtml}
                 <div class="card-actions">
@@ -4395,5 +4416,232 @@ function hideToast(toastId) {
             }
             activeToasts.delete(toastId);
         }, 300);
+    }
+}
+
+// Circle Management Integration
+// Helper function to get circle information
+function getCircleInfo(circleId) {
+    const circles = {
+        'inner': {
+            name: 'Inner Circle',
+            emoji: '💎',
+            color: '#8b5cf6',
+            description: 'Your closest relationships (up to 5 people)'
+        },
+        'close': {
+            name: 'Close Friends',
+            emoji: '🌟',
+            color: '#3b82f6',
+            description: 'Close friends you see regularly (up to 15 people)'
+        },
+        'active': {
+            name: 'Active Friends',
+            emoji: '🤝',
+            color: '#10b981',
+            description: 'Friends you actively maintain (up to 50 people)'
+        },
+        'casual': {
+            name: 'Casual Network',
+            emoji: '👋',
+            color: '#f59e0b',
+            description: 'Casual acquaintances (up to 150 people)'
+        },
+        'acquaintance': {
+            name: 'Acquaintances',
+            emoji: '👤',
+            color: '#6b7280',
+            description: 'People you know but don\'t interact with often'
+        }
+    };
+    
+    return circles[circleId] || {
+        name: 'Uncategorized',
+        emoji: '❓',
+        color: '#9ca3af',
+        description: 'Not yet assigned to a circle'
+    };
+}
+
+// Open onboarding in management mode
+async function openOnboardingManagement() {
+    try {
+        // Check if onboarding controller is available
+        if (typeof OnboardingController === 'undefined') {
+            showToast('Onboarding feature is not available', 'error');
+            return;
+        }
+        
+        // Initialize onboarding controller if not already done
+        if (!window.onboardingController) {
+            window.onboardingController = new OnboardingController();
+            window.onboardingController.initialize(authToken, userId);
+        }
+        
+        // Check if user has any contacts
+        if (contacts.length === 0) {
+            const shouldImport = confirm(
+                'You don\'t have any contacts yet. Would you like to import contacts from Google first?'
+            );
+            
+            if (shouldImport) {
+                // Navigate to preferences page where Google Contacts integration is
+                navigateTo('preferences');
+                showToast('Connect Google Contacts to import your contacts', 'info');
+                return;
+            }
+        }
+        
+        // Start onboarding in management mode
+        const loadingToastId = showToast('Opening circle management...', 'loading');
+        
+        try {
+            await window.onboardingController.initializeOnboarding('manage');
+            hideToast(loadingToastId);
+            
+            // Open onboarding UI (this would be implemented in a separate onboarding UI component)
+            showToast('Circle management opened successfully', 'success');
+            
+            // For now, show a message that the full UI is coming
+            alert('Circle Management UI\n\nThis feature allows you to organize your contacts into social circles based on Dunbar\'s number:\n\n💎 Inner Circle (5 people)\n🌟 Close Friends (15 people)\n🤝 Active Friends (50 people)\n👋 Casual Network (150 people)\n👤 Acquaintances (500+ people)\n\nThe full interactive UI with drag-and-drop visualization is available through the onboarding flow.');
+            
+        } catch (error) {
+            hideToast(loadingToastId);
+            console.error('Error opening onboarding:', error);
+            showToast('Failed to open circle management', 'error');
+        }
+    } catch (error) {
+        console.error('Error in openOnboardingManagement:', error);
+        showToast('An error occurred', 'error');
+    }
+}
+
+// Check if user should be prompted for onboarding
+async function checkOnboardingStatus() {
+    try {
+        // Only check if user is authenticated
+        if (!authToken || !userId) {
+            return;
+        }
+        
+        // Check if onboarding controller is available
+        if (typeof OnboardingController === 'undefined') {
+            return;
+        }
+        
+        // Initialize onboarding controller if not already done
+        if (!window.onboardingController) {
+            window.onboardingController = new OnboardingController();
+            window.onboardingController.initialize(authToken, userId);
+        }
+        
+        // Get onboarding state
+        const state = await window.onboardingController.resumeOnboarding();
+        
+        // If user has contacts but no onboarding state, check if they have uncategorized contacts
+        if (!state && contacts.length > 0) {
+            const uncategorizedCount = contacts.filter(c => !c.dunbarCircle).length;
+            
+            if (uncategorizedCount > 0) {
+                // Show a subtle prompt to organize contacts
+                const shouldOrganize = confirm(
+                    `You have ${uncategorizedCount} contact${uncategorizedCount > 1 ? 's' : ''} that ${uncategorizedCount > 1 ? 'haven\'t' : 'hasn\'t'} been organized into circles yet.\n\nWould you like to organize them now?`
+                );
+                
+                if (shouldOrganize) {
+                    openOnboardingManagement();
+                }
+            }
+        }
+        
+        // If user has incomplete onboarding, offer to resume
+        if (state && !state.completedAt) {
+            const shouldResume = confirm(
+                'You have an incomplete onboarding session. Would you like to continue organizing your contacts?'
+            );
+            
+            if (shouldResume) {
+                openOnboardingManagement();
+            }
+        }
+    } catch (error) {
+        console.error('Error checking onboarding status:', error);
+        // Silently fail - don't interrupt user experience
+    }
+}
+
+// Trigger onboarding after Google Contacts sync
+async function triggerPostImportOnboarding(contactCount) {
+    try {
+        // Check if onboarding controller is available
+        if (typeof OnboardingController === 'undefined') {
+            console.log('Onboarding controller not available');
+            return;
+        }
+        
+        // Initialize onboarding controller if not already done
+        if (!window.onboardingController) {
+            window.onboardingController = new OnboardingController();
+            window.onboardingController.initialize(authToken, userId);
+        }
+        
+        // Show prompt to organize imported contacts
+        const shouldOrganize = confirm(
+            `Successfully imported ${contactCount} contact${contactCount > 1 ? 's' : ''} from Google!\n\nWould you like to organize them into social circles now?`
+        );
+        
+        if (shouldOrganize) {
+            const loadingToastId = showToast('Starting contact organization...', 'loading');
+            
+            try {
+                await window.onboardingController.initializeOnboarding('post_import');
+                hideToast(loadingToastId);
+                showToast('Contact organization started', 'success');
+                
+                // Open onboarding UI
+                alert('Contact Organization\n\nYou can now organize your imported contacts into social circles.\n\nThe full interactive UI with drag-and-drop visualization will guide you through the process.');
+                
+            } catch (error) {
+                hideToast(loadingToastId);
+                console.error('Error starting post-import onboarding:', error);
+                showToast('Failed to start contact organization', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Error in triggerPostImportOnboarding:', error);
+    }
+}
+
+// Check for new user onboarding
+async function checkNewUserOnboarding() {
+    try {
+        // Only check if user is authenticated
+        if (!authToken || !userId) {
+            return;
+        }
+        
+        // Check if onboarding controller is available
+        if (typeof OnboardingController === 'undefined') {
+            return;
+        }
+        
+        // Wait a bit for contacts to load
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // If user has zero contacts, offer onboarding
+        if (contacts.length === 0) {
+            const shouldStart = confirm(
+                'Welcome to CatchUp!\n\nWould you like to import and organize your contacts to get started?'
+            );
+            
+            if (shouldStart) {
+                // Navigate to preferences to connect Google Contacts
+                navigateTo('preferences');
+                showToast('Connect Google Contacts to import your contacts', 'info');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking new user onboarding:', error);
+        // Silently fail
     }
 }

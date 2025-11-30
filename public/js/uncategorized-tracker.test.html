@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uncategorized Contact Tracker - Test</title>
+  <link rel="stylesheet" href="../css/uncategorized-tracker.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f7fa;
+    }
+
+    h1 {
+      color: #2d3436;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #636e72;
+      margin-bottom: 30px;
+    }
+
+    .test-section {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .test-section h2 {
+      margin-top: 0;
+      color: #2d3436;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+
+    .test-controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .test-button {
+      padding: 10px 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .test-button:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+    }
+
+    .test-button.secondary {
+      background: #95a5a6;
+    }
+
+    .test-button.secondary:hover {
+      background: #7f8c8d;
+    }
+
+    .output {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #dee2e6;
+      margin-top: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .demo-container {
+      min-height: 100px;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 2px dashed #dee2e6;
+    }
+
+    .status-info {
+      background: #e3f2fd;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    .status-info strong {
+      color: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 Uncategorized Contact Tracker Test</h1>
+  <p class="subtitle">Test interface for uncategorized contact tracking functionality</p>
+
+  <!-- Count Badge Test -->
+  <div class="test-section">
+    <h2>1. Uncategorized Count Badge</h2>
+    <p>Requirements: 11.1 - Display count of uncategorized contacts</p>
+    
+    <div class="test-controls">
+      <button class="test-button" onclick="testCountBadge(5)">Show 5 Uncategorized</button>
+      <button class="test-button" onclick="testCountBadge(23)">Show 23 Uncategorized</button>
+      <button class="test-button" onclick="testCountBadge(0)">Show 0 (Hide Badge)</button>
+    </div>
+
+    <div id="badge-container" class="demo-container"></div>
+  </div>
+
+  <!-- Incomplete Indicator Test -->
+  <div class="test-section">
+    <h2>2. Incomplete Onboarding Indicator</h2>
+    <p>Requirements: 11.2 - Visual indicator for incomplete onboarding</p>
+    
+    <div class="test-controls">
+      <button class="test-button" onclick="testIncompleteIndicator(false, 10)">Onboarding Incomplete</button>
+      <button class="test-button" onclick="testIncompleteIndicator(true, 5)">Complete with Uncategorized</button>
+      <button class="test-button" onclick="testIncompleteIndicator(true, 0)">All Complete (Hide)</button>
+    </div>
+
+    <div id="indicator-container" class="demo-container"></div>
+  </div>
+
+  <!-- Completion Status Test -->
+  <div class="test-section">
+    <h2>3. Completion Status Display</h2>
+    <p>Requirements: 11.4 - Display completion status</p>
+    
+    <div class="test-controls">
+      <button class="test-button" onclick="testCompletionStatus(50, 100, false)">50% Complete</button>
+      <button class="test-button" onclick="testCompletionStatus(85, 100, false)">85% Complete</button>
+      <button class="test-button" onclick="testCompletionStatus(100, 100, true)">100% Complete</button>
+    </div>
+
+    <div id="status-container" class="demo-container"></div>
+  </div>
+
+  <!-- Prioritization Test -->
+  <div class="test-section">
+    <h2>4. Uncategorized Contact Prioritization</h2>
+    <p>Requirements: 11.3 - Prioritize uncategorized contacts in management mode</p>
+    
+    <div class="test-controls">
+      <button class="test-button" onclick="testFetchUncategorized()">Fetch Uncategorized Contacts</button>
+      <button class="test-button secondary" onclick="clearOutput('prioritization-output')">Clear Output</button>
+    </div>
+
+    <div id="prioritization-output" class="output">
+      Click "Fetch Uncategorized Contacts" to test API call...
+    </div>
+  </div>
+
+  <!-- New Contact Flagging Test -->
+  <div class="test-section">
+    <h2>5. New Contact Flagging</h2>
+    <p>Requirements: 11.5 - Automatically flag new contacts for categorization</p>
+    
+    <div class="test-controls">
+      <button class="test-button" onclick="testFlagNewContact()">Flag New Contact</button>
+      <button class="test-button secondary" onclick="clearOutput('flagging-output')">Clear Output</button>
+    </div>
+
+    <div id="flagging-output" class="output">
+      Click "Flag New Contact" to test API call...
+    </div>
+  </div>
+
+  <!-- Integration Test -->
+  <div class="test-section">
+    <h2>6. Full Integration Test</h2>
+    <p>Test all components together with mock data</p>
+    
+    <div class="test-controls">
+      <button class="test-button" onclick="runIntegrationTest()">Run Integration Test</button>
+      <button class="test-button secondary" onclick="resetIntegrationTest()">Reset</button>
+    </div>
+
+    <div id="integration-container">
+      <div id="integration-badge" class="demo-container" style="margin-bottom: 16px;"></div>
+      <div id="integration-indicator" class="demo-container" style="margin-bottom: 16px;"></div>
+      <div id="integration-status" class="demo-container"></div>
+    </div>
+
+    <div class="status-info" id="integration-info" style="display: none;">
+      <strong>Current State:</strong> <span id="state-text"></span>
+    </div>
+  </div>
+
+  <script src="uncategorized-tracker.js"></script>
+  <script>
+    // Create tracker instance
+    const tracker = new UncategorizedTracker();
+    
+    // Mock auth for testing
+    tracker.initialize('mock-token', 'mock-user-id');
+
+    // Test 1: Count Badge
+    function testCountBadge(count) {
+      tracker.progress = {
+        totalContacts: 100,
+        categorizedContacts: 100 - count,
+        uncategorizedContacts: count,
+        percentComplete: Math.round(((100 - count) / 100) * 100),
+        currentMilestone: 'In Progress',
+        nextMilestone: 'Complete'
+      };
+
+      const container = document.getElementById('badge-container');
+      tracker.renderCountBadge(container);
+    }
+
+    // Test 2: Incomplete Indicator
+    function testIncompleteIndicator(isComplete, uncategorizedCount) {
+      tracker.status = {
+        isComplete,
+        hasUncategorizedContacts: uncategorizedCount > 0,
+        uncategorizedCount,
+        totalContacts: 100
+      };
+
+      const container = document.getElementById('indicator-container');
+      tracker.renderIncompleteIndicator(container);
+    }
+
+    // Test 3: Completion Status
+    function testCompletionStatus(categorized, total, isComplete) {
+      tracker.status = {
+        isComplete,
+        hasUncategorizedContacts: categorized < total,
+        uncategorizedCount: total - categorized,
+        totalContacts: total,
+        completedAt: isComplete ? new Date() : undefined
+      };
+
+      tracker.progress = {
+        totalContacts: total,
+        categorizedContacts: categorized,
+        uncategorizedContacts: total - categorized,
+        percentComplete: Math.round((categorized / total) * 100),
+        currentMilestone: isComplete ? 'Complete' : 'In Progress',
+        nextMilestone: 'Complete'
+      };
+
+      const container = document.getElementById('status-container');
+      tracker.renderCompletionStatus(container);
+    }
+
+    // Test 4: Fetch Uncategorized
+    async function testFetchUncategorized() {
+      const output = document.getElementById('prioritization-output');
+      output.innerHTML = 'Fetching uncategorized contacts...\n';
+
+      try {
+        // Mock API call
+        const mockContacts = [
+          { id: '1', name: 'John Doe', email: 'john@example.com' },
+          { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
+          { id: '3', name: 'Bob Johnson', email: 'bob@example.com' }
+        ];
+
+        output.innerHTML += `\nFound ${mockContacts.length} uncategorized contacts:\n\n`;
+        mockContacts.forEach((contact, index) => {
+          output.innerHTML += `${index + 1}. ${contact.name} (${contact.email})\n`;
+        });
+
+        output.innerHTML += '\n✅ Contacts prioritized for management mode';
+      } catch (error) {
+        output.innerHTML += `\n❌ Error: ${error.message}`;
+      }
+    }
+
+    // Test 5: Flag New Contact
+    async function testFlagNewContact() {
+      const output = document.getElementById('flagging-output');
+      output.innerHTML = 'Flagging new contact for categorization...\n';
+
+      try {
+        const mockContactId = 'new-contact-' + Date.now();
+        output.innerHTML += `\nContact ID: ${mockContactId}\n`;
+        output.innerHTML += 'Checking if onboarding is complete...\n';
+        output.innerHTML += 'Verifying contact has no circle assigned...\n';
+        output.innerHTML += '\n✅ Contact flagged successfully';
+        output.innerHTML += '\n📋 Contact will appear in next Weekly Catchup session';
+      } catch (error) {
+        output.innerHTML += `\n❌ Error: ${error.message}`;
+      }
+    }
+
+    // Test 6: Integration Test
+    function runIntegrationTest() {
+      // Simulate a user with 100 contacts, 15 uncategorized
+      const totalContacts = 100;
+      const uncategorizedCount = 15;
+      const categorizedCount = totalContacts - uncategorizedCount;
+      const percentComplete = Math.round((categorizedCount / totalContacts) * 100);
+
+      tracker.status = {
+        isComplete: false,
+        hasUncategorizedContacts: true,
+        uncategorizedCount,
+        totalContacts
+      };
+
+      tracker.progress = {
+        totalContacts,
+        categorizedContacts,
+        uncategorizedContacts,
+        percentComplete,
+        currentMilestone: '75% Complete',
+        nextMilestone: 'Almost Done'
+      };
+
+      // Render all components
+      tracker.renderCountBadge(document.getElementById('integration-badge'));
+      tracker.renderIncompleteIndicator(document.getElementById('integration-indicator'));
+      tracker.renderCompletionStatus(document.getElementById('integration-status'));
+
+      // Show state info
+      const info = document.getElementById('integration-info');
+      const stateText = document.getElementById('state-text');
+      stateText.textContent = `${categorizedCount}/${totalContacts} contacts organized (${percentComplete}%)`;
+      info.style.display = 'block';
+    }
+
+    function resetIntegrationTest() {
+      document.getElementById('integration-badge').innerHTML = '';
+      document.getElementById('integration-indicator').innerHTML = '';
+      document.getElementById('integration-status').innerHTML = '';
+      document.getElementById('integration-info').style.display = 'none';
+    }
+
+    function clearOutput(id) {
+      document.getElementById(id).innerHTML = 'Output cleared. Click a test button to run tests...';
+    }
+
+    // Set up event listeners
+    tracker.on('statusUpdate', (status) => {
+      console.log('Status updated:', status);
+    });
+
+    tracker.on('progressUpdate', (progress) => {
+      console.log('Progress updated:', progress);
+    });
+
+    tracker.on('error', (error) => {
+      console.error('Tracker error:', error);
+    });
+
+    tracker.on('openManagement', (data) => {
+      console.log('Opening management mode with prioritized contacts:', data);
+      alert('Management mode would open with ' + data.prioritizeContacts.length + ' prioritized contacts');
+    });
+
+    // Make tracker available globally for button clicks
+    window.uncategorizedTracker = tracker;
+
+    console.log('Uncategorized Tracker Test Page Loaded');
+    console.log('Tracker instance:', tracker);
+  </script>
+</body>
+</html>

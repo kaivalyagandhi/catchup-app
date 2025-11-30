@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weekly Catchup UI Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    /* Weekly Catchup Styles */
+    .weekly-catchup-empty,
+    .weekly-catchup-complete {
+      background: white;
+      border-radius: 12px;
+      padding: 60px 40px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .weekly-catchup-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+
+    .weekly-catchup-empty h2,
+    .weekly-catchup-complete h2 {
+      font-size: 28px;
+      margin-bottom: 12px;
+      color: #333;
+    }
+
+    .weekly-catchup-empty p,
+    .weekly-catchup-complete p {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    /* Review UI */
+    .weekly-catchup-review {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .weekly-catchup-progress {
+      margin-bottom: 32px;
+    }
+
+    .progress-header,
+    .progress-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4CAF50, #8BC34A);
+      transition: width 0.3s ease;
+    }
+
+    .contact-review-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    .contact-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .contact-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin-right: 16px;
+    }
+
+    .contact-info h3 {
+      font-size: 20px;
+      margin-bottom: 4px;
+      color: #333;
+    }
+
+    .contact-meta {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .contact-details {
+      margin: 20px 0;
+      padding: 16px;
+      background: #f9f9f9;
+      border-radius: 6px;
+    }
+
+    .contact-detail {
+      padding: 6px 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .suggested-action {
+      margin: 20px 0;
+      padding: 12px;
+      background: #e3f2fd;
+      border-left: 4px solid #2196F3;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #1976D2;
+    }
+
+    .review-actions {
+      margin-top: 24px;
+    }
+
+    .circle-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #2196F3;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1976D2;
+    }
+
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-warning {
+      background: #FF9800;
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background: #F57C00;
+    }
+
+    .btn-circle {
+      padding: 10px 16px;
+      background: white;
+      color: #333;
+      border: 2px solid #ddd;
+      font-size: 13px;
+    }
+
+    .btn-circle:hover {
+      border-color: #2196F3;
+      color: #2196F3;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: #2196F3;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0;
+    }
+
+    .btn-link:hover {
+      color: #1976D2;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .modal-content h3 {
+      margin-bottom: 20px;
+      font-size: 20px;
+      color: #333;
+    }
+
+    .modal-content .circle-buttons {
+      margin-bottom: 20px;
+    }
+
+    /* Celebration */
+    .celebration-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      animation: fadeIn 0.3s;
+    }
+
+    .celebration-content {
+      background: white;
+      border-radius: 16px;
+      padding: 60px 40px;
+      text-align: center;
+      animation: scaleIn 0.5s;
+    }
+
+    .celebration-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      animation: bounce 0.6s;
+    }
+
+    .celebration-content h2 {
+      font-size: 32px;
+      margin-bottom: 12px;
+      color: #333;
+    }
+
+    .celebration-content p {
+      font-size: 18px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .celebration-subtext {
+      font-size: 14px;
+      color: #999;
+    }
+
+    /* Error Toast */
+    .error-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #f44336;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s;
+      z-index: 3000;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes scaleIn {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+
+    /* Test Controls */
+    .test-controls {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .test-controls h3 {
+      margin-bottom: 12px;
+      color: #333;
+    }
+
+    .test-controls button {
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Weekly Catchup UI Test</h1>
+    
+    <div class="test-controls">
+      <h3>Test Controls</h3>
+      <button class="btn btn-secondary" onclick="testNoSession()">Show No Session</button>
+      <button class="btn btn-secondary" onclick="testReviewUI()">Show Review UI</button>
+      <button class="btn btn-secondary" onclick="testComplete()">Show Complete</button>
+      <button class="btn btn-secondary" onclick="testCelebration()">Show Celebration</button>
+      <button class="btn btn-secondary" onclick="testError()">Show Error</button>
+    </div>
+
+    <div id="weekly-catchup-container"></div>
+  </div>
+
+  <script src="weekly-catchup.js"></script>
+  <script>
+    // Mock auth token
+    localStorage.setItem('authToken', 'test-token');
+
+    // Initialize UI
+    let weeklyCatchupUI;
+
+    // Test functions
+    function testNoSession() {
+      const container = document.getElementById('weekly-catchup-container');
+      container.innerHTML = `
+        <div class="weekly-catchup-empty">
+          <div class="weekly-catchup-icon">📅</div>
+          <h2>Weekly Catchup</h2>
+          <p>Review 10-15 contacts each week to keep your network organized and up-to-date.</p>
+          <button class="btn btn-primary" onclick="alert('Start session clicked')">
+            Start This Week's Catchup
+          </button>
+        </div>
+      `;
+    }
+
+    function testReviewUI() {
+      const container = document.getElementById('weekly-catchup-container');
+      container.innerHTML = `
+        <div class="weekly-catchup-review">
+          <!-- Progress Bar -->
+          <div class="weekly-catchup-progress">
+            <div class="progress-header">
+              <span>Week 48, 2025</span>
+              <span>3 / 12 contacts</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 25%"></div>
+            </div>
+            <div class="progress-footer">
+              <span>~18 minutes remaining</span>
+              <button class="btn-link" onclick="alert('Skip clicked')">Skip this week</button>
+            </div>
+          </div>
+
+          <!-- Contact Card -->
+          <div class="contact-review-card">
+            <div class="contact-header">
+              <div class="contact-avatar">JD</div>
+              <div class="contact-info">
+                <h3>John Doe</h3>
+                <p class="contact-meta">
+                  🏷️ Needs categorization • Last contact: 3 months ago
+                </p>
+              </div>
+            </div>
+
+            <div class="contact-details">
+              <div class="contact-detail">📧 john.doe@example.com</div>
+              <div class="contact-detail">📱 +1 (555) 123-4567</div>
+              <div class="contact-detail">📍 San Francisco, CA</div>
+            </div>
+
+            <!-- Suggested Action -->
+            <div class="suggested-action">
+              <strong>Suggested:</strong> Assign to a circle
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="review-actions">
+              <div class="circle-buttons">
+                <button class="btn btn-circle" onclick="alert('Inner Circle')">
+                  Inner Circle
+                </button>
+                <button class="btn btn-circle" onclick="alert('Close Friends')">
+                  Close Friends
+                </button>
+                <button class="btn btn-circle" onclick="alert('Active Friends')">
+                  Active Friends
+                </button>
+                <button class="btn btn-circle" onclick="alert('Casual Network')">
+                  Casual Network
+                </button>
+                <button class="btn btn-circle" onclick="alert('Acquaintances')">
+                  Acquaintances
+                </button>
+              </div>
+              <button class="btn btn-secondary" onclick="alert('Archive')">
+                Archive Contact
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function testComplete() {
+      const container = document.getElementById('weekly-catchup-container');
+      container.innerHTML = `
+        <div class="weekly-catchup-complete">
+          <div class="weekly-catchup-icon">✅</div>
+          <h2>All Done!</h2>
+          <p>You've reviewed all contacts for this week. Great job!</p>
+          <button class="btn btn-secondary" onclick="testNoSession()">
+            Back to Dashboard
+          </button>
+        </div>
+      `;
+    }
+
+    function testCelebration() {
+      const celebration = document.createElement('div');
+      celebration.className = 'celebration-overlay';
+      celebration.innerHTML = `
+        <div class="celebration-content">
+          <div class="celebration-icon">🎉</div>
+          <h2>Awesome!</h2>
+          <p>You've completed this week's catchup!</p>
+          <p class="celebration-subtext">Your network is looking great!</p>
+        </div>
+      `;
+      document.body.appendChild(celebration);
+
+      setTimeout(() => {
+        celebration.remove();
+      }, 3000);
+    }
+
+    function testError() {
+      const error = document.createElement('div');
+      error.className = 'error-toast';
+      error.textContent = 'Failed to load weekly catchup session';
+      document.body.appendChild(error);
+
+      setTimeout(() => {
+        error.remove();
+      }, 3000);
+    }
+
+    // Initialize with no session view
+    testNoSession();
+  </script>
+</body>
+</html>

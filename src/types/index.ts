@@ -62,6 +62,11 @@ export interface Contact {
   googleResourceName?: string;
   googleEtag?: string;
   lastSyncedAt?: Date;
+  // Dunbar circle fields for onboarding
+  dunbarCircle?: 'inner' | 'close' | 'active' | 'casual' | 'acquaintance';
+  circleAssignedAt?: Date;
+  circleConfidence?: number;
+  aiSuggestedCircle?: 'inner' | 'close' | 'active' | 'casual' | 'acquaintance';
   createdAt: Date;
   updatedAt: Date;
 }

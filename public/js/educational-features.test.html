@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Educational Features Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-header h1 {
+      margin: 0 0 8px 0;
+      color: #1f2937;
+    }
+    
+    .test-header p {
+      margin: 0;
+      color: #6b7280;
+    }
+    
+    .test-section {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-section h2 {
+      margin: 0 0 16px 0;
+      color: #1f2937;
+      font-size: 20px;
+    }
+    
+    .test-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .test-btn {
+      padding: 10px 20px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .test-btn:hover {
+      background: #4f46e5;
+    }
+    
+    .test-btn.secondary {
+      background: #10b981;
+    }
+    
+    .test-btn.secondary:hover {
+      background: #059669;
+    }
+    
+    .test-btn.tertiary {
+      background: #f59e0b;
+    }
+    
+    .test-btn.tertiary:hover {
+      background: #d97706;
+    }
+    
+    .visualizer-container {
+      height: 600px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-info {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+    
+    .test-info p {
+      margin: 0;
+      color: #1e40af;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>Educational Features Test</h1>
+      <p>Test all educational features including tooltips, help panel, circle info, and network summary</p>
+    </div>
+    
+    <div class="test-section">
+      <h2>1. Help Panel</h2>
+      <div class="test-buttons">
+        <button class="test-btn" id="open-help-btn">Open Help Panel</button>
+        <button class="test-btn" id="close-help-btn">Close Help Panel</button>
+      </div>
+      <div class="test-info">
+        <p>The help panel provides comprehensive information about all social circles and how to use the system.</p>
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h2>2. Circle Information</h2>
+      <div class="test-buttons">
+        <button class="test-btn secondary" id="show-inner-info">Show Inner Circle Info</button>
+        <button class="test-btn secondary" id="show-close-info">Show Close Friends Info</button>
+        <button class="test-btn secondary" id="show-active-info">Show Active Friends Info</button>
+        <button class="test-btn secondary" id="hide-circle-info">Hide Circle Info</button>
+      </div>
+      <div class="test-info">
+        <p>Circle information appears when hovering over circles in the visualizer. Test it manually here.</p>
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h2>3. Balance Suggestions</h2>
+      <div class="test-buttons">
+        <button class="test-btn tertiary" id="show-balanced">Show Balanced Network</button>
+        <button class="test-btn tertiary" id="show-imbalanced">Show Imbalanced Network</button>
+        <button class="test-btn tertiary" id="show-over-capacity">Show Over Capacity</button>
+      </div>
+      <div class="test-info">
+        <p>Balance suggestions provide gentle guidance when circles are imbalanced or over capacity.</p>
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h2>4. Network Summary</h2>
+      <div class="test-buttons">
+        <button class="test-btn" id="show-summary-small">Show Summary (Small Network)</button>
+        <button class="test-btn" id="show-summary-medium">Show Summary (Medium Network)</button>
+        <button class="test-btn" id="show-summary-large">Show Summary (Large Network)</button>
+      </div>
+      <div class="test-info">
+        <p>Network summary shows completion statistics and insights about the user's organized network.</p>
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h2>5. First-Time Tooltips</h2>
+      <div class="test-buttons">
+        <button class="test-btn secondary" id="show-welcome-tooltip">Show Welcome Tooltip</button>
+        <button class="test-btn secondary" id="show-circles-tooltip">Show Circles Tooltip</button>
+        <button class="test-btn secondary" id="reset-tooltips">Reset All Tooltips</button>
+      </div>
+      <div class="test-info">
+        <p>First-time tooltips guide new users through the onboarding process. They only show once per user.</p>
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h2>6. Visualizer with Education</h2>
+      <div id="test-visualizer" class="visualizer-container"></div>
+      <div class="test-info">
+        <p>Hover over circles to see educational information. The help button appears in the bottom-right corner.</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Include dependencies -->
+  <script src="circular-visualizer.js"></script>
+  <script src="educational-features.js"></script>
+  
+  <script>
+    // Initialize educational features
+    let educational;
+    let visualizer;
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      // Create visualizer
+      visualizer = new CircularVisualizer('test-visualizer');
+      
+      // Create some test contacts
+      const testContacts = [
+        { id: '1', name: 'Alice Johnson', circle: 'inner', color: '#8b5cf6' },
+        { id: '2', name: 'Bob Smith', circle: 'inner', color: '#3b82f6' },
+        { id: '3', name: 'Carol White', circle: 'close', color: '#10b981' },
+        { id: '4', name: 'David Brown', circle: 'close', color: '#f59e0b' },
+        { id: '5', name: 'Eve Davis', circle: 'active', color: '#ef4444' },
+        { id: '6', name: 'Frank Miller', circle: 'active', color: '#ec4899' },
+        { id: '7', name: 'Grace Wilson', circle: 'casual', color: '#6366f1' },
+        { id: '8', name: 'Henry Moore', circle: 'acquaintance', color: '#14b8a6' }
+      ];
+      
+      visualizer.render(testContacts);
+      
+      // Initialize educational features
+      educational = new EducationalFeatures({
+        containerId: 'educational-container',
+        visualizer: visualizer,
+        userId: 'test-user-123'
+      });
+      
+      // Setup test buttons
+      setupTestButtons();
+    });
+    
+    function setupTestButtons() {
+      // Help panel tests
+      document.getElementById('open-help-btn').addEventListener('click', () => {
+        educational.openHelpPanel();
+      });
+      
+      document.getElementById('close-help-btn').addEventListener('click', () => {
+        educational.closeHelpPanel();
+      });
+      
+      // Circle info tests
+      document.getElementById('show-inner-info').addEventListener('click', () => {
+        educational.showCircleInfo('inner', window.CIRCLE_DEFINITIONS.inner);
+      });
+      
+      document.getElementById('show-close-info').addEventListener('click', () => {
+        educational.showCircleInfo('close', window.CIRCLE_DEFINITIONS.close);
+      });
+      
+      document.getElementById('show-active-info').addEventListener('click', () => {
+        educational.showCircleInfo('active', window.CIRCLE_DEFINITIONS.active);
+      });
+      
+      document.getElementById('hide-circle-info').addEventListener('click', () => {
+        educational.hideCircleInfo();
+      });
+      
+      // Balance suggestion tests
+      document.getElementById('show-balanced').addEventListener('click', () => {
+        const balancedDistribution = {
+          inner: 3,
+          close: 12,
+          active: 35,
+          casual: 80,
+          acquaintance: 200
+        };
+        educational.showBalanceSuggestions(balancedDistribution);
+      });
+      
+      document.getElementById('show-imbalanced').addEventListener('click', () => {
+        const imbalancedDistribution = {
+          inner: 0,
+          close: 25,
+          active: 100,
+          casual: 50,
+          acquaintance: 500
+        };
+        educational.showBalanceSuggestions(imbalancedDistribution);
+      });
+      
+      document.getElementById('show-over-capacity').addEventListener('click', () => {
+        const overCapacityDistribution = {
+          inner: 15,
+          close: 40,
+          active: 120,
+          casual: 300,
+          acquaintance: 1000
+        };
+        educational.showBalanceSuggestions(overCapacityDistribution);
+      });
+      
+      // Network summary tests
+      document.getElementById('show-summary-small').addEventListener('click', () => {
+        const smallDistribution = {
+          inner: 2,
+          close: 8,
+          active: 15,
+          casual: 25,
+          acquaintance: 50
+        };
+        educational.showNetworkSummary(smallDistribution, []);
+      });
+      
+      document.getElementById('show-summary-medium').addEventListener('click', () => {
+        const mediumDistribution = {
+          inner: 4,
+          close: 14,
+          active: 45,
+          casual: 120,
+          acquaintance: 300
+        };
+        educational.showNetworkSummary(mediumDistribution, []);
+      });
+      
+      document.getElementById('show-summary-large').addEventListener('click', () => {
+        const largeDistribution = {
+          inner: 5,
+          close: 15,
+          active: 50,
+          casual: 150,
+          acquaintance: 800
+        };
+        educational.showNetworkSummary(largeDistribution, []);
+      });
+      
+      // Tooltip tests
+      document.getElementById('show-welcome-tooltip').addEventListener('click', () => {
+        educational.showTooltip('welcome');
+      });
+      
+      document.getElementById('show-circles-tooltip').addEventListener('click', () => {
+        educational.showTooltip('circles');
+      });
+      
+      document.getElementById('reset-tooltips').addEventListener('click', () => {
+        localStorage.removeItem('shown_tooltips_test-user-123');
+        educational.shownTooltips = {};
+        alert('Tooltips reset! Reload the page to see first-time tooltips again.');
+      });
+    }
+  </script>
+</body>
+</html>
