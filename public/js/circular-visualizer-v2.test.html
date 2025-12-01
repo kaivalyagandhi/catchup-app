@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circular Visualizer V2 - Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      text-align: center;
+      color: #1f2937;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #6b7280;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .visualizer-wrapper {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      height: 800px;
+      margin-bottom: 30px;
+    }
+    
+    .info-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .info-panel h2 {
+      color: #1f2937;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    
+    .info-panel ul {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .info-panel li {
+      padding: 8px 0;
+      color: #4b5563;
+      font-size: 14px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .info-panel li:last-child {
+      border-bottom: none;
+    }
+    
+    .info-panel li strong {
+      color: #1f2937;
+    }
+    
+    .event-log {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f9fafb;
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .event-log h3 {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+    
+    .event-item {
+      font-size: 12px;
+      color: #4b5563;
+      padding: 4px 0;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Circular Visualizer V2</h1>
+    <p class="subtitle">Contacts positioned within circle zones • Light backgrounds • No drag-and-drop</p>
+    
+    <div class="visualizer-wrapper" id="visualizer-container"></div>
+    
+    <div class="info-panel">
+      <h2>Key Improvements</h2>
+      <ul>
+        <li><strong>✓ Contacts within zones:</strong> Contacts are now positioned between circle borders, not on them</li>
+        <li><strong>✓ Light backgrounds:</strong> Each circle has a subtle colored background for better visual hierarchy</li>
+        <li><strong>✓ No drag-and-drop:</strong> All drag-and-drop functionality removed for cleaner interaction</li>
+        <li><strong>✓ Fixed hover states:</strong> Simplified hover behavior prevents looping issues</li>
+        <li><strong>✓ Click to interact:</strong> Click contacts to view details or perform actions</li>
+      </ul>
+      
+      <div class="event-log">
+        <h3>Event Log</h3>
+        <div id="event-log-content"></div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="circular-visualizer.js"></script>
+  <script>
+    // Generate sample contacts
+    const sampleContacts = [
+      // Inner circle (5)
+      { id: 1, name: 'Alice Johnson', email: 'alice@example.com', circle: 'inner', color: '#8b5cf6' },
+      { id: 2, name: 'Bob Smith', email: 'bob@example.com', circle: 'inner', color: '#3b82f6' },
+      { id: 3, name: 'Carol White', email: 'carol@example.com', circle: 'inner', color: '#10b981' },
+      { id: 4, name: 'David Brown', email: 'david@example.com', circle: 'inner', color: '#f59e0b' },
+      { id: 5, name: 'Emma Davis', email: 'emma@example.com', circle: 'inner', color: '#ef4444' },
+      
+      // Close friends (10)
+      { id: 6, name: 'Frank Miller', circle: 'close', color: '#ec4899' },
+      { id: 7, name: 'Grace Wilson', circle: 'close', color: '#6366f1' },
+      { id: 8, name: 'Henry Moore', circle: 'close', color: '#14b8a6' },
+      { id: 9, name: 'Ivy Taylor', circle: 'close', color: '#f97316' },
+      { id: 10, name: 'Jack Anderson', circle: 'close', color: '#84cc16' },
+      { id: 11, name: 'Kate Thomas', circle: 'close', color: '#8b5cf6' },
+      { id: 12, name: 'Liam Jackson', circle: 'close', color: '#3b82f6' },
+      { id: 13, name: 'Mia Harris', circle: 'close', color: '#10b981' },
+      { id: 14, name: 'Noah Martin', circle: 'close', color: '#f59e0b' },
+      { id: 15, name: 'Olivia Lee', circle: 'close', color: '#ef4444' },
+      
+      // Active friends (15)
+      { id: 16, name: 'Paul Walker', circle: 'active', color: '#ec4899' },
+      { id: 17, name: 'Quinn Hall', circle: 'active', color: '#6366f1' },
+      { id: 18, name: 'Rachel Allen', circle: 'active', color: '#14b8a6' },
+      { id: 19, name: 'Sam Young', circle: 'active', color: '#f97316' },
+      { id: 20, name: 'Tina King', circle: 'active', color: '#84cc16' },
+      { id: 21, name: 'Uma Wright', circle: 'active', color: '#8b5cf6' },
+      { id: 22, name: 'Victor Lopez', circle: 'active', color: '#3b82f6' },
+      { id: 23, name: 'Wendy Hill', circle: 'active', color: '#10b981' },
+      { id: 24, name: 'Xavier Scott', circle: 'active', color: '#f59e0b' },
+      { id: 25, name: 'Yara Green', circle: 'active', color: '#ef4444' },
+      { id: 26, name: 'Zack Adams', circle: 'active', color: '#ec4899' },
+      { id: 27, name: 'Amy Baker', circle: 'active', color: '#6366f1' },
+      { id: 28, name: 'Ben Carter', circle: 'active', color: '#14b8a6' },
+      { id: 29, name: 'Chloe Evans', circle: 'active', color: '#f97316' },
+      { id: 30, name: 'Dan Foster', circle: 'active', color: '#84cc16' },
+      
+      // Casual network (12)
+      { id: 31, name: 'Eva Gray', circle: 'casual', color: '#8b5cf6' },
+      { id: 32, name: 'Fred Hughes', circle: 'casual', color: '#3b82f6' },
+      { id: 33, name: 'Gina Irwin', circle: 'casual', color: '#10b981' },
+      { id: 34, name: 'Hank James', circle: 'casual', color: '#f59e0b' },
+      { id: 35, name: 'Iris Kelly', circle: 'casual', color: '#ef4444' },
+      { id: 36, name: 'Jake Lewis', circle: 'casual', color: '#ec4899' },
+      { id: 37, name: 'Kim Mason', circle: 'casual', color: '#6366f1' },
+      { id: 38, name: 'Leo Nelson', circle: 'casual', color: '#14b8a6' },
+      { id: 39, name: 'Maya Owen', circle: 'casual', color: '#f97316' },
+      { id: 40, name: 'Nick Perry', circle: 'casual', color: '#84cc16' },
+      { id: 41, name: 'Opal Quinn', circle: 'casual', color: '#8b5cf6' },
+      { id: 42, name: 'Pete Ross', circle: 'casual', color: '#3b82f6' },
+      
+      // Acquaintances (8)
+      { id: 43, name: 'Quincy Stone', circle: 'acquaintance', color: '#10b981' },
+      { id: 44, name: 'Rita Turner', circle: 'acquaintance', color: '#f59e0b' },
+      { id: 45, name: 'Steve Underwood', circle: 'acquaintance', color: '#ef4444' },
+      { id: 46, name: 'Tara Vance', circle: 'acquaintance', color: '#ec4899' },
+      { id: 47, name: 'Umar Webb', circle: 'acquaintance', color: '#6366f1' },
+      { id: 48, name: 'Vera Xavier', circle: 'acquaintance', color: '#14b8a6' },
+      { id: 49, name: 'Will York', circle: 'acquaintance', color: '#f97316' },
+      { id: 50, name: 'Xena Zimmerman', circle: 'acquaintance', color: '#84cc16' }
+    ];
+    
+    // Initialize visualizer
+    const visualizer = new CircularVisualizer('visualizer-container');
+    
+    // Event logging
+    const eventLog = document.getElementById('event-log-content');
+    
+    function logEvent(message) {
+      const eventItem = document.createElement('div');
+      eventItem.className = 'event-item';
+      eventItem.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      eventLog.insertBefore(eventItem, eventLog.firstChild);
+      
+      // Keep only last 20 events
+      while (eventLog.children.length > 20) {
+        eventLog.removeChild(eventLog.lastChild);
+      }
+    }
+    
+    // Listen to events
+    visualizer.on('contactClick', (data) => {
+      logEvent(`Clicked: ${data.contact.name} (${data.contact.circle})`);
+    });
+    
+    visualizer.on('contactUpdate', (data) => {
+      logEvent(`Updated: Contact ${data.contactId} moved from ${data.oldCircle} to ${data.newCircle}`);
+    });
+    
+    // Render contacts
+    visualizer.render(sampleContacts);
+    
+    logEvent('Visualizer initialized with 50 contacts');
+  </script>
+</body>
+</html>
