@@ -186,11 +186,7 @@ export async function handleGoogleCalendarError<T>(
     }
 
     // Throw wrapped error
-    throw new GoogleCalendarError(
-      'Google Calendar operation failed',
-      error,
-      errorType
-    );
+    throw new GoogleCalendarError('Google Calendar operation failed', error, errorType);
   }
 }
 
@@ -336,9 +332,7 @@ export class DatabaseError extends Error {
   }
 }
 
-export async function handleDatabaseOperation<T>(
-  fn: () => Promise<T>
-): Promise<T> {
+export async function handleDatabaseOperation<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await retryWithBackoff(
       fn,

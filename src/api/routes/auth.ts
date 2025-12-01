@@ -17,21 +17,21 @@ const router = Router();
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
       res.status(400).json({ error: 'Email and password are required' });
       return;
     }
-    
+
     const { user, token } = await registerUser(email, password);
-    
+
     res.status(201).json({
       user: {
         id: user.id,
         email: user.email,
-        role: user.role
+        role: user.role,
       },
-      token
+      token,
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -49,21 +49,21 @@ router.post('/register', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
       res.status(400).json({ error: 'Email and password are required' });
       return;
     }
-    
+
     const { user, token } = await loginUser(email, password);
-    
+
     res.json({
       user: {
         id: user.id,
         email: user.email,
-        role: user.role
+        role: user.role,
       },
-      token
+      token,
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -84,18 +84,18 @@ router.get('/me', authenticate, async (req: AuthenticatedRequest, res: Response)
       res.status(401).json({ error: 'Not authenticated' });
       return;
     }
-    
+
     const user = await getUserById(req.userId);
-    
+
     if (!user) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
-    
+
     res.json({
       id: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to get user info' });
@@ -112,16 +112,16 @@ router.post('/change-password', authenticate, async (req: AuthenticatedRequest, 
       res.status(401).json({ error: 'Not authenticated' });
       return;
     }
-    
+
     const { currentPassword, newPassword } = req.body;
-    
+
     if (!currentPassword || !newPassword) {
       res.status(400).json({ error: 'Current password and new password are required' });
       return;
     }
-    
+
     await changePassword(req.userId, currentPassword, newPassword);
-    
+
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
     if (error instanceof Error) {

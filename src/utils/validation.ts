@@ -134,9 +134,7 @@ export function validateFrequencyPreference(frequency: string): ValidationResult
   if (!frequency || frequency.trim() === '') {
     errors.push('Frequency preference is required');
   } else if (!validOptions.includes(frequency.toLowerCase() as FrequencyOption)) {
-    errors.push(
-      `Invalid frequency preference. Must be one of: ${validOptions.join(', ')}`
-    );
+    errors.push(`Invalid frequency preference. Must be one of: ${validOptions.join(', ')}`);
   }
 
   return {

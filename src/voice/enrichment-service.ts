@@ -141,9 +141,7 @@ export class EnrichmentService {
       // Generate tag enrichment items
       for (const tag of contactEntities.tags) {
         // Check if contact already has this tag (case-insensitive)
-        const hasTag = contact.tags.some(
-          (t) => t.text.toLowerCase() === tag.toLowerCase()
-        );
+        const hasTag = contact.tags.some((t) => t.text.toLowerCase() === tag.toLowerCase());
         if (!hasTag) {
           items.push({
             id: uuidv4(),
@@ -158,9 +156,7 @@ export class EnrichmentService {
       // Generate group enrichment items
       for (const group of contactEntities.groups) {
         // Check if contact already in this group (case-insensitive)
-        const inGroup = contact.groups.some(
-          (g) => g.toLowerCase() === group.toLowerCase()
-        );
+        const inGroup = contact.groups.some((g) => g.toLowerCase() === group.toLowerCase());
         if (!inGroup) {
           items.push({
             id: uuidv4(),
@@ -248,10 +244,7 @@ export class EnrichmentService {
         continue;
       }
 
-      const result = await this.applyContactEnrichment(
-        contactProposal,
-        userId
-      );
+      const result = await this.applyContactEnrichment(contactProposal, userId);
 
       results.push(result);
       totalApplied += result.appliedItems;
@@ -325,10 +318,7 @@ export class EnrichmentService {
       await client.query('COMMIT');
     } catch (transactionError: any) {
       await client.query('ROLLBACK');
-      console.error(
-        `Transaction failed for contact ${contactId}:`,
-        transactionError
-      );
+      console.error(`Transaction failed for contact ${contactId}:`, transactionError);
       error = transactionError.message;
       failedItems = acceptedItems.length;
       appliedItems = 0;
@@ -388,9 +378,7 @@ export class EnrichmentService {
 
     // Find or create group
     const existingGroups = await this.groupService.listGroups(userId, false);
-    let group = existingGroups.find(
-      (g) => g.name.toLowerCase() === groupName.toLowerCase()
-    );
+    let group = existingGroups.find((g) => g.name.toLowerCase() === groupName.toLowerCase());
 
     if (!group) {
       group = await this.groupService.createGroup(userId, groupName);
@@ -498,17 +486,11 @@ export class EnrichmentService {
    * @param userId - User ID
    * @param groupNames - Array of group names
    */
-  async applyGroups(
-    contactId: string,
-    userId: string,
-    groupNames: string[]
-  ): Promise<void> {
+  async applyGroups(contactId: string, userId: string, groupNames: string[]): Promise<void> {
     for (const groupName of groupNames) {
       // Find or create group
       const existingGroups = await this.groupService.listGroups(userId, false);
-      let group = existingGroups.find(
-        (g) => g.name.toLowerCase() === groupName.toLowerCase()
-      );
+      let group = existingGroups.find((g) => g.name.toLowerCase() === groupName.toLowerCase());
 
       if (!group) {
         group = await this.groupService.createGroup(userId, groupName);

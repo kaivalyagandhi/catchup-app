@@ -33,9 +33,7 @@ function rowToAvailabilityParams(row: AvailabilityParamsRow): AvailabilityParams
 /**
  * Get availability parameters for a user
  */
-export async function getAvailabilityParams(
-  userId: string
-): Promise<AvailabilityParams | null> {
+export async function getAvailabilityParams(userId: string): Promise<AvailabilityParams | null> {
   const result = await pool.query<AvailabilityParamsRow>(
     'SELECT * FROM availability_params WHERE user_id = $1',
     [userId]

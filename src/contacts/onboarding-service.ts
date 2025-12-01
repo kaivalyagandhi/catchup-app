@@ -3,7 +3,7 @@
  *
  * Orchestrates the contact onboarding flow, managing state persistence,
  * progress tracking, and milestone detection.
- * 
+ *
  * Requirements: 1.1, 1.4, 1.5, 2.1, 3.2, 11.1, 11.5
  */
 
@@ -221,7 +221,7 @@ export class PostgresOnboardingService implements OnboardingService {
     // Check for milestone achievements
     const currentMilestone = this.getCurrentMilestone(progress.percentComplete / 100);
     const milestonesReached = state.progressData.milestonesReached || [];
-    
+
     if (!milestonesReached.includes(currentMilestone.name)) {
       milestonesReached.push(currentMilestone.name);
     }
@@ -288,20 +288,20 @@ export class PostgresOnboardingService implements OnboardingService {
     options?: { page?: number; pageSize?: number }
   ): Promise<any[]> {
     const allUncategorized = await this.contactRepo.findUncategorized(userId);
-    
+
     // If no pagination options, return all
     if (!options || !options.page || !options.pageSize) {
       return allUncategorized;
     }
-    
+
     // Apply pagination
     const { page, pageSize } = options;
     const startIndex = (page - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    
+
     return allUncategorized.slice(startIndex, endIndex);
   }
-  
+
   /**
    * Get uncategorized contacts count
    * Requirements: 11.1
@@ -315,17 +315,14 @@ export class PostgresOnboardingService implements OnboardingService {
    * Batch categorize contacts
    * Requirements: 3.2, 5.5
    */
-  async batchCategorizeContacts(
-    userId: string,
-    assignments: CircleAssignment[]
-  ): Promise<void> {
+  async batchCategorizeContacts(userId: string, assignments: CircleAssignment[]): Promise<void> {
     if (assignments.length === 0) {
       return;
     }
 
     // Group assignments by circle for batch operations
     const assignmentsByCircle = new Map<DunbarCircle, string[]>();
-    
+
     for (const assignment of assignments) {
       const contactIds = assignmentsByCircle.get(assignment.circle) || [];
       contactIds.push(assignment.contactId);
@@ -366,16 +363,15 @@ export class PostgresOnboardingService implements OnboardingService {
         return cached.progress;
       }
     }
-    
+
     const allContacts = await this.contactRepo.findAll(userId, { archived: false });
     const uncategorized = await this.contactRepo.findUncategorized(userId);
 
     const totalContacts = allContacts.length;
     const categorizedContacts = totalContacts - uncategorized.length;
     const uncategorizedContacts = uncategorized.length;
-    const percentComplete = totalContacts > 0 
-      ? Math.round((categorizedContacts / totalContacts) * 100)
-      : 0;
+    const percentComplete =
+      totalContacts > 0 ? Math.round((categorizedContacts / totalContacts) * 100) : 0;
 
     const milestone = this.getCurrentMilestone(percentComplete / 100);
 
@@ -387,13 +383,13 @@ export class PostgresOnboardingService implements OnboardingService {
       currentMilestone: milestone.name,
       nextMilestone: milestone.next,
     };
-    
+
     // Cache the result
     this.progressCache.set(userId, { progress, timestamp: Date.now() });
 
     return progress;
   }
-  
+
   /**
    * Invalidate progress cache for a user
    */
@@ -441,7 +437,7 @@ export class PostgresOnboardingService implements OnboardingService {
   /**
    * Flag a new contact for categorization
    * Requirements: 11.5
-   * 
+   *
    * This method is called when a new contact is added after onboarding completion.
    * It ensures the contact is flagged as uncategorized and will appear in the next
    * Weekly Catchup session or management mode.
@@ -484,7 +480,7 @@ export class PostgresOnboardingService implements OnboardingService {
 
     // Check if user has onboarding state
     const state = await this.onboardingRepo.findByUserId(userId);
-    
+
     // Trigger if no state exists
     if (!state) {
       return true;
@@ -506,26 +502,20 @@ const defaultService = new PostgresOnboardingService();
 
 export const initializeOnboarding = (userId: string, trigger: OnboardingTrigger) =>
   defaultService.initializeOnboarding(userId, trigger);
-export const getOnboardingState = (userId: string) =>
-  defaultService.getOnboardingState(userId);
+export const getOnboardingState = (userId: string) => defaultService.getOnboardingState(userId);
 export const updateProgress = (userId: string, step: string, data: any) =>
   defaultService.updateProgress(userId, step, data);
-export const completeOnboarding = (userId: string) =>
-  defaultService.completeOnboarding(userId);
+export const completeOnboarding = (userId: string) => defaultService.completeOnboarding(userId);
 export const getUncategorizedContacts = (userId: string) =>
   defaultService.getUncategorizedContacts(userId);
 export const batchCategorizeContacts = (userId: string, assignments: CircleAssignment[]) =>
   defaultService.batchCategorizeContacts(userId, assignments);
-export const getProgress = (userId: string) =>
-  defaultService.getProgress(userId);
+export const getProgress = (userId: string) => defaultService.getProgress(userId);
 export const markStepComplete = (userId: string, step: string) =>
   defaultService.markStepComplete(userId, step);
-export const resumeOnboarding = (userId: string) =>
-  defaultService.resumeOnboarding(userId);
-export const exitOnboarding = (userId: string) =>
-  defaultService.exitOnboarding(userId);
-export const getCompletionStatus = (userId: string) =>
-  defaultService.getCompletionStatus(userId);
+export const resumeOnboarding = (userId: string) => defaultService.resumeOnboarding(userId);
+export const exitOnboarding = (userId: string) => defaultService.exitOnboarding(userId);
+export const getCompletionStatus = (userId: string) => defaultService.getCompletionStatus(userId);
 export const flagNewContactForCategorization = (userId: string, contactId: string) =>
   defaultService.flagNewContactForCategorization(userId, contactId);
 export const shouldTriggerOnboarding = (userId: string) =>

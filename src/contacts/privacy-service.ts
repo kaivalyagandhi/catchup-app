@@ -62,7 +62,7 @@ export class PrivacyService {
     const { userId } = options;
     const exportData: ExportedData = {
       exportDate: new Date(),
-      userId
+      userId,
     };
 
     try {
@@ -195,9 +195,9 @@ export class PrivacyService {
         userId,
         metadata: {
           contactsCount: exportData.contacts?.length || 0,
-          includeOptions: options
+          includeOptions: options,
         },
-        success: true
+        success: true,
       });
 
       return exportData;
@@ -205,7 +205,7 @@ export class PrivacyService {
       await logAuditEvent(AuditAction.DATA_EXPORTED, {
         userId,
         success: false,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -217,7 +217,7 @@ export class PrivacyService {
    */
   async deleteAccount(userId: string): Promise<AccountDeletionResult> {
     const client = await pool.connect();
-    
+
     try {
       await client.query('BEGIN');
 
@@ -235,12 +235,12 @@ export class PrivacyService {
           tags: 0,
           suggestions: 0,
           oauthTokens: 0,
-          auditLogs: 0
-        }
+          auditLogs: 0,
+        },
       };
 
       // Delete in order to respect foreign key constraints
-      
+
       // 1. Delete voice note contacts (junction table)
       await client.query(
         `DELETE FROM voice_note_contacts 
@@ -256,10 +256,9 @@ export class PrivacyService {
       );
 
       // 3. Delete voice notes
-      const voiceNotesResult = await client.query(
-        'DELETE FROM voice_notes WHERE user_id = $1',
-        [userId]
-      );
+      const voiceNotesResult = await client.query('DELETE FROM voice_notes WHERE user_id = $1', [
+        userId,
+      ]);
       result.deletedRecords.voiceNotes = voiceNotesResult.rowCount || 0;
 
       // 4. Delete interaction logs
@@ -275,10 +274,9 @@ export class PrivacyService {
          WHERE suggestion_id IN (SELECT id FROM suggestions WHERE user_id = $1)`,
         [userId]
       );
-      const suggestionsResult = await client.query(
-        'DELETE FROM suggestions WHERE user_id = $1',
-        [userId]
-      );
+      const suggestionsResult = await client.query('DELETE FROM suggestions WHERE user_id = $1', [
+        userId,
+      ]);
       result.deletedRecords.suggestions = suggestionsResult.rowCount || 0;
 
       // 6. Delete contact groups (junction table)
@@ -303,30 +301,20 @@ export class PrivacyService {
       result.deletedRecords.circleAssignments = circleAssignmentsResult.rowCount || 0;
 
       // 9. Delete AI circle overrides
-      await client.query(
-        'DELETE FROM ai_circle_overrides WHERE user_id = $1',
-        [userId]
-      );
+      await client.query('DELETE FROM ai_circle_overrides WHERE user_id = $1', [userId]);
 
       // 10. Delete contacts
-      const contactsResult = await client.query(
-        'DELETE FROM contacts WHERE user_id = $1',
-        [userId]
-      );
+      const contactsResult = await client.query('DELETE FROM contacts WHERE user_id = $1', [
+        userId,
+      ]);
       result.deletedRecords.contacts = contactsResult.rowCount || 0;
 
       // 11. Delete groups
-      const groupsResult = await client.query(
-        'DELETE FROM groups WHERE user_id = $1',
-        [userId]
-      );
+      const groupsResult = await client.query('DELETE FROM groups WHERE user_id = $1', [userId]);
       result.deletedRecords.groups = groupsResult.rowCount || 0;
 
       // 12. Delete tags
-      const tagsResult = await client.query(
-        'DELETE FROM tags WHERE user_id = $1',
-        [userId]
-      );
+      const tagsResult = await client.query('DELETE FROM tags WHERE user_id = $1', [userId]);
       result.deletedRecords.tags = tagsResult.rowCount || 0;
 
       // 13. Delete weekly catchup sessions
@@ -344,10 +332,7 @@ export class PrivacyService {
       result.deletedRecords.achievements = achievementsResult.rowCount || 0;
 
       // 15. Delete network health scores
-      await client.query(
-        'DELETE FROM network_health_scores WHERE user_id = $1',
-        [userId]
-      );
+      await client.query('DELETE FROM network_health_scores WHERE user_id = $1', [userId]);
 
       // 16. Delete onboarding state
       const onboardingResult = await client.query(
@@ -357,72 +342,49 @@ export class PrivacyService {
       result.deletedRecords.onboardingState = onboardingResult.rowCount || 0;
 
       // 17. Delete notification preferences
-      await client.query(
-        'DELETE FROM notification_preferences WHERE user_id = $1',
-        [userId]
-      );
+      await client.query('DELETE FROM notification_preferences WHERE user_id = $1', [userId]);
 
       // 18. Delete OAuth tokens
-      const oauthResult = await client.query(
-        'DELETE FROM oauth_tokens WHERE user_id = $1',
-        [userId]
-      );
+      const oauthResult = await client.query('DELETE FROM oauth_tokens WHERE user_id = $1', [
+        userId,
+      ]);
       result.deletedRecords.oauthTokens = oauthResult.rowCount || 0;
 
       // 19. Delete calendar events
-      await client.query(
-        'DELETE FROM calendar_events WHERE user_id = $1',
-        [userId]
-      );
+      await client.query('DELETE FROM calendar_events WHERE user_id = $1', [userId]);
 
       // 20. Delete availability params
-      await client.query(
-        'DELETE FROM availability_params WHERE user_id = $1',
-        [userId]
-      );
+      await client.query('DELETE FROM availability_params WHERE user_id = $1', [userId]);
 
       // 21. Delete Google contacts sync state (if table exists)
       try {
-        await client.query(
-          'DELETE FROM google_contacts_sync_state WHERE user_id = $1',
-          [userId]
-        );
+        await client.query('DELETE FROM google_contacts_sync_state WHERE user_id = $1', [userId]);
       } catch (error) {
         // Table might not exist, continue
       }
 
       // 22. Delete Google contact groups (if table exists)
       try {
-        await client.query(
-          'DELETE FROM google_contact_groups WHERE user_id = $1',
-          [userId]
-        );
+        await client.query('DELETE FROM google_contact_groups WHERE user_id = $1', [userId]);
       } catch (error) {
         // Table might not exist, continue
       }
 
       // 23. Delete group mapping suggestions (if table exists)
       try {
-        await client.query(
-          'DELETE FROM group_mapping_suggestions WHERE user_id = $1',
-          [userId]
-        );
+        await client.query('DELETE FROM group_mapping_suggestions WHERE user_id = $1', [userId]);
       } catch (error) {
         // Table might not exist, continue
       }
 
       // 24. Delete audit logs (before logging the deletion to avoid FK issues)
-      const auditLogsResult = await client.query(
-        'DELETE FROM audit_logs WHERE user_id = $1',
-        [userId]
-      );
+      const auditLogsResult = await client.query('DELETE FROM audit_logs WHERE user_id = $1', [
+        userId,
+      ]);
       result.deletedRecords.auditLogs = auditLogsResult.rowCount || 0;
 
       // 25. Finally, delete the user record itself
-      await client.query(
-        'DELETE FROM users WHERE id = $1',
-        [userId]
-      );
+      await client.query('DELETE FROM users WHERE id = $1', [userId]);
 
       await client.query('COMMIT');
       result.success = true;
@@ -431,20 +393,20 @@ export class PrivacyService {
       await logAuditEvent(AuditAction.ACCOUNT_DELETED, {
         userId,
         metadata: {
-          deletedRecords: result.deletedRecords
+          deletedRecords: result.deletedRecords,
         },
-        success: true
+        success: true,
       });
 
       return result;
     } catch (error) {
       await client.query('ROLLBACK');
-      
+
       // Log the failed deletion attempt
       await logAuditEvent(AuditAction.ACCOUNT_DELETED, {
         userId,
         success: false,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
       });
 
       throw error;
@@ -456,9 +418,13 @@ export class PrivacyService {
   /**
    * Verify data isolation - ensure user can only access their own data
    */
-  async verifyDataIsolation(userId: string, resourceId: string, resourceType: string): Promise<boolean> {
+  async verifyDataIsolation(
+    userId: string,
+    resourceId: string,
+    resourceType: string
+  ): Promise<boolean> {
     let query = '';
-    
+
     switch (resourceType) {
       case 'contact':
         query = 'SELECT user_id FROM contacts WHERE id = $1';
@@ -480,7 +446,7 @@ export class PrivacyService {
     }
 
     const result = await pool.query(query, [resourceId]);
-    
+
     if (result.rows.length === 0) {
       return false;
     }

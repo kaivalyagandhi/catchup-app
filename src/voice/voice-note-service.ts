@@ -1,18 +1,18 @@
 /**
  * Voice Note Service
- * 
+ *
  * Orchestrates the complete voice note workflow:
  * 1. Create recording session
  * 2. Process audio chunks with real-time transcription
  * 3. Finalize voice note with disambiguation → extraction → proposal
- * 
+ *
  * This service coordinates:
  * - TranscriptionService (Google Speech-to-Text)
  * - ContactDisambiguationService (Gemini API)
  * - EntityExtractionService (Gemini API)
  * - EnrichmentService (proposal generation)
  * - VoiceNoteRepository (persistence)
- * 
+ *
  * Requirements: 1.1-1.9, 2.1-2.6, 3.1-3.6
  */
 
@@ -29,7 +29,10 @@ import { EnrichmentService } from './enrichment-service';
 import { VoiceNoteRepository } from './voice-repository';
 import { Contact, VoiceNote, VoiceNoteStatus } from '../types';
 import { MultiContactEnrichmentProposal } from './enrichment-service';
-import { IncrementalEnrichmentAnalyzer, EnrichmentSuggestion } from './incremental-enrichment-analyzer';
+import {
+  IncrementalEnrichmentAnalyzer,
+  EnrichmentSuggestion,
+} from './incremental-enrichment-analyzer';
 
 /**
  * Voice note session state
@@ -71,19 +74,19 @@ export enum SessionEvent {
 
 /**
  * Voice Note Service
- * 
+ *
  * Main orchestration service for voice note processing.
  */
 export class VoiceNoteService extends EventEmitter {
   private static instance: VoiceNoteService;
-  
+
   private transcriptionService: TranscriptionService;
   private disambiguationService: ContactDisambiguationService;
   private extractionService: EntityExtractionService;
   private enrichmentAnalyzer: IncrementalEnrichmentAnalyzer;
   private enrichmentService: EnrichmentService;
   private repository: VoiceNoteRepository;
-  
+
   private activeSessions: Map<string, VoiceNoteSession> = new Map();
 
   constructor(
@@ -114,15 +117,15 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Create a new voice note recording session
-   * 
+   *
    * Initializes a streaming transcription session and returns session metadata.
-   * 
+   *
    * Requirements: 1.1, 1.2, 1.3
-   * 
+   *
    * @param userId - User ID
    * @param languageCode - Language code for transcription (default: 'en-US')
    * @returns Voice note session
-   * 
+   *
    * @example
    * ```typescript
    * const session = await service.createSession('user-123');
@@ -131,13 +134,13 @@ export class VoiceNoteService extends EventEmitter {
    */
   async createSession(userId: string, languageCode: string = 'en-US'): Promise<VoiceNoteSession> {
     console.log(`Creating voice note session for user ${userId}`);
-    
+
     // Start transcription stream
     const transcriptionStream = await this.transcriptionService.startStream({
       languageCode,
       interimResults: true,
     });
-    
+
     console.log(`Transcription stream started: ${transcriptionStream.id}`);
 
     // Create session
@@ -170,15 +173,15 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Process an audio chunk for a session
-   * 
+   *
    * Streams audio to Google Speech-to-Text for real-time transcription.
    * Handles long recording segmentation for recordings exceeding 10 minutes.
-   * 
+   *
    * Requirements: 1.3, 1.4, 1.5, 7.5
-   * 
+   *
    * @param sessionId - Session ID
    * @param audioChunk - Audio data buffer
-   * 
+   *
    * @example
    * ```typescript
    * await service.processAudioChunk(session.id, audioBuffer);
@@ -208,28 +211,25 @@ export class VoiceNoteService extends EventEmitter {
     }
 
     // Send audio chunk to transcription stream
-    await this.transcriptionService.sendAudioChunk(
-      session.transcriptionStream,
-      audioChunk
-    );
+    await this.transcriptionService.sendAudioChunk(session.transcriptionStream, audioChunk);
   }
 
   /**
    * Finalize voice note and trigger processing pipeline
-   * 
+   *
    * Orchestrates the complete workflow:
    * 1. Close transcription stream
    * 2. Disambiguate contacts
    * 3. Extract entities for each contact
    * 4. Generate enrichment proposal
    * 5. Persist voice note
-   * 
+   *
    * Requirements: 1.7, 2.1-2.6, 3.1-3.6
-   * 
+   *
    * @param sessionId - Session ID
    * @param userContacts - User's contact list for disambiguation
    * @returns Finalized voice note with enrichment proposal
-   * 
+   *
    * @example
    * ```typescript
    * const result = await service.finalizeVoiceNote(session.id, userContacts);
@@ -281,14 +281,16 @@ export class VoiceNoteService extends EventEmitter {
 
       // Check if we have incremental enrichment results to use
       const incrementalSuggestions = this.enrichmentAnalyzer.getSuggestions(sessionId);
-      
+
       let identifiedContacts: Contact[] = [];
-      let entitiesMap: Map<string, ExtractedEntities> = new Map();
+      let entitiesMap: Map<string, any> = new Map();
 
       if (incrementalSuggestions && incrementalSuggestions.length > 0) {
         // Use incremental results - convert suggestions back to entities format
-        console.log(`Using ${incrementalSuggestions.length} incremental suggestions for finalization`);
-        
+        console.log(
+          `Using ${incrementalSuggestions.length} incremental suggestions for finalization`
+        );
+
         // Get unique contact names from suggestions
         const contactNames = new Set<string>();
         for (const suggestion of incrementalSuggestions) {
@@ -299,9 +301,7 @@ export class VoiceNoteService extends EventEmitter {
 
         // Match contact names to actual contacts
         for (const name of contactNames) {
-          const contact = userContacts.find(c => 
-            c.name.toLowerCase() === name.toLowerCase()
-          );
+          const contact = userContacts.find((c) => c.name.toLowerCase() === name.toLowerCase());
           if (contact) {
             identifiedContacts.push(contact);
           }
@@ -310,10 +310,10 @@ export class VoiceNoteService extends EventEmitter {
         // Convert suggestions to entities map
         for (const contact of identifiedContacts) {
           const contactSuggestions = incrementalSuggestions.filter(
-            s => s.contactHint?.toLowerCase() === contact.name.toLowerCase()
+            (s) => s.contactHint?.toLowerCase() === contact.name.toLowerCase()
           );
-          
-          const entities: ExtractedEntities = {
+
+          const entities: any = {
             fields: {},
             tags: [],
             groups: [],
@@ -348,7 +348,7 @@ export class VoiceNoteService extends EventEmitter {
       } else {
         // No incremental results - run full extraction (fallback)
         console.log('No incremental suggestions, running full extraction');
-        
+
         // Step 1: Disambiguate contacts
         const disambiguationResult = await this.disambiguationService.disambiguateDetailed(
           transcript,
@@ -358,12 +358,13 @@ export class VoiceNoteService extends EventEmitter {
         identifiedContacts = disambiguationResult.matches;
 
         // Step 2: Extract entities for each contact
-        entitiesMap = identifiedContacts.length > 0
-          ? await this.extractionService.extractForMultipleContacts(
-              transcript,
-              identifiedContacts
-            )
-          : new Map();
+        entitiesMap =
+          identifiedContacts.length > 0
+            ? await this.extractionService.extractForMultipleContacts(
+                transcript,
+                identifiedContacts
+              )
+            : new Map();
       }
 
       // Step 3: Generate enrichment proposal
@@ -378,19 +379,15 @@ export class VoiceNoteService extends EventEmitter {
         await this.repository.associateContacts(
           voiceNote.id,
           session.userId,
-          identifiedContacts.map(c => c.id)
+          identifiedContacts.map((c) => c.id)
         );
       }
 
       // Step 5: Update voice note with extracted entities and status
-      const updatedVoiceNote = await this.repository.update(
-        voiceNote.id,
-        session.userId,
-        {
-          extractedEntities: Object.fromEntries(entitiesMap),
-          status: 'ready',
-        }
-      );
+      const updatedVoiceNote = await this.repository.update(voiceNote.id, session.userId, {
+        extractedEntities: Object.fromEntries(entitiesMap),
+        status: 'ready',
+      });
 
       // Update session status
       session.status = 'ready';
@@ -422,7 +419,7 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Get active session by ID
-   * 
+   *
    * @param sessionId - Session ID
    * @returns Voice note session or undefined
    */
@@ -432,13 +429,13 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Pause an active session
-   * 
+   *
    * Stops capturing audio and preserves the current transcript state.
    * Tracks when the session was paused to calculate total paused duration.
    * Starts a 5-minute timeout timer to prompt the user.
-   * 
+   *
    * Requirements: 6.1, 6.2, 6.4
-   * 
+   *
    * @param sessionId - Session ID
    */
   async pauseSession(sessionId: string): Promise<void> {
@@ -454,12 +451,12 @@ export class VoiceNoteService extends EventEmitter {
     // Record pause time
     session.pausedAt = new Date();
     session.status = 'paused';
-    
+
     // Start 5-minute timeout
     session.pauseTimeoutId = setTimeout(() => {
       this.handlePauseTimeout(sessionId);
     }, PAUSE_TIMEOUT_MS);
-    
+
     this.emitSessionEvent(sessionId, SessionEvent.STATUS_CHANGE, {
       status: 'paused',
       pausedAt: session.pausedAt,
@@ -468,12 +465,12 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Resume a paused session
-   * 
+   *
    * Continues capturing audio and appending to the existing transcript.
    * Calculates and accumulates the paused duration.
-   * 
+   *
    * Requirements: 6.1, 6.2
-   * 
+   *
    * @param sessionId - Session ID
    */
   async resumeSession(sessionId: string): Promise<void> {
@@ -500,7 +497,7 @@ export class VoiceNoteService extends EventEmitter {
     }
 
     session.status = 'recording';
-    
+
     this.emitSessionEvent(sessionId, SessionEvent.STATUS_CHANGE, {
       status: 'recording',
       totalPausedDuration: session.totalPausedDuration,
@@ -509,7 +506,7 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Cancel an active session
-   * 
+   *
    * @param sessionId - Session ID
    */
   async cancelSession(sessionId: string): Promise<void> {
@@ -539,19 +536,17 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Get all active sessions for a user
-   * 
+   *
    * @param userId - User ID
    * @returns Array of active sessions
    */
   getUserSessions(userId: string): VoiceNoteSession[] {
-    return Array.from(this.activeSessions.values()).filter(
-      session => session.userId === userId
-    );
+    return Array.from(this.activeSessions.values()).filter((session) => session.userId === userId);
   }
 
   /**
    * Get elapsed recording time for a session (excluding paused duration)
-   * 
+   *
    * @param sessionId - Session ID
    * @returns Elapsed time in milliseconds
    */
@@ -562,7 +557,7 @@ export class VoiceNoteService extends EventEmitter {
     }
 
     const totalElapsed = Date.now() - session.startTime.getTime();
-    
+
     // If currently paused, add the current pause duration
     let currentPauseDuration = 0;
     if (session.status === 'paused' && session.pausedAt) {
@@ -574,11 +569,11 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Handle pause timeout (5 minutes)
-   * 
+   *
    * Emits a timeout event to prompt the user to continue or finalize.
-   * 
+   *
    * Requirements: 6.4
-   * 
+   *
    * @param sessionId - Session ID
    * @private
    */
@@ -594,21 +589,19 @@ export class VoiceNoteService extends EventEmitter {
 
     // Emit timeout event
     this.emitSessionEvent(sessionId, SessionEvent.PAUSE_TIMEOUT, {
-      pausedDuration: session.pausedAt 
-        ? Date.now() - session.pausedAt.getTime() 
-        : 0,
+      pausedDuration: session.pausedAt ? Date.now() - session.pausedAt.getTime() : 0,
     });
   }
 
   /**
    * Segment long recording into manageable chunks
-   * 
+   *
    * For recordings exceeding 10 minutes, this method creates a segment
    * boundary and prepares for the next segment. This helps with processing
    * and prevents memory issues with very long recordings.
-   * 
+   *
    * Requirements: 7.5
-   * 
+   *
    * @param sessionId - Session ID
    * @private
    */
@@ -642,7 +635,7 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Set up transcription event handlers for a session
-   * 
+   *
    * @param session - Voice note session
    * @private
    */
@@ -663,18 +656,18 @@ export class VoiceNoteService extends EventEmitter {
       if (result.isFinal) {
         // Append to final transcript
         session.finalTranscript += (session.finalTranscript ? ' ' : '') + result.transcript;
-        
+
         // Clear interim transcript
         session.interimTranscript = '';
-        
+
         this.emitSessionEvent(session.id, SessionEvent.FINAL_TRANSCRIPT, {
           transcript: result.transcript,
           fullTranscript: session.finalTranscript,
           confidence: result.confidence,
         });
-        
+
         // Trigger incremental enrichment analysis
-        this.analyzeForEnrichment(session.id, result.transcript).catch(err => {
+        this.analyzeForEnrichment(session.id, result.transcript).catch((err) => {
           console.error('Error in incremental enrichment:', err);
         });
       }
@@ -703,7 +696,7 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Emit a session event
-   * 
+   *
    * @param sessionId - Session ID
    * @param event - Event type
    * @param data - Event data
@@ -718,9 +711,9 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Analyze transcript for incremental enrichment
-   * 
+   *
    * Triggers enrichment analysis at natural breakpoints and emits suggestions.
-   * 
+   *
    * @param sessionId - Session ID
    * @param newText - New transcript text to analyze
    * @private
@@ -730,20 +723,22 @@ export class VoiceNoteService extends EventEmitter {
       // Get session to access user contacts
       const session = this.activeSessions.get(sessionId);
       const userContacts = session?.userContacts || [];
-      
+
       // Process the new text with user contacts for context (Proposal A & B)
       const triggered = await this.enrichmentAnalyzer.processTranscript(
-        sessionId, 
-        newText, 
-        true, 
+        sessionId,
+        newText,
+        true,
         userContacts
       );
-      
+
       // If enrichment was triggered, get and emit the suggestions
       if (triggered) {
         const suggestions = this.enrichmentAnalyzer.getSuggestions(sessionId);
         if (suggestions && suggestions.length > 0) {
-          console.log(`Emitting ${suggestions.length} enrichment suggestions for session ${sessionId}`);
+          console.log(
+            `Emitting ${suggestions.length} enrichment suggestions for session ${sessionId}`
+          );
           this.emit('enrichment_update', {
             sessionId,
             suggestions,
@@ -757,7 +752,7 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Set user contacts for a session (for incremental enrichment context)
-   * 
+   *
    * @param sessionId - Session ID
    * @param contacts - User's contacts
    */

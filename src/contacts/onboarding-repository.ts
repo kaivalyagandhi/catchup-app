@@ -3,7 +3,7 @@
  *
  * Data access layer for onboarding state operations.
  * Manages user progress through the contact onboarding flow.
- * 
+ *
  * Requirements: 1.5, 3.3, 7.1, 8.3, 12.2, 12.5
  */
 
@@ -12,7 +12,7 @@ import pool from '../db/connection';
 /**
  * Onboarding step types
  */
-export type OnboardingStep = 
+export type OnboardingStep =
   | 'welcome'
   | 'import_contacts'
   | 'circle_assignment'
@@ -191,10 +191,7 @@ export class PostgresOnboardingRepository implements OnboardingRepository {
    * Requirements: 1.5
    */
   async findByUserId(userId: string): Promise<OnboardingStateRecord | null> {
-    const result = await pool.query(
-      'SELECT * FROM onboarding_state WHERE user_id = $1',
-      [userId]
-    );
+    const result = await pool.query('SELECT * FROM onboarding_state WHERE user_id = $1', [userId]);
 
     if (result.rows.length === 0) {
       return null;
@@ -290,8 +287,10 @@ export class PostgresOnboardingRepository implements OnboardingRepository {
 const defaultRepository = new PostgresOnboardingRepository();
 
 export const create = (data: OnboardingStateCreateData) => defaultRepository.create(data);
-export const update = (userId: string, data: OnboardingStateUpdateData) => defaultRepository.update(userId, data);
+export const update = (userId: string, data: OnboardingStateUpdateData) =>
+  defaultRepository.update(userId, data);
 export const findByUserId = (userId: string) => defaultRepository.findByUserId(userId);
 export const deleteState = (userId: string) => defaultRepository.delete(userId);
-export const markStepComplete = (userId: string, step: string) => defaultRepository.markStepComplete(userId, step);
+export const markStepComplete = (userId: string, step: string) =>
+  defaultRepository.markStepComplete(userId, step);
 export const markComplete = (userId: string) => defaultRepository.markComplete(userId);

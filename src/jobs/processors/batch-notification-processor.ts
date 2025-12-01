@@ -8,10 +8,7 @@
  */
 
 import Bull from 'bull';
-import {
-  BatchNotificationJobData,
-  BatchNotificationResult,
-} from '../types';
+import { BatchNotificationJobData, BatchNotificationResult } from '../types';
 import * as preferencesRepository from '../../notifications/preferences-repository';
 import * as suggestionRepository from '../../matching/suggestion-repository';
 import { contactService } from '../../contacts/service';
@@ -51,9 +48,7 @@ export async function processBatchNotification(
     const preferences = await preferencesRepository.getPreferences(userId);
     const prefs = preferences || preferencesRepository.getDefaultPreferences();
 
-    console.log(
-      `User preferences - SMS: ${prefs.smsEnabled}, Email: ${prefs.emailEnabled}`
-    );
+    console.log(`User preferences - SMS: ${prefs.smsEnabled}, Email: ${prefs.emailEnabled}`);
 
     // Get pending suggestions without calendar events
     const allSuggestions = await suggestionRepository.findAll(userId, {
@@ -68,9 +63,7 @@ export async function processBatchNotification(
       return result;
     }
 
-    console.log(
-      `Found ${suggestions.length} pending suggestions for user ${userId}`
-    );
+    console.log(`Found ${suggestions.length} pending suggestions for user ${userId}`);
 
     // Track SMS and email results
     let smsSuccessCount = 0;
@@ -82,10 +75,7 @@ export async function processBatchNotification(
     for (const suggestion of suggestions) {
       try {
         // Get contact details
-        const contact = await contactService.getContact(
-          suggestion.contactId,
-          userId
-        );
+        const contact = await contactService.getContact(suggestion.contactId, userId);
         if (!contact) {
           result.errors.push(
             `Contact ${suggestion.contactId} not found for suggestion ${suggestion.id}`
@@ -99,17 +89,12 @@ export async function processBatchNotification(
         // Send SMS if enabled and contact has phone
         if (prefs.smsEnabled && contact.phone) {
           try {
-            const smsResult = await smsService.sendSMS(
-              contact.phone,
-              content.sms
-            );
+            const smsResult = await smsService.sendSMS(contact.phone, content.sms);
             if (smsResult.success) {
               smsSuccessCount++;
             } else {
               smsFailCount++;
-              result.errors.push(
-                `SMS failed for suggestion ${suggestion.id}: ${smsResult.error}`
-              );
+              result.errors.push(`SMS failed for suggestion ${suggestion.id}: ${smsResult.error}`);
             }
           } catch (error) {
             smsFailCount++;
@@ -160,8 +145,7 @@ export async function processBatchNotification(
 
     // Set delivery status
     if (prefs.smsEnabled) {
-      result.deliveryStatus.sms =
-        smsFailCount === 0 && smsSuccessCount > 0 ? 'success' : 'failed';
+      result.deliveryStatus.sms = smsFailCount === 0 && smsSuccessCount > 0 ? 'success' : 'failed';
     }
     if (prefs.emailEnabled) {
       result.deliveryStatus.email =

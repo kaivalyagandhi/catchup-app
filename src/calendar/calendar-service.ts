@@ -12,17 +12,12 @@ import * as calendarRepository from './calendar-repository';
 import * as calendarEventsRepository from './calendar-events-repository';
 import * as availabilityService from './availability-service';
 import * as oauthRepository from '../integrations/oauth-repository';
-import {
-  getOrSetCache,
-  CacheKeys,
-  CacheTTL,
-  invalidateCalendarCache,
-} from '../utils/cache';
+import { getOrSetCache, CacheKeys, CacheTTL, invalidateCalendarCache } from '../utils/cache';
 import { logAuditEvent, AuditAction } from '../utils/audit-logger';
 
 /**
  * Connect Google Calendar by exchanging auth code for tokens
- * 
+ *
  * Requirements: 7.1
  */
 export async function connectGoogleCalendar(
@@ -61,21 +56,21 @@ export async function connectGoogleCalendar(
     await logAuditEvent(AuditAction.OAUTH_CONSENT_GRANTED, {
       userId,
       metadata: { provider: 'google_calendar', scope: tokens.scope },
-      success: true
+      success: true,
     });
 
     return { success: true, calendars };
   } catch (error) {
     console.error('Error connecting Google Calendar:', error);
-    
+
     // Log failed OAuth attempt
     await logAuditEvent(AuditAction.OAUTH_CONSENT_GRANTED, {
       userId,
       metadata: { provider: 'google_calendar' },
       success: false,
-      errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     throw new Error('Failed to connect Google Calendar');
   }
 }
@@ -224,7 +219,7 @@ async function fetchEventsFromGoogle(
       });
 
       if (response.data.items) {
-        allEvents.push(...response.data.items.map(event => ({ event, calendarId })));
+        allEvents.push(...response.data.items.map((event) => ({ event, calendarId })));
       }
     } catch (error) {
       console.error(`Error fetching events from calendar ${calendarId}:`, error);
@@ -317,9 +312,7 @@ function identifyFreeSlots(
   const freeSlots: TimeSlot[] = [];
 
   // Sort busy slots by start time
-  const sortedBusySlots = [...busySlots].sort(
-    (a, b) => a.start.getTime() - b.start.getTime()
-  );
+  const sortedBusySlots = [...busySlots].sort((a, b) => a.start.getTime() - b.start.getTime());
 
   let currentTime = dateRange.start;
 
@@ -370,7 +363,7 @@ function identifyFreeSlots(
 
 /**
  * Get free time slots for a user based on their selected calendars
- * 
+ *
  * Requirements: 7.5, 7.7, 7.8, 20.4
  * - Scans selected calendars for existing events
  * - Identifies gaps between events as free time slots
@@ -405,18 +398,20 @@ export async function getFreeTimeSlots(
       const calendarIds = selectedCalendars.map((cal) => cal.calendarId);
 
       // Check if we need to refresh from Google (once per day or force refresh)
-      const needsSync = forceRefresh || await calendarEventsRepository.needsRefresh(userId);
+      const needsSync = forceRefresh || (await calendarEventsRepository.needsRefresh(userId));
 
       if (needsSync) {
-        console.log(`Syncing calendar events from Google for user ${userId} (force: ${forceRefresh})`);
+        console.log(
+          `Syncing calendar events from Google for user ${userId} (force: ${forceRefresh})`
+        );
         const auth = getAuthenticatedClient(accessToken, refreshToken);
-        
+
         // Sync a wider range (30 days) to cache more events
         const syncRange: DateRange = {
           start: new Date(),
           end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         };
-        
+
         await syncEventsToCache(userId, auth, calendarIds, syncRange);
       }
 
@@ -442,7 +437,10 @@ export async function getFreeTimeSlots(
       if (applyAvailabilityFilters) {
         const availabilityParams = await availabilityService.getAvailabilityParams(userId);
         if (availabilityParams) {
-          freeSlots = availabilityService.applyAvailabilityParameters(freeSlots, availabilityParams);
+          freeSlots = availabilityService.applyAvailabilityParameters(
+            freeSlots,
+            availabilityParams
+          );
         }
       }
 
@@ -454,10 +452,10 @@ export async function getFreeTimeSlots(
 
 /**
  * Refresh calendar data and recalculate free time slots
- * 
+ *
  * This function can be called when calendar data changes to ensure
  * availability predictions are up to date.
- * 
+ *
  * Requirements: 7.8
  */
 export async function refreshCalendarData(
@@ -478,7 +476,7 @@ export async function refreshCalendarData(
 
 /**
  * Force refresh calendar events from Google
- * 
+ *
  * Bypasses the daily cache and fetches fresh events from Google Calendar API.
  * Useful when user knows their calendar has changed and wants immediate update.
  */
@@ -496,20 +494,20 @@ export async function forceRefreshCalendarEvents(
 
     // Get selected calendars
     let selectedCalendars = await calendarRepository.getSelectedCalendars(userId);
-    
+
     // If no calendars selected, auto-select the primary calendar
     if (selectedCalendars.length === 0) {
       const allCalendars = await calendarRepository.getUserCalendars(userId);
-      
+
       if (allCalendars.length === 0) {
         throw new Error('No calendars found. Please reconnect your Google Calendar.');
       }
 
       // Auto-select primary calendar or first calendar
-      const primaryCalendar = allCalendars.find(cal => cal.isPrimary) || allCalendars[0];
+      const primaryCalendar = allCalendars.find((cal) => cal.isPrimary) || allCalendars[0];
       await calendarRepository.updateCalendarSelection(userId, primaryCalendar.calendarId, true);
       selectedCalendars = [primaryCalendar];
-      
+
       console.log(`Auto-selected calendar: ${primaryCalendar.name}`);
     }
 
@@ -554,7 +552,7 @@ export async function getLastCalendarSync(userId: string): Promise<Date | null> 
 
 /**
  * Get availability parameters for a user
- * 
+ *
  * Requirements: 7.6, 20.1, 20.2, 20.3
  */
 export async function getAvailabilityParams(userId: string): Promise<AvailabilityParams | null> {
@@ -563,7 +561,7 @@ export async function getAvailabilityParams(userId: string): Promise<Availabilit
 
 /**
  * Set availability parameters for a user
- * 
+ *
  * Requirements: 7.6, 20.1, 20.2, 20.3
  */
 export async function setAvailabilityParams(
@@ -575,7 +573,7 @@ export async function setAvailabilityParams(
 
 /**
  * Apply availability parameters to filter time slots
- * 
+ *
  * Requirements: 7.7, 20.4
  */
 export function applyAvailabilityParameters(
@@ -587,24 +585,24 @@ export function applyAvailabilityParameters(
 
 /**
  * Publish suggestion feed for a user
- * 
+ *
  * Generates signed URLs for both iCal and Google Calendar subscription.
  * URLs expire after 30 days by default.
- * 
+ *
  * Requirements: 8.1, 8.2
  */
 export { publishSuggestionFeed, CalendarFeedUrl } from './feed-service';
 
 /**
  * Generate iCal feed content for a user's suggestions
- * 
+ *
  * Requirements: 8.1, 8.4
  */
 export { generateFeedContent } from './feed-service';
 
 /**
  * Update feed event when suggestion status changes
- * 
+ *
  * Requirements: 8.3
  */
 export { updateFeedEvent } from './feed-service';

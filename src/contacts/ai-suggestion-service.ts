@@ -23,8 +23,13 @@ export interface CircleSuggestion {
 }
 
 export interface SuggestionFactor {
-  type: 'communication_frequency' | 'recency' | 'consistency' | 
-        'calendar_events' | 'response_time' | 'multi_channel';
+  type:
+    | 'communication_frequency'
+    | 'recency'
+    | 'consistency'
+    | 'calendar_events'
+    | 'response_time'
+    | 'multi_channel';
   weight: number;
   value: number;
   description: string;
@@ -90,13 +95,13 @@ export class PostgresAISuggestionService implements AISuggestionService {
     }
 
     const interactions = await this.interactionRepository.findByContactId(contactId, userId);
-    
+
     // Calculate suggestion factors
     const factors = await this.calculateFactors(contact, interactions, userId);
-    
+
     // Determine suggested circle based on factors
     const { suggestedCircle, confidence, alternatives } = this.determineCircle(factors, userId);
-    
+
     const suggestion: CircleSuggestion = {
       contactId,
       suggestedCircle,
@@ -121,27 +126,27 @@ export class PostgresAISuggestionService implements AISuggestionService {
     options: { concurrency?: number; useCache?: boolean } = {}
   ): Promise<CircleSuggestion[]> {
     const { concurrency = 5, useCache = true } = options;
-    
+
     // If cache is disabled, clear cache for these contacts
     if (!useCache) {
-      contactIds.forEach(contactId => {
+      contactIds.forEach((contactId) => {
         const cacheKey = `${userId}:${contactId}`;
         this.suggestionCache.delete(cacheKey);
       });
     }
-    
+
     // Process in batches with concurrency limit
     const results: CircleSuggestion[] = [];
     const queue = [...contactIds];
     const inProgress: Promise<CircleSuggestion>[] = [];
-    
+
     while (queue.length > 0 || inProgress.length > 0) {
       // Fill up to concurrency limit
       while (inProgress.length < concurrency && queue.length > 0) {
         const contactId = queue.shift()!;
         const promise = this.analyzeContact(userId, contactId);
         inProgress.push(promise);
-        
+
         promise
           .then((suggestion) => {
             results.push(suggestion);
@@ -159,13 +164,13 @@ export class PostgresAISuggestionService implements AISuggestionService {
             }
           });
       }
-      
+
       // Wait for at least one to complete
       if (inProgress.length > 0) {
         await Promise.race(inProgress);
       }
     }
-    
+
     return results;
   }
 
@@ -179,7 +184,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
     actual: DunbarCircle
   ): Promise<void> {
     const pool = (await import('../db/connection')).default;
-    
+
     // Get the factors that led to the suggestion
     const contact = await this.contactRepository.findById(contactId, userId);
     if (!contact) {
@@ -207,7 +212,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
    */
   async improveModel(userId: string): Promise<void> {
     const pool = (await import('../db/connection')).default;
-    
+
     // Get all overrides for this user
     const result = await pool.query(
       `SELECT * FROM ai_circle_overrides WHERE user_id = $1 ORDER BY recorded_at DESC`,
@@ -268,9 +273,12 @@ export class PostgresAISuggestionService implements AISuggestionService {
     // Calculate interactions per month over the last 6 months
     const sixMonthsAgo = new Date(now);
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    
-    const recentInteractions = interactions.filter(i => i.date >= sixMonthsAgo);
-    const monthsOfData = Math.max(1, (now.getTime() - sixMonthsAgo.getTime()) / (30 * 24 * 60 * 60 * 1000));
+
+    const recentInteractions = interactions.filter((i) => i.date >= sixMonthsAgo);
+    const monthsOfData = Math.max(
+      1,
+      (now.getTime() - sixMonthsAgo.getTime()) / (30 * 24 * 60 * 60 * 1000)
+    );
     const interactionsPerMonth = recentInteractions.length / monthsOfData;
 
     // Score: 0-100 based on frequency
@@ -349,7 +357,8 @@ export class PostgresAISuggestionService implements AISuggestionService {
     }
 
     const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    const variance = intervals.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / intervals.length;
+    const variance =
+      intervals.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / intervals.length;
     const stdDev = Math.sqrt(variance);
     const coefficientOfVariation = stdDev / mean;
 
@@ -383,7 +392,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
       };
     }
 
-    const channels = new Set(interactions.map(i => i.type));
+    const channels = new Set(interactions.map((i) => i.type));
     const channelCount = channels.size;
 
     // Score based on number of communication channels
@@ -408,10 +417,14 @@ export class PostgresAISuggestionService implements AISuggestionService {
   private determineCircle(
     factors: SuggestionFactor[],
     userId: string
-  ): { suggestedCircle: DunbarCircle; confidence: number; alternatives: Array<{ circle: DunbarCircle; confidence: number }> } {
+  ): {
+    suggestedCircle: DunbarCircle;
+    confidence: number;
+    alternatives: Array<{ circle: DunbarCircle; confidence: number }>;
+  } {
     // Calculate weighted score
     const totalWeight = factors.reduce((sum, f) => sum + f.weight, 0);
-    const weightedScore = factors.reduce((sum, f) => sum + (f.value * f.weight), 0) / totalWeight;
+    const weightedScore = factors.reduce((sum, f) => sum + f.value * f.weight, 0) / totalWeight;
 
     // Determine circle based on score
     // Inner Circle (5): 85-100
@@ -457,7 +470,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
 
     // Add adjacent circles as alternatives with lower confidence
     const primaryIndex = circles.indexOf(primary);
-    
+
     if (primaryIndex > 0) {
       // One circle closer
       alternatives.push({
@@ -465,7 +478,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
         confidence: Math.max(30, score - 10),
       });
     }
-    
+
     if (primaryIndex < circles.length - 1) {
       // One circle further
       alternatives.push({

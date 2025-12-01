@@ -35,30 +35,30 @@ export function enforceHttps(req: Request, res: Response, next: NextFunction): v
 export function securityHeaders(_req: Request, res: Response, next: NextFunction): void {
   // Prevent clickjacking
   res.setHeader('X-Frame-Options', 'DENY');
-  
+
   // Prevent MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  
+
   // Enable XSS protection
   res.setHeader('X-XSS-Protection', '1; mode=block');
-  
+
   // Enforce HTTPS (HSTS)
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
-  
+
   // Content Security Policy
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
   );
-  
+
   // Referrer Policy
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
+
   // Permissions Policy - Allow microphone for voice notes feature
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(self), camera=()');
-  
+
   next();
 }
 
@@ -67,11 +67,9 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
  */
 export function sanitizeInput(input: string): string {
   if (!input) return input;
-  
+
   // Remove potential SQL injection characters
-  return input
-    .replace(/[;'"\\]/g, '')
-    .trim();
+  return input.replace(/[;'"\\]/g, '').trim();
 }
 
 /**

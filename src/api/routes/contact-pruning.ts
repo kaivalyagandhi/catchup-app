@@ -2,7 +2,7 @@
  * Contact Pruning API Routes
  *
  * Endpoints for archiving, removing, and reactivating contacts.
- * 
+ *
  * Requirements: 12.1, 12.2, 12.3, 12.4, 12.5
  */
 
@@ -142,7 +142,7 @@ router.post('/bulk-archive', async (req: Request, res: Response) => {
     const pruningService = new PostgresContactPruningService();
     const results = await pruningService.bulkArchive(userId, contactIds);
 
-    const successCount = results.filter(r => r.success).length;
+    const successCount = results.filter((r) => r.success).length;
 
     res.json({
       success: true,
@@ -182,7 +182,7 @@ router.post('/bulk-remove', async (req: Request, res: Response) => {
     const pruningService = new PostgresContactPruningService();
     const results = await pruningService.bulkRemove(userId, contactIds);
 
-    const successCount = results.filter(r => r.success).length;
+    const successCount = results.filter((r) => r.success).length;
 
     res.json({
       success: true,

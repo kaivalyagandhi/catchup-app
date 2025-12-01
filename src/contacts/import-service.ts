@@ -7,7 +7,12 @@
  */
 
 import { google } from 'googleapis';
-import { ContactRepository, PostgresContactRepository, ContactCreateData, ContactUpdateData } from './repository';
+import {
+  ContactRepository,
+  PostgresContactRepository,
+  ContactCreateData,
+  ContactUpdateData,
+} from './repository';
 import { Contact } from '../types';
 
 export interface ImportedContact {
@@ -89,9 +94,10 @@ export class ImportServiceImpl implements ImportService {
     // Fallback deduplication by email
     if (contactData.email) {
       const allContacts = await this.repository.findAll(userId);
-      existingContact = allContacts.find(
-        (c) => c.email && c.email.toLowerCase().trim() === contactData.email!.toLowerCase().trim()
-      ) || null;
+      existingContact =
+        allContacts.find(
+          (c) => c.email && c.email.toLowerCase().trim() === contactData.email!.toLowerCase().trim()
+        ) || null;
 
       if (existingContact) {
         return this.updateContact(existingContact.id, userId, contactData);
@@ -102,9 +108,10 @@ export class ImportServiceImpl implements ImportService {
     if (contactData.phone) {
       const normalizePhone = (phone: string) => phone.replace(/\D/g, '');
       const allContacts = await this.repository.findAll(userId);
-      existingContact = allContacts.find(
-        (c) => c.phone && normalizePhone(c.phone) === normalizePhone(contactData.phone!)
-      ) || null;
+      existingContact =
+        allContacts.find(
+          (c) => c.phone && normalizePhone(c.phone) === normalizePhone(contactData.phone!)
+        ) || null;
 
       if (existingContact) {
         return this.updateContact(existingContact.id, userId, contactData);
@@ -144,7 +151,7 @@ export class ImportServiceImpl implements ImportService {
   async updateContact(contactId: string, userId: string, data: ContactData): Promise<Contact> {
     // Fetch existing contact to preserve CatchUp-specific fields
     const existingContact = await this.repository.findById(contactId, userId);
-    
+
     if (!existingContact) {
       throw new Error('Contact not found');
     }
@@ -157,13 +164,13 @@ export class ImportServiceImpl implements ImportService {
       email: data.email,
       linkedIn: data.linkedinUrl,
       location: data.address,
-      
+
       // Update Google metadata
       source: 'google',
       googleResourceName: data.googleResourceName,
       googleEtag: data.googleEtag,
       lastSyncedAt: data.lastSyncedAt,
-      
+
       // Preserve CatchUp-specific fields that don't come from Google
       // These fields are NOT updated during sync:
       // - instagram (CatchUp-specific)
@@ -172,7 +179,7 @@ export class ImportServiceImpl implements ImportService {
       // - timezone (CatchUp-specific, user preference)
       // - frequencyPreference (CatchUp-specific, user preference)
       // - lastContactDate (CatchUp-specific, interaction tracking)
-      
+
       // Handle customNotes specially: merge Google organization data with existing notes
       customNotes: this.mergeCustomNotes(existingContact.customNotes, data.organization),
     };
@@ -185,7 +192,10 @@ export class ImportServiceImpl implements ImportService {
    * Preserves user-added notes while updating Google organization data
    * Requirements: 3.4, 13.5
    */
-  private mergeCustomNotes(existingNotes: string | undefined, googleOrganization: string | undefined): string | undefined {
+  private mergeCustomNotes(
+    existingNotes: string | undefined,
+    googleOrganization: string | undefined
+  ): string | undefined {
     // If no existing notes, just use Google organization data
     if (!existingNotes) {
       return googleOrganization;
@@ -242,7 +252,8 @@ export class ImportServiceImpl implements ImportService {
     // Extract name
     if (person.names && person.names.length > 0) {
       const name = person.names[0];
-      contactData.name = name.displayName || `${name.givenName || ''} ${name.familyName || ''}`.trim();
+      contactData.name =
+        name.displayName || `${name.givenName || ''} ${name.familyName || ''}`.trim();
     }
 
     // Extract email (primary first)
@@ -259,9 +270,7 @@ export class ImportServiceImpl implements ImportService {
 
     // Extract LinkedIn from URLs
     if (person.urls && person.urls.length > 0) {
-      const linkedInUrl = person.urls.find((u) =>
-        u.value?.toLowerCase().includes('linkedin.com')
-      );
+      const linkedInUrl = person.urls.find((u) => u.value?.toLowerCase().includes('linkedin.com'));
       if (linkedInUrl) {
         contactData.linkedinUrl = linkedInUrl.value;
       }
@@ -306,7 +315,8 @@ export class ImportServiceImpl implements ImportService {
       const response = await people.people.connections.list({
         resourceName: 'people/me',
         pageSize: 1000,
-        personFields: 'names,emailAddresses,phoneNumbers,organizations,urls,addresses,memberships,metadata',
+        personFields:
+          'names,emailAddresses,phoneNumbers,organizations,urls,addresses,memberships,metadata',
       });
 
       const connections = response.data.connections || [];
@@ -347,7 +357,6 @@ export class ImportServiceImpl implements ImportService {
       );
     }
   }
-
 }
 
 // Export singleton instance

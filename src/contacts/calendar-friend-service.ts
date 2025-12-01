@@ -61,7 +61,7 @@ export class CalendarFriendServiceImpl implements CalendarFriendService {
   /**
    * Identify frequent contacts from calendar events
    * Analyzes calendar events to find people the user meets with regularly
-   * 
+   *
    * Requirements: 19.6
    */
   async identifyFrequentContacts(

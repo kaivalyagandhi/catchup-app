@@ -3,7 +3,7 @@
  *
  * Manages weekly contact review sessions for progressive onboarding.
  * Breaks contact management into manageable weekly chunks (10-15 contacts).
- * 
+ *
  * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5
  */
 
@@ -63,7 +63,12 @@ export interface WeeklyCatchupService {
   startSession(userId: string): Promise<WeeklyCatchupSession>;
   getCurrentSession(userId: string): Promise<WeeklyCatchupSession | null>;
   getNextContact(sessionId: string, userId: string): Promise<ContactReviewItem | null>;
-  markContactReviewed(sessionId: string, userId: string, contactId: string, actionData: ReviewActionData): Promise<void>;
+  markContactReviewed(
+    sessionId: string,
+    userId: string,
+    contactId: string,
+    actionData: ReviewActionData
+  ): Promise<void>;
   completeSession(sessionId: string, userId: string): Promise<void>;
   skipSession(sessionId: string, userId: string): Promise<void>;
   getSessionProgress(sessionId: string, userId: string): Promise<SessionProgress>;
@@ -98,7 +103,7 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
 
     // Check if session already exists for this week
     let session = await this.weeklyCatchupRepo.findByWeek(userId, year, weekNumber);
-    
+
     if (session && !session.completedAt && !session.skipped) {
       // Return existing incomplete session
       return this.enrichSessionWithProgress(session);
@@ -123,7 +128,7 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
    */
   async getCurrentSession(userId: string): Promise<WeeklyCatchupSession | null> {
     const session = await this.weeklyCatchupRepo.findCurrentSession(userId);
-    
+
     if (!session) {
       return null;
     }
@@ -136,8 +141,11 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
    * Requirements: 7.2
    */
   async getNextContact(sessionId: string, userId: string): Promise<ContactReviewItem | null> {
-    const unreviewedContacts = await this.weeklyCatchupRepo.getUnreviewedContacts(sessionId, userId);
-    
+    const unreviewedContacts = await this.weeklyCatchupRepo.getUnreviewedContacts(
+      sessionId,
+      userId
+    );
+
     if (unreviewedContacts.length === 0) {
       return null;
     }
@@ -180,7 +188,7 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
    */
   async completeSession(sessionId: string, userId: string): Promise<void> {
     await this.weeklyCatchupRepo.markComplete(sessionId, userId);
-    
+
     // Update onboarding progress if applicable
     const onboardingState = await this.onboardingRepo.findByUserId(userId);
     if (onboardingState && !onboardingState.completedAt) {
@@ -195,7 +203,7 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
         ...progressData,
         weeklyCatchupCompleted: ((progressData as any).weeklyCatchupCompleted || 0) + 1,
       };
-      
+
       await this.onboardingRepo.update(userId, {
         progressData: updatedProgressData,
       });
@@ -208,7 +216,10 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
    */
   async skipSession(sessionId: string, userId: string): Promise<void> {
     // Get unreviewed contacts
-    const unreviewedContacts = await this.weeklyCatchupRepo.getUnreviewedContacts(sessionId, userId);
+    const unreviewedContacts = await this.weeklyCatchupRepo.getUnreviewedContacts(
+      sessionId,
+      userId
+    );
 
     // Mark session as skipped
     await this.weeklyCatchupRepo.markSkipped(sessionId, userId);
@@ -224,7 +235,7 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
    */
   async getSessionProgress(sessionId: string, userId: string): Promise<SessionProgress> {
     const session = await this.weeklyCatchupRepo.findById(sessionId, userId);
-    
+
     if (!session) {
       throw new Error('Session not found');
     }
@@ -241,21 +252,24 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
 
     // 1. Get unreviewed contacts from previous skipped sessions
     const recentSessions = await this.weeklyCatchupRepo.findRecentSessions(userId, 5);
-    const skippedSessions = recentSessions.filter(s => s.skipped);
-    
+    const skippedSessions = recentSessions.filter((s) => s.skipped);
+
     for (const skippedSession of skippedSessions) {
-      const unreviewed = await this.weeklyCatchupRepo.getUnreviewedContacts(skippedSession.id, userId);
+      const unreviewed = await this.weeklyCatchupRepo.getUnreviewedContacts(
+        skippedSession.id,
+        userId
+      );
       contactsToReview.push(...unreviewed);
     }
 
     // 2. Get uncategorized contacts (priority)
     const uncategorizedContacts = await this.contactRepo.findUncategorized(userId);
-    
+
     for (const contact of uncategorizedContacts) {
       if (contactsToReview.length >= 15) break;
-      
+
       // Skip if already in list
-      if (contactsToReview.some(c => c.contactId === contact.id)) continue;
+      if (contactsToReview.some((c) => c.contactId === contact.id)) continue;
 
       contactsToReview.push({
         contactId: contact.id,
@@ -267,10 +281,13 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
 
     // 3. Get contacts that need maintenance (haven't been contacted recently)
     if (contactsToReview.length < 15) {
-      const maintenanceContacts = await this.getMaintenanceContacts(userId, 15 - contactsToReview.length);
-      
+      const maintenanceContacts = await this.getMaintenanceContacts(
+        userId,
+        15 - contactsToReview.length
+      );
+
       for (const contact of maintenanceContacts) {
-        if (contactsToReview.some(c => c.contactId === contact.id)) continue;
+        if (contactsToReview.some((c) => c.contactId === contact.id)) continue;
 
         contactsToReview.push({
           contactId: contact.id,
@@ -284,9 +301,9 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
     // 4. Get contacts that might need pruning (no recent interaction)
     if (contactsToReview.length < 10) {
       const pruneContacts = await this.getPruneContacts(userId, 15 - contactsToReview.length);
-      
+
       for (const contact of pruneContacts) {
-        if (contactsToReview.some(c => c.contactId === contact.id)) continue;
+        if (contactsToReview.some((c) => c.contactId === contact.id)) continue;
 
         contactsToReview.push({
           contactId: contact.id,
@@ -380,7 +397,7 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
     const totalContacts = session.contactsToReview.length;
     const reviewedContacts = session.reviewedContacts.length;
     const percentComplete = totalContacts > 0 ? (reviewedContacts / totalContacts) * 100 : 100;
-    
+
     // Estimate 2 minutes per contact
     const remainingContacts = totalContacts - reviewedContacts;
     const estimatedTimeRemaining = remainingContacts * 2;
@@ -413,8 +430,8 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
     const dayNum = d.getUTCDay() || 7;
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    const weekNumber = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-    
+    const weekNumber = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+
     return {
       weekNumber,
       year: d.getUTCFullYear(),
@@ -427,9 +444,17 @@ const defaultService = new PostgresWeeklyCatchupService();
 
 export const startSession = (userId: string) => defaultService.startSession(userId);
 export const getCurrentSession = (userId: string) => defaultService.getCurrentSession(userId);
-export const getNextContact = (sessionId: string, userId: string) => defaultService.getNextContact(sessionId, userId);
-export const markContactReviewed = (sessionId: string, userId: string, contactId: string, actionData: ReviewActionData) => 
-  defaultService.markContactReviewed(sessionId, userId, contactId, actionData);
-export const completeSession = (sessionId: string, userId: string) => defaultService.completeSession(sessionId, userId);
-export const skipSession = (sessionId: string, userId: string) => defaultService.skipSession(sessionId, userId);
-export const getSessionProgress = (sessionId: string, userId: string) => defaultService.getSessionProgress(sessionId, userId);
+export const getNextContact = (sessionId: string, userId: string) =>
+  defaultService.getNextContact(sessionId, userId);
+export const markContactReviewed = (
+  sessionId: string,
+  userId: string,
+  contactId: string,
+  actionData: ReviewActionData
+) => defaultService.markContactReviewed(sessionId, userId, contactId, actionData);
+export const completeSession = (sessionId: string, userId: string) =>
+  defaultService.completeSession(sessionId, userId);
+export const skipSession = (sessionId: string, userId: string) =>
+  defaultService.skipSession(sessionId, userId);
+export const getSessionProgress = (sessionId: string, userId: string) =>
+  defaultService.getSessionProgress(sessionId, userId);

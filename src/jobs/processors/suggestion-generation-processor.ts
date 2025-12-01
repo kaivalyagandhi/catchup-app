@@ -8,10 +8,7 @@
  */
 
 import Bull from 'bull';
-import {
-  SuggestionGenerationJobData,
-  SuggestionGenerationResult,
-} from '../types';
+import { SuggestionGenerationJobData, SuggestionGenerationResult } from '../types';
 import * as oauthRepository from '../../integrations/oauth-repository';
 import * as calendarService from '../../calendar/calendar-service';
 import * as suggestionService from '../../matching/suggestion-service';
@@ -34,9 +31,7 @@ export async function processSuggestionGeneration(
 ): Promise<SuggestionGenerationResult> {
   const { batchSize = DEFAULT_BATCH_SIZE, offset = 0 } = job.data;
 
-  console.log(
-    `Processing suggestion generation job - batch size: ${batchSize}, offset: ${offset}`
-  );
+  console.log(`Processing suggestion generation job - batch size: ${batchSize}, offset: ${offset}`);
 
   const result: SuggestionGenerationResult = {
     usersProcessed: 0,
@@ -46,9 +41,7 @@ export async function processSuggestionGeneration(
 
   try {
     // Get all users with Google Calendar OAuth tokens
-    const allUserIds = await oauthRepository.getUsersWithProvider(
-      'google_calendar'
-    );
+    const allUserIds = await oauthRepository.getUsersWithProvider('google_calendar');
 
     // Apply pagination
     const userIds = allUserIds.slice(offset, offset + batchSize);
@@ -73,9 +66,7 @@ export async function processSuggestionGeneration(
         // Get user's OAuth token
         const token = await oauthRepository.getToken(userId, 'google_calendar');
         if (!token) {
-          result.errors.push(
-            `No OAuth token found for user ${userId}`
-          );
+          result.errors.push(`No OAuth token found for user ${userId}`);
           continue;
         }
 
@@ -87,23 +78,18 @@ export async function processSuggestionGeneration(
           token.refreshToken
         );
 
-        console.log(
-          `Found ${availableSlots.length} available slots for user ${userId}`
-        );
+        console.log(`Found ${availableSlots.length} available slots for user ${userId}`);
 
         // Generate timebound suggestions
-        const suggestions =
-          await suggestionService.generateTimeboundSuggestions(
-            userId,
-            availableSlots
-          );
+        const suggestions = await suggestionService.generateTimeboundSuggestions(
+          userId,
+          availableSlots
+        );
 
         result.usersProcessed++;
         result.suggestionsGenerated += suggestions.length;
 
-        console.log(
-          `Generated ${suggestions.length} suggestions for user ${userId}`
-        );
+        console.log(`Generated ${suggestions.length} suggestions for user ${userId}`);
       } catch (error) {
         const errorMessage = `Error processing user ${userId}: ${
           error instanceof Error ? error.message : String(error)
@@ -119,9 +105,7 @@ export async function processSuggestionGeneration(
 
     // If there are more users to process, schedule the next batch
     if (offset + batchSize < allUserIds.length) {
-      console.log(
-        `Scheduling next batch - offset: ${offset + batchSize}`
-      );
+      console.log(`Scheduling next batch - offset: ${offset + batchSize}`);
       // Note: The scheduler will handle this automatically
     }
 

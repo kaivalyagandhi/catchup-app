@@ -44,35 +44,35 @@ export const RateLimits = {
     maxRequests: 60, // 60 requests per minute
     keyPrefix: 'ratelimit:api:user',
   },
-  
+
   // Voice upload limits
   VOICE_UPLOAD: {
     windowMs: 60 * 60 * 1000, // 1 hour
     maxRequests: 10, // 10 uploads per hour
     keyPrefix: 'ratelimit:voice:user',
   },
-  
+
   // Notification limits (prevent spam)
   NOTIFICATION: {
     windowMs: 60 * 60 * 1000, // 1 hour
     maxRequests: 20, // 20 notifications per hour per user
     keyPrefix: 'ratelimit:notification:user',
   },
-  
+
   // External API rate limits (Google Calendar)
   GOOGLE_CALENDAR_API: {
     windowMs: 60 * 1000, // 1 minute
     maxRequests: 10, // 10 requests per minute
     keyPrefix: 'ratelimit:google:user',
   },
-  
+
   // SMS rate limits (Twilio)
   SMS: {
     windowMs: 60 * 60 * 1000, // 1 hour
     maxRequests: 10, // 10 SMS per hour per user
     keyPrefix: 'ratelimit:sms:user',
   },
-  
+
   // Email rate limits
   EMAIL: {
     windowMs: 60 * 60 * 1000, // 1 hour
@@ -83,7 +83,7 @@ export const RateLimits = {
 
 /**
  * Check rate limit using sliding window algorithm
- * 
+ *
  * This implementation uses Redis sorted sets to track requests
  * within a sliding time window.
  */
@@ -106,10 +106,8 @@ export async function checkRateLimit(
     if (requestCount >= config.maxRequests) {
       // Get oldest request timestamp to calculate retry after
       const oldestRequest = await redis.zrange(key, 0, 0, 'WITHSCORES');
-      const oldestTimestamp = oldestRequest.length > 1 
-        ? parseInt(oldestRequest[1]) 
-        : now;
-      
+      const oldestTimestamp = oldestRequest.length > 1 ? parseInt(oldestRequest[1]) : now;
+
       const resetAt = new Date(oldestTimestamp + config.windowMs);
       const retryAfter = Math.ceil((resetAt.getTime() - now) / 1000);
 
@@ -151,6 +149,11 @@ export async function checkRateLimit(
  */
 export function apiRateLimiter(config: RateLimitConfig = RateLimits.API_PER_USER) {
   return async (req: any, res: any, next: any) => {
+    // Skip rate limiting in test environment
+    if (process.env.NODE_ENV === 'test') {
+      return next();
+    }
+
     // Get user ID from request (assumes authentication middleware sets req.user)
     const userId = req.user?.id || req.ip;
 
@@ -228,9 +231,7 @@ export class ExternalAPIRateLimiter {
       const retryCount = this.retryCount.get(identifier) || 0;
       const backoffMs = Math.min(1000 * Math.pow(2, retryCount), 30000); // Max 30s
 
-      console.log(
-        `Rate limit exceeded for ${identifier}. Backing off for ${backoffMs}ms`
-      );
+      console.log(`Rate limit exceeded for ${identifier}. Backing off for ${backoffMs}ms`);
 
       // Wait for backoff period
       await new Promise((resolve) => setTimeout(resolve, backoffMs));

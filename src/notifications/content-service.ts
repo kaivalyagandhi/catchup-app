@@ -59,7 +59,8 @@ export function generateNotificationText(suggestion: Suggestion, contact: Contac
   const reasoning = suggestion.reasoning;
 
   // Format concisely for SMS
-  const message = `CatchUp: Connect with ${name}?\n\n` +
+  const message =
+    `CatchUp: Connect with ${name}?\n\n` +
     `When: ${timeslot}\n` +
     `Why: ${reasoning}\n\n` +
     `Reply:\n` +

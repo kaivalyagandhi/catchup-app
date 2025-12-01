@@ -10,11 +10,7 @@ import {
   getOAuth2Client,
   refreshAccessToken as refreshToken,
 } from './google-contacts-config';
-import {
-  upsertToken,
-  getToken,
-  deleteToken,
-} from './oauth-repository';
+import { upsertToken, getToken, deleteToken } from './oauth-repository';
 
 const PROVIDER = 'google_contacts';
 
@@ -48,7 +44,7 @@ export class GoogleContactsOAuthService {
   async handleCallback(code: string, userId: string): Promise<OAuthTokens> {
     // Exchange code for tokens
     const credentials = await getTokensFromCode(code);
-    
+
     if (!credentials || !credentials.access_token) {
       throw new Error('Failed to obtain access token from authorization code');
     }
@@ -81,10 +77,12 @@ export class GoogleContactsOAuthService {
    */
   private async getUserProfile(credentials: Credentials): Promise<UserProfile> {
     const oauth2Client = getOAuth2Client(credentials);
-    const oauth2 = await import('googleapis').then(g => g.google.oauth2({ version: 'v2', auth: oauth2Client }));
-    
+    const oauth2 = await import('googleapis').then((g) =>
+      g.google.oauth2({ version: 'v2', auth: oauth2Client })
+    );
+
     const { data } = await oauth2.userinfo.get();
-    
+
     if (!data.email) {
       throw new Error('Failed to retrieve user email from Google');
     }
@@ -100,14 +98,14 @@ export class GoogleContactsOAuthService {
    */
   async refreshAccessToken(userId: string): Promise<string> {
     const token = await getToken(userId, PROVIDER);
-    
+
     if (!token || !token.refreshToken) {
       throw new Error('No refresh token available for user');
     }
 
     try {
       const newCredentials = await refreshToken(token.refreshToken);
-      
+
       if (!newCredentials.access_token) {
         throw new Error('Failed to refresh access token');
       }
@@ -148,7 +146,7 @@ export class GoogleContactsOAuthService {
     expiresAt?: Date;
   }> {
     const token = await getToken(userId, PROVIDER);
-    
+
     return {
       connected: !!token,
       email: token?.email,
@@ -162,7 +160,7 @@ export class GoogleContactsOAuthService {
    */
   async getAccessToken(userId: string): Promise<string> {
     const token = await getToken(userId, PROVIDER);
-    
+
     if (!token) {
       throw new Error('User has not connected Google Contacts');
     }
@@ -188,13 +186,13 @@ export class GoogleContactsOAuthService {
     // Import repositories here to avoid circular dependencies
     const { clearSyncState } = await import('./sync-state-repository');
     const { PostgresContactRepository } = await import('../contacts/repository');
-    
+
     // Delete OAuth tokens
     await deleteToken(userId, PROVIDER);
-    
+
     // Clear sync state (sync token, timestamps)
     await clearSyncState(userId);
-    
+
     // Clear Google sync metadata from contacts (preserve contacts)
     const contactRepo = new PostgresContactRepository();
     await contactRepo.clearGoogleSyncMetadata(userId);

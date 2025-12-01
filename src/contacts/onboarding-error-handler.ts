@@ -20,7 +20,7 @@ import {
   handleDatabaseOperation,
   circuitBreakers,
 } from '../utils/error-handling';
-import { withOptimisticLock, OptimisticLockError } from '../utils/concurrency';
+import { updateWithOptimisticLock, OptimisticLockError } from '../utils/concurrency';
 
 /**
  * Wrap onboarding operation with error handling
@@ -50,12 +50,9 @@ export async function withOnboardingErrorHandling<T>(
     }
 
     // Wrap other errors
-    throw new OnboardingError(
-      `Operation failed: ${operationName}`,
-      'OPERATION_FAILED',
-      500,
-      { originalError: error.message }
-    );
+    throw new OnboardingError(`Operation failed: ${operationName}`, 'OPERATION_FAILED', 500, {
+      originalError: error.message,
+    });
   }
 }
 
@@ -119,9 +116,7 @@ export async function withConcurrencyHandling<T>(
         );
 
         // Wait before retrying (exponential backoff)
-        await new Promise((resolve) =>
-          setTimeout(resolve, Math.pow(2, attempt) * 100)
-        );
+        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 100));
         continue;
       }
 
@@ -226,12 +221,9 @@ export async function withTimeout<T>(
       setTimeout(
         () =>
           reject(
-            new OnboardingError(
-              `Operation timeout: ${operationName}`,
-              'TIMEOUT',
-              504,
-              { timeoutMs }
-            )
+            new OnboardingError(`Operation timeout: ${operationName}`, 'TIMEOUT', 504, {
+              timeoutMs,
+            })
           ),
         timeoutMs
       )
@@ -242,11 +234,7 @@ export async function withTimeout<T>(
 /**
  * Log operation for monitoring
  */
-export function logOperation(
-  operationName: string,
-  userId: string,
-  details?: any
-): void {
+export function logOperation(operationName: string, userId: string, details?: any): void {
   console.log('Onboarding operation:', {
     timestamp: new Date().toISOString(),
     operation: operationName,

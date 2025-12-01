@@ -22,6 +22,8 @@ export const QUEUE_NAMES = {
   GOOGLE_CONTACTS_SYNC: 'google-contacts-sync',
 } as const;
 
+export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
+
 // Default job options with exponential backoff
 export const DEFAULT_JOB_OPTIONS: Bull.JobOptions = {
   attempts: 3,
@@ -34,43 +36,37 @@ export const DEFAULT_JOB_OPTIONS: Bull.JobOptions = {
 };
 
 // Create queues
-export const suggestionGenerationQueue = new Bull(
-  QUEUE_NAMES.SUGGESTION_GENERATION,
-  {
-    createClient: (type) => {
-      switch (type) {
-        case 'client':
-          return createRedisClient();
-        case 'subscriber':
-          return createRedisClient();
-        case 'bclient':
-          return createRedisClient();
-        default:
-          return createRedisClient();
-      }
-    },
-    defaultJobOptions: DEFAULT_JOB_OPTIONS,
-  }
-);
+export const suggestionGenerationQueue = new Bull(QUEUE_NAMES.SUGGESTION_GENERATION, {
+  createClient: (type) => {
+    switch (type) {
+      case 'client':
+        return createRedisClient();
+      case 'subscriber':
+        return createRedisClient();
+      case 'bclient':
+        return createRedisClient();
+      default:
+        return createRedisClient();
+    }
+  },
+  defaultJobOptions: DEFAULT_JOB_OPTIONS,
+});
 
-export const batchNotificationQueue = new Bull(
-  QUEUE_NAMES.BATCH_NOTIFICATIONS,
-  {
-    createClient: (type) => {
-      switch (type) {
-        case 'client':
-          return createRedisClient();
-        case 'subscriber':
-          return createRedisClient();
-        case 'bclient':
-          return createRedisClient();
-        default:
-          return createRedisClient();
-      }
-    },
-    defaultJobOptions: DEFAULT_JOB_OPTIONS,
-  }
-);
+export const batchNotificationQueue = new Bull(QUEUE_NAMES.BATCH_NOTIFICATIONS, {
+  createClient: (type) => {
+    switch (type) {
+      case 'client':
+        return createRedisClient();
+      case 'subscriber':
+        return createRedisClient();
+      case 'bclient':
+        return createRedisClient();
+      default:
+        return createRedisClient();
+    }
+  },
+  defaultJobOptions: DEFAULT_JOB_OPTIONS,
+});
 
 export const calendarSyncQueue = new Bull(QUEUE_NAMES.CALENDAR_SYNC, {
   createClient: (type) => {
@@ -126,10 +122,7 @@ suggestionGenerationQueue.on('error', (error) => {
 });
 
 suggestionGenerationQueue.on('failed', (job, error) => {
-  console.error(
-    `Suggestion generation job ${job.id} failed:`,
-    error.message
-  );
+  console.error(`Suggestion generation job ${job.id} failed:`, error.message);
 });
 
 batchNotificationQueue.on('error', (error) => {
@@ -179,15 +172,16 @@ export async function closeQueues(): Promise<void> {
  * Enqueue a job to a specific queue
  */
 export async function enqueueJob(
-  queueName: keyof typeof QUEUE_NAMES,
+  queueName: QueueName,
   data: any,
   options?: Bull.JobOptions
 ): Promise<Bull.Job> {
-  const queueMap = {
-    'suggestion-generation': suggestionGenerationQueue,
-    'batch-notifications': batchNotificationQueue,
-    'calendar-sync': calendarSyncQueue,
-    'suggestion-regeneration': suggestionRegenerationQueue,
+  const queueMap: Record<QueueName, Bull.Queue> = {
+    [QUEUE_NAMES.SUGGESTION_GENERATION]: suggestionGenerationQueue,
+    [QUEUE_NAMES.BATCH_NOTIFICATIONS]: batchNotificationQueue,
+    [QUEUE_NAMES.CALENDAR_SYNC]: calendarSyncQueue,
+    [QUEUE_NAMES.SUGGESTION_REGENERATION]: suggestionRegenerationQueue,
+    [QUEUE_NAMES.GOOGLE_CONTACTS_SYNC]: googleContactsSyncQueue,
   };
 
   const queue = queueMap[queueName];

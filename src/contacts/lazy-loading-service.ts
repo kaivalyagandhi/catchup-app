@@ -1,6 +1,6 @@
 /**
  * Lazy Loading Service
- * 
+ *
  * Provides lazy loading utilities for onboarding steps and components.
  * Requirements: 4.2, 9.1
  */
@@ -24,29 +24,26 @@ export interface LazyLoadable<T> {
 /**
  * Create a lazy loadable item
  */
-export function createLazyLoadable<T>(
-  id: string,
-  loader: () => Promise<T>
-): LazyLoadable<T> {
+export function createLazyLoadable<T>(id: string, loader: () => Promise<T>): LazyLoadable<T> {
   let state: LoadState = 'idle';
   let data: T | null = null;
   let error: Error | null = null;
   let loadPromise: Promise<T> | null = null;
-  
+
   const load = async (): Promise<T> => {
     // Return existing promise if already loading
     if (loadPromise) {
       return loadPromise;
     }
-    
+
     // Return cached data if already loaded
     if (state === 'loaded' && data !== null) {
       return data;
     }
-    
+
     state = 'loading';
     error = null;
-    
+
     loadPromise = loader()
       .then((result) => {
         state = 'loaded';
@@ -60,15 +57,21 @@ export function createLazyLoadable<T>(
         loadPromise = null;
         throw err;
       });
-    
+
     return loadPromise;
   };
-  
+
   return {
     id,
-    get state() { return state; },
-    get data() { return data; },
-    get error() { return error; },
+    get state() {
+      return state;
+    },
+    get data() {
+      return data;
+    },
+    get error() {
+      return error;
+    },
     load,
   };
 }
@@ -91,7 +94,7 @@ export function createOnboardingSteps(
     preload?: boolean;
   }>
 ): OnboardingStep[] {
-  return steps.map(step => ({
+  return steps.map((step) => ({
     id: step.id,
     name: step.name,
     component: createLazyLoadable(step.id, step.loader),
@@ -107,13 +110,10 @@ export async function preloadNextSteps(
   currentStepIndex: number,
   lookahead: number = 1
 ): Promise<void> {
-  const nextSteps = steps.slice(
-    currentStepIndex + 1,
-    currentStepIndex + 1 + lookahead
-  );
-  
+  const nextSteps = steps.slice(currentStepIndex + 1, currentStepIndex + 1 + lookahead);
+
   await Promise.all(
-    nextSteps.map(step => {
+    nextSteps.map((step) => {
       if (step.component.state === 'idle') {
         return step.component.load().catch(() => {
           // Ignore preload errors
@@ -131,11 +131,8 @@ export function createLazyLoadObserver(
   callback: (element: Element) => void,
   config: LazyLoadConfig = {}
 ): IntersectionObserver {
-  const {
-    threshold = 0.1,
-    rootMargin = '50px',
-  } = config;
-  
+  const { threshold = 0.1, rootMargin = '50px' } = config;
+
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -150,7 +147,7 @@ export function createLazyLoadObserver(
       rootMargin,
     }
   );
-  
+
   return observer;
 }
 
@@ -166,7 +163,7 @@ export function lazyLoadImage(
     if (placeholder) {
       img.src = placeholder;
     }
-    
+
     const tempImg = new Image();
     tempImg.onload = () => {
       img.src = src;
@@ -188,14 +185,14 @@ export async function batchLazyLoad<T>(
   const results: T[] = [];
   const queue = [...items];
   const inProgress: Promise<T>[] = [];
-  
+
   while (queue.length > 0 || inProgress.length > 0) {
     // Fill up to concurrency limit
     while (inProgress.length < concurrency && queue.length > 0) {
       const item = queue.shift()!;
       const promise = item.load();
       inProgress.push(promise);
-      
+
       promise
         .then((result) => {
           results.push(result);
@@ -212,13 +209,13 @@ export async function batchLazyLoad<T>(
           }
         });
     }
-    
+
     // Wait for at least one to complete
     if (inProgress.length > 0) {
       await Promise.race(inProgress);
     }
   }
-  
+
   return results;
 }
 
@@ -229,27 +226,27 @@ export class LazyLoadCache<T> {
   private cache: Map<string, LazyLoadable<T>>;
   private maxSize: number;
   private accessOrder: string[];
-  
+
   constructor(maxSize: number = 100) {
     this.cache = new Map();
     this.maxSize = maxSize;
     this.accessOrder = [];
   }
-  
+
   get(key: string, loader: () => Promise<T>): LazyLoadable<T> {
     let item = this.cache.get(key);
-    
+
     if (!item) {
       item = createLazyLoadable(key, loader);
       this.set(key, item);
     }
-    
+
     // Update access order
     this.updateAccessOrder(key);
-    
+
     return item;
   }
-  
+
   private set(key: string, item: LazyLoadable<T>): void {
     // Evict oldest if at capacity
     if (this.cache.size >= this.maxSize) {
@@ -258,11 +255,11 @@ export class LazyLoadCache<T> {
         this.cache.delete(oldestKey);
       }
     }
-    
+
     this.cache.set(key, item);
     this.accessOrder.push(key);
   }
-  
+
   private updateAccessOrder(key: string): void {
     const index = this.accessOrder.indexOf(key);
     if (index > -1) {
@@ -270,16 +267,16 @@ export class LazyLoadCache<T> {
     }
     this.accessOrder.push(key);
   }
-  
+
   clear(): void {
     this.cache.clear();
     this.accessOrder = [];
   }
-  
+
   has(key: string): boolean {
     return this.cache.has(key);
   }
-  
+
   delete(key: string): boolean {
     const index = this.accessOrder.indexOf(key);
     if (index > -1) {

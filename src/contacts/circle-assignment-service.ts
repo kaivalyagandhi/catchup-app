@@ -4,7 +4,7 @@
  * Business logic for assigning contacts to Dunbar circles.
  * Handles circle capacity validation, distribution calculations,
  * batch assignments, and rebalancing suggestions.
- * 
+ *
  * Requirements: 3.3, 4.3, 5.3, 5.5, 14.4
  */
 
@@ -250,10 +250,7 @@ export class CircleAssignmentServiceImpl implements CircleAssignmentService {
    * Validate circle capacity
    * Requirements: 4.3
    */
-  async validateCircleCapacity(
-    userId: string,
-    circle: DunbarCircle
-  ): Promise<CircleCapacityInfo> {
+  async validateCircleCapacity(userId: string, circle: DunbarCircle): Promise<CircleCapacityInfo> {
     if (!this.isValidCircle(circle)) {
       throw new Error(`Invalid circle: ${circle}`);
     }
@@ -321,9 +318,9 @@ export class CircleAssignmentServiceImpl implements CircleAssignmentService {
         if (targetCircle) {
           // Get contact details for the most recently added contacts
           const contacts = await Promise.all(
-            contactIds.slice(0, Math.ceil(currentSize - definition.recommendedSize)).map((id) =>
-              this.contactRepository.findById(id, userId)
-            )
+            contactIds
+              .slice(0, Math.ceil(currentSize - definition.recommendedSize))
+              .map((id) => this.contactRepository.findById(id, userId))
           );
 
           for (const contact of contacts) {

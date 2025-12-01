@@ -103,6 +103,45 @@ Accessibility features and compliance:
   - Entity extraction
   - Best practices
 
+#### SMS/MMS Enrichment
+
+- **[SMS/MMS Enrichment README](./SMS_MMS_ENRICHMENT_README.md)** - Complete feature overview
+  - Documentation structure
+  - Feature capabilities
+  - Quick start guide
+  - Integration with other features
+
+- **[SMS/MMS Enrichment User Guide](./SMS_MMS_ENRICHMENT_USER_GUIDE.md)** - User documentation
+  - Phone number verification
+  - Sending text messages (SMS)
+  - Sending voice notes (Audio MMS)
+  - Sending photos (Image MMS)
+  - Sending videos (Video MMS)
+  - Reviewing enrichments
+  - Privacy and security
+
+- **[SMS/MMS Enrichment Quick Reference](./SMS_MMS_ENRICHMENT_QUICK_REFERENCE.md)** - Quick lookup guide
+  - Setup steps
+  - Message formats
+  - Limits and restrictions
+  - Common errors
+  - Keyboard shortcuts
+
+- **[SMS/MMS Enrichment Troubleshooting](./SMS_MMS_ENRICHMENT_TROUBLESHOOTING.md)** - Problem solving
+  - Phone verification issues
+  - Message sending problems
+  - Processing errors
+  - Rate limiting issues
+  - Media file problems
+  - Extraction accuracy
+
+- **[Twilio SMS/MMS Setup](./TWILIO_SMS_MMS_SETUP.md)** - Technical setup
+  - Twilio account configuration
+  - Phone number setup
+  - Webhook configuration
+  - Environment variables
+  - Testing procedures
+
 ## Quick Start
 
 ### For Users
@@ -111,6 +150,7 @@ Accessibility features and compliance:
 2. **Need Help?**: Check the [Troubleshooting Guide](./CONTACT_ONBOARDING_TROUBLESHOOTING.md)
 3. **Google Contacts**: See [Google Contacts User Guide](./GOOGLE_CONTACTS_USER_GUIDE.md)
 4. **Voice Notes**: Read [Voice Notes User Guide](./VOICE_NOTES_USER_GUIDE.md)
+5. **SMS/MMS Enrichment**: See [SMS/MMS Enrichment User Guide](./SMS_MMS_ENRICHMENT_USER_GUIDE.md)
 
 ### For Developers
 

@@ -1,9 +1,9 @@
 /**
  * Performance Monitor Utility
- * 
+ *
  * Provides utilities for monitoring and logging performance metrics.
  * Tracks sync duration, API request counts, and performance warnings.
- * 
+ *
  * Requirements: 12.4
  */
 
@@ -20,7 +20,7 @@ export interface PerformanceMetrics {
 
 /**
  * Performance Monitor
- * 
+ *
  * Tracks performance metrics for operations and logs warnings for slow operations.
  */
 export class PerformanceMonitor {
@@ -34,30 +34,26 @@ export class PerformanceMonitor {
 
   /**
    * Start tracking an operation
-   * 
+   *
    * @param operationId - Unique identifier for the operation
    * @param operationName - Human-readable name for the operation
    * @param metadata - Additional metadata to track
    */
-  startOperation(
-    operationId: string,
-    operationName: string,
-    metadata?: Record<string, any>
-  ): void {
+  startOperation(operationId: string, operationName: string, metadata?: Record<string, any>): void {
     this.metrics.set(operationId, {
       operationName,
       startTime: Date.now(),
       warnings: [],
       metadata,
     });
-    
+
     // Reset API request count for this operation
     this.apiRequestCounts.set(operationId, 0);
   }
 
   /**
    * Increment API request count for an operation
-   * 
+   *
    * @param operationId - Unique identifier for the operation
    */
   incrementApiRequestCount(operationId: string): void {
@@ -67,7 +63,7 @@ export class PerformanceMonitor {
 
   /**
    * Get current API request count for an operation
-   * 
+   *
    * @param operationId - Unique identifier for the operation
    */
   getApiRequestCount(operationId: string): number {
@@ -76,14 +72,14 @@ export class PerformanceMonitor {
 
   /**
    * End tracking an operation and calculate metrics
-   * 
+   *
    * @param operationId - Unique identifier for the operation
    * @param itemsProcessed - Number of items processed during the operation
    * @returns Performance metrics for the operation
    */
   endOperation(operationId: string, itemsProcessed?: number): PerformanceMetrics | null {
     const metrics = this.metrics.get(operationId);
-    
+
     if (!metrics) {
       console.warn(`No metrics found for operation: ${operationId}`);
       return null;
@@ -109,7 +105,7 @@ export class PerformanceMonitor {
 
   /**
    * Check for performance warnings based on metrics
-   * 
+   *
    * Requirements: 12.4 - Log performance warnings for slow syncs (>2 min for 500 contacts)
    */
   private checkPerformanceWarnings(metrics: PerformanceMetrics): void {
@@ -121,15 +117,15 @@ export class PerformanceMonitor {
       // Warning threshold: >2 minutes for 500 contacts
       // Calculate expected time: (itemsProcessed / 500) * 2 minutes
       const expectedMinutes = (itemsProcessed / 500) * 2;
-      
+
       if (durationMinutes > expectedMinutes && durationMinutes > 2) {
-        const warning = 
+        const warning =
           `Slow sync detected: ${durationMinutes.toFixed(2)} minutes for ${itemsProcessed} contacts ` +
           `(expected ~${expectedMinutes.toFixed(2)} minutes)`;
-        
+
         metrics.warnings = metrics.warnings || [];
         metrics.warnings.push(warning);
-        
+
         console.warn(`[Performance Warning] ${warning}`);
       }
 
@@ -138,7 +134,7 @@ export class PerformanceMonitor {
         const warning = `Very slow operation: ${durationMinutes.toFixed(2)} minutes`;
         metrics.warnings = metrics.warnings || [];
         metrics.warnings.push(warning);
-        
+
         console.warn(`[Performance Warning] ${warning}`);
       }
     }
@@ -148,7 +144,7 @@ export class PerformanceMonitor {
       const warning = `High API request count: ${metrics.apiRequestCount} requests`;
       metrics.warnings = metrics.warnings || [];
       metrics.warnings.push(warning);
-      
+
       console.warn(`[Performance Warning] ${warning}`);
     }
   }
@@ -159,12 +155,12 @@ export class PerformanceMonitor {
   private logMetrics(metrics: PerformanceMetrics): void {
     const durationSeconds = metrics.duration ? (metrics.duration / 1000).toFixed(2) : 'N/A';
     const durationMinutes = metrics.duration ? (metrics.duration / 1000 / 60).toFixed(2) : 'N/A';
-    
+
     console.log(
       `[Performance] ${metrics.operationName}: ` +
-      `Duration: ${durationSeconds}s (${durationMinutes}m), ` +
-      `Items: ${metrics.itemsProcessed || 0}, ` +
-      `API Requests: ${metrics.apiRequestCount || 0}`
+        `Duration: ${durationSeconds}s (${durationMinutes}m), ` +
+        `Items: ${metrics.itemsProcessed || 0}, ` +
+        `API Requests: ${metrics.apiRequestCount || 0}`
     );
 
     if (metrics.warnings && metrics.warnings.length > 0) {
@@ -174,13 +170,13 @@ export class PerformanceMonitor {
 
   /**
    * Add a warning to an ongoing operation
-   * 
+   *
    * @param operationId - Unique identifier for the operation
    * @param warning - Warning message
    */
   addWarning(operationId: string, warning: string): void {
     const metrics = this.metrics.get(operationId);
-    
+
     if (metrics) {
       metrics.warnings = metrics.warnings || [];
       metrics.warnings.push(warning);
@@ -189,7 +185,7 @@ export class PerformanceMonitor {
 
   /**
    * Get current metrics for an operation (without ending it)
-   * 
+   *
    * @param operationId - Unique identifier for the operation
    */
   getCurrentMetrics(operationId: string): PerformanceMetrics | null {

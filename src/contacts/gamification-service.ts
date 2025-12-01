@@ -4,7 +4,7 @@
  * Business logic for gamification features including progress tracking,
  * milestone detection, achievement awarding, streak tracking, and
  * network health score calculation.
- * 
+ *
  * Requirements: 8.1, 8.2, 8.3, 8.4, 8.5
  */
 
@@ -73,7 +73,10 @@ export interface NetworkHealthBreakdown {
 export interface GamificationService {
   getProgress(userId: string): Promise<ProgressInfo>;
   detectAndAwardMilestones(userId: string): Promise<AchievementRecord[]>;
-  checkAndAwardAchievement(userId: string, achievementType: AchievementType): Promise<AchievementRecord | null>;
+  checkAndAwardAchievement(
+    userId: string,
+    achievementType: AchievementType
+  ): Promise<AchievementRecord | null>;
   getStreakInfo(userId: string): Promise<StreakInfo>;
   updateStreak(userId: string): Promise<StreakInfo>;
   calculateNetworkHealth(userId: string): Promise<NetworkHealthBreakdown>;
@@ -152,13 +155,12 @@ export class GamificationServiceImpl implements GamificationService {
     const totalContacts = allContacts.length;
 
     // Count categorized contacts (those with a circle assigned)
-    const categorizedContacts = allContacts.filter(c => c.dunbarCircle !== null).length;
+    const categorizedContacts = allContacts.filter((c) => c.dunbarCircle !== null).length;
     const uncategorizedContacts = totalContacts - categorizedContacts;
 
     // Calculate percentage
-    const percentComplete = totalContacts > 0 
-      ? Math.round((categorizedContacts / totalContacts) * 100)
-      : 0;
+    const percentComplete =
+      totalContacts > 0 ? Math.round((categorizedContacts / totalContacts) * 100) : 0;
 
     // Get onboarding state for milestones reached
     const onboardingState = await this.onboardingRepository.findByUserId(userId);
@@ -238,10 +240,7 @@ export class GamificationServiceImpl implements GamificationService {
     achievementType: AchievementType
   ): Promise<AchievementRecord | null> {
     // Check if already has achievement
-    const hasAchievement = await this.achievementRepository.hasAchievement(
-      userId,
-      achievementType
-    );
+    const hasAchievement = await this.achievementRepository.hasAchievement(userId, achievementType);
 
     if (hasAchievement) {
       return null;
@@ -265,7 +264,7 @@ export class GamificationServiceImpl implements GamificationService {
    */
   async getStreakInfo(userId: string): Promise<StreakInfo> {
     const onboardingState = await this.onboardingRepository.findByUserId(userId);
-    
+
     if (!onboardingState) {
       return {
         currentStreak: 0,
@@ -327,7 +326,7 @@ export class GamificationServiceImpl implements GamificationService {
           lastActivityDate: now.toISOString(),
         },
       } as any;
-      
+
       await this.onboardingRepository.update(userId, {
         progressData: updatedProgressData,
       });
@@ -354,9 +353,12 @@ export class GamificationServiceImpl implements GamificationService {
    */
   async calculateNetworkHealth(userId: string): Promise<NetworkHealthBreakdown> {
     const distribution = await this.circleService.getCircleDistribution(userId);
-    const totalCategorized = distribution.inner + distribution.close + 
-                            distribution.active + distribution.casual + 
-                            distribution.acquaintance;
+    const totalCategorized =
+      distribution.inner +
+      distribution.close +
+      distribution.active +
+      distribution.casual +
+      distribution.acquaintance;
 
     // Calculate circle balance score (0-100)
     const circleBalanceScore = this.calculateCircleBalance(distribution);
@@ -369,9 +371,7 @@ export class GamificationServiceImpl implements GamificationService {
 
     // Overall score is weighted average
     const overallScore = Math.round(
-      circleBalanceScore * 0.4 +
-      engagementScore * 0.3 +
-      maintenanceScore * 0.3
+      circleBalanceScore * 0.4 + engagementScore * 0.3 + maintenanceScore * 0.3
     );
 
     // Save the score
@@ -462,7 +462,7 @@ export class GamificationServiceImpl implements GamificationService {
    */
   private async calculateMaintenanceScore(userId: string): Promise<number> {
     const onboardingState = await this.onboardingRepository.findByUserId(userId);
-    
+
     if (!onboardingState) {
       return 50; // Default score
     }
@@ -526,16 +526,16 @@ export class GamificationServiceImpl implements GamificationService {
    */
   private async markMilestoneReached(userId: string, milestoneId: string): Promise<void> {
     const onboardingState = await this.onboardingRepository.findByUserId(userId);
-    
+
     if (!onboardingState) {
       return;
     }
 
     const milestonesReached = onboardingState.progressData.milestonesReached || [];
-    
+
     if (!milestonesReached.includes(milestoneId)) {
       milestonesReached.push(milestoneId);
-      
+
       await this.onboardingRepository.update(userId, {
         progressData: {
           ...onboardingState.progressData,
@@ -580,10 +580,12 @@ export class GamificationServiceImpl implements GamificationService {
 const defaultService = new GamificationServiceImpl();
 
 export const getProgress = (userId: string) => defaultService.getProgress(userId);
-export const detectAndAwardMilestones = (userId: string) => defaultService.detectAndAwardMilestones(userId);
-export const checkAndAwardAchievement = (userId: string, achievementType: AchievementType) => 
+export const detectAndAwardMilestones = (userId: string) =>
+  defaultService.detectAndAwardMilestones(userId);
+export const checkAndAwardAchievement = (userId: string, achievementType: AchievementType) =>
   defaultService.checkAndAwardAchievement(userId, achievementType);
 export const getStreakInfo = (userId: string) => defaultService.getStreakInfo(userId);
 export const updateStreak = (userId: string) => defaultService.updateStreak(userId);
-export const calculateNetworkHealth = (userId: string) => defaultService.calculateNetworkHealth(userId);
+export const calculateNetworkHealth = (userId: string) =>
+  defaultService.calculateNetworkHealth(userId);
 export const getAchievements = (userId: string) => defaultService.getAchievements(userId);

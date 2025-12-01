@@ -53,9 +53,9 @@ router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Res
     } catch (tokenError) {
       const tokenErrorMsg = tokenError instanceof Error ? tokenError.message : String(tokenError);
       console.error('Failed to exchange code for tokens:', tokenErrorMsg);
-      res.status(400).json({ 
-        error: 'Failed to exchange authorization code', 
-        details: tokenErrorMsg 
+      res.status(400).json({
+        error: 'Failed to exchange authorization code',
+        details: tokenErrorMsg,
       });
       return;
     }
@@ -73,11 +73,12 @@ router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Res
       profile = await getUserProfile(tokens);
       console.log('User profile retrieved:', { email: profile.email, name: profile.name });
     } catch (profileError) {
-      const profileErrorMsg = profileError instanceof Error ? profileError.message : String(profileError);
+      const profileErrorMsg =
+        profileError instanceof Error ? profileError.message : String(profileError);
       console.error('Failed to get user profile:', profileErrorMsg);
-      res.status(400).json({ 
-        error: 'Failed to get user profile', 
-        details: profileErrorMsg 
+      res.status(400).json({
+        error: 'Failed to get user profile',
+        details: profileErrorMsg,
       });
       return;
     }
@@ -100,15 +101,15 @@ router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Res
     } catch (dbError) {
       const dbErrorMsg = dbError instanceof Error ? dbError.message : String(dbError);
       console.error('Failed to store tokens in database:', dbErrorMsg);
-      res.status(500).json({ 
-        error: 'Failed to store calendar connection', 
-        details: dbErrorMsg 
+      res.status(500).json({
+        error: 'Failed to store calendar connection',
+        details: dbErrorMsg,
       });
       return;
     }
 
     console.log('Calendar connection successful for user:', req.userId);
-    
+
     // Trigger initial calendar sync and suggestion regeneration
     try {
       const { forceRefreshCalendarEvents } = await import('../../calendar/calendar-service');
@@ -117,23 +118,25 @@ router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Res
         tokens.access_token,
         tokens.refresh_token || undefined
       );
-      
+
       // Enqueue suggestion regeneration
-      const { enqueueJob } = await import('../../jobs/queue');
-      await enqueueJob('suggestion-regeneration', {
+      const { enqueueJob, QUEUE_NAMES } = await import('../../jobs/queue');
+      await enqueueJob(QUEUE_NAMES.SUGGESTION_REGENERATION, {
         userId: req.userId,
         reason: 'calendar_sync',
       });
-      console.log(`Initial calendar sync and suggestion regeneration queued for user ${req.userId}`);
+      console.log(
+        `Initial calendar sync and suggestion regeneration queued for user ${req.userId}`
+      );
     } catch (syncError) {
       console.error('Failed to sync calendar or enqueue suggestion regeneration:', syncError);
       // Don't fail the OAuth flow if sync fails
     }
-    
+
     res.json({
       message: 'Google Calendar connected successfully',
       email: profile.email,
-      name: profile.name
+      name: profile.name,
     });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -156,16 +159,16 @@ router.get('/status', authenticate, async (req: AuthenticatedRequest, res: Respo
     }
 
     const token = await getToken(req.userId, 'google_calendar');
-    console.log('Status check - Token retrieved:', { 
-      connected: !!token, 
+    console.log('Status check - Token retrieved:', {
+      connected: !!token,
       email: token?.email,
-      expiresAt: token?.expiresAt 
+      expiresAt: token?.expiresAt,
     });
 
     res.json({
       connected: !!token,
       email: token?.email || null,
-      expiresAt: token?.expiresAt || null
+      expiresAt: token?.expiresAt || null,
     });
   } catch (error) {
     console.error('Error checking OAuth status:', error);

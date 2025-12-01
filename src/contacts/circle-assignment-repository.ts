@@ -3,7 +3,7 @@
  *
  * Data access layer for circle assignment history operations.
  * Tracks all changes to contact circle assignments for audit and analysis.
- * 
+ *
  * Requirements: 3.3, 12.2, 12.5
  */
 
@@ -196,7 +196,10 @@ export class PostgresCircleAssignmentRepository implements CircleAssignmentRepos
    * Get recent assignments for a user
    * Requirements: 3.3
    */
-  async getRecentAssignments(userId: string, limit: number = 10): Promise<CircleAssignmentRecord[]> {
+  async getRecentAssignments(
+    userId: string,
+    limit: number = 10
+  ): Promise<CircleAssignmentRecord[]> {
     const result = await pool.query(
       `SELECT * FROM circle_assignments
        WHERE user_id = $1
@@ -230,8 +233,13 @@ export class PostgresCircleAssignmentRepository implements CircleAssignmentRepos
 const defaultRepository = new PostgresCircleAssignmentRepository();
 
 export const create = (data: CircleAssignmentCreateData) => defaultRepository.create(data);
-export const findByContactId = (contactId: string, userId: string) => defaultRepository.findByContactId(contactId, userId);
-export const findByUserId = (userId: string, limit?: number) => defaultRepository.findByUserId(userId, limit);
-export const getCircleDistribution = (userId: string) => defaultRepository.getCircleDistribution(userId);
-export const getContactsInCircle = (userId: string, circle: DunbarCircle) => defaultRepository.getContactsInCircle(userId, circle);
-export const getRecentAssignments = (userId: string, limit?: number) => defaultRepository.getRecentAssignments(userId, limit);
+export const findByContactId = (contactId: string, userId: string) =>
+  defaultRepository.findByContactId(contactId, userId);
+export const findByUserId = (userId: string, limit?: number) =>
+  defaultRepository.findByUserId(userId, limit);
+export const getCircleDistribution = (userId: string) =>
+  defaultRepository.getCircleDistribution(userId);
+export const getContactsInCircle = (userId: string, circle: DunbarCircle) =>
+  defaultRepository.getContactsInCircle(userId, circle);
+export const getRecentAssignments = (userId: string, limit?: number) =>
+  defaultRepository.getRecentAssignments(userId, limit);

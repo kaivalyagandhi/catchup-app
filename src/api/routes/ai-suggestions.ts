@@ -57,8 +57,8 @@ router.post('/batch-suggest', async (req: AuthenticatedRequest, res: Response): 
     // Limit batch size to prevent overwhelming the system
     const MAX_BATCH_SIZE = 100;
     if (contactIds.length > MAX_BATCH_SIZE) {
-      res.status(400).json({ 
-        error: `Batch size cannot exceed ${MAX_BATCH_SIZE} contacts` 
+      res.status(400).json({
+        error: `Batch size cannot exceed ${MAX_BATCH_SIZE} contacts`,
       });
       return;
     }
@@ -100,21 +100,26 @@ router.post('/record-override', async (req: AuthenticatedRequest, res: Response)
 
     // Validate circle values
     if (!VALID_CIRCLES.includes(suggestedCircle)) {
-      res.status(400).json({ 
-        error: `Invalid suggestedCircle. Must be one of: ${VALID_CIRCLES.join(', ')}` 
+      res.status(400).json({
+        error: `Invalid suggestedCircle. Must be one of: ${VALID_CIRCLES.join(', ')}`,
       });
       return;
     }
 
     if (!VALID_CIRCLES.includes(actualCircle)) {
-      res.status(400).json({ 
-        error: `Invalid actualCircle. Must be one of: ${VALID_CIRCLES.join(', ')}` 
+      res.status(400).json({
+        error: `Invalid actualCircle. Must be one of: ${VALID_CIRCLES.join(', ')}`,
       });
       return;
     }
 
     const aiService = new PostgresAISuggestionService();
-    await aiService.recordUserOverride(userId, contactId, suggestedCircle as any, actualCircle as any);
+    await aiService.recordUserOverride(
+      userId,
+      contactId,
+      suggestedCircle as any,
+      actualCircle as any
+    );
 
     res.status(204).send();
   } catch (error) {

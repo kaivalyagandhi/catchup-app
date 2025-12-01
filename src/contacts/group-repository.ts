@@ -40,7 +40,7 @@ export interface GroupRepository {
 
 /**
  * PostgreSQL Group Repository Implementation
- * 
+ *
  * IMPORTANT - Requirements: 15.5
  * All group operations are LOCAL ONLY. Groups are created and managed
  * exclusively in the CatchUp database. NO API calls are made to Google Contacts

@@ -78,6 +78,4 @@ export {
 } from './achievement-repository';
 
 // Extended Contact Repository with circle methods
-export {
-  type DunbarCircle as ContactDunbarCircle,
-} from './repository';
+export { type DunbarCircle as ContactDunbarCircle } from './repository';

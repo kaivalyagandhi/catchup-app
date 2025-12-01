@@ -1,11 +1,7 @@
 import { Router, Response } from 'express';
 import { PostgresOnboardingService } from '../../contacts/onboarding-service';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
-import {
-  asyncHandler,
-  validateRequest,
-  requestTimeout,
-} from '../middleware/error-handler';
+import { asyncHandler, validateRequest, requestTimeout } from '../middleware/error-handler';
 import {
   validateOnboardingInit,
   validateProgressUpdate,
@@ -154,20 +150,23 @@ router.get('/uncategorized', async (req: AuthenticatedRequest, res: Response): P
       userId,
       page && pageSize ? { page, pageSize } : undefined
     );
-    
+
     // Get total count for pagination metadata
     const totalCount = await onboardingService.getUncategorizedContactsCount(userId);
 
     res.json({
       contacts,
-      pagination: page && pageSize ? {
-        page,
-        pageSize,
-        totalItems: totalCount,
-        totalPages: Math.ceil(totalCount / pageSize),
-        hasNextPage: page * pageSize < totalCount,
-        hasPreviousPage: page > 1,
-      } : null,
+      pagination:
+        page && pageSize
+          ? {
+              page,
+              pageSize,
+              totalItems: totalCount,
+              totalPages: Math.ceil(totalCount / pageSize),
+              hasNextPage: page * pageSize < totalCount,
+              hasPreviousPage: page > 1,
+            }
+          : null,
     });
   } catch (error) {
     console.error('Error fetching uncategorized contacts:', error);
@@ -199,19 +198,22 @@ router.get('/progress', async (req: AuthenticatedRequest, res: Response): Promis
  * Get onboarding completion status
  * Requirements: 11.2, 11.4
  */
-router.get('/completion-status', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.userId!;
+router.get(
+  '/completion-status',
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.userId!;
 
-    const onboardingService = new PostgresOnboardingService();
-    const status = await onboardingService.getCompletionStatus(userId);
+      const onboardingService = new PostgresOnboardingService();
+      const status = await onboardingService.getCompletionStatus(userId);
 
-    res.json(status);
-  } catch (error) {
-    console.error('Error fetching completion status:', error);
-    res.status(500).json({ error: 'Failed to fetch completion status' });
+      res.json(status);
+    } catch (error) {
+      console.error('Error fetching completion status:', error);
+      res.status(500).json({ error: 'Failed to fetch completion status' });
+    }
   }
-});
+);
 
 /**
  * POST /api/onboarding/flag-contact

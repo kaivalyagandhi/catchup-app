@@ -22,34 +22,30 @@ router.get('/me', async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.userId!;
     const limit = parseInt(req.query.limit as string) || 100;
     const offset = parseInt(req.query.offset as string) || 0;
-    
-    const actions = req.query.actions 
-      ? (req.query.actions as string).split(',') as AuditAction[]
+
+    const actions = req.query.actions
+      ? ((req.query.actions as string).split(',') as AuditAction[])
       : undefined;
-    
-    const startDate = req.query.startDate 
-      ? new Date(req.query.startDate as string)
-      : undefined;
-    
-    const endDate = req.query.endDate 
-      ? new Date(req.query.endDate as string)
-      : undefined;
-    
+
+    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+
     const logs = await getUserAuditLogs(userId, {
       limit,
       offset,
       actions,
       startDate,
-      endDate
+      endDate,
     });
-    
+
     res.json({
       logs,
       pagination: {
         limit,
         offset,
-        count: logs.length
-      }
+        count: logs.length,
+      },
     });
   } catch (error) {
     console.error('Error fetching user audit logs:', error);
@@ -69,34 +65,30 @@ router.get(
       const userId = req.params.userId;
       const limit = parseInt(req.query.limit as string) || 100;
       const offset = parseInt(req.query.offset as string) || 0;
-      
-      const actions = req.query.actions 
-        ? (req.query.actions as string).split(',') as AuditAction[]
+
+      const actions = req.query.actions
+        ? ((req.query.actions as string).split(',') as AuditAction[])
         : undefined;
-      
-      const startDate = req.query.startDate 
-        ? new Date(req.query.startDate as string)
-        : undefined;
-      
-      const endDate = req.query.endDate 
-        ? new Date(req.query.endDate as string)
-        : undefined;
-      
+
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+
       const logs = await getUserAuditLogs(userId, {
         limit,
         offset,
         actions,
         startDate,
-        endDate
+        endDate,
       });
-      
+
       res.json({
         logs,
         pagination: {
           limit,
           offset,
-          count: logs.length
-        }
+          count: logs.length,
+        },
       });
     } catch (error) {
       console.error('Error fetching user audit logs:', error);
@@ -109,47 +101,39 @@ router.get(
  * GET /api/audit/all
  * Get all audit logs (admin only)
  */
-router.get(
-  '/all',
-  authorize(UserRole.ADMIN),
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const limit = parseInt(req.query.limit as string) || 100;
-      const offset = parseInt(req.query.offset as string) || 0;
-      
-      const actions = req.query.actions 
-        ? (req.query.actions as string).split(',') as AuditAction[]
-        : undefined;
-      
-      const startDate = req.query.startDate 
-        ? new Date(req.query.startDate as string)
-        : undefined;
-      
-      const endDate = req.query.endDate 
-        ? new Date(req.query.endDate as string)
-        : undefined;
-      
-      const logs = await getAllAuditLogs({
+router.get('/all', authorize(UserRole.ADMIN), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 100;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    const actions = req.query.actions
+      ? ((req.query.actions as string).split(',') as AuditAction[])
+      : undefined;
+
+    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+
+    const logs = await getAllAuditLogs({
+      limit,
+      offset,
+      actions,
+      startDate,
+      endDate,
+    });
+
+    res.json({
+      logs,
+      pagination: {
         limit,
         offset,
-        actions,
-        startDate,
-        endDate
-      });
-      
-      res.json({
-        logs,
-        pagination: {
-          limit,
-          offset,
-          count: logs.length
-        }
-      });
-    } catch (error) {
-      console.error('Error fetching all audit logs:', error);
-      res.status(500).json({ error: 'Failed to fetch audit logs' });
-    }
+        count: logs.length,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching all audit logs:', error);
+    res.status(500).json({ error: 'Failed to fetch audit logs' });
   }
-);
+});
 
 export default router;

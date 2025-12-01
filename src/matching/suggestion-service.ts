@@ -19,28 +19,20 @@ import { SuggestionCreateData, SuggestionFilters } from './suggestion-repository
 import { contactService } from '../contacts/service';
 import { interactionService } from '../contacts/interaction-service';
 // import { frequencyService } from '../contacts/frequency-service';
-import {
-  getOrSetCache,
-  CacheKeys,
-  CacheTTL,
-  invalidateSuggestionCache,
-} from '../utils/cache';
+import { getOrSetCache, CacheKeys, CacheTTL, invalidateSuggestionCache } from '../utils/cache';
 import pool from '../db/connection';
 
 /**
  * Helper function to fetch group names for a user
  */
 async function fetchGroupNames(userId: string): Promise<Map<string, string>> {
-  const result = await pool.query(
-    'SELECT id, name FROM groups WHERE user_id = $1',
-    [userId]
-  );
-  
+  const result = await pool.query('SELECT id, name FROM groups WHERE user_id = $1', [userId]);
+
   const groupMap = new Map<string, string>();
   for (const row of result.rows) {
     groupMap.set(row.id, row.name);
   }
-  
+
   return groupMap;
 }
 
@@ -160,8 +152,8 @@ export async function matchContactsToTimeslot(
 
     // Calculate priority
     const priority = calculatePriority(
-      contact, 
-      contact.lastContactDate ? new Date(contact.lastContactDate) : null, 
+      contact,
+      contact.lastContactDate ? new Date(contact.lastContactDate) : null,
       currentDate
     );
 
@@ -214,7 +206,7 @@ export async function generateTimeboundSuggestions(
 ): Promise<Suggestion[]> {
   // Get all contacts for the user
   const contacts = await contactService.listContacts(userId);
-  
+
   // Fetch group names for display in reasoning
   const groupMap = await fetchGroupNames(userId);
 
@@ -671,7 +663,7 @@ export function generateDismissalReasonTemplates(contact: Contact): string[] {
   const templates = [
     'Met too recently',
     'Not interested in connecting right now',
-    'Timing doesn\'t work',
+    "Timing doesn't work",
     'Prefer to connect at a different time',
   ];
 
@@ -686,7 +678,6 @@ export function generateDismissalReasonTemplates(contact: Contact): string[] {
 
   return templates;
 }
-
 
 /**
  * Generate group suggestion for a contact group
@@ -747,9 +738,10 @@ export async function generateGroupSuggestion(
     reasonParts.push(`Mentioned together in ${factors.coMentionedInVoiceNotes} voice notes`);
   }
 
-  const reasoning = reasonParts.length > 0
-    ? `Group catchup opportunity: ${reasonParts.join('; ')}`
-    : 'Group catchup opportunity based on shared context';
+  const reasoning =
+    reasonParts.length > 0
+      ? `Group catchup opportunity: ${reasonParts.join('; ')}`
+      : 'Group catchup opportunity based on shared context';
 
   // Calculate priority based on average recency and shared context score
   let totalPriority = 0;
@@ -762,7 +754,7 @@ export async function generateGroupSuggestion(
     totalPriority += contactPriority;
   }
   const avgPriority = Math.floor(totalPriority / contactGroup.contacts.length);
-  
+
   // Boost priority by shared context score
   const priority = avgPriority + Math.floor(contactGroup.sharedContext.score / 2);
 
@@ -842,7 +834,9 @@ export async function generateSuggestions(
   currentDate: Date = new Date()
 ): Promise<Suggestion[]> {
   // Import group matching service
-  const { groupMatchingService, GROUP_SUGGESTION_THRESHOLD } = await import('./group-matching-service');
+  const { groupMatchingService, GROUP_SUGGESTION_THRESHOLD } = await import(
+    './group-matching-service'
+  );
 
   // Get all contacts for the user
   const contacts = await contactService.listContacts(userId);

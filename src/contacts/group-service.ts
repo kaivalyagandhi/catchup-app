@@ -60,7 +60,7 @@ export class GroupServiceImpl implements GroupService {
     // NO API calls are made to Google Contacts.
     // CatchUp groups are independent of Google Contact Groups.
     // Google Contact Groups can be mapped to CatchUp groups through the mapping approval process.
-    
+
     return await this.repository.create(userId, trimmedName);
   }
 

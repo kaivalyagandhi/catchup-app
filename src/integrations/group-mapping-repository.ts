@@ -108,10 +108,7 @@ export class PostgresGroupMappingRepository implements GroupMappingRepository {
   /**
    * Find group mapping by CatchUp group ID
    */
-  async findByCatchupGroupId(
-    userId: string,
-    catchupGroupId: string
-  ): Promise<GroupMapping | null> {
+  async findByCatchupGroupId(userId: string, catchupGroupId: string): Promise<GroupMapping | null> {
     const result = await pool.query<GroupMappingRow>(
       'SELECT * FROM google_contact_groups WHERE user_id = $1 AND catchup_group_id = $2',
       [userId, catchupGroupId]
@@ -186,11 +183,7 @@ export class PostgresGroupMappingRepository implements GroupMappingRepository {
   /**
    * Update an existing group mapping
    */
-  async update(
-    id: string,
-    userId: string,
-    data: Partial<GroupMappingData>
-  ): Promise<GroupMapping> {
+  async update(id: string, userId: string, data: Partial<GroupMappingData>): Promise<GroupMapping> {
     const fields: string[] = [];
     const values: any[] = [];
     let paramCount = 1;

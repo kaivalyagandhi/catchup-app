@@ -60,12 +60,7 @@ function sanitizeError(error: any, includeStack: boolean = false): any {
 /**
  * Main error handling middleware
  */
-export function errorHandler(
-  error: any,
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+export function errorHandler(error: any, req: Request, res: Response, next: NextFunction): void {
   // Log the error
   logError(error, req);
 
@@ -157,9 +152,7 @@ export function errorHandler(
 
   // Default error response
   res.status(error.statusCode || 500).json({
-    error: includeStack
-      ? error.message || 'Internal server error'
-      : 'An unexpected error occurred',
+    error: includeStack ? error.message || 'Internal server error' : 'An unexpected error occurred',
     code: 'INTERNAL_ERROR',
     ...(includeStack && { stack: error.stack }),
   });

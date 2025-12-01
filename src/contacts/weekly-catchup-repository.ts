@@ -3,7 +3,7 @@
  *
  * Data access layer for weekly catchup session operations.
  * Manages weekly contact review sessions for progressive onboarding.
- * 
+ *
  * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5
  */
 
@@ -58,9 +58,17 @@ export interface WeeklyCatchupSessionUpdateData {
  */
 export interface WeeklyCatchupRepository {
   create(data: WeeklyCatchupSessionCreateData): Promise<WeeklyCatchupSessionRecord>;
-  update(id: string, userId: string, data: WeeklyCatchupSessionUpdateData): Promise<WeeklyCatchupSessionRecord>;
+  update(
+    id: string,
+    userId: string,
+    data: WeeklyCatchupSessionUpdateData
+  ): Promise<WeeklyCatchupSessionRecord>;
   findById(id: string, userId: string): Promise<WeeklyCatchupSessionRecord | null>;
-  findByWeek(userId: string, year: number, weekNumber: number): Promise<WeeklyCatchupSessionRecord | null>;
+  findByWeek(
+    userId: string,
+    year: number,
+    weekNumber: number
+  ): Promise<WeeklyCatchupSessionRecord | null>;
   findCurrentSession(userId: string): Promise<WeeklyCatchupSessionRecord | null>;
   findRecentSessions(userId: string, limit: number): Promise<WeeklyCatchupSessionRecord[]>;
   markContactReviewed(id: string, userId: string, contactId: string): Promise<void>;
@@ -87,12 +95,7 @@ export class PostgresWeeklyCatchupRepository implements WeeklyCatchupRepository 
         contacts_to_review = EXCLUDED.contacts_to_review,
         started_at = CURRENT_TIMESTAMP
       RETURNING *`,
-      [
-        data.userId,
-        data.weekNumber,
-        data.year,
-        JSON.stringify(data.contactsToReview),
-      ]
+      [data.userId, data.weekNumber, data.year, JSON.stringify(data.contactsToReview)]
     );
 
     return this.mapRowToWeeklyCatchupSession(result.rows[0]);
@@ -228,7 +231,10 @@ export class PostgresWeeklyCatchupRepository implements WeeklyCatchupRepository 
    * Find recent sessions
    * Requirements: 7.1
    */
-  async findRecentSessions(userId: string, limit: number = 10): Promise<WeeklyCatchupSessionRecord[]> {
+  async findRecentSessions(
+    userId: string,
+    limit: number = 10
+  ): Promise<WeeklyCatchupSessionRecord[]> {
     const result = await pool.query(
       `SELECT * FROM weekly_catchup_sessions
        WHERE user_id = $1
@@ -319,9 +325,7 @@ export class PostgresWeeklyCatchupRepository implements WeeklyCatchupRepository 
     }
 
     const reviewedSet = new Set(session.reviewedContacts);
-    return session.contactsToReview.filter(
-      (item) => !reviewedSet.has(item.contactId)
-    );
+    return session.contactsToReview.filter((item) => !reviewedSet.has(item.contactId));
   }
 
   /**
@@ -346,12 +350,19 @@ export class PostgresWeeklyCatchupRepository implements WeeklyCatchupRepository 
 const defaultRepository = new PostgresWeeklyCatchupRepository();
 
 export const create = (data: WeeklyCatchupSessionCreateData) => defaultRepository.create(data);
-export const update = (id: string, userId: string, data: WeeklyCatchupSessionUpdateData) => defaultRepository.update(id, userId, data);
+export const update = (id: string, userId: string, data: WeeklyCatchupSessionUpdateData) =>
+  defaultRepository.update(id, userId, data);
 export const findById = (id: string, userId: string) => defaultRepository.findById(id, userId);
-export const findByWeek = (userId: string, year: number, weekNumber: number) => defaultRepository.findByWeek(userId, year, weekNumber);
+export const findByWeek = (userId: string, year: number, weekNumber: number) =>
+  defaultRepository.findByWeek(userId, year, weekNumber);
 export const findCurrentSession = (userId: string) => defaultRepository.findCurrentSession(userId);
-export const findRecentSessions = (userId: string, limit?: number) => defaultRepository.findRecentSessions(userId, limit);
-export const markContactReviewed = (id: string, userId: string, contactId: string) => defaultRepository.markContactReviewed(id, userId, contactId);
-export const markComplete = (id: string, userId: string) => defaultRepository.markComplete(id, userId);
-export const markSkipped = (id: string, userId: string) => defaultRepository.markSkipped(id, userId);
-export const getUnreviewedContacts = (id: string, userId: string) => defaultRepository.getUnreviewedContacts(id, userId);
+export const findRecentSessions = (userId: string, limit?: number) =>
+  defaultRepository.findRecentSessions(userId, limit);
+export const markContactReviewed = (id: string, userId: string, contactId: string) =>
+  defaultRepository.markContactReviewed(id, userId, contactId);
+export const markComplete = (id: string, userId: string) =>
+  defaultRepository.markComplete(id, userId);
+export const markSkipped = (id: string, userId: string) =>
+  defaultRepository.markSkipped(id, userId);
+export const getUnreviewedContacts = (id: string, userId: string) =>
+  defaultRepository.getUnreviewedContacts(id, userId);

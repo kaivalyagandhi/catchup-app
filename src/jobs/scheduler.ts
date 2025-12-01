@@ -54,9 +54,7 @@ export async function scheduleBatchNotifications(): Promise<void> {
   console.log('Scheduling batch notifications...');
 
   // Get all users with notification preferences
-  const allUserIds = await oauthRepository.getUsersWithProvider(
-    'google_calendar'
-  );
+  const allUserIds = await oauthRepository.getUsersWithProvider('google_calendar');
 
   let scheduledCount = 0;
 
@@ -95,16 +93,11 @@ export async function scheduleBatchNotifications(): Promise<void> {
 
       scheduledCount++;
     } catch (error) {
-      console.error(
-        `Error scheduling batch notification for user ${userId}:`,
-        error
-      );
+      console.error(`Error scheduling batch notification for user ${userId}:`, error);
     }
   }
 
-  console.log(
-    `Batch notifications scheduled for ${scheduledCount} users`
-  );
+  console.log(`Batch notifications scheduled for ${scheduledCount} users`);
 }
 
 /**
@@ -117,9 +110,7 @@ export async function scheduleCalendarSync(): Promise<void> {
   console.log('Scheduling calendar sync jobs...');
 
   // Get all users with Google Calendar connected
-  const allUserIds = await oauthRepository.getUsersWithProvider(
-    'google_calendar'
-  );
+  const allUserIds = await oauthRepository.getUsersWithProvider('google_calendar');
 
   let scheduledCount = 0;
 
@@ -139,10 +130,7 @@ export async function scheduleCalendarSync(): Promise<void> {
 
       scheduledCount++;
     } catch (error) {
-      console.error(
-        `Error scheduling calendar sync for user ${userId}:`,
-        error
-      );
+      console.error(`Error scheduling calendar sync for user ${userId}:`, error);
     }
   }
 
@@ -154,9 +142,7 @@ export async function scheduleCalendarSync(): Promise<void> {
  *
  * Used when a user updates their notification preferences.
  */
-export async function scheduleUserBatchNotification(
-  userId: string
-): Promise<void> {
+export async function scheduleUserBatchNotification(userId: string): Promise<void> {
   console.log(`Scheduling batch notification for user ${userId}`);
 
   // Remove existing job if any
@@ -168,9 +154,7 @@ export async function scheduleUserBatchNotification(
 
   // Skip if both SMS and email are disabled
   if (!prefs.smsEnabled && !prefs.emailEnabled) {
-    console.log(
-      `Skipping batch notification for user ${userId} - notifications disabled`
-    );
+    console.log(`Skipping batch notification for user ${userId} - notifications disabled`);
     return;
   }
 
@@ -203,9 +187,7 @@ export async function scheduleUserBatchNotification(
 /**
  * Remove batch notification schedule for a specific user
  */
-export async function removeUserBatchNotification(
-  userId: string
-): Promise<void> {
+export async function removeUserBatchNotification(userId: string): Promise<void> {
   const jobId = `batch-notification-${userId}`;
   const repeatableJobs = await batchNotificationQueue.getRepeatableJobs();
 
@@ -222,9 +204,7 @@ export async function removeUserBatchNotification(
  *
  * Used when a user connects their Google Calendar.
  */
-export async function scheduleUserCalendarSync(
-  userId: string
-): Promise<void> {
+export async function scheduleUserCalendarSync(userId: string): Promise<void> {
   console.log(`Scheduling calendar sync for user ${userId}`);
 
   // Remove existing job if any
@@ -270,9 +250,7 @@ export async function scheduleGoogleContactsSync(): Promise<void> {
   console.log('Scheduling Google Contacts sync jobs...');
 
   // Get all users with Google Contacts connected
-  const allUserIds = await oauthRepository.getUsersWithProvider(
-    'google_contacts'
-  );
+  const allUserIds = await oauthRepository.getUsersWithProvider('google_contacts');
 
   let scheduledCount = 0;
 
@@ -294,10 +272,7 @@ export async function scheduleGoogleContactsSync(): Promise<void> {
 
       scheduledCount++;
     } catch (error) {
-      console.error(
-        `Error scheduling Google Contacts sync for user ${userId}:`,
-        error
-      );
+      console.error(`Error scheduling Google Contacts sync for user ${userId}:`, error);
     }
   }
 
@@ -309,9 +284,7 @@ export async function scheduleGoogleContactsSync(): Promise<void> {
  *
  * Used when a user connects their Google Contacts.
  */
-export async function scheduleUserGoogleContactsSync(
-  userId: string
-): Promise<void> {
+export async function scheduleUserGoogleContactsSync(userId: string): Promise<void> {
   console.log(`Scheduling Google Contacts sync for user ${userId}`);
 
   // Remove existing job if any

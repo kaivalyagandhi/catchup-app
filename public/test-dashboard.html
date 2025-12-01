@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CatchUp Test Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 2.5rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+    }
+    .card h2 {
+      color: #667eea;
+      margin-bottom: 0.5rem;
+      font-size: 1.25rem;
+    }
+    .card p {
+      color: #666;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: #667eea;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: background 0.2s;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .btn:hover {
+      background: #5568d3;
+    }
+    .btn-secondary {
+      background: #48bb78;
+    }
+    .btn-secondary:hover {
+      background: #38a169;
+    }
+    .status {
+      background: #f7fafc;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+    }
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .status-item:last-child {
+      border-bottom: none;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-success {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+    .badge-warning {
+      background: #feebc8;
+      color: #7c2d12;
+    }
+    #output {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 2rem;
+      display: none;
+    }
+    #output pre {
+      background: #f7fafc;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 CatchUp Test Dashboard</h1>
+    
+    <div class="status">
+      <div class="status-item">
+        <span><strong>Server Status:</strong></span>
+        <span class="badge badge-success" id="server-status">Checking...</span>
+      </div>
+      <div class="status-item">
+        <span><strong>Database:</strong></span>
+        <span class="badge badge-success" id="db-status">Connected</span>
+      </div>
+      <div class="status-item">
+        <span><strong>Test Data:</strong></span>
+        <span class="badge badge-warning" id="data-status">Not loaded</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Core Features -->
+      <div class="card">
+        <h2>🎨 Circular Visualizer</h2>
+        <p>Test the Dunbar's Number circle visualization with drag-and-drop functionality.</p>
+        <a href="/js/circular-visualizer.test.html" class="btn">Open Test Page</a>
+      </div>
+
+      <div class="card">
+        <h2>🚀 Onboarding Flow</h2>
+        <p>Test the complete user onboarding experience and contact import workflow.</p>
+        <a href="/js/onboarding-controller.test.html" class="btn">Open Test Page</a>
+      </div>
+
+      <div class="card">
+        <h2>🎮 Gamification</h2>
+        <p>Test achievements, badges, streaks, and progress tracking features.</p>
+        <a href="/js/gamification-ui.test.html" class="btn">Open Test Page</a>
+      </div>
+
+      <!-- Weekly Features -->
+      <div class="card">
+        <h2>📅 Weekly Catchup</h2>
+        <p>Test weekly contact suggestions and review functionality.</p>
+        <a href="/js/weekly-catchup.test.html" class="btn">Open Test Page</a>
+      </div>
+
+      <div class="card">
+        <h2>🤖 AI Suggestions</h2>
+        <p>Test AI-powered contact suggestions and recommendations.</p>
+        <a href="/js/ai-suggestion-ui.test.html" class="btn">Open Test Page</a>
+      </div>
+
+      <div class="card">
+        <h2>⚙️ Preferences</h2>
+        <p>Test contact frequency preferences and settings management.</p>
+        <a href="/js/preference-setting-ui.test.html" class="btn">Open Test Page</a>
+      </div>
+
+      <!-- Additional Features -->
+      <div class="card">
+        <h2>🔒 Privacy Features</h2>
+        <p>Test data export, visibility controls, and privacy settings.</p>
+        <a href="/js/privacy-features.test.html" class="btn">Open Test Page</a>
+      </div>
+
+      <div class="card">
+        <h2>📚 Educational</h2>
+        <p>Test Dunbar's Number explanations and interactive tutorials.</p>
+        <a href="/js/educational-features.test.html" class="btn">Open Test Page</a>
+      </div>
+
+      <div class="card">
+        <h2>♿ Accessibility</h2>
+        <p>Test keyboard navigation, screen readers, and accessibility features.</p>
+        <a href="/js/accessibility-enhancements.test.html" class="btn">Open Test Page</a>
+      </div>
+
+      <!-- Advanced Features -->
+      <div class="card">
+        <h2>🎯 Drag & Drop</h2>
+        <p>Test advanced drag-and-drop interactions between circles.</p>
+        <a href="/js/circular-visualizer-drag-test.html" class="btn">Open Test Page</a>
+      </div>
+
+      <div class="card">
+        <h2>🔍 Group Filtering</h2>
+        <p>Test group-based filtering and contact organization.</p>
+        <a href="/js/circular-visualizer-group-filter.test.html" class="btn">Open Test Page</a>
+      </div>
+
+      <div class="card">
+        <h2>📱 Mobile Responsive</h2>
+        <p>Test mobile-optimized UI and touch interactions.</p>
+        <a href="/js/mobile-responsive.test.html" class="btn">Open Test Page</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🛠️ Quick Actions</h2>
+      <p>Generate test data and check system status.</p>
+      <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-secondary" onclick="generateTestData()">Generate Test Data</button>
+        <button class="btn" onclick="checkStatus()">Check Status</button>
+        <button class="btn" onclick="clearData()">Clear Data</button>
+      </div>
+    </div>
+
+    <div id="output">
+      <h3>Output:</h3>
+      <pre id="output-text"></pre>
+    </div>
+  </div>
+
+  <script>
+    // Check server status on load
+    async function checkServerStatus() {
+      try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        document.getElementById('server-status').textContent = 'Online';
+        document.getElementById('server-status').className = 'badge badge-success';
+      } catch (error) {
+        document.getElementById('server-status').textContent = 'Offline';
+        document.getElementById('server-status').className = 'badge badge-warning';
+      }
+    }
+
+    async function generateTestData() {
+      const output = document.getElementById('output');
+      const outputText = document.getElementById('output-text');
+      
+      output.style.display = 'block';
+      outputText.textContent = 'Generating test data...';
+
+      try {
+        // Create a mock user ID for testing
+        const testUserId = 'test-user-' + Date.now();
+        
+        const response = await fetch('/api/test-data/seed', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer test-token'
+          },
+          body: JSON.stringify({
+            contactCount: 50,
+            includeCalendarEvents: true,
+            includeSuggestions: true,
+            includeVoiceNotes: false
+          })
+        });
+
+        const data = await response.json();
+        outputText.textContent = JSON.stringify(data, null, 2);
+        
+        if (response.ok) {
+          document.getElementById('data-status').textContent = 'Loaded';
+          document.getElementById('data-status').className = 'badge badge-success';
+        }
+      } catch (error) {
+        outputText.textContent = '⚠️ Note: Test data generation from this dashboard requires authentication.\n\n';
+        outputText.textContent += '✅ RECOMMENDED: Use the test pages directly instead!\n\n';
+        outputText.textContent += 'Each test page includes:\n';
+        outputText.textContent += '- Built-in mock authentication\n';
+        outputText.textContent += '- Pre-loaded test data\n';
+        outputText.textContent += '- "Load Test Data" buttons\n\n';
+        outputText.textContent += 'Just click any card above to start testing!\n\n';
+        outputText.textContent += 'Error details: ' + error.message;
+      }
+    }
+
+    async function checkStatus() {
+      const output = document.getElementById('output');
+      const outputText = document.getElementById('output-text');
+      
+      output.style.display = 'block';
+      outputText.textContent = 'Checking status...\n\n';
+
+      try {
+        // Check server health (no auth required)
+        const healthResponse = await fetch('/api/health');
+        const healthData = await healthResponse.json();
+        outputText.textContent += '✅ Server Health:\n' + JSON.stringify(healthData, null, 2) + '\n\n';
+
+        // Try to check test data status (requires auth)
+        outputText.textContent += '📊 Test Data Status:\n';
+        outputText.textContent += 'Note: Test data status requires authentication.\n';
+        outputText.textContent += 'Use the individual test pages to see data - they include mock auth.\n\n';
+        outputText.textContent += 'Available test pages:\n';
+        outputText.textContent += '- Circular Visualizer (includes test data)\n';
+        outputText.textContent += '- Onboarding Flow (includes test data)\n';
+        outputText.textContent += '- All other test pages have built-in mock data\n';
+      } catch (error) {
+        outputText.textContent += '\n❌ Error: ' + error.message;
+      }
+    }
+
+    async function clearData() {
+      if (!confirm('Are you sure you want to clear all test data?')) {
+        return;
+      }
+
+      const output = document.getElementById('output');
+      const outputText = document.getElementById('output-text');
+      
+      output.style.display = 'block';
+      outputText.textContent = 'Clearing test data...';
+
+      try {
+        const response = await fetch('/api/test-data/clear', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer test-token'
+          }
+        });
+
+        const data = await response.json();
+        outputText.textContent = JSON.stringify(data, null, 2);
+        
+        if (response.ok) {
+          document.getElementById('data-status').textContent = 'Cleared';
+          document.getElementById('data-status').className = 'badge badge-warning';
+        }
+      } catch (error) {
+        outputText.textContent = 'Error: ' + error.message;
+      }
+    }
+
+    // Check status on load
+    checkServerStatus();
+  </script>
+</body>
+</html>

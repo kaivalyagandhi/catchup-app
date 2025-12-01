@@ -3,7 +3,7 @@
  *
  * API endpoints for gamification features including progress tracking,
  * achievements, streaks, and network health scores.
- * 
+ *
  * Requirements: 8.1, 8.2, 8.3, 8.4, 8.5
  */
 
@@ -23,7 +23,7 @@ router.get('/progress', authenticate, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
     const progress = await gamificationService.getProgress(userId);
-    
+
     res.json(progress);
   } catch (error) {
     console.error('Error fetching progress:', error);
@@ -40,7 +40,7 @@ router.post('/milestones/detect', authenticate, async (req: Request, res: Respon
   try {
     const userId = (req as any).user.userId;
     const newAchievements = await gamificationService.detectAndAwardMilestones(userId);
-    
+
     res.json({
       newAchievements,
       count: newAchievements.length,
@@ -60,7 +60,7 @@ router.get('/achievements', authenticate, async (req: Request, res: Response) =>
   try {
     const userId = (req as any).user.userId;
     const achievements = await gamificationService.getAchievements(userId);
-    
+
     res.json(achievements);
   } catch (error) {
     console.error('Error fetching achievements:', error);
@@ -77,12 +77,9 @@ router.post('/achievements/:type', authenticate, async (req: Request, res: Respo
   try {
     const userId = (req as any).user.userId;
     const achievementType = req.params.type as any;
-    
-    const achievement = await gamificationService.checkAndAwardAchievement(
-      userId,
-      achievementType
-    );
-    
+
+    const achievement = await gamificationService.checkAndAwardAchievement(userId, achievementType);
+
     if (achievement) {
       res.json(achievement);
     } else {
@@ -103,7 +100,7 @@ router.get('/streak', authenticate, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
     const streakInfo = await gamificationService.getStreakInfo(userId);
-    
+
     res.json(streakInfo);
   } catch (error) {
     console.error('Error fetching streak:', error);
@@ -120,7 +117,7 @@ router.post('/streak/update', authenticate, async (req: Request, res: Response) 
   try {
     const userId = (req as any).user.userId;
     const streakInfo = await gamificationService.updateStreak(userId);
-    
+
     res.json(streakInfo);
   } catch (error) {
     console.error('Error updating streak:', error);
@@ -137,7 +134,7 @@ router.get('/network-health', authenticate, async (req: Request, res: Response) 
   try {
     const userId = (req as any).user.userId;
     const networkHealth = await gamificationService.calculateNetworkHealth(userId);
-    
+
     res.json(networkHealth);
   } catch (error) {
     console.error('Error calculating network health:', error);
@@ -154,9 +151,9 @@ router.get('/network-health/history', authenticate, async (req: Request, res: Re
   try {
     const userId = (req as any).user.userId;
     const limit = parseInt(req.query.limit as string) || 30;
-    
+
     const history = await gamificationService.getAchievements(userId);
-    
+
     res.json(history);
   } catch (error) {
     console.error('Error fetching network health history:', error);

@@ -296,9 +296,9 @@ router.post('/:id/reactivate', async (req: Request, res: Response): Promise<void
     }
     const contactService = new ContactServiceImpl();
     await contactService.unarchiveContact(req.params.id, userId);
-    res.json({ 
+    res.json({
       success: true,
-      message: 'Contact reactivated successfully' 
+      message: 'Contact reactivated successfully',
     });
   } catch (error) {
     console.error('Error reactivating contact:', error);
@@ -317,10 +317,10 @@ router.get('/archived', async (req: Request, res: Response): Promise<void> => {
     }
     const contactService = new ContactServiceImpl();
     const contacts = await contactService.listContacts(userId as string, { archived: true });
-    res.json({ 
+    res.json({
       success: true,
       contacts,
-      count: contacts.length 
+      count: contacts.length,
     });
   } catch (error) {
     console.error('Error fetching archived contacts:', error);

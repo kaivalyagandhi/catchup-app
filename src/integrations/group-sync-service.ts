@@ -179,7 +179,8 @@ export class GroupSyncService {
           // Retry with new token
           return await this.syncContactGroups(userId, newAccessToken);
         } catch (refreshError) {
-          const refreshErrorMsg = refreshError instanceof Error ? refreshError.message : String(refreshError);
+          const refreshErrorMsg =
+            refreshError instanceof Error ? refreshError.message : String(refreshError);
           throw new Error(`Token refresh failed: ${refreshErrorMsg}`);
         }
       }
@@ -550,11 +551,7 @@ export class GroupSyncService {
 
             // Add contact to CatchUp group
             try {
-              await this.groupRepository.assignContact(
-                contact.id,
-                mapping.catchupGroupId,
-                userId
-              );
+              await this.groupRepository.assignContact(contact.id, mapping.catchupGroupId, userId);
               membershipsUpdated++;
             } catch (error) {
               // Ignore if already assigned
@@ -586,7 +583,8 @@ export class GroupSyncService {
           // Retry with new token
           return await this.syncGroupMemberships(userId, newAccessToken);
         } catch (refreshError) {
-          const refreshErrorMsg = refreshError instanceof Error ? refreshError.message : String(refreshError);
+          const refreshErrorMsg =
+            refreshError instanceof Error ? refreshError.message : String(refreshError);
           throw new Error(`Token refresh failed: ${refreshErrorMsg}`);
         }
       }
@@ -621,9 +619,7 @@ export class GroupSyncService {
       });
 
       const contactGroups = response.data.contactGroups || [];
-      const googleGroupMap = new Map(
-        contactGroups.map((g) => [g.resourceName!, g])
-      );
+      const googleGroupMap = new Map(contactGroups.map((g) => [g.resourceName!, g]));
 
       // Get all mappings
       const allMappings = await this.groupMappingRepository.findAll(userId, false);
@@ -669,7 +665,8 @@ export class GroupSyncService {
           // Retry with new token
           return await this.handleGroupUpdates(userId, newAccessToken);
         } catch (refreshError) {
-          const refreshErrorMsg = refreshError instanceof Error ? refreshError.message : String(refreshError);
+          const refreshErrorMsg =
+            refreshError instanceof Error ? refreshError.message : String(refreshError);
           throw new Error(`Token refresh failed: ${refreshErrorMsg}`);
         }
       }
@@ -682,7 +679,7 @@ export class GroupSyncService {
 
   /**
    * Check if error is an authentication error (401)
-   * 
+   *
    * Requirements: 10.2
    */
   private isAuthError(error: any): boolean {

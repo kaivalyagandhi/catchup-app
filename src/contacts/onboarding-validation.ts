@@ -71,8 +71,7 @@ export interface ValidationResult {
  * Validate UUID format
  */
 export function isValidUUID(uuid: string): boolean {
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(uuid);
 }
 
@@ -85,9 +84,7 @@ export function validateCircle(circle: string): ValidationResult {
   if (!circle || typeof circle !== 'string') {
     errors.circle = ['Circle is required'];
   } else if (!VALID_CIRCLES.includes(circle as DunbarCircle)) {
-    errors.circle = [
-      `Invalid circle. Must be one of: ${VALID_CIRCLES.join(', ')}`,
-    ];
+    errors.circle = [`Invalid circle. Must be one of: ${VALID_CIRCLES.join(', ')}`];
   }
 
   return {
@@ -123,9 +120,7 @@ export function validateTrigger(trigger: string): ValidationResult {
   if (!trigger || typeof trigger !== 'string') {
     errors.trigger = ['Trigger is required'];
   } else if (!VALID_TRIGGERS.includes(trigger as OnboardingTrigger)) {
-    errors.trigger = [
-      `Invalid trigger. Must be one of: ${VALID_TRIGGERS.join(', ')}`,
-    ];
+    errors.trigger = [`Invalid trigger. Must be one of: ${VALID_TRIGGERS.join(', ')}`];
   }
 
   return {
@@ -143,9 +138,7 @@ export function validateFrequency(frequency: string): ValidationResult {
   if (!frequency || typeof frequency !== 'string') {
     errors.frequency = ['Frequency is required'];
   } else if (!VALID_FREQUENCIES.includes(frequency as FrequencyPreference)) {
-    errors.frequency = [
-      `Invalid frequency. Must be one of: ${VALID_FREQUENCIES.join(', ')}`,
-    ];
+    errors.frequency = [`Invalid frequency. Must be one of: ${VALID_FREQUENCIES.join(', ')}`];
   }
 
   return {
@@ -220,9 +213,7 @@ export interface CircleAssignmentInput {
   userOverride?: boolean;
 }
 
-export function validateCircleAssignment(
-  input: CircleAssignmentInput
-): ValidationResult {
+export function validateCircleAssignment(input: CircleAssignmentInput): ValidationResult {
   const errors: Record<string, string[]> = {};
 
   // Validate contact ID
@@ -239,20 +230,13 @@ export function validateCircleAssignment(
 
   // Validate confidence if provided
   if (input.confidence !== undefined) {
-    if (
-      typeof input.confidence !== 'number' ||
-      input.confidence < 0 ||
-      input.confidence > 1
-    ) {
+    if (typeof input.confidence !== 'number' || input.confidence < 0 || input.confidence > 1) {
       errors.confidence = ['Confidence must be a number between 0 and 1'];
     }
   }
 
   // Validate userOverride if provided
-  if (
-    input.userOverride !== undefined &&
-    typeof input.userOverride !== 'boolean'
-  ) {
+  if (input.userOverride !== undefined && typeof input.userOverride !== 'boolean') {
     errors.userOverride = ['User override must be a boolean'];
   }
 
@@ -328,11 +312,7 @@ export function validatePreference(input: PreferenceInput): ValidationResult {
 
   // Validate custom days if provided
   if (input.customDays !== undefined) {
-    if (
-      typeof input.customDays !== 'number' ||
-      input.customDays < 1 ||
-      input.customDays > 365
-    ) {
+    if (typeof input.customDays !== 'number' || input.customDays < 1 || input.customDays > 365) {
       errors.customDays = ['Custom days must be between 1 and 365'];
     }
   }
@@ -352,9 +332,7 @@ export interface OnboardingInitInput {
   contactCount?: number;
 }
 
-export function validateOnboardingInit(
-  input: OnboardingInitInput
-): ValidationResult {
+export function validateOnboardingInit(input: OnboardingInitInput): ValidationResult {
   const errors: Record<string, string[]> = {};
 
   // Validate trigger
@@ -367,9 +345,7 @@ export function validateOnboardingInit(
   if (input.source !== undefined) {
     const validSources = ['google', 'manual', 'import'];
     if (!validSources.includes(input.source)) {
-      errors.source = [
-        `Invalid source. Must be one of: ${validSources.join(', ')}`,
-      ];
+      errors.source = [`Invalid source. Must be one of: ${validSources.join(', ')}`];
     }
   }
 
@@ -398,9 +374,7 @@ export interface ProgressUpdateInput {
   data?: any;
 }
 
-export function validateProgressUpdate(
-  input: ProgressUpdateInput
-): ValidationResult {
+export function validateProgressUpdate(input: ProgressUpdateInput): ValidationResult {
   const errors: Record<string, string[]> = {};
 
   // Validate step
@@ -430,9 +404,7 @@ export interface WeeklyCatchupReviewInput {
   preference?: string;
 }
 
-export function validateWeeklyCatchupReview(
-  input: WeeklyCatchupReviewInput
-): ValidationResult {
+export function validateWeeklyCatchupReview(input: WeeklyCatchupReviewInput): ValidationResult {
   const errors: Record<string, string[]> = {};
 
   // Validate contact ID
@@ -444,9 +416,7 @@ export function validateWeeklyCatchupReview(
   // Validate action
   const validActions = ['keep', 'archive', 'update_circle', 'set_preference'];
   if (!input.action || !validActions.includes(input.action)) {
-    errors.action = [
-      `Invalid action. Must be one of: ${validActions.join(', ')}`,
-    ];
+    errors.action = [`Invalid action. Must be one of: ${validActions.join(', ')}`];
   }
 
   // Validate new circle if provided

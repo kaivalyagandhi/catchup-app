@@ -22,6 +22,11 @@ import aiSuggestionsRouter from './routes/ai-suggestions';
 import gamificationRouter from './routes/gamification';
 import weeklyCatchupRouter from './routes/weekly-catchup';
 import privacyRouter from './routes/privacy';
+import phoneNumberRouter from './routes/phone-number';
+import smsWebhookRouter from './routes/sms-webhook';
+import enrichmentItemsRouter from './routes/enrichment-items';
+import smsMonitoringRouter from './routes/sms-monitoring';
+import smsPerformanceRouter from './routes/sms-performance';
 import { apiRateLimiter } from '../utils/rate-limiter';
 import { enforceHttps, securityHeaders } from './middleware/security';
 import { VoiceNoteWebSocketHandler } from '../voice/websocket-handler';
@@ -40,16 +45,18 @@ export function createServer(): Express {
   app.use(express.urlencoded({ extended: true }));
 
   // Serve static files from public directory with cache control
-  app.use(express.static('public', {
-    setHeaders: (res, path) => {
-      // Disable caching for HTML and JS files during development
-      if (path.endsWith('.html') || path.endsWith('.js')) {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-      }
-    }
-  }));
+  app.use(
+    express.static('public', {
+      setHeaders: (res, path) => {
+        // Disable caching for HTML and JS files during development
+        if (path.endsWith('.html') || path.endsWith('.js')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+      },
+    })
+  );
 
   // Request logging middleware
   app.use((req: Request, _res: Response, next: NextFunction) => {
@@ -99,7 +106,12 @@ export function createServer(): Express {
   app.use('/api/gamification', gamificationRouter);
   app.use('/api/weekly-catchup', weeklyCatchupRouter);
   app.use('/api/privacy', privacyRouter);
-  
+  app.use('/api/user/phone-number', phoneNumberRouter);
+  app.use('/api/sms/webhook', smsWebhookRouter);
+  app.use('/api/enrichment-items', enrichmentItemsRouter);
+  app.use('/api/sms/monitoring', smsMonitoringRouter);
+  app.use('/api/sms/performance', smsPerformanceRouter);
+
   // Test data routes (for development/testing)
   try {
     app.use('/api/test-data', testDataRouter);
@@ -119,7 +131,7 @@ export function createServer(): Express {
   });
 
   // 404 handler for API routes
-  app.use('/api/*', notFoundHandler);
+  app.use('/api', notFoundHandler);
 
   // Global error handling middleware (must be last)
   app.use(errorHandler);
@@ -130,21 +142,21 @@ export function createServer(): Express {
 export function startServer(port: number = 3000): Server {
   const app = createServer();
   const httpServer = createHttpServer(app);
-  
+
   // Set up WebSocket server for voice notes
-  const wss = new WebSocketServer({ 
+  const wss = new WebSocketServer({
     server: httpServer,
-    path: '/ws/voice-notes'
+    path: '/ws/voice-notes',
   });
-  
+
   // Initialize WebSocket handler
   new VoiceNoteWebSocketHandler(wss);
   console.log('WebSocket server initialized for voice notes');
-  
+
   httpServer.listen(port, () => {
     console.log(`CatchUp API server listening on port ${port}`);
     console.log(`WebSocket server ready at ws://localhost:${port}/ws/voice-notes`);
   });
-  
+
   return httpServer;
 }

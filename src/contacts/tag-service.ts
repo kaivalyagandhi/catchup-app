@@ -18,7 +18,12 @@ export interface TagService {
   getContactTags(contactId: string): Promise<Tag[]>;
   deduplicateTags(contactId: string, userId: string): Promise<void>;
   promoteTagToGroup(userId: string, tagText: string): Promise<Group>;
-  findOrCreateTag(text: string, source: TagSource, userId: string, similarityThreshold?: number): Promise<Tag>;
+  findOrCreateTag(
+    text: string,
+    source: TagSource,
+    userId: string,
+    similarityThreshold?: number
+  ): Promise<Tag>;
 }
 
 /**

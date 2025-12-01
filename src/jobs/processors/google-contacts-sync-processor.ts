@@ -1,9 +1,9 @@
 /**
  * Google Contacts Sync Job Processor
- * 
+ *
  * Processes background sync jobs for Google Contacts integration.
  * Handles both full and incremental synchronization.
- * 
+ *
  * Requirements: 3.7, 4.5, 10.5
  */
 
@@ -14,7 +14,7 @@ import { googleContactsOAuthService } from '../../integrations/google-contacts-o
 
 /**
  * Process Google Contacts sync job
- * 
+ *
  * Executes sync operation and updates sync state on completion/failure.
  * Handles token refresh and error recovery.
  */
@@ -73,16 +73,16 @@ export async function processGoogleContactsSync(
     result.contactsDeleted = syncResult.contactsDeleted;
     result.groupsImported = syncResult.groupsImported;
     result.duration = syncResult.duration;
-    result.errors = syncResult.errors.map(e => e.errorMessage);
+    result.errors = syncResult.errors.map((e) => e.errorMessage);
 
     console.log(
       `${syncType} sync completed for user ${userId} - ` +
-      `imported: ${result.contactsImported || 0}, ` +
-      `updated: ${result.contactsUpdated || 0}, ` +
-      `deleted: ${result.contactsDeleted || 0}, ` +
-      `groups: ${result.groupsImported || 0}, ` +
-      `duration: ${result.duration}ms, ` +
-      `errors: ${result.errors.length}`
+        `imported: ${result.contactsImported || 0}, ` +
+        `updated: ${result.contactsUpdated || 0}, ` +
+        `deleted: ${result.contactsDeleted || 0}, ` +
+        `groups: ${result.groupsImported || 0}, ` +
+        `duration: ${result.duration}ms, ` +
+        `errors: ${result.errors.length}`
     );
 
     return result;
@@ -91,12 +91,12 @@ export async function processGoogleContactsSync(
       error instanceof Error ? error.message : String(error)
     }`;
     console.error(errorMessage);
-    
+
     // Add error to result if not already present
     if (!result.errors.includes(errorMessage)) {
       result.errors.push(errorMessage);
     }
-    
+
     // Re-throw to mark job as failed
     throw error;
   }

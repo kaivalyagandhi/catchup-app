@@ -32,7 +32,7 @@ export async function getCalendarEvents(
       timeMax: endTime.toISOString(),
       singleEvents: true,
       orderBy: 'startTime',
-      showDeleted: false
+      showDeleted: false,
     });
 
     const events = response.data.items || [];
@@ -42,7 +42,7 @@ export async function getCalendarEvents(
       summary: event.summary || 'No title',
       start: new Date(event.start.dateTime || event.start.date),
       end: new Date(event.end.dateTime || event.end.date),
-      busy: event.transparency !== 'transparent'
+      busy: event.transparency !== 'transparent',
     }));
   } catch (error) {
     console.error('Error fetching calendar events:', error);
@@ -87,7 +87,7 @@ export async function getAvailableSlots(
 
       // Check if slot overlaps with any event
       const isAvailable = !events.some(
-        event =>
+        (event) =>
           (currentTime >= event.start && currentTime < event.end) ||
           (slotEnd > event.start && slotEnd <= event.end) ||
           (currentTime <= event.start && slotEnd >= event.end)

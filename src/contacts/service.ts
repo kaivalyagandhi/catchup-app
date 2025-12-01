@@ -15,12 +15,7 @@ import {
 import { Contact, CityTimezoneData } from '../types';
 import { validateContactData } from './validation';
 import { TimezoneService, timezoneService as defaultTimezoneService } from './timezone-service';
-import {
-  getOrSetCache,
-  CacheKeys,
-  CacheTTL,
-  invalidateContactCache,
-} from '../utils/cache';
+import { getOrSetCache, CacheKeys, CacheTTL, invalidateContactCache } from '../utils/cache';
 
 /**
  * Contact Service Interface
@@ -125,7 +120,7 @@ export class ContactServiceImpl implements ContactService {
     // NO API calls are made to Google Contacts.
     // Google metadata (google_resource_name, google_etag, source) is preserved for future syncs.
     // The repository layer ensures Google metadata fields are not modified during updates.
-    
+
     // Update contact (local database only)
     const contact = await this.repository.update(id, userId, data);
 

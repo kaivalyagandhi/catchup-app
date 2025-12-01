@@ -120,10 +120,7 @@ async function demoErrorHandlingWithFallback() {
     return { result: 'success' };
   };
 
-  const successResult = await withOnboardingErrorHandling(
-    successOp,
-    'demo_success'
-  );
+  const successResult = await withOnboardingErrorHandling(successOp, 'demo_success');
   console.log('Success operation:', successResult);
 
   // Failed operation with fallback
@@ -131,11 +128,9 @@ async function demoErrorHandlingWithFallback() {
     throw new Error('Simulated failure');
   };
 
-  const fallbackResult = await withOnboardingErrorHandling(
-    failOp,
-    'demo_fail',
-    { result: 'fallback' }
-  );
+  const fallbackResult = await withOnboardingErrorHandling(failOp, 'demo_fail', {
+    result: 'fallback',
+  });
   console.log('Failed operation with fallback:', fallbackResult);
 }
 

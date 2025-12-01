@@ -1,6 +1,6 @@
 /**
  * Suggestion Regeneration Job Processor
- * 
+ *
  * Regenerates pending suggestions when calendar data changes to ensure
  * suggestions don't overlap with newly added calendar events.
  */
@@ -23,7 +23,7 @@ export interface SuggestionRegenerationResult {
 
 /**
  * Process suggestion regeneration job
- * 
+ *
  * This job:
  * 1. Dismisses pending suggestions that now overlap with calendar events
  * 2. Generates new suggestions for available time slots
@@ -64,9 +64,7 @@ export async function processSuggestionRegeneration(
       };
 
       // Check if suggestion overlaps with any busy slot
-      const hasConflict = busySlots.some((busySlot) =>
-        slotsOverlap(suggestionSlot, busySlot)
-      );
+      const hasConflict = busySlots.some((busySlot) => slotsOverlap(suggestionSlot, busySlot));
 
       if (hasConflict) {
         // Dismiss the suggestion
@@ -96,11 +94,7 @@ export async function processSuggestionRegeneration(
 
     // Generate new suggestions (limit to top 10 slots to avoid overwhelming the user)
     const topSlots = availableSlots.slice(0, 10);
-    const newSuggestions = await suggestionService.generateSuggestions(
-      userId,
-      topSlots,
-      now
-    );
+    const newSuggestions = await suggestionService.generateSuggestions(userId, topSlots, now);
 
     return {
       dismissed: dismissedCount,

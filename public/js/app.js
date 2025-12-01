@@ -4468,11 +4468,9 @@ function getCircleInfo(circleId) {
 // Open onboarding in management mode
 async function openOnboardingManagement() {
     try {
-        // Check if onboarding controller is available
-        if (typeof OnboardingController === 'undefined') {
-            showToast('Onboarding feature is not available', 'error');
-            return;
-        }
+        // Redirect to the circular visualizer for circle management
+        window.location.href = '/js/circular-visualizer.test.html';
+        return;
         
         // Initialize onboarding controller if not already done
         if (!window.onboardingController) {
@@ -4498,14 +4496,10 @@ async function openOnboardingManagement() {
         const loadingToastId = showToast('Opening circle management...', 'loading');
         
         try {
-            await window.onboardingController.initializeOnboarding('manage');
             hideToast(loadingToastId);
             
-            // Open onboarding UI (this would be implemented in a separate onboarding UI component)
-            showToast('Circle management opened successfully', 'success');
-            
-            // For now, show a message that the full UI is coming
-            alert('Circle Management UI\n\nThis feature allows you to organize your contacts into social circles based on Dunbar\'s number:\n\n💎 Inner Circle (5 people)\n🌟 Close Friends (15 people)\n🤝 Active Friends (50 people)\n👋 Casual Network (150 people)\n👤 Acquaintances (500+ people)\n\nThe full interactive UI with drag-and-drop visualization is available through the onboarding flow.');
+            // Redirect to the circular visualizer page for full circle management
+            window.location.href = '/circular-visualizer.test.html';
             
         } catch (error) {
             hideToast(loadingToastId);

@@ -66,10 +66,7 @@ export class PostgresTagRepository implements TagRepository {
   }
 
   async findById(id: string, userId: string): Promise<Tag | null> {
-    const result = await pool.query(
-      'SELECT * FROM tags WHERE id = $1',
-      [id]
-    );
+    const result = await pool.query('SELECT * FROM tags WHERE id = $1', [id]);
 
     if (result.rows.length === 0) {
       return null;
@@ -122,10 +119,7 @@ export class PostgresTagRepository implements TagRepository {
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    const result = await pool.query(
-      'DELETE FROM tags WHERE id = $1',
-      [id]
-    );
+    const result = await pool.query('DELETE FROM tags WHERE id = $1', [id]);
 
     if (result.rowCount === 0) {
       throw new Error('Tag not found');
@@ -134,10 +128,7 @@ export class PostgresTagRepository implements TagRepository {
 
   async deleteTag(id: string, userId: string): Promise<void> {
     // Delete tag and all associations (cascade should handle this)
-    const result = await pool.query(
-      'DELETE FROM tags WHERE id = $1',
-      [id]
-    );
+    const result = await pool.query('DELETE FROM tags WHERE id = $1', [id]);
 
     if (result.rowCount === 0) {
       throw new Error('Tag not found');
@@ -295,10 +286,7 @@ export class PostgresTagRepository implements TagRepository {
       await client.query('BEGIN');
 
       // Verify tag exists
-      const tagCheck = await client.query(
-        'SELECT id FROM tags WHERE id = $1',
-        [tagId]
-      );
+      const tagCheck = await client.query('SELECT id FROM tags WHERE id = $1', [tagId]);
       if (tagCheck.rows.length === 0) {
         throw new Error('Tag not found');
       }

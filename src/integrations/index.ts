@@ -9,13 +9,22 @@
  */
 
 // Google Contacts Integration
-export { GoogleContactsOAuthService, googleContactsOAuthService } from './google-contacts-oauth-service';
-export { GoogleContactsSyncService, googleContactsSyncService } from './google-contacts-sync-service';
-export { GoogleContactsRateLimiter, googleContactsRateLimiter } from './google-contacts-rate-limiter';
+export {
+  GoogleContactsOAuthService,
+  googleContactsOAuthService,
+} from './google-contacts-oauth-service';
+export {
+  GoogleContactsSyncService,
+  googleContactsSyncService,
+} from './google-contacts-sync-service';
+export {
+  GoogleContactsRateLimiter,
+  googleContactsRateLimiter,
+} from './google-contacts-rate-limiter';
 
 // Repositories
-export { 
-  SyncStateRepository, 
+export {
+  SyncStateRepository,
   PostgresSyncStateRepository,
   getSyncState,
   upsertSyncState,
@@ -32,5 +41,4 @@ export {
   GroupMappingRepository,
   PostgresGroupMappingRepository,
   type GroupMapping,
-  type GroupMappingSuggestion,
 } from './group-mapping-repository';

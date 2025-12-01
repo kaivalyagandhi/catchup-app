@@ -45,7 +45,7 @@ router.get('/events', authenticate, async (req: AuthenticatedRequest, res: Respo
         access_token: token.accessToken,
         refresh_token: token.refreshToken || undefined,
         token_type: token.tokenType || 'Bearer',
-        expiry_date: token.expiresAt?.getTime()
+        expiry_date: token.expiresAt?.getTime(),
       },
       start,
       end
@@ -94,7 +94,7 @@ router.get('/available-slots', authenticate, async (req: AuthenticatedRequest, r
         access_token: token.accessToken,
         refresh_token: token.refreshToken || undefined,
         token_type: token.tokenType || 'Bearer',
-        expiry_date: token.expiresAt?.getTime()
+        expiry_date: token.expiresAt?.getTime(),
       },
       start,
       end,
@@ -140,8 +140,10 @@ router.post('/refresh', authenticate, async (req: AuthenticatedRequest, res: Res
     // Regenerate suggestions synchronously to ensure conflicts are resolved immediately
     let regenerationResult = { dismissed: 0, created: 0 };
     try {
-      const { processSuggestionRegeneration } = await import('../../jobs/processors/suggestion-regeneration');
-      
+      const { processSuggestionRegeneration } = await import(
+        '../../jobs/processors/suggestion-regeneration'
+      );
+
       // Create a mock job object for synchronous execution
       const mockJob = {
         data: {
@@ -149,7 +151,7 @@ router.post('/refresh', authenticate, async (req: AuthenticatedRequest, res: Res
           reason: 'calendar_sync' as const,
         },
       } as any;
-      
+
       regenerationResult = await processSuggestionRegeneration(mockJob);
     } catch (regenError) {
       console.error('Failed to regenerate suggestions:', regenError);

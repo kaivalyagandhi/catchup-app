@@ -46,12 +46,7 @@ export class CircleAssignmentError extends OnboardingError {
  * Circle capacity exceeded error
  */
 export class CircleCapacityError extends OnboardingError {
-  constructor(
-    circle: string,
-    currentSize: number,
-    maxSize: number,
-    details?: any
-  ) {
+  constructor(circle: string, currentSize: number, maxSize: number, details?: any) {
     super(
       `Circle "${circle}" is at capacity (${currentSize}/${maxSize})`,
       'CIRCLE_CAPACITY_EXCEEDED',
@@ -82,12 +77,7 @@ export class InvalidCircleError extends OnboardingError {
  */
 export class ContactNotFoundError extends OnboardingError {
   constructor(contactId: string) {
-    super(
-      `Contact not found: ${contactId}`,
-      'CONTACT_NOT_FOUND',
-      404,
-      { contactId }
-    );
+    super(`Contact not found: ${contactId}`, 'CONTACT_NOT_FOUND', 404, { contactId });
     this.name = 'ContactNotFoundError';
   }
 }
@@ -139,12 +129,7 @@ export class AISuggestionError extends OnboardingError {
  */
 export class OnboardingNotFoundError extends OnboardingError {
   constructor(userId: string) {
-    super(
-      `No onboarding state found for user ${userId}`,
-      'ONBOARDING_NOT_FOUND',
-      404,
-      { userId }
-    );
+    super(`No onboarding state found for user ${userId}`, 'ONBOARDING_NOT_FOUND', 404, { userId });
     this.name = 'OnboardingNotFoundError';
   }
 }

@@ -34,13 +34,9 @@ export class BatchNotificationService {
   private smsService: SMSService;
   private emailService: EmailService;
 
-  constructor(
-    redisUrl?: string,
-    smsService?: SMSService,
-    emailService?: EmailService
-  ) {
+  constructor(redisUrl?: string, smsService?: SMSService, emailService?: EmailService) {
     const url = redisUrl || process.env.REDIS_URL || 'redis://localhost:6379';
-    
+
     this.queue = new Bull<BatchNotificationJob>('batch-notifications', url, {
       defaultJobOptions: {
         attempts: 3,
@@ -132,7 +128,9 @@ export class BatchNotificationService {
         // Get contact details
         const contact = await contactRepository.findById(suggestion.contactId, userId);
         if (!contact) {
-          console.error(`Contact ${suggestion.contactId} not found for suggestion ${suggestion.id}`);
+          console.error(
+            `Contact ${suggestion.contactId} not found for suggestion ${suggestion.id}`
+          );
           continue;
         }
 

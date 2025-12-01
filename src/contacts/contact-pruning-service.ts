@@ -3,7 +3,7 @@
  *
  * Manages contact archiving, removal, and reactivation.
  * Handles circle count updates after pruning operations.
- * 
+ *
  * Requirements: 12.1, 12.2, 12.3, 12.4, 12.5
  */
 
@@ -207,7 +207,7 @@ export class PostgresContactPruningService implements ContactPruningService {
   async getArchivedContacts(userId: string): Promise<ArchivedContact[]> {
     const contacts = await this.contactRepo.findAll(userId, { archived: true });
 
-    return contacts.map(contact => ({
+    return contacts.map((contact) => ({
       id: contact.id,
       name: contact.name,
       email: contact.email,
@@ -280,8 +280,7 @@ export const removeContact = (userId: string, contactId: string) =>
 export const reactivateContact = (userId: string, contactId: string) =>
   defaultService.reactivateContact(userId, contactId);
 
-export const getArchivedContacts = (userId: string) =>
-  defaultService.getArchivedContacts(userId);
+export const getArchivedContacts = (userId: string) => defaultService.getArchivedContacts(userId);
 
 export const bulkArchive = (userId: string, contactIds: string[]) =>
   defaultService.bulkArchive(userId, contactIds);

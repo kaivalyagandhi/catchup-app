@@ -21,9 +21,9 @@ router.get('/notice', (_req: AuthenticatedRequest, res: Response) => {
     res.json({ notice });
   } catch (error) {
     console.error('Error getting privacy notice:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to get privacy notice',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -31,7 +31,7 @@ router.get('/notice', (_req: AuthenticatedRequest, res: Response) => {
 /**
  * POST /api/privacy/export
  * Export all user data
- * 
+ *
  * Body (optional):
  * {
  *   includeContacts: boolean,
@@ -58,21 +58,24 @@ router.post('/export', authenticate, async (req: AuthenticatedRequest, res: Resp
       includeAchievements: req.body.includeAchievements !== false,
       includeWeeklyCatchup: req.body.includeWeeklyCatchup !== false,
       includeInteractions: req.body.includeInteractions !== false,
-      includeVoiceNotes: req.body.includeVoiceNotes !== false
+      includeVoiceNotes: req.body.includeVoiceNotes !== false,
     };
 
     const exportedData = await privacyService.exportUserData(options);
 
     // Set headers for file download
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="catchup-data-export-${Date.now()}.json"`);
-    
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="catchup-data-export-${Date.now()}.json"`
+    );
+
     res.json(exportedData);
   } catch (error) {
     console.error('Error exporting user data:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to export data',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -80,7 +83,7 @@ router.post('/export', authenticate, async (req: AuthenticatedRequest, res: Resp
 /**
  * DELETE /api/privacy/account
  * Delete user account and all associated data
- * 
+ *
  * Body:
  * {
  *   confirmation: "DELETE MY ACCOUNT"
@@ -95,9 +98,9 @@ router.delete('/account', authenticate, async (req: AuthenticatedRequest, res: R
 
     // Require explicit confirmation
     if (req.body.confirmation !== 'DELETE MY ACCOUNT') {
-      res.status(400).json({ 
+      res.status(400).json({
         error: 'Confirmation required',
-        message: 'Please provide confirmation: "DELETE MY ACCOUNT"'
+        message: 'Please provide confirmation: "DELETE MY ACCOUNT"',
       });
       return;
     }
@@ -108,7 +111,7 @@ router.delete('/account', authenticate, async (req: AuthenticatedRequest, res: R
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
       metadata: { stage: 'requested' },
-      success: true
+      success: true,
     });
 
     // Perform deletion
@@ -117,13 +120,13 @@ router.delete('/account', authenticate, async (req: AuthenticatedRequest, res: R
     res.json({
       success: true,
       message: 'Account and all data have been permanently deleted',
-      deletedRecords: result.deletedRecords
+      deletedRecords: result.deletedRecords,
     });
   } catch (error) {
     console.error('Error deleting account:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to delete account',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -148,7 +151,7 @@ router.get('/data-summary', authenticate, async (req: AuthenticatedRequest, res:
       includeAchievements: true,
       includeWeeklyCatchup: true,
       includeInteractions: true,
-      includeVoiceNotes: true
+      includeVoiceNotes: true,
     });
 
     const summary = {
@@ -161,15 +164,15 @@ router.get('/data-summary', authenticate, async (req: AuthenticatedRequest, res:
       groups: exportedData.groups?.length || 0,
       tags: exportedData.tags?.length || 0,
       hasOnboardingData: !!exportedData.onboardingState,
-      hasPreferences: !!exportedData.preferences
+      hasPreferences: !!exportedData.preferences,
     };
 
     res.json(summary);
   } catch (error) {
     console.error('Error getting data summary:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to get data summary',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -177,7 +180,7 @@ router.get('/data-summary', authenticate, async (req: AuthenticatedRequest, res:
 /**
  * POST /api/privacy/verify-isolation
  * Verify that a resource belongs to the authenticated user
- * 
+ *
  * Body:
  * {
  *   resourceId: string,
@@ -198,18 +201,14 @@ router.post('/verify-isolation', authenticate, async (req: AuthenticatedRequest,
       return;
     }
 
-    const isOwner = await privacyService.verifyDataIsolation(
-      req.userId,
-      resourceId,
-      resourceType
-    );
+    const isOwner = await privacyService.verifyDataIsolation(req.userId, resourceId, resourceType);
 
     res.json({ isOwner });
   } catch (error) {
     console.error('Error verifying data isolation:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to verify data isolation',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });

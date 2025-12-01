@@ -65,10 +65,7 @@ export class RealtimeNotificationService {
         result.smsDelivered = smsResult.success;
 
         if (!smsResult.success) {
-          console.error(
-            `Failed to send SMS for suggestion ${suggestion.id}:`,
-            smsResult.error
-          );
+          console.error(`Failed to send SMS for suggestion ${suggestion.id}:`, smsResult.error);
         }
       }
 
@@ -83,10 +80,7 @@ export class RealtimeNotificationService {
         result.emailDelivered = emailResult.success;
 
         if (!emailResult.success) {
-          console.error(
-            `Failed to send email for suggestion ${suggestion.id}:`,
-            emailResult.error
-          );
+          console.error(`Failed to send email for suggestion ${suggestion.id}:`, emailResult.error);
         }
       }
 

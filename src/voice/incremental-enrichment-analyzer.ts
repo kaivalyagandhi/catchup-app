@@ -1,15 +1,15 @@
 /**
  * Incremental Enrichment Analyzer
- * 
+ *
  * Triggers enrichment analysis at natural breakpoints during voice note recording.
  * Manages progressive suggestion generation and merging.
- * 
+ *
  * Features:
  * - Word count tracking and natural pause detection
  * - Debounced trigger logic (5+ words or 0.8 second pause)
  * - Suggestion merging and deduplication
  * - Integration with EntityExtractionService and ContactDisambiguationService
- * 
+ *
  * Requirements: 2.1, 2.2, 2.3, 2.4
  */
 
@@ -33,10 +33,10 @@ export interface EnrichmentSuggestion {
  * Enrichment trigger configuration
  */
 export interface EnrichmentTriggerConfig {
-  minWordCount: number;      // 50 words
-  pauseThresholdMs: number;  // 2000ms
-  maxPendingWords: number;   // 200 words
-  debounceMs: number;        // 500ms to prevent rapid triggers
+  minWordCount: number; // 50 words
+  pauseThresholdMs: number; // 2000ms
+  maxPendingWords: number; // 200 words
+  debounceMs: number; // 500ms to prevent rapid triggers
 }
 
 /**
@@ -48,7 +48,7 @@ interface EnrichmentState {
   processedWordCount: number;
   lastAnalyzedAt: number;
   pendingText: string;
-  fullTranscript: string;  // Accumulated full transcript for context
+  fullTranscript: string; // Accumulated full transcript for context
   lastTriggerTime: number;
   userContacts: Contact[]; // User's contacts for context-aware extraction
 }
@@ -57,10 +57,10 @@ interface EnrichmentState {
  * Default configuration - optimized for responsive live updates
  */
 const DEFAULT_CONFIG: EnrichmentTriggerConfig = {
-  minWordCount: 5,        // Trigger after 5 words for faster feedback
-  pauseThresholdMs: 800,  // Trigger after 0.8 second pause
-  maxPendingWords: 100,   // Don't let too many words accumulate
-  debounceMs: 200,        // Faster response between triggers
+  minWordCount: 5, // Trigger after 5 words for faster feedback
+  pauseThresholdMs: 800, // Trigger after 0.8 second pause
+  maxPendingWords: 100, // Don't let too many words accumulate
+  debounceMs: 200, // Faster response between triggers
 };
 
 /**
@@ -84,16 +84,16 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Process new transcript text for a session
-   * 
+   *
    * Tracks word count and detects natural pauses to trigger enrichment analysis.
-   * 
+   *
    * Requirements: 2.1
-   * 
+   *
    * @param sessionId - Session ID
    * @param newText - New transcript text (can be interim or final)
    * @param isFinal - Whether this is final transcript text
    * @returns True if enrichment was triggered
-   * 
+   *
    * @example
    * ```typescript
    * const triggered = await analyzer.processTranscript(
@@ -144,7 +144,9 @@ export class IncrementalEnrichmentAnalyzer {
     const currentTime = Date.now();
     const timeSinceLastAnalysis = currentTime - state.lastAnalyzedAt;
 
-    console.log(`[EnrichmentAnalyzer] Session ${sessionId}: pendingWords=${pendingWordCount}, totalWords=${this.countWords(state.fullTranscript)}, contacts=${state.userContacts.length}`);
+    console.log(
+      `[EnrichmentAnalyzer] Session ${sessionId}: pendingWords=${pendingWordCount}, totalWords=${this.countWords(state.fullTranscript)}, contacts=${state.userContacts.length}`
+    );
 
     // Check if we should trigger enrichment
     const shouldTrigger = this.shouldTriggerEnrichment(
@@ -168,10 +170,10 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Get current suggestions for a session
-   * 
+   *
    * @param sessionId - Session ID
    * @returns Array of enrichment suggestions
-   * 
+   *
    * @example
    * ```typescript
    * const suggestions = analyzer.getSuggestions('session-123');
@@ -185,25 +187,22 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Finalize enrichment for a session
-   * 
+   *
    * Performs final analysis on any remaining pending text and returns
    * all suggestions in a format compatible with EnrichmentService.
-   * 
+   *
    * Requirements: 2.2
-   * 
+   *
    * @param sessionId - Session ID
    * @param contacts - Contacts to extract entities for
    * @returns Map of contact ID to extracted entities
-   * 
+   *
    * @example
    * ```typescript
    * const entitiesMap = await analyzer.finalize('session-123', [contact1, contact2]);
    * ```
    */
-  async finalize(
-    sessionId: string,
-    contacts: Contact[]
-  ): Promise<Map<string, ExtractedEntities>> {
+  async finalize(sessionId: string, contacts: Contact[]): Promise<Map<string, ExtractedEntities>> {
     const state = this.sessionStates.get(sessionId);
     if (!state) {
       return new Map();
@@ -215,10 +214,7 @@ export class IncrementalEnrichmentAnalyzer {
     }
 
     // Convert suggestions to ExtractedEntities format
-    const entitiesMap = await this.convertSuggestionsToEntities(
-      state,
-      contacts
-    );
+    const entitiesMap = await this.convertSuggestionsToEntities(state, contacts);
 
     // Clean up session state
     this.sessionStates.delete(sessionId);
@@ -228,7 +224,7 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Clear session state
-   * 
+   *
    * @param sessionId - Session ID
    */
   clearSession(sessionId: string): void {
@@ -237,9 +233,9 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Check if enrichment should be triggered
-   * 
+   *
    * Requirements: 2.1
-   * 
+   *
    * @param wordCount - Current word count in pending text
    * @param timeSinceLastAnalysis - Time since last analysis (ms)
    * @param timeSinceLastTrigger - Time since last trigger (ms)
@@ -283,22 +279,19 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Trigger enrichment analysis
-   * 
+   *
    * Uses the same processing as finalization:
    * 1. Disambiguate contacts using Gemini + fuzzy matching
    * 2. Extract entities for each identified contact
    * 3. Convert to suggestions
-   * 
+   *
    * Requirements: 2.2, 2.3, 2.4
-   * 
+   *
    * @param sessionId - Session ID
    * @param state - Session enrichment state
    * @private
    */
-  private async triggerEnrichment(
-    sessionId: string,
-    state: EnrichmentState
-  ): Promise<void> {
+  private async triggerEnrichment(sessionId: string, state: EnrichmentState): Promise<void> {
     if (!state.fullTranscript.trim()) {
       return;
     }
@@ -315,7 +308,9 @@ export class IncrementalEnrichmentAnalyzer {
         );
 
         const identifiedContacts = disambiguationResult.matches;
-        console.log(`[EnrichmentAnalyzer] Disambiguated ${identifiedContacts.length} contacts: ${identifiedContacts.map(c => c.name).join(', ')}`);
+        console.log(
+          `[EnrichmentAnalyzer] Disambiguated ${identifiedContacts.length} contacts: ${identifiedContacts.map((c) => c.name).join(', ')}`
+        );
 
         // Step 2: Extract entities for each identified contact (same as finalization)
         if (identifiedContacts.length > 0) {
@@ -445,7 +440,7 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Convert extracted entities to enrichment suggestions
-   * 
+   *
    * @param entities - Extracted entities
    * @param sourceText - Source transcript text
    * @param userContacts - User's contacts for matching
@@ -551,11 +546,11 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Merge new suggestions with existing ones
-   * 
+   *
    * Deduplicates by type and value, keeping highest confidence version.
-   * 
+   *
    * Requirements: 2.3, 2.4
-   * 
+   *
    * @param existing - Existing suggestions
    * @param newSuggestions - New suggestions to merge
    * @returns Merged suggestions
@@ -594,9 +589,9 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Convert suggestions to ExtractedEntities format for EnrichmentService
-   * 
+   *
    * Requirements: 2.2
-   * 
+   *
    * @param state - Session enrichment state
    * @param contacts - Contacts to extract for
    * @returns Map of contact ID to extracted entities
@@ -614,17 +609,13 @@ export class IncrementalEnrichmentAnalyzer {
     }
 
     // Group suggestions by type
-    const tags = state.suggestions
-      .filter(s => s.type === 'tag')
-      .map(s => s.value);
-    
-    const groups = state.suggestions
-      .filter(s => s.type === 'interest')
-      .map(s => s.value);
+    const tags = state.suggestions.filter((s) => s.type === 'tag').map((s) => s.value);
+
+    const groups = state.suggestions.filter((s) => s.type === 'interest').map((s) => s.value);
 
     const notes = state.suggestions
-      .filter(s => s.type === 'note')
-      .map(s => s.value)
+      .filter((s) => s.type === 'note')
+      .map((s) => s.value)
       .join('. ');
 
     // For now, apply all suggestions to all contacts
@@ -644,7 +635,7 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Generate a unique suggestion ID based on type and value
-   * 
+   *
    * @param type - Suggestion type
    * @param value - Suggestion value
    * @returns Suggestion ID
@@ -656,7 +647,7 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Get deduplication key for a suggestion
-   * 
+   *
    * @param suggestion - Enrichment suggestion
    * @returns Deduplication key
    * @private
@@ -667,7 +658,7 @@ export class IncrementalEnrichmentAnalyzer {
 
   /**
    * Count words in text
-   * 
+   *
    * @param text - Text to count words in
    * @returns Word count
    * @private
@@ -682,7 +673,7 @@ export class IncrementalEnrichmentAnalyzer {
   /**
    * Find a matching contact from the user's contact list
    * Uses fuzzy matching on name
-   * 
+   *
    * @param extractedName - Name extracted from transcript
    * @param contacts - User's contacts
    * @returns Matching contact or undefined
@@ -696,18 +687,18 @@ export class IncrementalEnrichmentAnalyzer {
     const normalizedExtracted = extractedName.toLowerCase().trim();
 
     // Try exact match first
-    const exactMatch = contacts.find(
-      c => c.name.toLowerCase() === normalizedExtracted
-    );
+    const exactMatch = contacts.find((c) => c.name.toLowerCase() === normalizedExtracted);
     if (exactMatch) {
       return exactMatch;
     }
 
     // Try partial match (extracted name is part of contact name or vice versa)
-    const partialMatch = contacts.find(c => {
+    const partialMatch = contacts.find((c) => {
       const normalizedContact = c.name.toLowerCase();
-      return normalizedContact.includes(normalizedExtracted) ||
-             normalizedExtracted.includes(normalizedContact);
+      return (
+        normalizedContact.includes(normalizedExtracted) ||
+        normalizedExtracted.includes(normalizedContact)
+      );
     });
     if (partialMatch) {
       return partialMatch;
@@ -715,7 +706,7 @@ export class IncrementalEnrichmentAnalyzer {
 
     // Try matching first name only
     const extractedFirstName = normalizedExtracted.split(' ')[0];
-    const firstNameMatch = contacts.find(c => {
+    const firstNameMatch = contacts.find((c) => {
       const contactFirstName = c.name.toLowerCase().split(' ')[0];
       return contactFirstName === extractedFirstName;
     });

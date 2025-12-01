@@ -22,14 +22,22 @@ export interface ContactRepository {
   findById(id: string, userId: string): Promise<Contact | null>;
   findAll(userId: string, filters?: ContactFilters): Promise<Contact[]>;
   findByGoogleResourceName(userId: string, resourceName: string): Promise<Contact | null>;
-  findBySource(userId: string, source: 'manual' | 'google' | 'calendar' | 'voice_note'): Promise<Contact[]>;
+  findBySource(
+    userId: string,
+    source: 'manual' | 'google' | 'calendar' | 'voice_note'
+  ): Promise<Contact[]>;
   delete(id: string, userId: string): Promise<void>;
   archive(id: string, userId: string): Promise<void>;
   unarchive(id: string, userId: string): Promise<void>;
   clearGoogleSyncMetadata(userId: string): Promise<void>;
-  
+
   // Circle assignment methods - Requirements: 3.3, 12.2, 12.5
-  assignToCircle(id: string, userId: string, circle: DunbarCircle, confidence?: number): Promise<Contact>;
+  assignToCircle(
+    id: string,
+    userId: string,
+    circle: DunbarCircle,
+    confidence?: number
+  ): Promise<Contact>;
   batchAssignToCircle(contactIds: string[], userId: string, circle: DunbarCircle): Promise<void>;
   findUncategorized(userId: string): Promise<Contact[]>;
   findByCircle(userId: string, circle: DunbarCircle): Promise<Contact[]>;
@@ -56,7 +64,7 @@ export interface ContactCreateData {
 
 /**
  * Contact Update Data
- * 
+ *
  * IMPORTANT - Requirements: 15.4
  * When updating contacts from user edits, DO NOT include Google metadata fields
  * (source, googleResourceName, googleEtag, lastSyncedAt).
@@ -373,7 +381,10 @@ export class PostgresContactRepository implements ContactRepository {
     return result.rows.map((row) => this.mapRowToContact(row));
   }
 
-  async findBySource(userId: string, source: 'manual' | 'google' | 'calendar' | 'voice_note'): Promise<Contact[]> {
+  async findBySource(
+    userId: string,
+    source: 'manual' | 'google' | 'calendar' | 'voice_note'
+  ): Promise<Contact[]> {
     const result = await pool.query(
       `SELECT c.*,
         COALESCE(
@@ -728,6 +739,9 @@ export async function getContactsByIds(userId: string, contactIds: string[]): Pr
 const defaultRepository = new PostgresContactRepository();
 
 export const findById = (id: string, userId: string) => defaultRepository.findById(id, userId);
-export const findAll = (userId: string, filters?: ContactFilters) => defaultRepository.findAll(userId, filters);
-export const create = (userId: string, data: ContactCreateData) => defaultRepository.create(userId, data);
-export const update = (id: string, userId: string, data: ContactUpdateData) => defaultRepository.update(id, userId, data);
+export const findAll = (userId: string, filters?: ContactFilters) =>
+  defaultRepository.findAll(userId, filters);
+export const create = (userId: string, data: ContactCreateData) =>
+  defaultRepository.create(userId, data);
+export const update = (id: string, userId: string, data: ContactUpdateData) =>
+  defaultRepository.update(id, userId, data);

@@ -21,6 +21,7 @@ This directory contains SQL migration files for the CatchUp database schema.
 - `015_create_google_contact_groups.sql` - Creates Google Contact groups table
 - `016_add_group_mapping_suggestions.sql` - Adds group mapping suggestions for Google Contacts
 - `017_create_contact_onboarding_schema.sql` - Creates contact onboarding schema with Dunbar circles, onboarding state, achievements, and weekly catchup sessions
+- `018_create_sms_mms_enrichment_schema.sql` - Creates SMS/MMS enrichment schema with phone number verification and source tracking
 
 ## Running Migrations
 
@@ -89,6 +90,10 @@ psql -d catchup_db -f scripts/migrations/003_create_preferences_tables.sql
 - `weekly_catchup_sessions` - Manages weekly contact review sessions
 - `onboarding_achievements` - Tracks gamification achievements earned by users
 - `network_health_scores` - Historical record of network health metrics
+
+### SMS/MMS Enrichment Tables
+- `user_phone_numbers` - Verified phone numbers linked to user accounts for SMS/MMS enrichment
+- `enrichment_items` - Enhanced with `source` and `source_metadata` columns to track enrichment origin (web, sms, mms, voice)
 
 ## Database Enums
 

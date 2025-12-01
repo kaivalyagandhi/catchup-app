@@ -9,6 +9,8 @@ class EnrichmentReview {
     this.container = null;
     this.onApplyCallback = null;
     this.isRecording = false;
+    this.enrichmentItems = [];
+    this.currentFilter = 'all'; // all, web, sms, mms
     
     this.init();
   }
@@ -52,6 +54,659 @@ class EnrichmentReview {
     if (container) {
       container.innerHTML = '';
     }
+  }
+  
+  /**
+   * Load enrichment items from API
+   * @param {string} userId - User ID
+   * @param {string} source - Filter by source (all, web, sms, mms)
+   */
+  async loadEnrichmentItems(userId, source = 'all') {
+    try {
+      let url = `/api/enrichment-items?userId=${userId}&status=pending`;
+      
+      if (source !== 'all') {
+        url += `&source=${source}`;
+      }
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch enrichment items');
+      }
+      
+      this.enrichmentItems = await response.json();
+      this.currentFilter = source;
+      this.renderEnrichmentItems();
+    } catch (error) {
+      console.error('Error loading enrichment items:', error);
+      showToast('Failed to load enrichment items', 'error');
+    }
+  }
+  
+  /**
+   * Render enrichment items from API
+   */
+  renderEnrichmentItems() {
+    const container = document.getElementById('enrichment-review-container');
+    if (!container) {
+      console.error('Enrichment review container not found');
+      return;
+    }
+    
+    this.container = container;
+    
+    if (this.enrichmentItems.length === 0) {
+      container.innerHTML = `
+        <div class="enrichment-review">
+          <div class="enrichment-header">
+            <h2>Review Enrichments</h2>
+            <p class="enrichment-subtitle">No pending enrichments to review</p>
+          </div>
+          ${this.renderSourceFilter()}
+          <div class="enrichment-empty">
+            <p>All caught up! No enrichments waiting for review.</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
+    // Group items by contact
+    const groupedByContact = this.groupItemsByContact(this.enrichmentItems);
+    
+    container.innerHTML = `
+      <div class="enrichment-review">
+        <div class="enrichment-header">
+          <h2>Review Enrichments</h2>
+          <p class="enrichment-subtitle">${this.enrichmentItems.length} pending enrichment${this.enrichmentItems.length !== 1 ? 's' : ''}</p>
+        </div>
+        
+        ${this.renderSourceFilter()}
+        
+        <div class="enrichment-contacts">
+          ${Object.entries(groupedByContact).map(([contactKey, items], index) => 
+            this.renderContactEnrichmentGroup(contactKey, items, index)
+          ).join('')}
+        </div>
+        
+        <div class="enrichment-actions">
+          <button class="btn btn-secondary" onclick="enrichmentReview.acceptAllItems()">
+            ✓ Accept All
+          </button>
+          <button class="btn btn-secondary" onclick="enrichmentReview.rejectAllItems()">
+            ✗ Reject All
+          </button>
+          <button class="btn btn-primary" onclick="enrichmentReview.applySelectedItems()">
+            Apply Selected
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  /**
+   * Render source filter buttons
+   */
+  renderSourceFilter() {
+    const filters = [
+      { value: 'all', label: 'All Sources', icon: '📋' },
+      { value: 'web', label: 'Web', icon: '🌐' },
+      { value: 'sms', label: 'SMS', icon: '💬' },
+      { value: 'mms', label: 'MMS', icon: '📱' }
+    ];
+    
+    return `
+      <div class="source-filter">
+        ${filters.map(filter => `
+          <button 
+            class="filter-btn ${this.currentFilter === filter.value ? 'active' : ''}"
+            onclick="enrichmentReview.filterBySource('${filter.value}')"
+          >
+            <span class="filter-icon">${filter.icon}</span>
+            <span class="filter-label">${filter.label}</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
+  }
+  
+  /**
+   * Filter enrichments by source
+   */
+  async filterBySource(source) {
+    const userId = this.getCurrentUserId();
+    if (!userId) {
+      showToast('User not logged in', 'error');
+      return;
+    }
+    
+    await this.loadEnrichmentItems(userId, source);
+  }
+  
+  /**
+   * Group enrichment items by contact
+   */
+  groupItemsByContact(items) {
+    const grouped = {};
+    
+    items.forEach(item => {
+      const key = item.contactId || 'unassigned';
+      if (!grouped[key]) {
+        grouped[key] = {
+          contactId: item.contactId,
+          contactName: item.contactName || 'Unassigned',
+          items: []
+        };
+      }
+      grouped[key].items.push(item);
+    });
+    
+    return grouped;
+  }
+  
+  /**
+   * Render a group of enrichment items for a contact
+   */
+  renderContactEnrichmentGroup(contactKey, group, index) {
+    const { contactId, contactName, items } = group;
+    const acceptedCount = items.filter(item => item.accepted).length;
+    const initials = this.getInitials(contactName);
+    
+    return `
+      <div class="contact-proposal" data-contact-index="${index}">
+        <div class="contact-header" onclick="enrichmentReview.toggleContactGroup(${index})">
+          <div class="contact-info">
+            <div class="contact-avatar">${initials}</div>
+            <div class="contact-details">
+              <h3 class="contact-name">${this.escapeHtml(contactName)}</h3>
+              <p class="contact-summary">${acceptedCount} of ${items.length} items selected</p>
+            </div>
+          </div>
+          <div class="expand-icon">
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+        
+        <div class="contact-items expanded" id="contact-items-${index}">
+          ${items.map((item, itemIndex) => this.renderEnrichmentItemFromAPI(item, index, itemIndex)).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  /**
+   * Render an enrichment item from API data
+   */
+  renderEnrichmentItemFromAPI(item, contactIndex, itemIndex) {
+    const { id, itemType, action, fieldName, value, accepted, source, sourceMetadata } = item;
+    
+    // Determine display text
+    let displayText = '';
+    let displayValue = value;
+    
+    switch (itemType) {
+      case 'tag':
+        displayText = 'Add Tag';
+        break;
+      case 'group':
+        displayText = 'Add to Group';
+        break;
+      case 'field':
+        displayText = action === 'update' ? `Update ${this.formatFieldName(fieldName)}` : `Add ${this.formatFieldName(fieldName)}`;
+        break;
+      case 'lastContactDate':
+        displayText = action === 'update' ? 'Update Last Contact Date' : 'Add Last Contact Date';
+        displayValue = this.formatDate(value);
+        break;
+    }
+    
+    // Get icon for item type
+    const icon = this.getItemIcon(itemType, fieldName);
+    
+    // Get source badge
+    const sourceBadge = this.renderSourceBadge(source, sourceMetadata);
+    
+    return `
+      <div class="enrichment-item ${accepted ? 'accepted' : 'rejected'}" data-item-id="${id}">
+        <div class="item-checkbox">
+          <input 
+            type="checkbox" 
+            id="item-${contactIndex}-${itemIndex}" 
+            ${accepted ? 'checked' : ''}
+            onchange="enrichmentReview.toggleItemFromAPI(${contactIndex}, ${itemIndex}, '${id}')"
+          />
+        </div>
+        
+        <div class="item-icon">${icon}</div>
+        
+        <div class="item-content">
+          <div class="item-header">
+            <span class="item-type">${displayText}</span>
+            ${sourceBadge}
+          </div>
+          
+          <div class="item-value-container">
+            <span class="item-value" id="value-display-${contactIndex}-${itemIndex}">
+              ${this.escapeHtml(displayValue)}
+            </span>
+            <input 
+              type="text" 
+              class="item-value-edit hidden" 
+              id="value-edit-${contactIndex}-${itemIndex}"
+              value="${this.escapeHtml(value)}"
+              data-type="${itemType}"
+              data-field="${fieldName || ''}"
+            />
+            <span class="validation-error hidden" id="error-${contactIndex}-${itemIndex}"></span>
+          </div>
+          
+          ${this.renderSourceMetadata(sourceMetadata)}
+        </div>
+        
+        <div class="item-actions">
+          <button 
+            class="btn-icon edit-btn" 
+            id="edit-btn-${contactIndex}-${itemIndex}"
+            onclick="enrichmentReview.startEditFromAPI(${contactIndex}, ${itemIndex}, '${id}')"
+            title="Edit value"
+          >
+            ✏️
+          </button>
+          <button 
+            class="btn-icon save-btn hidden" 
+            id="save-btn-${contactIndex}-${itemIndex}"
+            onclick="enrichmentReview.saveEditFromAPI(${contactIndex}, ${itemIndex}, '${id}')"
+            title="Save changes"
+          >
+            ✓
+          </button>
+          <button 
+            class="btn-icon cancel-btn hidden" 
+            id="cancel-btn-${contactIndex}-${itemIndex}"
+            onclick="enrichmentReview.cancelEdit(${contactIndex}, ${itemIndex})"
+            title="Cancel editing"
+          >
+            ✗
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  /**
+   * Render source badge
+   */
+  renderSourceBadge(source, sourceMetadata) {
+    if (!source || source === 'web') {
+      return '<span class="source-badge source-web">🌐 Web</span>';
+    }
+    
+    if (source === 'sms') {
+      return '<span class="source-badge source-sms">💬 SMS</span>';
+    }
+    
+    if (source === 'mms') {
+      const mediaType = sourceMetadata?.mediaType || '';
+      let icon = '📱';
+      let label = 'MMS';
+      
+      if (mediaType.includes('audio')) {
+        icon = '🎤';
+        label = 'Voice Note';
+      } else if (mediaType.includes('image')) {
+        icon = '📷';
+        label = 'Image';
+      } else if (mediaType.includes('video')) {
+        icon = '🎥';
+        label = 'Video';
+      }
+      
+      return `<span class="source-badge source-mms">${icon} ${label}</span>`;
+    }
+    
+    return '';
+  }
+  
+  /**
+   * Render source metadata
+   */
+  renderSourceMetadata(sourceMetadata) {
+    if (!sourceMetadata || Object.keys(sourceMetadata).length === 0) {
+      return '';
+    }
+    
+    const parts = [];
+    
+    if (sourceMetadata.originalMessage) {
+      parts.push(`
+        <div class="metadata-item">
+          <span class="metadata-label">Original Message:</span>
+          <span class="metadata-value">${this.escapeHtml(sourceMetadata.originalMessage)}</span>
+        </div>
+      `);
+    }
+    
+    if (sourceMetadata.transcript) {
+      parts.push(`
+        <div class="metadata-item">
+          <span class="metadata-label">Transcript:</span>
+          <span class="metadata-value">${this.escapeHtml(sourceMetadata.transcript)}</span>
+        </div>
+      `);
+    }
+    
+    if (sourceMetadata.phoneNumber) {
+      // Mask phone number for privacy
+      const masked = this.maskPhoneNumber(sourceMetadata.phoneNumber);
+      parts.push(`
+        <div class="metadata-item">
+          <span class="metadata-label">From:</span>
+          <span class="metadata-value">${masked}</span>
+        </div>
+      `);
+    }
+    
+    if (parts.length === 0) {
+      return '';
+    }
+    
+    return `
+      <div class="source-metadata">
+        ${parts.join('')}
+      </div>
+    `;
+  }
+  
+  /**
+   * Mask phone number for privacy
+   */
+  maskPhoneNumber(phoneNumber) {
+    if (!phoneNumber || phoneNumber.length < 4) {
+      return '****';
+    }
+    const lastFour = phoneNumber.slice(-4);
+    return `****${lastFour}`;
+  }
+  
+  /**
+   * Toggle contact group expansion
+   */
+  toggleContactGroup(contactIndex) {
+    const itemsContainer = document.getElementById(`contact-items-${contactIndex}`);
+    const chevron = document.querySelector(`[data-contact-index="${contactIndex}"] .chevron`);
+    
+    if (itemsContainer) {
+      itemsContainer.classList.toggle('expanded');
+      itemsContainer.classList.toggle('collapsed');
+    }
+    
+    if (chevron) {
+      chevron.textContent = itemsContainer.classList.contains('expanded') ? '▼' : '▶';
+    }
+  }
+  
+  /**
+   * Toggle item acceptance from API
+   */
+  async toggleItemFromAPI(contactIndex, itemIndex, itemId) {
+    const checkbox = document.getElementById(`item-${contactIndex}-${itemIndex}`);
+    const itemElement = checkbox.closest('.enrichment-item');
+    
+    try {
+      // Update via API
+      const userId = this.getCurrentUserId();
+      const response = await fetch(`/api/enrichment-items/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          accepted: checkbox.checked
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update enrichment item');
+      }
+      
+      // Update UI
+      if (checkbox.checked) {
+        itemElement.classList.remove('rejected');
+        itemElement.classList.add('accepted');
+      } else {
+        itemElement.classList.remove('accepted');
+        itemElement.classList.add('rejected');
+      }
+      
+      // Update local data
+      const item = this.enrichmentItems.find(i => i.id === itemId);
+      if (item) {
+        item.accepted = checkbox.checked;
+      }
+      
+      // Update contact summary
+      this.updateContactSummaryFromAPI(contactIndex);
+    } catch (error) {
+      console.error('Error toggling item:', error);
+      showToast('Failed to update item', 'error');
+      // Revert checkbox
+      checkbox.checked = !checkbox.checked;
+    }
+  }
+  
+  /**
+   * Update contact summary from API data
+   */
+  updateContactSummaryFromAPI(contactIndex) {
+    const contactElement = document.querySelector(`[data-contact-index="${contactIndex}"]`);
+    if (!contactElement) return;
+    
+    const itemElements = contactElement.querySelectorAll('.enrichment-item');
+    let acceptedCount = 0;
+    
+    itemElements.forEach(el => {
+      const checkbox = el.querySelector('input[type="checkbox"]');
+      if (checkbox && checkbox.checked) {
+        acceptedCount++;
+      }
+    });
+    
+    const summaryElement = contactElement.querySelector('.contact-summary');
+    if (summaryElement) {
+      summaryElement.textContent = `${acceptedCount} of ${itemElements.length} items selected`;
+    }
+  }
+  
+  /**
+   * Start editing item from API
+   */
+  startEditFromAPI(contactIndex, itemIndex, itemId) {
+    this.startEdit(contactIndex, itemIndex);
+  }
+  
+  /**
+   * Save edit from API
+   */
+  async saveEditFromAPI(contactIndex, itemIndex, itemId) {
+    const valueEdit = document.getElementById(`value-edit-${contactIndex}-${itemIndex}`);
+    const newValue = valueEdit.value.trim();
+    const type = valueEdit.dataset.type;
+    const field = valueEdit.dataset.field;
+    
+    // Validate the new value
+    const validation = this.validateValue(newValue, type, field);
+    
+    if (!validation.valid) {
+      this.showValidationError(contactIndex, itemIndex, validation.error);
+      return;
+    }
+    
+    try {
+      // Update via API
+      const userId = this.getCurrentUserId();
+      const response = await fetch(`/api/enrichment-items/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          value: newValue
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update enrichment item');
+      }
+      
+      // Update display
+      const valueDisplay = document.getElementById(`value-display-${contactIndex}-${itemIndex}`);
+      if (type === 'lastContactDate') {
+        valueDisplay.textContent = this.formatDate(newValue);
+      } else {
+        valueDisplay.textContent = newValue;
+      }
+      
+      // Update local data
+      const item = this.enrichmentItems.find(i => i.id === itemId);
+      if (item) {
+        item.value = newValue;
+      }
+      
+      // Exit edit mode
+      this.cancelEdit(contactIndex, itemIndex);
+      
+      showToast('Item updated successfully', 'success');
+    } catch (error) {
+      console.error('Error saving edit:', error);
+      showToast('Failed to save changes', 'error');
+    }
+  }
+  
+  /**
+   * Accept all items
+   */
+  async acceptAllItems() {
+    const userId = this.getCurrentUserId();
+    if (!userId) {
+      showToast('User not logged in', 'error');
+      return;
+    }
+    
+    try {
+      // Update all items to accepted
+      const updatePromises = this.enrichmentItems.map(item => 
+        fetch(`/api/enrichment-items/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, accepted: true })
+        })
+      );
+      
+      await Promise.all(updatePromises);
+      
+      // Reload items
+      await this.loadEnrichmentItems(userId, this.currentFilter);
+      
+      showToast('All items accepted', 'success');
+    } catch (error) {
+      console.error('Error accepting all items:', error);
+      showToast('Failed to accept all items', 'error');
+    }
+  }
+  
+  /**
+   * Reject all items
+   */
+  async rejectAllItems() {
+    const userId = this.getCurrentUserId();
+    if (!userId) {
+      showToast('User not logged in', 'error');
+      return;
+    }
+    
+    try {
+      // Update all items to rejected
+      const updatePromises = this.enrichmentItems.map(item => 
+        fetch(`/api/enrichment-items/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, accepted: false })
+        })
+      );
+      
+      await Promise.all(updatePromises);
+      
+      // Reload items
+      await this.loadEnrichmentItems(userId, this.currentFilter);
+      
+      showToast('All items rejected', 'info');
+    } catch (error) {
+      console.error('Error rejecting all items:', error);
+      showToast('Failed to reject all items', 'error');
+    }
+  }
+  
+  /**
+   * Apply selected items
+   */
+  async applySelectedItems() {
+    const userId = this.getCurrentUserId();
+    if (!userId) {
+      showToast('User not logged in', 'error');
+      return;
+    }
+    
+    // Get accepted items
+    const acceptedItems = this.enrichmentItems.filter(item => item.accepted);
+    
+    if (acceptedItems.length === 0) {
+      showToast('No items selected to apply', 'warning');
+      return;
+    }
+    
+    // Show confirmation
+    const confirmed = confirm(
+      `Apply ${acceptedItems.length} selected enrichment item${acceptedItems.length !== 1 ? 's' : ''}?\n\n` +
+      'This will update your contact information.'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      const response = await fetch('/api/enrichment-items/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          enrichmentIds: acceptedItems.map(item => item.id)
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to apply enrichment items');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        showToast(`Successfully applied ${result.appliedCount} enrichment item${result.appliedCount !== 1 ? 's' : ''}!`, 'success');
+        
+        // Reload items
+        await this.loadEnrichmentItems(userId, this.currentFilter);
+      } else {
+        showToast(`Applied ${result.appliedCount} items, ${result.failedCount} failed`, 'warning');
+      }
+    } catch (error) {
+      console.error('Error applying enrichment items:', error);
+      showToast('Failed to apply enrichment items', 'error');
+    }
+  }
+  
+  /**
+   * Get current user ID (helper method)
+   */
+  getCurrentUserId() {
+    // This should be implemented based on your auth system
+    // For now, return a placeholder
+    return localStorage.getItem('userId') || 'user-123';
   }
   
   /**
@@ -695,6 +1350,105 @@ class EnrichmentReview {
       .enrichment-subtitle {
         color: #6b7280;
         font-size: 14px;
+      }
+      
+      .source-filter {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        padding: 16px;
+        background: #f9fafb;
+        border-radius: 8px;
+        flex-wrap: wrap;
+      }
+      
+      .filter-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+      }
+      
+      .filter-btn:hover {
+        border-color: #d1d5db;
+        background: #f9fafb;
+      }
+      
+      .filter-btn.active {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: white;
+      }
+      
+      .filter-icon {
+        font-size: 18px;
+      }
+      
+      .source-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+      
+      .source-badge.source-web {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      
+      .source-badge.source-sms {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      
+      .source-badge.source-mms {
+        background: #fce7f3;
+        color: #9f1239;
+      }
+      
+      .source-metadata {
+        margin-top: 12px;
+        padding: 12px;
+        background: #f9fafb;
+        border-radius: 6px;
+        border-left: 3px solid #3b82f6;
+      }
+      
+      .metadata-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+      
+      .metadata-item:last-child {
+        margin-bottom: 0;
+      }
+      
+      .metadata-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .metadata-value {
+        font-size: 14px;
+        color: #1f2937;
+        word-break: break-word;
       }
       
       .enrichment-empty {

@@ -39,12 +39,18 @@ describe('IncrementalEnrichmentAnalyzer - Property-Based Tests', () => {
               } as ExtractedEntities),
             };
 
+            // Create mock disambiguation service
+            const mockDisambiguationService = {
+              disambiguate: vi.fn().mockResolvedValue([]),
+            };
+
             // Create analyzer with high pause threshold to isolate word count trigger
             const analyzer = new IncrementalEnrichmentAnalyzer(
               mockExtractionService as any,
+              mockDisambiguationService as any,
               {
                 minWordCount: 50,
-                pauseThresholdMs: 100000, // Very high to avoid pause trigger
+                pauseThresholdMs: 100000, // Very high to avoid pause threshold trigger
                 maxPendingWords: 300,
                 debounceMs: 0, // No debounce for testing
               }
@@ -85,9 +91,14 @@ describe('IncrementalEnrichmentAnalyzer - Property-Based Tests', () => {
               } as ExtractedEntities),
             };
 
+            const mockDisambiguationService = {
+              disambiguate: vi.fn().mockResolvedValue([]),
+            };
+
             // Create analyzer with high pause threshold
             const analyzer = new IncrementalEnrichmentAnalyzer(
               mockExtractionService as any,
+              mockDisambiguationService as any,
               {
                 minWordCount: 50,
                 pauseThresholdMs: 100000, // Very high to avoid pause trigger
@@ -136,9 +147,14 @@ describe('IncrementalEnrichmentAnalyzer - Property-Based Tests', () => {
                 } as ExtractedEntities),
               };
 
+              const mockDisambiguationService = {
+                disambiguate: vi.fn().mockResolvedValue([]),
+              };
+
               // Create analyzer
               const analyzer = new IncrementalEnrichmentAnalyzer(
                 mockExtractionService as any,
+                mockDisambiguationService as any,
                 {
                   minWordCount: 50,
                   pauseThresholdMs: 2000,
@@ -217,8 +233,13 @@ describe('IncrementalEnrichmentAnalyzer - Property-Based Tests', () => {
                 } as ExtractedEntities),
             };
 
+            const mockDisambiguationService = {
+              disambiguate: vi.fn().mockResolvedValue([]),
+            };
+
             const analyzer = new IncrementalEnrichmentAnalyzer(
               mockExtractionService as any,
+              mockDisambiguationService as any,
               {
                 minWordCount: 50,
                 pauseThresholdMs: 100000,
@@ -279,8 +300,13 @@ describe('IncrementalEnrichmentAnalyzer - Property-Based Tests', () => {
                 } as ExtractedEntities),
             };
 
+            const mockDisambiguationService = {
+              disambiguate: vi.fn().mockResolvedValue([]),
+            };
+
             const analyzer = new IncrementalEnrichmentAnalyzer(
               mockExtractionService as any,
+              mockDisambiguationService as any,
               {
                 minWordCount: 50,
                 pauseThresholdMs: 100000,
@@ -334,8 +360,13 @@ describe('IncrementalEnrichmentAnalyzer - Property-Based Tests', () => {
                 } as ExtractedEntities),
             };
 
+            const mockDisambiguationService = {
+              disambiguate: vi.fn().mockResolvedValue([]),
+            };
+
             const analyzer = new IncrementalEnrichmentAnalyzer(
               mockExtractionService as any,
+              mockDisambiguationService as any,
               {
                 minWordCount: 50,
                 pauseThresholdMs: 100000,

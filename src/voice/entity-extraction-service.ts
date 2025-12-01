@@ -1,15 +1,15 @@
 /**
  * Entity Extraction Service
- * 
+ *
  * Uses Google Gemini API to extract structured contact metadata from voice note transcripts.
  * Supports single contact, generic (unknown contact), and multi-contact extraction.
- * 
+ *
  * Features:
  * - Structured JSON output using Gemini's responseSchema
  * - Context-aware extraction based on known contact information
  * - Multi-contact support for group voice notes
  * - Error handling with fallback to empty entities
- * 
+ *
  * @see https://ai.google.dev/gemini-api/docs/structured-output
  */
 
@@ -22,7 +22,7 @@ import { Contact, ExtractedEntities } from '../types/index.js';
 
 /**
  * Entity Extraction Service
- * 
+ *
  * Extracts structured contact metadata from voice note transcripts using Google Gemini API.
  */
 export class EntityExtractionService {
@@ -34,13 +34,13 @@ export class EntityExtractionService {
 
   /**
    * Extract entities for a specific known contact
-   * 
+   *
    * Uses contact information to provide context for more accurate extraction.
-   * 
+   *
    * @param transcript - Voice note transcript text
    * @param contact - Known contact the voice note refers to
    * @returns Extracted entities for the contact
-   * 
+   *
    * @example
    * ```typescript
    * const entities = await service.extractForContact(
@@ -50,22 +50,19 @@ export class EntityExtractionService {
    * // Returns: { fields: {}, tags: ['rock climbing', 'coffee'], groups: [], lastContactDate: '2024-01-15' }
    * ```
    */
-  async extractForContact(
-    transcript: string,
-    contact: Contact
-  ): Promise<ExtractedEntities> {
+  async extractForContact(transcript: string, contact: Contact): Promise<ExtractedEntities> {
     const prompt = this.buildPromptForContact(transcript, contact);
     return this.extractEntities(prompt);
   }
 
   /**
    * Extract entities when contact is unknown
-   * 
+   *
    * Performs generic extraction without contact context.
-   * 
+   *
    * @param transcript - Voice note transcript text
    * @returns Extracted entities
-   * 
+   *
    * @example
    * ```typescript
    * const entities = await service.extractGeneric(
@@ -81,10 +78,10 @@ export class EntityExtractionService {
 
   /**
    * Extract entities with user's contact list for context
-   * 
+   *
    * Uses the contact list to improve name matching and provide context.
    * This is used for incremental enrichment during recording.
-   * 
+   *
    * @param transcript - Voice note transcript text
    * @param userContacts - User's contact list for context
    * @returns Extracted entities with better name matching
@@ -99,13 +96,13 @@ export class EntityExtractionService {
 
   /**
    * Extract entities for multiple contacts mentioned in the same voice note
-   * 
+   *
    * Processes each contact separately to identify which information applies to whom.
-   * 
+   *
    * @param transcript - Voice note transcript text
    * @param contacts - Array of contacts mentioned in the voice note
    * @returns Map of contact ID to extracted entities
-   * 
+   *
    * @example
    * ```typescript
    * const entitiesMap = await service.extractForMultipleContacts(
@@ -121,14 +118,19 @@ export class EntityExtractionService {
   ): Promise<Map<string, ExtractedEntities>> {
     const results = new Map<string, ExtractedEntities>();
 
-    console.log(`[EntityExtraction] Extracting for ${contacts.length} contacts from: "${transcript}"`);
+    console.log(
+      `[EntityExtraction] Extracting for ${contacts.length} contacts from: "${transcript}"`
+    );
 
     // Extract entities for each contact separately
     for (const contact of contacts) {
       try {
         console.log(`[EntityExtraction] Extracting for contact: ${contact.name}`);
         const entities = await this.extractForContact(transcript, contact);
-        console.log(`[EntityExtraction] ${contact.name} entities:`, JSON.stringify(entities, null, 2));
+        console.log(
+          `[EntityExtraction] ${contact.name} entities:`,
+          JSON.stringify(entities, null, 2)
+        );
         results.set(contact.id, entities);
       } catch (error) {
         console.error(`Failed to extract entities for contact ${contact.id}:`, error);
@@ -142,7 +144,7 @@ export class EntityExtractionService {
 
   /**
    * Core extraction method that calls Gemini API
-   * 
+   *
    * @param prompt - Formatted prompt for entity extraction
    * @returns Extracted entities
    * @private
@@ -167,7 +169,7 @@ export class EntityExtractionService {
 
   /**
    * Build prompt for known contact extraction
-   * 
+   *
    * @param transcript - Voice note transcript
    * @param contact - Known contact
    * @returns Formatted prompt
@@ -183,7 +185,7 @@ Current contact information for ${contact.name}:
 ${contact.phone ? `- Phone: ${contact.phone}` : ''}
 ${contact.email ? `- Email: ${contact.email}` : ''}
 ${contact.location ? `- Location: ${contact.location}` : ''}
-${contact.tags.length > 0 ? `- Existing tags: ${contact.tags.map(t => t.text).join(', ')}` : ''}
+${contact.tags.length > 0 ? `- Existing tags: ${contact.tags.map((t) => t.text).join(', ')}` : ''}
 ${contact.groups.length > 0 ? `- Existing groups: ${contact.groups.join(', ')}` : ''}
 
 Transcript:
@@ -202,7 +204,7 @@ Return empty arrays/null values if no information about ${contact.name} is found
 
   /**
    * Build prompt for generic extraction (unknown contact)
-   * 
+   *
    * @param transcript - Voice note transcript
    * @returns Formatted prompt
    * @private
@@ -228,7 +230,7 @@ Return empty arrays/null values if no information is found.`;
 
   /**
    * Build prompt with user's contact list for context-aware extraction
-   * 
+   *
    * @param transcript - Voice note transcript
    * @param userContacts - User's contact list
    * @returns Formatted prompt with contact context
@@ -237,8 +239,8 @@ Return empty arrays/null values if no information is found.`;
   private buildContextAwarePrompt(transcript: string, userContacts: Contact[]): string {
     // Create a list of contact names for context
     const contactNames = userContacts
-      .map(c => c.name)
-      .filter(name => name && name.trim())
+      .map((c) => c.name)
+      .filter((name) => name && name.trim())
       .slice(0, 50) // Limit to 50 contacts to avoid token limits
       .join(', ');
 
@@ -277,7 +279,7 @@ Return empty arrays/null values if no information is found.`;
 
   /**
    * Validate and transform API response to ExtractedEntities format
-   * 
+   *
    * @param parsed - Parsed JSON from API
    * @returns Validated ExtractedEntities
    * @private
@@ -288,7 +290,7 @@ Return empty arrays/null values if no information is found.`;
     const fields = parsed.fields || {};
     const tags = Array.isArray(parsed.tags) ? parsed.tags : [];
     const groups = Array.isArray(parsed.groups) ? parsed.groups : [];
-    
+
     // Parse lastContactDate if present
     let lastContactDate: Date | undefined;
     if (parsed.lastContactDate) {
@@ -314,9 +316,9 @@ Return empty arrays/null values if no information is found.`;
 
   /**
    * Create empty entities structure
-   * 
+   *
    * Used as fallback when extraction fails.
-   * 
+   *
    * @returns Empty ExtractedEntities
    * @private
    */

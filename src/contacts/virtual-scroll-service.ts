@@ -1,6 +1,6 @@
 /**
  * Virtual Scroll Service
- * 
+ *
  * Provides virtual scrolling utilities for rendering large lists efficiently.
  * Only renders items that are visible in the viewport.
  * Requirements: 4.2
@@ -32,19 +32,19 @@ export function calculateVirtualScrollState(
   config: VirtualScrollConfig
 ): VirtualScrollState {
   const { itemHeight, containerHeight, bufferSize = 5, overscan = 3 } = config;
-  
+
   // Calculate visible range
   const visibleStartIndex = Math.floor(scrollTop / itemHeight);
   const visibleEndIndex = Math.ceil((scrollTop + containerHeight) / itemHeight);
-  
+
   // Add buffer and overscan
   const renderStartIndex = Math.max(0, visibleStartIndex - bufferSize - overscan);
   const renderEndIndex = Math.min(totalItems, visibleEndIndex + bufferSize + overscan);
-  
+
   // Calculate total height and offset
   const totalHeight = totalItems * itemHeight;
   const offsetY = renderStartIndex * itemHeight;
-  
+
   return {
     scrollTop,
     visibleStartIndex,
@@ -59,10 +59,7 @@ export function calculateVirtualScrollState(
 /**
  * Get items to render based on virtual scroll state
  */
-export function getVirtualScrollItems<T>(
-  items: T[],
-  state: VirtualScrollState
-): T[] {
+export function getVirtualScrollItems<T>(items: T[], state: VirtualScrollState): T[] {
   return items.slice(state.renderStartIndex, state.renderEndIndex);
 }
 
@@ -75,7 +72,7 @@ export function hasVirtualScrollStateChanged(
   threshold: number = 1
 ): boolean {
   if (!oldState) return true;
-  
+
   return (
     Math.abs(oldState.renderStartIndex - newState.renderStartIndex) >= threshold ||
     Math.abs(oldState.renderEndIndex - newState.renderEndIndex) >= threshold
@@ -91,14 +88,14 @@ export function createScrollDebouncer(
 ): (scrollTop: number) => void {
   let timeoutId: NodeJS.Timeout | null = null;
   let lastScrollTop: number | null = null;
-  
+
   return (scrollTop: number) => {
     lastScrollTop = scrollTop;
-    
+
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
-    
+
     timeoutId = setTimeout(() => {
       if (lastScrollTop !== null) {
         callback(lastScrollTop);
@@ -129,16 +126,16 @@ export function calculateCircularPositions(
   const positions: CircularPosition[] = [];
   const angleStep = (2 * Math.PI) / totalItems;
   const startAngle = -Math.PI / 2; // Start at top
-  
+
   for (let i = 0; i < totalItems; i++) {
-    const angle = startAngle + (i * angleStep);
+    const angle = startAngle + i * angleStep;
     const x = centerX + radius * Math.cos(angle);
     const y = centerY + radius * Math.sin(angle);
     const visible = i >= visibleStartIndex && i < visibleEndIndex;
-    
+
     positions.push({ x, y, angle, visible });
   }
-  
+
   return positions;
 }
 
@@ -147,10 +144,10 @@ export function calculateCircularPositions(
  */
 export function chunkItems<T>(items: T[], chunkSize: number): T[][] {
   const chunks: T[][] = [];
-  
+
   for (let i = 0; i < items.length; i += chunkSize) {
     chunks.push(items.slice(i, i + chunkSize));
   }
-  
+
   return chunks;
 }

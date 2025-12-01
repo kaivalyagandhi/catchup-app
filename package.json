@@ -20,7 +20,8 @@
     "db:setup": "bash scripts/setup-db.sh",
     "db:init": "bash scripts/init-migrations.sh",
     "db:migrate": "bash scripts/run-migrations.sh",
-    "db:test": "ts-node -e \"require('./src/db/connection').testConnection()\""
+    "db:test": "ts-node -e \"require('./src/db/connection').testConnection()\"",
+    "test:load": "ts-node scripts/load-test-sms.ts"
   },
   "repository": {
     "type": "git",
@@ -81,6 +82,7 @@
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "lru-cache": "^11.0.2",
     "openai": "^6.9.1",
     "pg": "^8.16.3",
     "twilio": "^5.10.6",

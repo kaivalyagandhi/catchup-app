@@ -8,11 +8,11 @@ const router = Router();
 router.put('/availability', async (req: Request, res: Response) => {
   try {
     const { userId, availabilityParams } = req.body;
-    
+
     if (!userId || !availabilityParams) {
       return res.status(400).json({ error: 'userId and availabilityParams are required' });
     }
-    
+
     await availabilityService.setAvailabilityParams(userId, availabilityParams);
     res.status(204).send();
   } catch (error) {
@@ -25,11 +25,11 @@ router.put('/availability', async (req: Request, res: Response) => {
 router.get('/availability', async (req: Request, res: Response) => {
   try {
     const { userId } = req.query;
-    
+
     if (!userId) {
       return res.status(400).json({ error: 'userId query parameter is required' });
     }
-    
+
     const params = await availabilityService.getAvailabilityParams(userId as string);
     res.json(params);
   } catch (error) {
@@ -42,11 +42,11 @@ router.get('/availability', async (req: Request, res: Response) => {
 router.put('/notifications', async (req: Request, res: Response) => {
   try {
     const { userId, notificationPreferences } = req.body;
-    
+
     if (!userId || !notificationPreferences) {
       return res.status(400).json({ error: 'userId and notificationPreferences are required' });
     }
-    
+
     await preferencesService.setNotificationPreferences(userId, notificationPreferences);
     res.status(204).send();
   } catch (error) {
@@ -59,11 +59,11 @@ router.put('/notifications', async (req: Request, res: Response) => {
 router.get('/notifications', async (req: Request, res: Response) => {
   try {
     const { userId } = req.query;
-    
+
     if (!userId) {
       return res.status(400).json({ error: 'userId query parameter is required' });
     }
-    
+
     const prefs = await preferencesService.getNotificationPreferences(userId as string);
     res.json(prefs);
   } catch (error) {

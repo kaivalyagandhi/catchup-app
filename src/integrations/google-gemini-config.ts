@@ -1,6 +1,6 @@
 /**
  * Google Gemini API Configuration
- * 
+ *
  * This module provides configuration and client initialization for Google Gemini API.
  * Used for entity extraction from voice note transcripts with structured JSON output.
  */
@@ -9,15 +9,15 @@ import { GoogleGenerativeAI, GenerativeModel, SchemaType } from '@google/generat
 
 /**
  * JSON schema for entity extraction from voice notes
- * 
+ *
  * Defines the structure of extracted contact metadata including:
  * - Contact fields (phone, email, social media handles, location, notes)
  * - Tags (1-3 word descriptors of interests/characteristics)
  * - Groups (relationship categories like "College Friends")
  * - Last contact date (when they last connected)
- * 
+ *
  * Used with Gemini API's structured output feature to ensure consistent JSON responses.
- * 
+ *
  * @see https://ai.google.dev/gemini-api/docs/structured-output
  */
 export const ENTITY_EXTRACTION_SCHEMA = {
@@ -62,10 +62,10 @@ export const ENTITY_EXTRACTION_SCHEMA = {
 
 /**
  * JSON schema for contact name identification
- * 
+ *
  * Used for contact disambiguation to extract person names mentioned in voice note transcripts.
  * Returns an array of names that can be matched against the user's contact list.
- * 
+ *
  * @see https://ai.google.dev/gemini-api/docs/structured-output
  */
 export const CONTACT_NAME_SCHEMA = {
@@ -94,7 +94,7 @@ export interface GeminiConfig {
 
 /**
  * Default Gemini configuration
- * 
+ *
  * Uses gemini-2.5-flash for production stability (gemini-2.0-flash-exp is experimental).
  * Lower temperature (0.2) ensures more consistent entity extraction.
  */
@@ -108,7 +108,7 @@ export const DEFAULT_GEMINI_CONFIG: Omit<GeminiConfig, 'apiKey'> = {
 
 /**
  * Initialize Google Gemini API client
- * 
+ *
  * @returns Initialized GoogleGenerativeAI instance
  * @throws Error if GOOGLE_GEMINI_API_KEY is not set
  */
@@ -118,7 +118,7 @@ export function initializeGeminiClient(): GoogleGenerativeAI {
   if (!apiKey) {
     throw new Error(
       'GOOGLE_GEMINI_API_KEY environment variable is required. ' +
-      'Please set it in your .env file.'
+        'Please set it in your .env file.'
     );
   }
 
@@ -127,13 +127,11 @@ export function initializeGeminiClient(): GoogleGenerativeAI {
 
 /**
  * Get Gemini model configured for entity extraction
- * 
+ *
  * @param customConfig Optional custom configuration
  * @returns Configured GenerativeModel instance
  */
-export function getEntityExtractionModel(
-  customConfig?: Partial<GeminiConfig>
-): GenerativeModel {
+export function getEntityExtractionModel(customConfig?: Partial<GeminiConfig>): GenerativeModel {
   const config = { ...DEFAULT_GEMINI_CONFIG, ...customConfig };
   const genAI = initializeGeminiClient();
 
@@ -152,13 +150,11 @@ export function getEntityExtractionModel(
 
 /**
  * Get Gemini model configured for contact name identification
- * 
+ *
  * @param customConfig Optional custom configuration
  * @returns Configured GenerativeModel instance
  */
-export function getContactNameModel(
-  customConfig?: Partial<GeminiConfig>
-): GenerativeModel {
+export function getContactNameModel(customConfig?: Partial<GeminiConfig>): GenerativeModel {
   const config = { ...DEFAULT_GEMINI_CONFIG, ...customConfig };
   const genAI = initializeGeminiClient();
 
@@ -182,7 +178,7 @@ let geminiClientInstance: GoogleGenerativeAI | null = null;
 
 /**
  * Get or create Gemini client instance
- * 
+ *
  * @returns Singleton GoogleGenerativeAI instance
  */
 export function getGeminiClient(): GoogleGenerativeAI {
@@ -194,7 +190,7 @@ export function getGeminiClient(): GoogleGenerativeAI {
 
 /**
  * Validate Gemini API configuration
- * 
+ *
  * @throws Error if configuration is invalid
  */
 export function validateGeminiConfig(): void {

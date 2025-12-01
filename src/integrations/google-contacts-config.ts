@@ -48,18 +48,18 @@ function createOAuth2Client() {
 
 /**
  * OAuth Scopes for Google Contacts (Read-Only)
- * 
+ *
  * IMPORTANT: These scopes are READ-ONLY to ensure one-way sync.
  * CatchUp NEVER modifies Google Contacts data.
- * 
+ *
  * Requirements: 15.2
  */
-export const GOOGLE_CONTACTS_SCOPES = [
-  'https://www.googleapis.com/auth/contacts.readonly',        // Read-only access to contacts
-  'https://www.googleapis.com/auth/contacts.other.readonly',  // Read-only access to "Other Contacts"
-  'https://www.googleapis.com/auth/userinfo.email',           // User email for identification
-  'https://www.googleapis.com/auth/userinfo.profile',         // User profile for identification
-] as const;
+export const GOOGLE_CONTACTS_SCOPES: string[] = [
+  'https://www.googleapis.com/auth/contacts.readonly', // Read-only access to contacts
+  'https://www.googleapis.com/auth/contacts.other.readonly', // Read-only access to "Other Contacts"
+  'https://www.googleapis.com/auth/userinfo.email', // User email for identification
+  'https://www.googleapis.com/auth/userinfo.profile', // User profile for identification
+];
 
 /**
  * Verify that only read-only scopes are configured
@@ -67,14 +67,14 @@ export const GOOGLE_CONTACTS_SCOPES = [
  */
 function verifyReadOnlyScopes(): void {
   const writeScopes = [
-    'https://www.googleapis.com/auth/contacts',  // Read/write access (NOT ALLOWED)
+    'https://www.googleapis.com/auth/contacts', // Read/write access (NOT ALLOWED)
   ];
 
   for (const scope of GOOGLE_CONTACTS_SCOPES) {
     if (writeScopes.includes(scope)) {
       throw new Error(
         `SECURITY ERROR: Write scope detected in configuration: ${scope}. ` +
-        `Only read-only scopes are allowed for Google Contacts sync.`
+          `Only read-only scopes are allowed for Google Contacts sync.`
       );
     }
   }
@@ -83,13 +83,13 @@ function verifyReadOnlyScopes(): void {
 /**
  * Generate OAuth authorization URL for Google Contacts
  * Requests contacts.readonly and contacts.other.readonly scopes
- * 
+ *
  * Requirements: 15.2
  */
 export function getAuthorizationUrl(): string {
   // Verify scopes are read-only before generating URL
   verifyReadOnlyScopes();
-  
+
   const oauth2Client = createOAuth2Client();
 
   return oauth2Client.generateAuthUrl({
@@ -114,7 +114,10 @@ export async function getTokensFromCode(code: string): Promise<Credentials | nul
 export function getPeopleClient(tokens: Credentials) {
   const oauth2Client = createOAuth2Client();
   oauth2Client.setCredentials(tokens);
-  return google.people({ version: 'v1', auth: oauth2Client });
+  return google.people({
+    version: 'v1',
+    auth: oauth2Client,
+  });
 }
 
 /**
@@ -132,7 +135,7 @@ export function getOAuth2Client(tokens: Credentials) {
 export async function refreshAccessToken(refreshToken: string): Promise<Credentials> {
   const oauth2Client = createOAuth2Client();
   oauth2Client.setCredentials({ refresh_token: refreshToken });
-  
+
   const { credentials } = await oauth2Client.refreshAccessToken();
   return credentials;
 }

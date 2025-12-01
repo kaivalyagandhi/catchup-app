@@ -66,7 +66,13 @@ export {
 export { FrequencyService, FrequencyServiceImpl, frequencyService } from './frequency-service';
 
 // Export import service
-export { ImportService, ImportServiceImpl, importService, ImportResult, ImportedContact } from './import-service';
+export {
+  ImportService,
+  ImportServiceImpl,
+  importService,
+  ImportResult,
+  ImportedContact,
+} from './import-service';
 
 // Export onboarding service (contact organization flow)
 export {
@@ -99,17 +105,22 @@ export {
 } from './onboarding-repository';
 
 // Export calendar friend service
-export { CalendarFriendService, CalendarFriendServiceImpl, calendarFriendService, FrequentContact } from './calendar-friend-service';
+export {
+  CalendarFriendService,
+  CalendarFriendServiceImpl,
+  calendarFriendService,
+  FrequentContact,
+} from './calendar-friend-service';
 
 // Export setup flow service
-export { 
-  SetupFlowService, 
-  SetupFlowServiceImpl, 
-  setupFlowService, 
-  SetupFlowState, 
+export {
+  SetupFlowService,
+  SetupFlowServiceImpl,
+  setupFlowService,
+  SetupFlowState,
   SetupFlowStep,
   ContactImportOptions,
-  CalendarConnectionOptions
+  CalendarConnectionOptions,
 } from './setup-flow-service';
 
 // Export account service

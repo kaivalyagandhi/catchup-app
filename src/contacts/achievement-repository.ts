@@ -3,7 +3,7 @@
  *
  * Data access layer for gamification achievement operations.
  * Manages achievement tracking and network health scores.
- * 
+ *
  * Requirements: 8.3, 8.4, 8.5
  */
 
@@ -73,7 +73,7 @@ export interface AchievementRepository {
   findAchievementsByUserId(userId: string): Promise<AchievementRecord[]>;
   hasAchievement(userId: string, achievementType: AchievementType): Promise<boolean>;
   getAchievementCount(userId: string): Promise<number>;
-  
+
   createNetworkHealthScore(data: NetworkHealthScoreCreateData): Promise<NetworkHealthScoreRecord>;
   getLatestNetworkHealthScore(userId: string): Promise<NetworkHealthScoreRecord | null>;
   getNetworkHealthHistory(userId: string, limit: number): Promise<NetworkHealthScoreRecord[]>;
@@ -164,7 +164,9 @@ export class PostgresAchievementRepository implements AchievementRepository {
    * Create new network health score
    * Requirements: 8.5
    */
-  async createNetworkHealthScore(data: NetworkHealthScoreCreateData): Promise<NetworkHealthScoreRecord> {
+  async createNetworkHealthScore(
+    data: NetworkHealthScoreCreateData
+  ): Promise<NetworkHealthScoreRecord> {
     const result = await pool.query(
       `INSERT INTO network_health_scores (
         user_id, score, circle_balance_score, 
@@ -207,7 +209,10 @@ export class PostgresAchievementRepository implements AchievementRepository {
    * Get network health score history
    * Requirements: 8.5
    */
-  async getNetworkHealthHistory(userId: string, limit: number = 30): Promise<NetworkHealthScoreRecord[]> {
+  async getNetworkHealthHistory(
+    userId: string,
+    limit: number = 30
+  ): Promise<NetworkHealthScoreRecord[]> {
     const result = await pool.query(
       `SELECT * FROM network_health_scores
        WHERE user_id = $1
@@ -251,11 +256,18 @@ export class PostgresAchievementRepository implements AchievementRepository {
 // Default instance for backward compatibility
 const defaultRepository = new PostgresAchievementRepository();
 
-export const createAchievement = (data: AchievementCreateData) => defaultRepository.createAchievement(data);
-export const findAchievementsByUserId = (userId: string) => defaultRepository.findAchievementsByUserId(userId);
-export const hasAchievement = (userId: string, achievementType: AchievementType) => defaultRepository.hasAchievement(userId, achievementType);
-export const getAchievementCount = (userId: string) => defaultRepository.getAchievementCount(userId);
+export const createAchievement = (data: AchievementCreateData) =>
+  defaultRepository.createAchievement(data);
+export const findAchievementsByUserId = (userId: string) =>
+  defaultRepository.findAchievementsByUserId(userId);
+export const hasAchievement = (userId: string, achievementType: AchievementType) =>
+  defaultRepository.hasAchievement(userId, achievementType);
+export const getAchievementCount = (userId: string) =>
+  defaultRepository.getAchievementCount(userId);
 
-export const createNetworkHealthScore = (data: NetworkHealthScoreCreateData) => defaultRepository.createNetworkHealthScore(data);
-export const getLatestNetworkHealthScore = (userId: string) => defaultRepository.getLatestNetworkHealthScore(userId);
-export const getNetworkHealthHistory = (userId: string, limit?: number) => defaultRepository.getNetworkHealthHistory(userId, limit);
+export const createNetworkHealthScore = (data: NetworkHealthScoreCreateData) =>
+  defaultRepository.createNetworkHealthScore(data);
+export const getLatestNetworkHealthScore = (userId: string) =>
+  defaultRepository.getLatestNetworkHealthScore(userId);
+export const getNetworkHealthHistory = (userId: string, limit?: number) =>
+  defaultRepository.getNetworkHealthHistory(userId, limit);

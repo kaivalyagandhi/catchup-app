@@ -199,13 +199,13 @@ export interface VoiceNote {
   updatedAt: Date;
 }
 
-export type VoiceNoteStatus = 
-  | 'recording' 
+export type VoiceNoteStatus =
+  | 'recording'
   | 'paused'
-  | 'transcribing' 
-  | 'extracting' 
-  | 'ready' 
-  | 'applied' 
+  | 'transcribing'
+  | 'extracting'
+  | 'ready'
+  | 'applied'
   | 'error';
 
 export interface ExtractedEntities {

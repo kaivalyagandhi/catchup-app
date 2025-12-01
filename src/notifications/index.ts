@@ -56,8 +56,4 @@ export {
 } from './preferences-service';
 
 // Preferences Repository
-export {
-  getPreferences,
-  setPreferences,
-  getDefaultPreferences,
-} from './preferences-repository';
+export { getPreferences, setPreferences, getDefaultPreferences } from './preferences-repository';

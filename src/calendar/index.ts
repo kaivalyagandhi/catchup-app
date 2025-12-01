@@ -65,7 +65,4 @@ export {
 } from './calendar-event-generator';
 
 // Export suggestion repository functions
-export {
-  getUserSuggestions,
-  getSuggestionById,
-} from './suggestion-repository';
+export { getUserSuggestions, getSuggestionById } from './suggestion-repository';

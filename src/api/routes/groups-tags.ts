@@ -79,7 +79,7 @@ router.post('/groups', async (req: AuthenticatedRequest, res: Response): Promise
   } catch (error) {
     console.error('Error creating group:', error);
     const message = error instanceof Error ? error.message : 'Failed to create group';
-    
+
     if (message === 'A group with this name already exists') {
       res.status(400).json({ error: message });
     } else {
@@ -114,7 +114,7 @@ router.put('/groups/:id', async (req: AuthenticatedRequest, res: Response): Prom
   } catch (error) {
     console.error('Error updating group:', error);
     const message = error instanceof Error ? error.message : 'Failed to update group';
-    
+
     if (message === 'Group not found') {
       res.status(404).json({ error: message });
     } else if (message === 'A group with this name already exists') {
@@ -138,7 +138,7 @@ router.delete('/groups/:id', async (req: AuthenticatedRequest, res: Response): P
   } catch (error) {
     console.error('Error deleting group:', error);
     const message = error instanceof Error ? error.message : 'Failed to delete group';
-    
+
     if (message === 'Group not found') {
       res.status(404).json({ error: message });
     } else {
@@ -155,68 +155,78 @@ router.delete('/groups/:id', async (req: AuthenticatedRequest, res: Response): P
  * GET /api/groups-tags/groups/:id/contacts
  * Get all contacts in a group
  */
-router.get('/groups/:id/contacts', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.userId!;
-    const groupRepository = new PostgresGroupRepository();
-    const contacts = await groupRepository.getGroupContacts(req.params.id, userId);
-    res.json(contacts);
-  } catch (error) {
-    console.error('Error fetching group contacts:', error);
-    res.status(500).json({ error: 'Failed to fetch group contacts' });
+router.get(
+  '/groups/:id/contacts',
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.userId!;
+      const groupRepository = new PostgresGroupRepository();
+      const contacts = await groupRepository.getGroupContacts(req.params.id, userId);
+      res.json(contacts);
+    } catch (error) {
+      console.error('Error fetching group contacts:', error);
+      res.status(500).json({ error: 'Failed to fetch group contacts' });
+    }
   }
-});
+);
 
 /**
  * POST /api/groups-tags/groups/:id/contacts
  * Add contacts to a group
  */
-router.post('/groups/:id/contacts', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.userId!;
-    const { contactIds } = req.body;
+router.post(
+  '/groups/:id/contacts',
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.userId!;
+      const { contactIds } = req.body;
 
-    if (!contactIds || !Array.isArray(contactIds)) {
-      res.status(400).json({ error: 'contactIds (array) is required' });
-      return;
-    }
+      if (!contactIds || !Array.isArray(contactIds)) {
+        res.status(400).json({ error: 'contactIds (array) is required' });
+        return;
+      }
 
-    const groupService = new GroupServiceImpl();
-    await groupService.bulkAssignContactsToGroup(contactIds, req.params.id, userId);
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error adding contacts to group:', error);
-    const message = error instanceof Error ? error.message : 'Failed to add contacts to group';
-    
-    if (message === 'Group not found' || message.includes('not found')) {
-      res.status(404).json({ error: message });
-    } else {
-      res.status(500).json({ error: message });
+      const groupService = new GroupServiceImpl();
+      await groupService.bulkAssignContactsToGroup(contactIds, req.params.id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error adding contacts to group:', error);
+      const message = error instanceof Error ? error.message : 'Failed to add contacts to group';
+
+      if (message === 'Group not found' || message.includes('not found')) {
+        res.status(404).json({ error: message });
+      } else {
+        res.status(500).json({ error: message });
+      }
     }
   }
-});
+);
 
 /**
  * DELETE /api/groups-tags/groups/:id/contacts/:contactId
  * Remove a contact from a group
  */
-router.delete('/groups/:id/contacts/:contactId', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.userId!;
-    const groupService = new GroupServiceImpl();
-    await groupService.removeContactFromGroup(req.params.contactId, req.params.id, userId);
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error removing contact from group:', error);
-    const message = error instanceof Error ? error.message : 'Failed to remove contact from group';
-    
-    if (message === 'Group not found' || message === 'Contact not found') {
-      res.status(404).json({ error: message });
-    } else {
-      res.status(500).json({ error: message });
+router.delete(
+  '/groups/:id/contacts/:contactId',
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.userId!;
+      const groupService = new GroupServiceImpl();
+      await groupService.removeContactFromGroup(req.params.contactId, req.params.id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error removing contact from group:', error);
+      const message =
+        error instanceof Error ? error.message : 'Failed to remove contact from group';
+
+      if (message === 'Group not found' || message === 'Contact not found') {
+        res.status(404).json({ error: message });
+      } else {
+        res.status(500).json({ error: message });
+      }
     }
   }
-});
+);
 
 // ============================================================================
 // TAG ENDPOINTS
@@ -310,7 +320,7 @@ router.put('/tags/:id', async (req: AuthenticatedRequest, res: Response): Promis
   } catch (error) {
     console.error('Error updating tag:', error);
     const message = error instanceof Error ? error.message : 'Failed to update tag';
-    
+
     if (message === 'Tag not found') {
       res.status(404).json({ error: message });
     } else {
@@ -332,7 +342,7 @@ router.delete('/tags/:id', async (req: AuthenticatedRequest, res: Response): Pro
   } catch (error) {
     console.error('Error deleting tag:', error);
     const message = error instanceof Error ? error.message : 'Failed to delete tag';
-    
+
     if (message === 'Tag not found') {
       res.status(404).json({ error: message });
     } else {
@@ -349,67 +359,76 @@ router.delete('/tags/:id', async (req: AuthenticatedRequest, res: Response): Pro
  * GET /api/groups-tags/tags/:id/contacts
  * Get all contacts with a tag
  */
-router.get('/tags/:id/contacts', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.userId!;
-    const tagRepository = new PostgresTagRepository();
-    const contacts = await tagRepository.getTagContacts(req.params.id, userId);
-    res.json(contacts);
-  } catch (error) {
-    console.error('Error fetching tag contacts:', error);
-    res.status(500).json({ error: 'Failed to fetch tag contacts' });
+router.get(
+  '/tags/:id/contacts',
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.userId!;
+      const tagRepository = new PostgresTagRepository();
+      const contacts = await tagRepository.getTagContacts(req.params.id, userId);
+      res.json(contacts);
+    } catch (error) {
+      console.error('Error fetching tag contacts:', error);
+      res.status(500).json({ error: 'Failed to fetch tag contacts' });
+    }
   }
-});
+);
 
 /**
  * POST /api/groups-tags/tags/:id/contacts
  * Add tag to contacts
  */
-router.post('/tags/:id/contacts', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.userId!;
-    const { contactIds } = req.body;
+router.post(
+  '/tags/:id/contacts',
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.userId!;
+      const { contactIds } = req.body;
 
-    if (!contactIds || !Array.isArray(contactIds)) {
-      res.status(400).json({ error: 'contactIds (array) is required' });
-      return;
-    }
+      if (!contactIds || !Array.isArray(contactIds)) {
+        res.status(400).json({ error: 'contactIds (array) is required' });
+        return;
+      }
 
-    const tagRepository = new PostgresTagRepository();
-    await tagRepository.bulkAddToContacts(contactIds, req.params.id, userId);
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error adding tag to contacts:', error);
-    const message = error instanceof Error ? error.message : 'Failed to add tag to contacts';
-    
-    if (message === 'Tag not found' || message.includes('not found')) {
-      res.status(404).json({ error: message });
-    } else {
-      res.status(500).json({ error: message });
+      const tagRepository = new PostgresTagRepository();
+      await tagRepository.bulkAddToContacts(contactIds, req.params.id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error adding tag to contacts:', error);
+      const message = error instanceof Error ? error.message : 'Failed to add tag to contacts';
+
+      if (message === 'Tag not found' || message.includes('not found')) {
+        res.status(404).json({ error: message });
+      } else {
+        res.status(500).json({ error: message });
+      }
     }
   }
-});
+);
 
 /**
  * DELETE /api/groups-tags/tags/:id/contacts/:contactId
  * Remove tag from a contact
  */
-router.delete('/tags/:id/contacts/:contactId', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.userId!;
-    const tagService = new TagServiceImpl();
-    await tagService.removeTag(req.params.contactId, req.params.id, userId);
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error removing tag from contact:', error);
-    const message = error instanceof Error ? error.message : 'Failed to remove tag from contact';
-    
-    if (message === 'Tag not found' || message === 'Contact not found') {
-      res.status(404).json({ error: message });
-    } else {
-      res.status(500).json({ error: message });
+router.delete(
+  '/tags/:id/contacts/:contactId',
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.userId!;
+      const tagService = new TagServiceImpl();
+      await tagService.removeTag(req.params.contactId, req.params.id, userId);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error removing tag from contact:', error);
+      const message = error instanceof Error ? error.message : 'Failed to remove tag from contact';
+
+      if (message === 'Tag not found' || message === 'Contact not found') {
+        res.status(404).json({ error: message });
+      } else {
+        res.status(500).json({ error: message });
+      }
     }
   }
-});
+);
 
 export default router;
