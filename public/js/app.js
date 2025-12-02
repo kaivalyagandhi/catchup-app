@@ -82,6 +82,11 @@ function showAuthScreen() {
     document.getElementById('loading-screen').classList.add('hidden');
     document.getElementById('auth-screen').classList.remove('hidden');
     document.getElementById('main-app').classList.add('hidden');
+    
+    // Initialize Google SSO when showing auth screen
+    if (typeof initGoogleSSO === 'function') {
+        initGoogleSSO();
+    }
 }
 
 function showMainApp() {
@@ -3365,6 +3370,21 @@ async function loadPreferences() {
             </div>
         </div>
         
+        <!-- Account Section -->
+        <div style="margin-top: 30px;">
+            <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--border-primary); padding-bottom: 10px;">Account</h3>
+            
+            <div class="card">
+                <div id="account-info-loading" style="text-align: center; padding: 20px;">
+                    <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
+                    <p style="color: var(--text-secondary); font-size: 14px;">Loading account information...</p>
+                </div>
+                <div id="account-info-content" style="display: none;">
+                    <!-- Account info will be populated here -->
+                </div>
+            </div>
+        </div>
+        
         <!-- Developer Section -->
         ${testDataStatus ? `
         <div style="margin-top: 30px;">
@@ -3531,10 +3551,147 @@ async function loadPreferences() {
             console.error('Error loading group mappings:', error);
         }
     }
+    
+    // Load account information
+    loadAccountInfo();
 }
 
 function savePreferences() {
     alert('Preferences saved!');
+}
+
+/**
+ * Load and display account information
+ * Requirements: 8.1, 8.2, 8.3, 8.4, 8.5
+ */
+async function loadAccountInfo() {
+    const loadingDiv = document.getElementById('account-info-loading');
+    const contentDiv = document.getElementById('account-info-content');
+    
+    if (!loadingDiv || !contentDiv) {
+        return;
+    }
+    
+    try {
+        // Fetch user info
+        const userResponse = await fetch(`${API_BASE}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (!userResponse.ok) {
+            throw new Error('Failed to load user info');
+        }
+        
+        const user = await userResponse.json();
+        
+        // Fetch last login
+        let lastLogin = null;
+        try {
+            const lastLoginResponse = await fetch(`${API_BASE}/auth/last-login`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            
+            if (lastLoginResponse.ok) {
+                const data = await lastLoginResponse.json();
+                lastLogin = data.lastLogin;
+            }
+        } catch (error) {
+            console.error('Error loading last login:', error);
+        }
+        
+        // Determine authentication method display
+        let authMethodDisplay = 'Email/Password';
+        let connectionStatus = 'Connected';
+        let connectionStatusColor = 'var(--status-success-text)';
+        
+        if (user.authProvider === 'google') {
+            authMethodDisplay = 'Google SSO';
+        } else if (user.authProvider === 'both') {
+            authMethodDisplay = 'Google SSO + Email/Password';
+        }
+        
+        // Format dates
+        const createdDate = new Date(user.createdAt);
+        const createdDateStr = createdDate.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        let lastLoginStr = 'This is your first login';
+        if (lastLogin) {
+            const lastLoginDate = new Date(lastLogin);
+            lastLoginStr = formatRelativeTime(lastLoginDate);
+        }
+        
+        // Build the account info HTML
+        contentDiv.innerHTML = `
+            <div style="display: grid; gap: 15px;">
+                <!-- Email -->
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">EMAIL</div>
+                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${escapeHtml(user.email)}</div>
+                    </div>
+                </div>
+                
+                <!-- Authentication Method -->
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                    <div style="flex: 1;">
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">AUTHENTICATION METHOD</div>
+                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${authMethodDisplay}</div>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; background: var(--status-success-bg); color: ${connectionStatusColor}; font-weight: 600;">
+                            ${connectionStatus}
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Account Created -->
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">MEMBER SINCE</div>
+                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${createdDateStr}</div>
+                    </div>
+                </div>
+                
+                <!-- Last Login -->
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">LAST LOGIN</div>
+                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${lastLoginStr}</div>
+                    </div>
+                </div>
+                
+                <!-- Sign Out Button -->
+                <div style="margin-top: 10px;">
+                    <button onclick="logout()" style="width: 100%; padding: 12px; background: var(--color-danger); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Hide loading, show content
+        loadingDiv.style.display = 'none';
+        contentDiv.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error loading account info:', error);
+        
+        // Show error state
+        loadingDiv.style.display = 'none';
+        contentDiv.style.display = 'block';
+        contentDiv.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: var(--status-error-text);">
+                <p style="margin-bottom: 10px;">Failed to load account information</p>
+                <button onclick="loadAccountInfo()" class="secondary" style="padding: 8px 16px; font-size: 13px;">
+                    Retry
+                </button>
+            </div>
+        `;
+    }
 }
 
 // Test Data Management Functions

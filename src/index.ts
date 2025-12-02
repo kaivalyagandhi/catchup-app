@@ -6,9 +6,14 @@
 
 import { testConnection } from './db/connection';
 import { startServer } from './api/server';
+import { validateAndFailFast } from './api/google-sso-config-validator';
 
 async function main() {
   console.log('CatchUp Application Starting...');
+
+  // Validate Google SSO configuration (fail fast if invalid)
+  console.log('Validating Google SSO configuration...');
+  validateAndFailFast();
 
   // Test database connection
   const dbConnected = await testConnection();

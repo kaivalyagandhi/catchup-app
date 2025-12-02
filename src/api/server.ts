@@ -12,6 +12,8 @@ import calendarApiRouter from './routes/calendar-api';
 import googleCalendarOAuthRouter from './routes/google-calendar-oauth';
 import googleContactsOAuthRouter from './routes/google-contacts-oauth';
 import googleContactsSyncRouter from './routes/google-contacts-sync';
+import googleSSORouter from './routes/google-sso';
+import authStatisticsRouter from './routes/auth-statistics';
 import voiceNotesRouter from './routes/voice-notes';
 import preferencesRouter from './routes/preferences';
 import accountRouter from './routes/account';
@@ -88,6 +90,8 @@ export function createServer(): Express {
 
   // API routes
   app.use('/api/auth', authRouter);
+  app.use('/api/auth/google', googleSSORouter);
+  app.use('/api/auth/statistics', authStatisticsRouter);
   app.use('/api/audit', auditRouter);
   app.use('/api/contacts', contactsRouter);
   app.use('/api/groups-tags', groupsTagsRouter);

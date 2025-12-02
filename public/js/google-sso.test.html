@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google SSO Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 40px 20px;
+        }
+        
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .test-section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .google-sso-button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 12px 24px;
+            background: #ffffff;
+            color: #3c4043;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3);
+        }
+        
+        .google-sso-button:hover {
+            background: #f8f9fa;
+            border-color: #d2e3fc;
+            box-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.3);
+        }
+        
+        .google-sso-button:active {
+            background: #f1f3f4;
+            box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3);
+        }
+        
+        .google-sso-button:disabled {
+            background: #f1f3f4;
+            color: #80868b;
+            cursor: not-allowed;
+            border-color: #dadce0;
+        }
+        
+        .google-logo {
+            flex-shrink: 0;
+        }
+        
+        .google-sso-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f4f6;
+            border-top-color: #4285f4;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .info-message {
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .test-result {
+            margin-top: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .test-result h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #666;
+        }
+        
+        .test-result pre {
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .test-btn {
+            padding: 8px 16px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .test-btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .test-btn.secondary {
+            background: #6b7280;
+        }
+        
+        .test-btn.secondary:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Google SSO Test Suite</h1>
+        <p>Test the Google SSO button and authentication flow</p>
+        
+        <!-- Test 1: Button Rendering -->
+        <div class="test-section">
+            <h2>Test 1: Button Rendering</h2>
+            <p>The Google SSO button should render with proper styling and Google logo.</p>
+            
+            <div style="margin-top: 15px;">
+                <button id="google-sso-btn" class="google-sso-button" type="button">
+                    <svg class="google-logo" width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                        <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.44 15.983 5.485 18 9.003 18z" fill="#34A853"/>
+                        <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                        <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.485 0 2.44 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
+                    </svg>
+                    <span>Sign in with Google</span>
+                </button>
+            </div>
+            
+            <div class="test-result">
+                <h3>✅ Button renders correctly with Google branding</h3>
+            </div>
+        </div>
+        
+        <!-- Test 2: Loading State -->
+        <div class="test-section">
+            <h2>Test 2: Loading State</h2>
+            <p>Test the loading state when authentication is in progress.</p>
+            
+            <div id="google-sso-error" class="error hidden"></div>
+            <div id="google-sso-success" class="success hidden"></div>
+            <div id="google-sso-loading" class="info-message hidden"></div>
+            
+            <div style="margin-top: 15px;">
+                <button id="test-loading-btn" class="google-sso-button" type="button">
+                    <svg class="google-logo" width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                        <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.44 15.983 5.485 18 9.003 18z" fill="#34A853"/>
+                        <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                        <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.485 0 2.44 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
+                    </svg>
+                    <span>Sign in with Google</span>
+                </button>
+            </div>
+            
+            <div class="test-controls">
+                <button class="test-btn" onclick="testLoadingState()">Test Loading State</button>
+                <button class="test-btn secondary" onclick="resetLoadingTest()">Reset</button>
+            </div>
+        </div>
+        
+        <!-- Test 3: Error Display -->
+        <div class="test-section">
+            <h2>Test 3: Error Display</h2>
+            <p>Test error message display functionality.</p>
+            
+            <div id="test-error" class="error hidden"></div>
+            
+            <div class="test-controls">
+                <button class="test-btn" onclick="testErrorDisplay()">Show Error</button>
+                <button class="test-btn secondary" onclick="clearTestError()">Clear Error</button>
+            </div>
+        </div>
+        
+        <!-- Test 4: Success Display -->
+        <div class="test-section">
+            <h2>Test 4: Success Display</h2>
+            <p>Test success message display functionality.</p>
+            
+            <div id="test-success" class="success hidden"></div>
+            
+            <div class="test-controls">
+                <button class="test-btn" onclick="testSuccessDisplay()">Show Success</button>
+                <button class="test-btn secondary" onclick="clearTestSuccess()">Clear Success</button>
+            </div>
+        </div>
+        
+        <!-- Test 5: API Integration -->
+        <div class="test-section">
+            <h2>Test 5: API Integration</h2>
+            <p>Test the actual API endpoints (requires backend running).</p>
+            
+            <div class="test-result">
+                <h3>Test Mode Status:</h3>
+                <pre id="test-mode-result">Click "Check Test Mode" to test</pre>
+            </div>
+            
+            <div class="test-controls">
+                <button class="test-btn" onclick="testCheckTestMode()">Check Test Mode</button>
+                <button class="test-btn" onclick="testGetAuthUrl()">Get Auth URL</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/js/google-sso.js"></script>
+    <script>
+        // Test loading state
+        function testLoadingState() {
+            const btn = document.getElementById('test-loading-btn');
+            btn.disabled = true;
+            btn.innerHTML = `
+                <span class="google-sso-spinner"></span>
+                <span>Signing in...</span>
+            `;
+            
+            const loadingDiv = document.getElementById('google-sso-loading');
+            loadingDiv.textContent = 'Completing sign-in with Google...';
+            loadingDiv.classList.remove('hidden');
+            
+            // Reset after 3 seconds
+            setTimeout(() => {
+                resetLoadingTest();
+            }, 3000);
+        }
+        
+        function resetLoadingTest() {
+            const btn = document.getElementById('test-loading-btn');
+            btn.disabled = false;
+            btn.innerHTML = `
+                <svg class="google-logo" width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                    <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.44 15.983 5.485 18 9.003 18z" fill="#34A853"/>
+                    <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                    <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.485 0 2.44 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
+                </svg>
+                <span>Sign in with Google</span>
+            `;
+            
+            const loadingDiv = document.getElementById('google-sso-loading');
+            loadingDiv.classList.add('hidden');
+        }
+        
+        // Test error display
+        function testErrorDisplay() {
+            const errorDiv = document.getElementById('test-error');
+            errorDiv.textContent = 'Failed to start Google sign-in. Please try again.';
+            errorDiv.classList.remove('hidden');
+        }
+        
+        function clearTestError() {
+            const errorDiv = document.getElementById('test-error');
+            errorDiv.classList.add('hidden');
+        }
+        
+        // Test success display
+        function testSuccessDisplay() {
+            const successDiv = document.getElementById('test-success');
+            successDiv.textContent = 'Successfully signed in with Google!';
+            successDiv.classList.remove('hidden');
+        }
+        
+        function clearTestSuccess() {
+            const successDiv = document.getElementById('test-success');
+            successDiv.classList.add('hidden');
+        }
+        
+        // Test API integration
+        async function testCheckTestMode() {
+            const resultDiv = document.getElementById('test-mode-result');
+            resultDiv.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('/api/auth/google/status');
+                const data = await response.json();
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testGetAuthUrl() {
+            const resultDiv = document.getElementById('test-mode-result');
+            resultDiv.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('/api/auth/google/authorize');
+                const data = await response.json();
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        // Initialize Google SSO on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Test page loaded');
+            if (typeof initGoogleSSO === 'function') {
+                initGoogleSSO();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -22,6 +22,9 @@ This directory contains SQL migration files for the CatchUp database schema.
 - `016_add_group_mapping_suggestions.sql` - Adds group mapping suggestions for Google Contacts
 - `017_create_contact_onboarding_schema.sql` - Creates contact onboarding schema with Dunbar circles, onboarding state, achievements, and weekly catchup sessions
 - `018_create_sms_mms_enrichment_schema.sql` - Creates SMS/MMS enrichment schema with phone number verification and source tracking
+- `019_add_user_id_to_enrichment_items.sql` - Adds user_id column to enrichment_items table
+- `020_add_sms_performance_indexes.sql` - Adds performance indexes for SMS/MMS queries
+- `021_add_google_sso_support.sql` - Adds Google SSO authentication support to users table
 
 ## Running Migrations
 

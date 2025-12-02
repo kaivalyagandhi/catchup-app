@@ -263,6 +263,235 @@ Change the authenticated user's password.
 - `400 Bad Request` - Current password is incorrect
 - `401 Unauthorized` - Not authenticated
 
+---
+
+#### Get Authentication Statistics
+
+Get authentication statistics for the authenticated user.
+
+**Endpoint:** `GET /api/auth/statistics`
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `startDate` (optional): ISO 8601 date string (defaults to 30 days ago)
+- `endDate` (optional): ISO 8601 date string (defaults to now)
+- `userId` (optional): Filter by specific user (admin only)
+
+**Response:** `200 OK`
+```json
+{
+  "totalAuthentications": 150,
+  "googleSSOAuthentications": 120,
+  "emailPasswordAuthentications": 30,
+  "googleSSOPercentage": 80.0,
+  "emailPasswordPercentage": 20.0,
+  "timeRange": {
+    "start": "2025-01-01T00:00:00.000Z",
+    "end": "2025-01-31T23:59:59.999Z"
+  },
+  "breakdown": {
+    "successful": {
+      "googleSSO": 115,
+      "emailPassword": 28
+    },
+    "failed": {
+      "googleSSO": 5,
+      "emailPassword": 2
+    }
+  }
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Attempting to access other user's statistics without admin role
+
+---
+
+#### Get Global Authentication Statistics
+
+Get global authentication statistics across all users (admin only).
+
+**Endpoint:** `GET /api/auth/statistics/global`
+
+**Authentication:** Required (Admin role)
+
+**Query Parameters:**
+- `startDate` (optional): ISO 8601 date string (defaults to 30 days ago)
+- `endDate` (optional): ISO 8601 date string (defaults to now)
+
+**Response:** `200 OK`
+```json
+{
+  "totalAuthentications": 1500,
+  "googleSSOAuthentications": 1200,
+  "emailPasswordAuthentications": 300,
+  "googleSSOPercentage": 80.0,
+  "emailPasswordPercentage": 20.0,
+  "timeRange": {
+    "start": "2025-01-01T00:00:00.000Z",
+    "end": "2025-01-31T23:59:59.999Z"
+  },
+  "breakdown": {
+    "successful": {
+      "googleSSO": 1150,
+      "emailPassword": 280
+    },
+    "failed": {
+      "googleSSO": 50,
+      "emailPassword": 20
+    }
+  }
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - User does not have admin role
+
+---
+
+### Google SSO Endpoints
+
+#### Get Google Authorization URL
+
+Get the Google OAuth authorization URL to initiate the sign-in flow.
+
+**Endpoint:** `GET /api/auth/google/authorize`
+
+**Authentication:** Not required
+
+**Response:** `200 OK`
+```json
+{
+  "authorizationUrl": "https://accounts.google.com/o/oauth2/v2/auth?client_id=...&redirect_uri=...&response_type=code&scope=email%20profile&state=abc123"
+}
+```
+
+**Usage:**
+```javascript
+const response = await fetch('/api/auth/google/authorize');
+const { authorizationUrl } = await response.json();
+window.location.href = authorizationUrl;
+```
+
+**Error Responses:**
+- `500 Internal Server Error` - Configuration error or failed to generate URL
+
+---
+
+#### Google OAuth Callback
+
+Handle the OAuth callback from Google after user authorization. This endpoint is called automatically by Google.
+
+**Endpoint:** `GET /api/auth/google/callback`
+
+**Authentication:** Not required
+
+**Query Parameters:**
+- `code` (required): Authorization code from Google
+- `state` (required): State parameter for CSRF protection
+
+**Response:** `302 Redirect`
+
+Redirects to:
+- Success: `/?token=<jwt_token>`
+- Error: `/?error=<error_message>`
+
+**Error Responses:**
+- `400 Bad Request` - Missing code or state parameter
+- `400 Bad Request` - Invalid state (CSRF protection)
+- `401 Unauthorized` - Token validation failed
+- `500 Internal Server Error` - Token exchange or user creation failed
+
+---
+
+#### Exchange Google Token
+
+Alternative endpoint for exchanging authorization code for JWT token (for SPAs).
+
+**Endpoint:** `POST /api/auth/google/token`
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "code": "4/0AX4XfWh...",
+  "state": "abc123xyz"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "profilePictureUrl": "https://lh3.googleusercontent.com/...",
+    "authProvider": "google",
+    "role": "user",
+    "createdAt": "2025-01-01T12:00:00.000Z"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Missing code or state
+- `400 Bad Request` - Invalid state (CSRF protection)
+- `401 Unauthorized` - Token validation failed
+- `500 Internal Server Error` - Token exchange or user creation failed
+
+---
+
+#### Check Google SSO Status
+
+Check if the current user has Google SSO connected.
+
+**Endpoint:** `GET /api/auth/google/status`
+
+**Authentication:** Required
+
+**Response:** `200 OK`
+```json
+{
+  "connected": true,
+  "email": "user@example.com",
+  "name": "John Doe",
+  "profilePictureUrl": "https://lh3.googleusercontent.com/...",
+  "authProvider": "google",
+  "connectedAt": "2025-01-01T12:00:00.000Z"
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `404 Not Found` - User not found
+
+---
+
+#### Get Test Mode Status
+
+Check if test mode is enabled (allows email/password authentication).
+
+**Endpoint:** `GET /api/auth/test-mode/status`
+
+**Authentication:** Not required
+
+**Response:** `200 OK`
+```json
+{
+  "testMode": true
+}
+```
+
+**Note:** When `testMode` is `false`, only Google SSO authentication is available (production mode).
+
+---
+
 
 ### Contacts Endpoints
 
