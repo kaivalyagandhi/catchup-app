@@ -1,0 +1,255 @@
+# Implementation Plan
+
+- [ ] 1. Set up database schema and core types
+  - [ ] 1.1 Create database migration for pending_edits, edit_history, and chat_sessions tables
+    - Add migration file with CREATE TABLE statements and indexes
+    - Include foreign key constraints to users, contacts, and groups tables
+    - _Requirements: 7.6, 10.1_
+  - [ ] 1.2 Define TypeScript interfaces for PendingEdit, EditHistoryEntry, EditSource, and EditType
+    - Add interfaces to src/types/index.ts
+    - Include all fields from design document
+    - _Requirements: 5.4, 5.5, 7.1_
+  - [ ]* 1.3 Write property test for edit metadata validity
+    - **Property 5: Edit Extraction Metadata Validity**
+    - **Validates: Requirements 5.4, 5.5**
+
+- [ ] 2. Implement Edit Repository
+  - [ ] 2.1 Create EditRepository class with CRUD operations for pending_edits table
+    - Implement create, update, delete, findById, findByUserId, findBySessionId methods
+    - _Requirements: 1.3, 4.2, 7.5_
+  - [ ] 2.2 Create EditHistoryRepository class for edit_history table
+    - Implement create, findById, findByUserId methods (no update/delete for immutability)
+    - _Requirements: 10.1, 10.3_
+  - [ ]* 2.3 Write property test for edit history immutability
+    - **Property 9: Edit Submission Creates Immutable History**
+    - **Validates: Requirements 7.6, 10.1, 10.3**
+  - [ ]* 2.4 Write property test for edit history ordering
+    - **Property 18: Edit History Chronological Ordering**
+    - **Validates: Requirements 1.4**
+
+- [ ] 3. Implement Session Manager
+  - [ ] 3.1 Create SessionManager class with session lifecycle methods
+    - Implement startSession, endSession, cancelSession, addEditToSession, getSessionEdits
+    - _Requirements: 4.1, 4.4, 4.6, 4.7_
+  - [ ] 3.2 Create ChatSessionRepository for chat_sessions table
+    - Implement create, update, findById, findActiveByUserId methods
+    - _Requirements: 4.1, 4.2_
+  - [ ]* 3.3 Write property test for session lifecycle
+    - **Property 1: Session Lifecycle Consistency**
+    - **Validates: Requirements 4.1, 4.7**
+  - [ ]* 3.4 Write property test for session cancellation
+    - **Property 3: Session Cancellation Removes All Session Edits**
+    - **Validates: Requirements 4.4**
+  - [ ]* 3.5 Write property test for session close preserves edits
+    - **Property 4: Session Close Preserves Edits**
+    - **Validates: Requirements 4.6**
+
+- [ ] 4. Implement Edit Service
+  - [ ] 4.1 Create EditService class with edit lifecycle methods
+    - Implement createPendingEdit, updatePendingEdit, submitEdit, dismissEdit, dismissSessionEdits
+    - _Requirements: 7.5, 7.6, 7.7_
+  - [ ] 4.2 Implement edit submission logic that applies changes and creates history entry
+    - Apply edit to target contact/group based on editType
+    - Create immutable EditHistoryEntry with previousValue captured
+    - _Requirements: 7.6, 10.1_
+  - [ ]* 4.3 Write property test for edit-session association
+    - **Property 2: Edit-Session Association**
+    - **Validates: Requirements 4.2**
+  - [ ]* 4.4 Write property test for edit update persistence
+    - **Property 8: Edit Update Persistence**
+    - **Validates: Requirements 7.5**
+  - [ ]* 4.5 Write property test for edit dismissal
+    - **Property 10: Edit Dismissal Without Side Effects**
+    - **Validates: Requirements 7.7**
+
+- [ ] 5. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 6. Implement Fuzzy Matcher Service
+  - [ ] 6.1 Create FuzzyMatcherService class with Levenshtein distance calculation
+    - Implement calculateSimilarity method using existing timezone-service pattern
+    - _Requirements: 7.3_
+  - [ ] 6.2 Implement searchContacts and searchGroups methods
+    - Query contacts/groups by userId, calculate similarity scores, sort by score descending
+    - _Requirements: 7.3, 7.2_
+  - [ ] 6.3 Implement findBestMatch method for entity extraction
+    - Return top match if similarity > 0.7, null otherwise
+    - _Requirements: 8.1_
+  - [ ]* 6.4 Write property test for fuzzy search ordering
+    - **Property 7: Fuzzy Search Ordering**
+    - **Validates: Requirements 7.3**
+
+- [ ] 7. Implement Disambiguation Logic
+  - [ ] 7.1 Add disambiguation trigger logic to EditService
+    - When confidence < 0.7, set status to 'needs_disambiguation' and populate candidates
+    - _Requirements: 8.1, 8.2_
+  - [ ] 7.2 Implement resolveDisambiguation method in EditService
+    - Update pending edit with selected contactId, clear disambiguation status
+    - _Requirements: 8.4_
+  - [ ]* 7.3 Write property test for disambiguation trigger threshold
+    - **Property 11: Disambiguation Trigger Threshold**
+    - **Validates: Requirements 8.1, 8.2**
+  - [ ]* 7.4 Write property test for disambiguation resolution
+    - **Property 12: Disambiguation Resolution Updates Edit**
+    - **Validates: Requirements 8.4**
+
+- [ ] 8. Implement API Routes for Edits
+  - [ ] 8.1 Create /api/edits routes for pending edits CRUD
+    - GET /api/edits/pending - list pending edits for user
+    - POST /api/edits/pending - create pending edit
+    - PATCH /api/edits/pending/:id - update pending edit
+    - DELETE /api/edits/pending/:id - dismiss pending edit
+    - POST /api/edits/pending/:id/submit - submit edit
+    - _Requirements: 7.5, 7.6, 7.7_
+  - [ ] 8.2 Create /api/edits/history routes for edit history
+    - GET /api/edits/history - list edit history for user with pagination
+    - _Requirements: 1.4, 10.2_
+  - [ ] 8.3 Create /api/edits/sessions routes for session management
+    - POST /api/edits/sessions - start new session
+    - PATCH /api/edits/sessions/:id - end session
+    - DELETE /api/edits/sessions/:id - cancel session
+    - _Requirements: 4.1, 4.4, 4.6_
+
+- [ ] 9. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 10. Implement Floating Chat Icon Component
+  - [ ] 10.1 Create FloatingChatIcon class in public/js/floating-chat-icon.js
+    - Render fixed-position icon with click handler
+    - Implement setRecordingState for red glow effect
+    - Implement triggerPulse for edit detection animation
+    - _Requirements: 2.1, 2.4, 12.2, 12.3_
+  - [ ] 10.2 Add CSS styles for floating icon states
+    - Default state, recording state (red glow), pulse animation, error state
+    - _Requirements: 12.1, 12.2, 12.5_
+  - [ ]* 10.3 Write unit tests for FloatingChatIcon state transitions
+
+- [ ] 11. Implement Chat Window Component
+  - [ ] 11.1 Create ChatWindow class in public/js/chat-window.js
+    - Render overlay with message list, input area, mic button, cancel button
+    - Implement addMessage, scrollToBottom methods
+    - _Requirements: 2.2, 2.3, 4.3_
+  - [ ] 11.2 Implement message rendering with edit references
+    - Render user/system message bubbles with timestamps
+    - Make edit references clickable
+    - _Requirements: 3.1, 3.2, 3.4, 3.9_
+  - [ ] 11.3 Implement disambiguation UI in chat
+    - Render disambiguation options as clickable buttons
+    - Handle selection and update pending edit
+    - _Requirements: 3.6, 8.2_
+  - [ ] 11.4 Implement pending edits counter display
+    - Show counter badge in chat header
+    - Animate on increment
+    - _Requirements: 6.1, 6.2, 6.3_
+  - [ ]* 11.5 Write property test for message ordering
+    - **Property 15: Message Chronological Ordering**
+    - **Validates: Requirements 3.9**
+  - [ ]* 11.6 Write property test for counter accuracy
+    - **Property 16: Pending Edits Counter Accuracy**
+    - **Validates: Requirements 6.2**
+
+- [ ] 12. Implement Edits Menu Component
+  - [ ] 12.1 Create EditsMenu class in public/js/edits-menu.js
+    - Replace Voice Notes menu item with Edits
+    - Render Pending Edits and Edit History tabs
+    - _Requirements: 1.1, 1.2_
+  - [ ] 12.2 Implement Pending Edits tab view
+    - Fetch and display pending edits with all required fields
+    - Show empty state with chat button when no edits
+    - _Requirements: 1.3, 1.6, 7.1_
+  - [ ] 12.3 Implement Edit History tab view
+    - Fetch and display edit history in chronological order
+    - Render as read-only (no edit controls)
+    - _Requirements: 1.4, 1.5, 10.2_
+  - [ ] 12.4 Implement consistent edit item component for both tabs
+    - Show edit type, target, value, confidence, source
+    - Make contact/group names clickable links
+    - _Requirements: 1.7, 11.1, 11.2_
+  - [ ]* 12.5 Write property test for pending edits completeness
+    - **Property 17: Pending Edits Tab Completeness**
+    - **Validates: Requirements 1.3**
+  - [ ]* 12.6 Write property test for edit display completeness
+    - **Property 6: Pending Edit Display Completeness**
+    - **Validates: Requirements 7.1, 9.1, 9.2**
+  - [ ]* 12.7 Write property test for history display completeness
+    - **Property 14: Edit History Display Completeness**
+    - **Validates: Requirements 10.2**
+
+- [ ] 13. Implement Edit Item Interactions
+  - [ ] 13.1 Implement fuzzy search contact selector for pending edits
+    - Show search input when user clicks to change target contact
+    - Display results ranked by similarity
+    - Include "Create new contact" option
+    - _Requirements: 7.2, 7.3, 7.4_
+  - [ ] 13.2 Implement submit and dismiss buttons for pending edits
+    - Call API to submit or dismiss edit
+    - Update UI to reflect changes
+    - _Requirements: 7.6, 7.7_
+  - [ ] 13.3 Implement low confidence visual indicator
+    - Highlight edits with confidence < 0.5
+    - _Requirements: 9.5_
+  - [ ] 13.4 Implement source attribution expansion
+    - Show transcript excerpt by default
+    - Expand to full context on click
+    - _Requirements: 9.3, 9.4_
+  - [ ]* 13.5 Write property test for low confidence indicator
+    - **Property 13: Low Confidence Visual Indicator**
+    - **Validates: Requirements 9.5**
+
+- [ ] 14. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 15. Implement Navigation to Contacts/Groups
+  - [ ] 15.1 Implement contact link navigation
+    - Navigate to contacts page and scroll to contact
+    - Apply 2-second highlight animation
+    - _Requirements: 11.3, 11.4_
+  - [ ] 15.2 Implement group link navigation
+    - Navigate to groups page and open group detail view
+    - _Requirements: 11.5_
+  - [ ] 15.3 Handle deleted contact/group gracefully
+    - Display name as plain text when entity no longer exists
+    - _Requirements: 11.6_
+
+- [ ] 16. Integrate Incremental Edit Detection with WebSocket
+  - [ ] 16.1 Update WebSocket handler to emit edit detection events
+    - Send 'edit_detected' message when edit is extracted
+    - Include edit details and confidence score
+    - _Requirements: 5.2, 5.4_
+  - [ ] 16.2 Connect FloatingChatIcon to WebSocket events
+    - Trigger pulse animation on 'edit_detected' message
+    - Update counter in real-time
+    - _Requirements: 5.3, 6.2_
+  - [ ] 16.3 Implement acknowledgment message generation
+    - Generate conversational response after recording stops
+    - Include clickable edit references
+    - _Requirements: 3.3, 3.4_
+
+- [ ] 17. Implement Session Integration
+  - [ ] 17.1 Connect ChatWindow to SessionManager
+    - Start session when chat opens
+    - End session when chat closes (preserve edits)
+    - Cancel session when cancel button clicked
+    - _Requirements: 4.1, 4.4, 4.5, 4.6_
+  - [ ] 17.2 Associate detected edits with current session
+    - Pass sessionId to edit creation
+    - _Requirements: 4.2_
+  - [ ] 17.3 Implement session cancellation UI flow
+    - Show confirmation dialog
+    - Remove all session edits on confirm
+    - _Requirements: 4.4, 4.5_
+
+- [ ] 18. Update Main App Integration
+  - [ ] 18.1 Add FloatingChatIcon to main app layout
+    - Render in fixed position across all pages
+    - _Requirements: 2.1_
+  - [ ] 18.2 Replace Voice Notes menu with Edits menu
+    - Update navigation and routing
+    - _Requirements: 1.1_
+  - [ ] 18.3 Wire up chat window open/close from floating icon
+    - Toggle chat overlay on icon click
+    - _Requirements: 2.2_
+
+- [ ] 19. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
