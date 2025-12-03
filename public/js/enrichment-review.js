@@ -10,12 +10,67 @@ class EnrichmentReview {
     this.onApplyCallback = null;
     this.isRecording = false;
     
+    // Contact modal management
+    this.contactModals = new Map(); // Map<contactId, ModalState>
+    
     this.init();
   }
   
   init() {
     this.setupStyles();
     this.setupToastEventListeners();
+    this.setupContactModalEventListeners();
+  }
+  
+  /**
+   * Setup event delegation for contact modal buttons
+   */
+  setupContactModalEventListeners() {
+    document.addEventListener('click', (e) => {
+      // Handle contact modal close button
+      if (e.target.classList.contains('contact-modal-close')) {
+        const contactId = e.target.dataset.contactId;
+        this.removeContactModal(contactId);
+      }
+      
+      // Handle apply button (confirm selected + reject unselected)
+      if (e.target.classList.contains('contact-modal-apply')) {
+        const contactId = e.target.dataset.contactId;
+        this.applyModalSelections(contactId);
+      }
+      
+      // Handle individual suggestion checkbox
+      if (e.target.classList.contains('contact-modal-suggestion-checkbox')) {
+        const contactId = e.target.dataset.contactId;
+        const suggestionId = e.target.dataset.suggestionId;
+        const modalState = this.contactModals.get(contactId);
+        
+        if (modalState) {
+          const suggestion = modalState.suggestions.find(s => s.id === suggestionId);
+          if (suggestion) {
+            suggestion.accepted = e.target.checked;
+            
+            // Update the suggestion item styling immediately
+            const suggestionItem = e.target.closest('.contact-modal-suggestion');
+            if (suggestionItem) {
+              if (suggestion.accepted) {
+                suggestionItem.classList.remove('rejected');
+                suggestionItem.classList.add('accepted');
+              } else {
+                suggestionItem.classList.remove('accepted');
+                suggestionItem.classList.add('rejected');
+              }
+            }
+            
+            this.updateContactModalSummary(contactId);
+            this.updateContactModalButtons(contactId);
+            
+            // Reset auto-dismiss timer on user interaction
+            this.resetAutoRemoveTimer(contactId);
+          }
+        }
+      }
+    });
   }
   
   /**
@@ -46,8 +101,340 @@ class EnrichmentReview {
   }
   
   /**
+   * Get or create a contact modal
+   * Requirements: 1.1, 1.2
+   */
+  getOrCreateContactModal(contactId, contactName) {
+    if (this.contactModals.has(contactId)) {
+      return this.contactModals.get(contactId);
+    }
+    
+    const modalState = {
+      contactId,
+      contactName,
+      suggestions: [],
+      autoRemoveTimer: null,
+      modalElement: null,
+      createdAt: new Date(),
+      lastUpdatedAt: new Date(),
+      isVisible: false,
+    };
+    
+    this.contactModals.set(contactId, modalState);
+    return modalState;
+  }
+  
+  /**
+   * Add a suggestion to a contact modal
+   * Requirements: 1.2, 5.1, 9.1, 9.2, 9.3
+   */
+  addSuggestionToModal(contactId, suggestion) {
+    const modalState = this.contactModals.get(contactId);
+    if (!modalState) {
+      console.warn(`Modal state not found for contact ${contactId}`);
+      return;
+    }
+    
+    // Deduplicate: check if suggestion already exists
+    const existingIndex = modalState.suggestions.findIndex(
+      s => s.type === suggestion.type && s.field === suggestion.field && s.value === suggestion.value
+    );
+    
+    if (existingIndex !== -1) {
+      console.log(`[EnrichmentReview] Skipping duplicate suggestion for ${contactId}: ${suggestion.type}`);
+      return;
+    }
+    
+    // Add suggestion
+    modalState.suggestions.push(suggestion);
+    modalState.lastUpdatedAt = new Date();
+    
+    console.log(`[EnrichmentReview] Added suggestion to modal for ${contactId}, total: ${modalState.suggestions.length}`);
+  }
+  
+  /**
+   * Show a contact modal
+   * Requirements: 1.3, 1.4, 1.5
+   */
+  showContactModal(contactId) {
+    const modalState = this.contactModals.get(contactId);
+    if (!modalState) {
+      console.warn(`Modal state not found for contact ${contactId}`);
+      return;
+    }
+    
+    // Create or update modal element
+    let modalElement = document.getElementById(`contact-modal-${contactId}`);
+    
+    if (!modalElement) {
+      // Create new modal
+      const container = this.getOrCreateModalContainer();
+      modalElement = this.createContactModalElement(modalState);
+      container.appendChild(modalElement);
+      modalState.modalElement = modalElement;
+    } else {
+      // Update existing modal with new suggestions
+      this.updateContactModalContent(modalState);
+    }
+    
+    // Show modal with animation
+    modalElement.classList.add('visible');
+    modalState.isVisible = true;
+    
+    // Reset auto-dismiss timer
+    this.resetAutoRemoveTimer(contactId);
+  }
+  
+  /**
+   * Get or create the modal container
+   */
+  getOrCreateModalContainer() {
+    let container = document.getElementById('enrichment-contact-modals-container');
+    
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'enrichment-contact-modals-container';
+      container.className = 'enrichment-contact-modals-container';
+      document.body.appendChild(container);
+    }
+    
+    return container;
+  }
+  
+  /**
+   * Create a contact modal element
+   */
+  createContactModalElement(modalState) {
+    const modal = document.createElement('div');
+    modal.id = `contact-modal-${modalState.contactId}`;
+    modal.className = 'contact-modal';
+    
+    const initials = this.getInitials(modalState.contactName);
+    const suggestionsHtml = modalState.suggestions.map((s, idx) => 
+      this.createSuggestionItemHtml(modalState.contactId, s, idx)
+    ).join('');
+    
+    const acceptedCount = modalState.suggestions.filter(s => s.accepted).length;
+    const rejectedCount = modalState.suggestions.length - acceptedCount;
+    
+    // Button text based on selected count
+    const confirmBtnText = acceptedCount > 0 ? `✓ Confirm ${acceptedCount}` : '✓ Confirm All';
+    const rejectBtnText = rejectedCount > 0 ? `✗ Reject ${rejectedCount}` : '✗ Reject All';
+    
+    modal.innerHTML = `
+      <div class="contact-modal-header">
+        <div class="contact-modal-avatar">${initials}</div>
+        <div class="contact-modal-info">
+          <div class="contact-modal-name">${this.escapeHtml(modalState.contactName)}</div>
+          <div class="contact-modal-summary">${acceptedCount} of ${modalState.suggestions.length} selected</div>
+        </div>
+        <button class="contact-modal-close" data-contact-id="${modalState.contactId}" title="Close">✕</button>
+      </div>
+      <div class="contact-modal-countdown-bar" id="countdown-${modalState.contactId}"></div>
+      <div class="contact-modal-suggestions">
+        ${suggestionsHtml}
+      </div>
+      <div class="contact-modal-actions">
+        <button class="contact-modal-apply" data-contact-id="${modalState.contactId}">✓ Confirm ${acceptedCount} ✗ Reject ${rejectedCount}</button>
+      </div>
+    `;
+    
+    return modal;
+  }
+  
+  /**
+   * Create a suggestion item HTML
+   */
+  createSuggestionItemHtml(contactId, suggestion, index) {
+    const icon = this.getItemIcon(suggestion.type, suggestion.field);
+    const displayText = this.formatSuggestionType(suggestion.type);
+    const value = this.escapeHtml(suggestion.value);
+    
+    return `
+      <div class="contact-modal-suggestion ${suggestion.accepted ? 'accepted' : 'rejected'}" data-suggestion-id="${suggestion.id}">
+        <input 
+          type="checkbox" 
+          class="contact-modal-suggestion-checkbox"
+          data-contact-id="${contactId}"
+          data-suggestion-id="${suggestion.id}"
+          ${suggestion.accepted ? 'checked' : ''}
+        />
+        <span class="suggestion-icon">${icon}</span>
+        <span class="suggestion-type">${displayText}</span>
+        <span class="suggestion-value">${value}</span>
+      </div>
+    `;
+  }
+  
+  /**
+   * Update contact modal content
+   */
+  updateContactModalContent(modalState) {
+    const modalElement = modalState.modalElement;
+    if (!modalElement) return;
+    
+    const suggestionsContainer = modalElement.querySelector('.contact-modal-suggestions');
+    if (!suggestionsContainer) return;
+    
+    // Update each suggestion's checkbox state and styling
+    modalState.suggestions.forEach((suggestion) => {
+      let suggestionItem = modalElement.querySelector(
+        `.contact-modal-suggestion[data-suggestion-id="${suggestion.id}"]`
+      );
+      
+      if (suggestionItem) {
+        // Update existing suggestion
+        const checkbox = suggestionItem.querySelector('.contact-modal-suggestion-checkbox');
+        if (checkbox) {
+          checkbox.checked = suggestion.accepted;
+        }
+        
+        // Update styling
+        if (suggestion.accepted) {
+          suggestionItem.classList.remove('rejected');
+          suggestionItem.classList.add('accepted');
+        } else {
+          suggestionItem.classList.remove('accepted');
+          suggestionItem.classList.add('rejected');
+        }
+      } else {
+        // Add new suggestion if it doesn't exist
+        const newSuggestionHtml = this.createSuggestionItemHtml(modalState.contactId, suggestion, 0);
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = newSuggestionHtml;
+        suggestionsContainer.appendChild(tempDiv.firstElementChild);
+      }
+    });
+    
+    // Update summary and button text
+    this.updateContactModalSummary(modalState.contactId);
+    this.updateContactModalButtons(modalState.contactId);
+  }
+  
+  /**
+   * Update contact modal summary
+   */
+  updateContactModalSummary(contactId) {
+    const modalState = this.contactModals.get(contactId);
+    if (!modalState || !modalState.modalElement) return;
+    
+    const acceptedCount = modalState.suggestions.filter(s => s.accepted).length;
+    const summary = modalState.modalElement.querySelector('.contact-modal-summary');
+    if (summary) {
+      summary.textContent = `${acceptedCount} of ${modalState.suggestions.length} selected`;
+    }
+  }
+  
+  /**
+   * Update contact modal button text based on selected count
+   */
+  updateContactModalButtons(contactId) {
+    const modalState = this.contactModals.get(contactId);
+    if (!modalState || !modalState.modalElement) return;
+    
+    const acceptedCount = modalState.suggestions.filter(s => s.accepted).length;
+    const rejectedCount = modalState.suggestions.length - acceptedCount;
+    
+    const applyBtn = modalState.modalElement.querySelector('.contact-modal-apply');
+    
+    if (applyBtn) {
+      applyBtn.textContent = `✓ Confirm ${acceptedCount} ✗ Reject ${rejectedCount}`;
+    }
+  }
+  
+  /**
+   * Reset auto-dismiss timer for a contact modal
+   * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5
+   */
+  resetAutoRemoveTimer(contactId) {
+    const modalState = this.contactModals.get(contactId);
+    if (!modalState) {
+      console.warn(`[EnrichmentReview] Modal state not found for ${contactId} when resetting timer`);
+      return;
+    }
+    
+    // Clear existing timer
+    if (modalState.autoRemoveTimer) {
+      console.log(`[EnrichmentReview] Clearing existing timer for ${contactId}`);
+      clearTimeout(modalState.autoRemoveTimer);
+    }
+    
+    // Reset countdown bar animation
+    const countdownBar = document.getElementById(`countdown-${contactId}`);
+    if (countdownBar) {
+      // Remove animation to reset it
+      countdownBar.style.animation = 'none';
+      // Trigger reflow to restart animation
+      void countdownBar.offsetWidth;
+      // Start countdown animation (10 seconds)
+      countdownBar.style.animation = 'countdownDecrease 10s linear forwards';
+    }
+    
+    // Start new 10-second timer
+    console.log(`[EnrichmentReview] Starting 10-second auto-dismiss timer for ${contactId}`);
+    modalState.autoRemoveTimer = setTimeout(() => {
+      console.log(`[EnrichmentReview] Auto-dismissing modal for contact ${contactId}`);
+      this.removeContactModal(contactId);
+    }, 10000);
+  }
+  
+  /**
+   * Remove a contact modal
+   * Requirements: 2.4, 2.5
+   */
+  removeContactModal(contactId) {
+    const modalState = this.contactModals.get(contactId);
+    if (!modalState) return;
+    
+    // Clear timer
+    if (modalState.autoRemoveTimer) {
+      clearTimeout(modalState.autoRemoveTimer);
+      modalState.autoRemoveTimer = null;
+    }
+    
+    // Animate out
+    if (modalState.modalElement) {
+      modalState.modalElement.classList.remove('visible');
+      
+      // Remove after animation
+      setTimeout(() => {
+        if (modalState.modalElement && modalState.modalElement.parentNode) {
+          modalState.modalElement.remove();
+        }
+        // Remove from map after animation completes
+        this.contactModals.delete(contactId);
+      }, 300);
+    } else {
+      // No modal element, just remove from map
+      this.contactModals.delete(contactId);
+    }
+  }
+  
+  /**
+   * Apply modal selections (confirm checked + reject unchecked)
+   * Requirements: 4.1, 4.2, 4.3, 4.4
+   */
+  applyModalSelections(contactId) {
+    const modalState = this.contactModals.get(contactId);
+    if (!modalState) return;
+    
+    const acceptedCount = modalState.suggestions.filter(s => s.accepted).length;
+    const rejectedCount = modalState.suggestions.length - acceptedCount;
+    
+    console.log(`[EnrichmentReview] Applying selections for ${contactId}: ${acceptedCount} confirmed, ${rejectedCount} rejected`);
+    
+    // Show feedback
+    const message = `Confirmed ${acceptedCount}, Rejected ${rejectedCount}`;
+    showToast(message, 'success');
+    
+    // Keep modal open - user can continue selecting
+    // Reset auto-dismiss timer so modal doesn't close while they're working
+    this.resetAutoRemoveTimer(contactId);
+  }
+  
+  /**
    * Show the panel in recording mode (waiting for suggestions)
-   * Now just sets the flag - toasts will be shown as suggestions arrive
+   * Now just sets the flag - modals will be shown as suggestions arrive
    */
   showRecordingMode() {
     this.isRecording = true;
@@ -60,22 +447,33 @@ class EnrichmentReview {
   }
   
   /**
-   * Add a live suggestion during recording as a toast
+   * Add a live suggestion during recording to a contact modal
+   * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5
    * @param {Object} suggestion - Enrichment suggestion
    */
   addLiveSuggestion(suggestion) {
     if (!this.isRecording) return;
     
-    const icon = this.getItemIcon(suggestion.type, suggestion.field);
-    const displayText = this.formatSuggestionType(suggestion.type);
     const contactName = suggestion.contactHint || 'Unknown Contact';
-    const value = this.escapeHtml(suggestion.value);
+    const contactId = this.generateContactId(contactName);
     
-    // Create toast message
-    const message = `${icon} <strong>${this.escapeHtml(contactName)}</strong><br>${displayText}: ${value}`;
+    console.log(`[EnrichmentReview] Adding live suggestion for contact: ${contactName}`);
     
-    // Show as toast with confirm/reject buttons
-    this.showEnrichmentToast(message, suggestion);
+    // Get or create modal for this contact
+    const modalState = this.getOrCreateContactModal(contactId, contactName);
+    
+    // Add suggestion to modal
+    this.addSuggestionToModal(contactId, suggestion);
+    
+    // Show modal
+    this.showContactModal(contactId);
+  }
+  
+  /**
+   * Generate a contact ID from contact name
+   */
+  generateContactId(contactName) {
+    return contactName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   }
   
   /**
@@ -1357,7 +1755,218 @@ class EnrichmentReview {
         transform: translateY(-1px);
       }
       
+      /* Contact Modal Styles */
+      .enrichment-contact-modals-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 400px;
+        pointer-events: none;
+      }
+      
+      .contact-modal {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        opacity: 0;
+        transform: translateX(400px);
+        transition: all 0.3s ease;
+        pointer-events: auto;
+      }
+      
+      .contact-modal.visible {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      
+      .contact-modal-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: #fafbfc;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      
+      .contact-modal-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+      
+      .contact-modal-info {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .contact-modal-name {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #1f2937;
+      }
+      
+      .contact-modal-summary {
+        margin: 0;
+        font-size: 12px;
+        color: #9ca3af;
+      }
+      
+      .contact-modal-close {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 16px;
+        color: #6b7280;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+      
+      .contact-modal-close:hover {
+        background: #e5e7eb;
+        color: #1f2937;
+      }
+      
+      .contact-modal-countdown-bar {
+        height: 3px;
+        background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+        width: 100%;
+        transform-origin: left;
+        animation: countdownDecrease 10s linear forwards;
+      }
+      
+      @keyframes countdownDecrease {
+        0% {
+          width: 100%;
+          background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+        }
+        70% {
+          background: linear-gradient(90deg, #f59e0b 0%, #f97316 100%);
+        }
+        100% {
+          width: 0%;
+          background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+        }
+      }
+      
+      .contact-modal-suggestions {
+        max-height: 300px;
+        overflow-y: auto;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      
+      .contact-modal-suggestion {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        transition: all 0.2s;
+      }
+      
+      .contact-modal-suggestion.accepted {
+        background: #f0fdf4;
+        border-color: #10b981;
+      }
+      
+      .contact-modal-suggestion.rejected {
+        background: #fafafa;
+        border-color: #e5e7eb;
+        opacity: 0.6;
+      }
+      
+      .contact-modal-suggestion-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #10b981;
+        flex-shrink: 0;
+      }
+      
+      .suggestion-icon {
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      
+      .suggestion-type {
+        font-weight: 500;
+        color: #374151;
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+      
+      .suggestion-value {
+        color: #1f2937;
+        font-size: 12px;
+        flex: 1;
+        min-width: 0;
+        word-break: break-word;
+      }
+      
+      .contact-modal-actions {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        background: #fafbfc;
+        border-top: 1px solid #e5e7eb;
+      }
+      
+      .contact-modal-apply {
+        flex: 1;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+        color: white;
+      }
+      
+      .contact-modal-apply:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      }
+      
+      .contact-modal-apply:active {
+        transform: translateY(0);
+      }
+      
       @media (max-width: 768px) {
+        .enrichment-contact-modals-container {
+          top: 10px;
+          right: 10px;
+          left: 10px;
+          max-width: none;
+        }
+        
+        .contact-modal {
+          max-width: 100%;
+        }
+        
         .enrichment-toast-container {
           top: 10px;
           right: 10px;

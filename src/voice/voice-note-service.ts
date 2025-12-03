@@ -809,7 +809,10 @@ export class VoiceNoteService extends EventEmitter {
    * Analyze transcript for incremental enrichment
    * 
    * Triggers enrichment analysis at natural breakpoints and emits suggestions.
+   * Groups suggestions by contact and emits one event per contact.
    * Only emits NEW suggestions that haven't been sent before to avoid duplicates.
+   * 
+   * Requirements: 6.1, 6.2, 6.3, 6.4, 6.6
    * 
    * @param sessionId - Session ID
    * @param newText - New transcript text to analyze
@@ -862,10 +865,20 @@ export class VoiceNoteService extends EventEmitter {
             session.emittedSuggestionIds.add(suggestion.id);
           }
           
-          this.emit('enrichment_update', {
-            sessionId,
-            suggestions: newSuggestions,
-          });
+          // Group suggestions by contact hint
+          const groupedByContact = this.groupSuggestionsByContact(newSuggestions);
+          
+          // Emit one event per contact
+          for (const [contactName, suggestions] of groupedByContact) {
+            console.log(`[EnrichmentAnalysis] Emitting ${suggestions.length} suggestions for contact: ${contactName}`);
+            
+            this.emit('enrichment_update', {
+              sessionId,
+              contactId: this.generateContactId(contactName),
+              contactName,
+              suggestions,
+            });
+          }
         } else {
           console.log(`[EnrichmentAnalysis] Session ${sessionId}: triggered but no NEW suggestions to emit`);
         }
@@ -874,6 +887,45 @@ export class VoiceNoteService extends EventEmitter {
       console.error('Error analyzing for enrichment:', error);
       console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
     }
+  }
+
+  /**
+   * Group suggestions by contact hint
+   * 
+   * Requirements: 6.1, 6.3, 6.4
+   * 
+   * @param suggestions - Array of suggestions
+   * @returns Map of contact name to suggestions
+   * @private
+   */
+  private groupSuggestionsByContact(suggestions: EnrichmentSuggestion[]): Map<string, EnrichmentSuggestion[]> {
+    const grouped = new Map<string, EnrichmentSuggestion[]>();
+    
+    for (const suggestion of suggestions) {
+      const contactName = suggestion.contactHint || 'Unknown Contact';
+      
+      if (!grouped.has(contactName)) {
+        grouped.set(contactName, []);
+      }
+      
+      grouped.get(contactName)!.push(suggestion);
+    }
+    
+    return grouped;
+  }
+
+  /**
+   * Generate a consistent contact ID from contact name
+   * 
+   * Requirements: 6.2
+   * 
+   * @param contactName - Contact name
+   * @returns Contact ID
+   * @private
+   */
+  private generateContactId(contactName: string): string {
+    // Use a simple hash-like approach: lowercase and replace spaces with hyphens
+    return contactName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   }
 
   /**

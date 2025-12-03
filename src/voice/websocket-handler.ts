@@ -208,13 +208,22 @@ export class VoiceNoteWebSocketHandler {
 
     // Enrichment update events
     this.voiceNoteService.on('enrichment_update', (event: any) => {
-      console.log(`[WebSocketHandler] Received enrichment_update for session ${event.sessionId}, ${event.suggestions?.length || 0} suggestions`);
+      console.log(`[WebSocketHandler] Received enrichment_update for session ${event.sessionId}, contact: ${event.contactName}, ${event.suggestions?.length || 0} suggestions`);
+      
+      // Validate message structure
+      if (!event.contactId || !event.contactName || !event.suggestions) {
+        console.error('[WebSocketHandler] Invalid enrichment_update event structure:', event);
+        return;
+      }
+      
       const ws = this.sessionClients.get(event.sessionId);
       if (ws) {
-        console.log(`[WebSocketHandler] Sending enrichment_update to client for session ${event.sessionId}`);
+        console.log(`[WebSocketHandler] Sending enrichment_update to client for session ${event.sessionId}, contact: ${event.contactName}`);
         this.sendMessage(ws, {
           type: WSMessageType.ENRICHMENT_UPDATE,
           data: {
+            contactId: event.contactId,
+            contactName: event.contactName,
             suggestions: event.suggestions,
           },
         });

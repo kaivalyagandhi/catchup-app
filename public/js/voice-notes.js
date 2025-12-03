@@ -594,9 +594,25 @@ class VoiceNoteRecorder {
     }
   }
   
-  handleEnrichmentUpdate(suggestions) {
-    console.log('[VoiceNotes] handleEnrichmentUpdate called with', suggestions?.length || 0, 'suggestions');
-    console.log('[VoiceNotes] Suggestions:', suggestions);
+  handleEnrichmentUpdate(data) {
+    // Handle both old format (suggestions array) and new format (grouped by contact)
+    let contactId, contactName, suggestions;
+    
+    if (Array.isArray(data)) {
+      // Old format: array of suggestions
+      console.log('[VoiceNotes] Received suggestions in old format:', data.length, 'suggestions');
+      suggestions = data;
+      contactName = 'Unknown Contact';
+      contactId = 'unknown';
+    } else {
+      // New format: grouped by contact
+      contactId = data.contactId;
+      contactName = data.contactName;
+      suggestions = data.suggestions;
+      console.log('[VoiceNotes] Received grouped suggestions for contact:', contactName, 'count:', suggestions?.length || 0);
+    }
+    
+    console.log('[VoiceNotes] handleEnrichmentUpdate called with', suggestions?.length || 0, 'suggestions for contact:', contactName);
     
     // Display live suggestions in enrichment review panel during recording
     if (suggestions && suggestions.length > 0) {
@@ -606,9 +622,13 @@ class VoiceNoteRecorder {
         window.enrichmentReview.showRecordingMode();
       }
       
-      // Add each suggestion to the live display
+      // Add each suggestion to the contact modal
       for (const suggestion of suggestions) {
         if (window.enrichmentReview) {
+          // Ensure suggestion has contact hint for grouping
+          if (!suggestion.contactHint) {
+            suggestion.contactHint = contactName;
+          }
           console.log('[VoiceNotes] Adding live suggestion:', suggestion);
           window.enrichmentReview.addLiveSuggestion(suggestion);
         }
