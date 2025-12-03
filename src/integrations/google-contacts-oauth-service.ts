@@ -34,8 +34,8 @@ export class GoogleContactsOAuthService {
   /**
    * Generate authorization URL for user consent
    */
-  getAuthorizationUrl(): string {
-    return getAuthUrl();
+  getAuthorizationUrl(state?: string): string {
+    return getAuthUrl(state);
   }
 
   /**

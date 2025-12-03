@@ -29,6 +29,7 @@ import smsWebhookRouter from './routes/sms-webhook';
 import enrichmentItemsRouter from './routes/enrichment-items';
 import smsMonitoringRouter from './routes/sms-monitoring';
 import smsPerformanceRouter from './routes/sms-performance';
+import twilioTestRouter from './routes/twilio-test';
 import { apiRateLimiter } from '../utils/rate-limiter';
 import { enforceHttps, securityHeaders } from './middleware/security';
 import { VoiceNoteWebSocketHandler } from '../voice/websocket-handler';
@@ -115,6 +116,7 @@ export function createServer(): Express {
   app.use('/api/enrichment-items', enrichmentItemsRouter);
   app.use('/api/sms/monitoring', smsMonitoringRouter);
   app.use('/api/sms/performance', smsPerformanceRouter);
+  app.use('/api/twilio/test', twilioTestRouter);
 
   // Test data routes (for development/testing)
   try {

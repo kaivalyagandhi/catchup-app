@@ -86,7 +86,7 @@ function verifyReadOnlyScopes(): void {
  *
  * Requirements: 15.2
  */
-export function getAuthorizationUrl(): string {
+export function getAuthorizationUrl(state?: string): string {
   // Verify scopes are read-only before generating URL
   verifyReadOnlyScopes();
 
@@ -96,6 +96,7 @@ export function getAuthorizationUrl(): string {
     access_type: 'offline',
     scope: GOOGLE_CONTACTS_SCOPES,
     prompt: 'consent',
+    state: state,
   });
 }
 

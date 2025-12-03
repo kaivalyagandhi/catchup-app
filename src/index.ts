@@ -25,6 +25,10 @@ async function main() {
 
   console.log('CatchUp Application Ready');
 
+  // Start background job worker
+  const { startWorker } = await import('./jobs/worker');
+  startWorker();
+
   // Start API server
   const port = parseInt(process.env.PORT || '3000', 10);
   startServer(port);

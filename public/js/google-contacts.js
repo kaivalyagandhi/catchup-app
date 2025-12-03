@@ -80,7 +80,7 @@ function renderGoogleContactsCard(status) {
                     <div style="padding: 10px; background: var(--bg-secondary); border-radius: 4px;">
                         <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">LAST SYNC</div>
                         <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
-                            ${status.lastSyncAt ? formatRelativeTime(status.lastSyncAt) : 'Never'}
+                            ${status.lastSyncAt ? formatRelativeTime(new Date(status.lastSyncAt)) : 'Never'}
                         </div>
                     </div>
                     <div style="padding: 10px; background: var(--bg-secondary); border-radius: 4px;">
@@ -162,9 +162,18 @@ function renderGoogleContactsCard(status) {
  */
 async function connectGoogleContacts() {
     try {
-        const response = await fetch(`${API_BASE}/contacts/oauth/authorize`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-        });
+        // Ensure we have userId
+        let currentUserId = userId;
+        if (!currentUserId) {
+            currentUserId = localStorage.getItem('userId');
+        }
+        
+        if (!currentUserId) {
+            showToast('You must be logged in to connect Google Contacts', 'error');
+            return;
+        }
+        
+        const response = await fetch(`${API_BASE}/contacts/oauth/authorize?userId=${currentUserId}`);
         
         if (!response.ok) {
             throw new Error('Failed to get authorization URL');

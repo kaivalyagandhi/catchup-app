@@ -84,4 +84,44 @@ echo "Running migration 012: Add name to users..."
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/012_add_name_to_users.sql
 
 echo ""
+echo "Running migration 013: Add Google Contacts source tracking..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/013_add_google_contacts_source_tracking.sql
+
+echo ""
+echo "Running migration 014: Create Google Contacts sync state..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/014_create_google_contacts_sync_state.sql
+
+echo ""
+echo "Running migration 015: Create Google Contact groups..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/015_create_google_contact_groups.sql
+
+echo ""
+echo "Running migration 016: Add group mapping suggestions..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/016_add_group_mapping_suggestions.sql
+
+echo ""
+echo "Running migration 017: Create contact onboarding schema..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/017_create_contact_onboarding_schema.sql
+
+echo ""
+echo "Running migration 018: Create SMS/MMS enrichment schema..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/018_create_sms_mms_enrichment_schema.sql
+
+echo ""
+echo "Running migration 019: Add user_id to enrichment items..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/019_add_user_id_to_enrichment_items.sql
+
+echo ""
+echo "Running migration 020: Add SMS performance indexes..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/020_add_sms_performance_indexes.sql
+
+echo ""
+echo "Running migration 021: Add Google SSO support..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/021_add_google_sso_support.sql
+
+echo ""
+echo "Running migration 022: Fix calendar events schema..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/022_fix_calendar_events_schema.sql
+
+echo ""
 echo "✓ All migrations completed successfully!"

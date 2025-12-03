@@ -214,19 +214,10 @@ router.get('/callback', createRateLimiter(RATE_LIMITS.CALLBACK), async (req: Req
       isNewUser 
     });
 
-    // Return JWT token and user info
-    res.json({
-      message: isNewUser ? 'Account created successfully' : 'Logged in successfully',
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        profilePictureUrl: user.profilePictureUrl,
-        authProvider: user.authProvider,
-      },
-      isNewUser,
-    });
+    // Redirect to frontend with token and user info in URL
+    // Frontend will extract and store authentication data
+    const redirectUrl = `/?auth_success=true&token=${encodeURIComponent(token)}&userId=${user.id}&userEmail=${encodeURIComponent(user.email)}&isNewUser=${isNewUser}`;
+    res.redirect(redirectUrl);
   } catch (error) {
     // Log error with context
     googleSSOErrorHandler.logError(error as Error, req, {

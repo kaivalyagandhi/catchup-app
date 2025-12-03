@@ -34,10 +34,32 @@ async function initGoogleSSO() {
     // Check test mode status to show/hide email/password form
     await checkTestMode();
     
-    // Handle OAuth callback if present in URL
+    // Handle auth success from redirect (new flow)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth_success') === 'true' && urlParams.get('token')) {
+        const token = urlParams.get('token');
+        const userId = urlParams.get('userId');
+        const userEmail = urlParams.get('userEmail');
+        const isNewUser = urlParams.get('isNewUser') === 'true';
+        
+        // Store authentication data
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('userId', userId);
+        localStorage.setItem('userEmail', userEmail);
+        
+        // Clear URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        console.log('[Google SSO] Authentication successful, reloading...');
+        
+        // Reload to show authenticated app
+        window.location.reload();
+        return;
+    }
+    
+    // Handle OAuth callback if present in URL (old flow - keeping for compatibility)
     if (window.location.search.includes('code=') && window.location.search.includes('state=')) {
         // Check if this is a Google SSO callback (not Google Contacts or Calendar)
-        const urlParams = new URLSearchParams(window.location.search);
         const state = urlParams.get('state');
         
         // Google SSO state doesn't have a specific prefix like 'google_contacts'
@@ -127,13 +149,14 @@ async function handleGoogleLogin() {
         
         const data = await response.json();
         
-        if (!data.authorizationUrl) {
+        // Backend returns 'authUrl', not 'authorizationUrl'
+        if (!data.authUrl) {
             throw new Error('No authorization URL received');
         }
         
         // Redirect to Google's authorization page
         console.log('Redirecting to Google authorization...');
-        window.location.href = data.authorizationUrl;
+        window.location.href = data.authUrl;
         
     } catch (error) {
         console.error('Google SSO error:', error);

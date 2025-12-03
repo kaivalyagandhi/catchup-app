@@ -3,7 +3,7 @@
 
 // Constants
 const ONBOARDING_STORAGE_KEY = 'catchup-onboarding-state';
-const API_BASE = '/api';
+// API_BASE is already defined in app.js, so we don't redeclare it
 
 // Onboarding steps
 const ONBOARDING_STEPS = {

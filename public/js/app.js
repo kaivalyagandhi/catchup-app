@@ -16,25 +16,74 @@ let currentContactTags = []; // Tags being edited in the modal
 let currentContactGroups = []; // Group IDs being edited in the modal
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Initialize theme before anything else to ensure proper styling
     if (typeof themeManager !== 'undefined') {
         themeManager.initializeTheme();
         updateThemeIcon();
     }
     
+    // Check if we're handling a Google SSO redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth_success') === 'true' && urlParams.get('token')) {
+        // Keep loading screen visible while Google SSO processes the redirect
+        // Initialize Google SSO to handle the redirect, then it will reload
+        if (typeof initGoogleSSO === 'function') {
+            initGoogleSSO();
+        }
+        return;
+    }
+    
+    // Check auth first and wait for it to complete
     checkAuth();
     setupNavigation();
     
-    // Handle OAuth callback if present in URL
-    if (window.location.search.includes('code=')) {
-        // Check if this is a Google Contacts callback
-        if (window.location.search.includes('state=google_contacts') || 
-            (!window.location.search.includes('state=') && typeof handleGoogleContactsOAuthCallback === 'function')) {
-            handleGoogleContactsOAuthCallback();
-        } else {
-            handleCalendarOAuthCallback();
-        }
+    // Handle calendar success redirect
+    if (urlParams.get('calendar_success') === 'true') {
+        // Clear URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Show success message
+        setTimeout(() => {
+            showToast('Google Calendar connected successfully!', 'success');
+            // Refresh preferences if on that page
+            if (currentPage === 'preferences') {
+                loadPreferences();
+            }
+        }, 500);
+    }
+    
+    // Handle calendar error redirect
+    if (urlParams.get('calendar_error')) {
+        const error = urlParams.get('calendar_error');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => {
+            showToast(`Failed to connect calendar: ${error}`, 'error');
+        }, 500);
+    }
+    
+    // Handle contacts success redirect
+    if (urlParams.get('contacts_success') === 'true') {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => {
+            showToast('Google Contacts connected successfully! Syncing contacts...', 'success');
+            // Refresh preferences if on that page
+            if (currentPage === 'preferences') {
+                loadPreferences();
+            }
+            // Refresh contacts if on that page
+            if (currentPage === 'contacts') {
+                loadContacts();
+            }
+        }, 500);
+    }
+    
+    // Handle contacts error redirect
+    if (urlParams.get('contacts_error')) {
+        const error = urlParams.get('contacts_error');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => {
+            showToast(`Failed to connect contacts: ${error}`, 'error');
+        }, 500);
     }
     
     // Listen for contacts updates from voice notes enrichment
@@ -55,21 +104,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Authentication
 function checkAuth() {
-    // Show loading screen immediately
-    showLoadingScreen();
+    // Loading screen is already visible by default
     
-    // Small delay to ensure smooth transition
-    setTimeout(() => {
-        authToken = localStorage.getItem('authToken');
-        userId = localStorage.getItem('userId');
-        userEmail = localStorage.getItem('userEmail');
-        
-        if (authToken && userId) {
-            showMainApp();
-        } else {
-            showAuthScreen();
-        }
-    }, 300);
+    authToken = localStorage.getItem('authToken');
+    userId = localStorage.getItem('userId');
+    userEmail = localStorage.getItem('userEmail');
+    
+    if (authToken && userId) {
+        showMainApp();
+    } else {
+        showAuthScreen();
+    }
 }
 
 function showLoadingScreen() {
@@ -2918,8 +2963,18 @@ async function loadCalendar() {
 
 async function connectCalendar() {
     try {
+        // Ensure we have userId
+        if (!userId) {
+            userId = localStorage.getItem('userId');
+        }
+        
+        if (!userId) {
+            alert('You must be logged in to connect Google Calendar');
+            return;
+        }
+        
         // Get the authorization URL from the backend
-        const response = await fetch('/api/calendar/oauth/authorize');
+        const response = await fetch(`/api/calendar/oauth/authorize?userId=${userId}`);
         const data = await response.json();
         
         if (!data.authUrl) {
@@ -4625,10 +4680,6 @@ function getCircleInfo(circleId) {
 // Open onboarding in management mode
 async function openOnboardingManagement() {
     try {
-        // Redirect to the circular visualizer for circle management
-        window.location.href = '/js/circular-visualizer.test.html';
-        return;
-        
         // Initialize onboarding controller if not already done
         if (!window.onboardingController) {
             window.onboardingController = new OnboardingController();
@@ -4646,6 +4697,9 @@ async function openOnboardingManagement() {
                 navigateTo('preferences');
                 showToast('Connect Google Contacts to import your contacts', 'info');
                 return;
+            } else {
+                showToast('Add some contacts first to organize them into circles', 'info');
+                return;
             }
         }
         
@@ -4653,19 +4707,29 @@ async function openOnboardingManagement() {
         const loadingToastId = showToast('Opening circle management...', 'loading');
         
         try {
+            // Initialize onboarding in 'manage' mode
+            await window.onboardingController.initializeOnboarding('manage');
+            
             hideToast(loadingToastId);
             
-            // Redirect to the circular visualizer page for full circle management
-            window.location.href = '/circular-visualizer.test.html';
+            // Navigate to the circular visualizer view
+            // For now, show a message that this feature is being set up
+            showToast('Circle management is opening...', 'info');
+            
+            // TODO: Implement proper onboarding UI integration
+            // For now, redirect to the test page as a temporary solution
+            setTimeout(() => {
+                window.location.href = '/js/circular-visualizer.test.html';
+            }, 1000);
             
         } catch (error) {
             hideToast(loadingToastId);
             console.error('Error opening onboarding:', error);
-            showToast('Failed to open circle management', 'error');
+            showToast('Failed to open circle management: ' + error.message, 'error');
         }
     } catch (error) {
         console.error('Error in openOnboardingManagement:', error);
-        showToast('An error occurred', 'error');
+        showToast('An error occurred: ' + error.message, 'error');
     }
 }
 
@@ -4691,32 +4755,7 @@ async function checkOnboardingStatus() {
         // Get onboarding state
         const state = await window.onboardingController.resumeOnboarding();
         
-        // If user has contacts but no onboarding state, check if they have uncategorized contacts
-        if (!state && contacts.length > 0) {
-            const uncategorizedCount = contacts.filter(c => !c.dunbarCircle).length;
-            
-            if (uncategorizedCount > 0) {
-                // Show a subtle prompt to organize contacts
-                const shouldOrganize = confirm(
-                    `You have ${uncategorizedCount} contact${uncategorizedCount > 1 ? 's' : ''} that ${uncategorizedCount > 1 ? 'haven\'t' : 'hasn\'t'} been organized into circles yet.\n\nWould you like to organize them now?`
-                );
-                
-                if (shouldOrganize) {
-                    openOnboardingManagement();
-                }
-            }
-        }
-        
-        // If user has incomplete onboarding, offer to resume
-        if (state && !state.completedAt) {
-            const shouldResume = confirm(
-                'You have an incomplete onboarding session. Would you like to continue organizing your contacts?'
-            );
-            
-            if (shouldResume) {
-                openOnboardingManagement();
-            }
-        }
+        // Onboarding popups disabled - users can manually access onboarding via the UI
     } catch (error) {
         console.error('Error checking onboarding status:', error);
         // Silently fail - don't interrupt user experience
