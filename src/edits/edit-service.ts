@@ -93,7 +93,12 @@ export class EditService implements EditServiceInterface {
   }
 
   /**
-   * Create a pending edit from extraction
+   * Create a pending edit from extraction with deduplication
+   * 
+   * Returns existing edit if duplicate found, creates new one otherwise.
+   * This makes the operation idempotent - calling it multiple times with the same
+   * parameters will return the same edit without creating duplicates.
+   * 
    * Requirements: 8.1, 8.2
    */
   async createPendingEdit(params: CreateEditParams): Promise<PendingEdit> {
@@ -111,6 +116,18 @@ export class EditService implements EditServiceInterface {
       source: params.source,
       status: 'pending',
     };
+
+    // Check for existing duplicate before creating
+    try {
+      const existingEdit = await this.editRepository.findDuplicate(data);
+      if (existingEdit) {
+        console.log(`[EditService] Duplicate edit detected, returning existing: ${existingEdit.id}`);
+        return existingEdit;
+      }
+    } catch (error) {
+      console.error('[EditService] Error checking for duplicates:', error);
+      // If duplicate check fails, continue with creation
+    }
 
     // Check if disambiguation is needed
     if (params.confidenceScore < DISAMBIGUATION_THRESHOLD && !params.targetContactId) {

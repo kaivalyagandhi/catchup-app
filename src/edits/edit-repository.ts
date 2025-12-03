@@ -60,6 +60,7 @@ export interface EditRepositoryInterface {
   findByUserId(userId: string): Promise<PendingEdit[]>;
   findBySessionId(sessionId: string, userId: string): Promise<PendingEdit[]>;
   deleteBySessionId(sessionId: string, userId: string): Promise<number>;
+  findDuplicate(data: CreatePendingEditData): Promise<PendingEdit | null>;
 }
 
 /**
@@ -228,6 +229,63 @@ export class EditRepository implements EditRepositoryInterface {
     );
 
     return result.rowCount || 0;
+  }
+
+  /**
+   * Find a duplicate pending edit with the same parameters
+   * Returns the existing edit if found, null otherwise
+   * 
+   * Checks for edits with matching:
+   * - user_id, session_id, edit_type
+   * - target_contact_id (or both NULL)
+   * - field (or both NULL)
+   * - proposed_value
+   * - status != 'dismissed'
+   * 
+   * Requirements: 8.1, 8.2
+   */
+  async findDuplicate(data: CreatePendingEditData): Promise<PendingEdit | null> {
+    try {
+      const proposedValueJson = JSON.stringify(data.proposedValue);
+      
+      // Build WHERE clause that handles NULL values correctly
+      // In PostgreSQL, NULL = NULL is NULL (not true), so we need IS NULL checks
+      const result = await pool.query(
+        `SELECT * FROM pending_edits 
+         WHERE user_id = $1 
+           AND session_id = $2 
+           AND edit_type = $3 
+           AND (
+             (target_contact_id = $4) OR 
+             (target_contact_id IS NULL AND $4 IS NULL)
+           )
+           AND (
+             (field = $5) OR 
+             (field IS NULL AND $5 IS NULL)
+           )
+           AND proposed_value = $6
+           AND status != 'dismissed'
+         LIMIT 1`,
+        [
+          data.userId,
+          data.sessionId,
+          data.editType,
+          data.targetContactId || null,
+          data.field || null,
+          proposedValueJson,
+        ]
+      );
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      return this.mapRowToPendingEdit(result.rows[0]);
+    } catch (error) {
+      console.error('[EditRepository] Error in findDuplicate:', error);
+      // If query fails, don't block edit creation - return null to allow creation
+      return null;
+    }
   }
 
   /**

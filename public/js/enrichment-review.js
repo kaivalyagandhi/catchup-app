@@ -441,6 +441,14 @@ class EnrichmentReview {
   /**
    * Apply accepted suggestions directly to contact data
    */
+  /**
+   * Generate a deduplication key for a suggestion
+   * Used to prevent duplicate submissions in the same batch
+   */
+  generateDedupeKey(suggestion, editType, field) {
+    return `${editType}:${field || ''}:${JSON.stringify(suggestion.value)}`;
+  }
+
   async applyAcceptedSuggestions(contactId, contactName, suggestions) {
     try {
       const token = localStorage.getItem('authToken');
@@ -490,6 +498,12 @@ class EnrichmentReview {
       
       console.log('[EnrichmentReview] Applying', suggestions.length, 'suggestions to contact:', contact.name);
       
+      // Track which edits we've already created in this batch to prevent duplicates
+      const createdEditKeys = new Set();
+      let successCount = 0;
+      let duplicateCount = 0;
+      let failureCount = 0;
+      
       // Apply each accepted suggestion
       for (const suggestion of suggestions) {
         try {
@@ -513,6 +527,16 @@ class EnrichmentReview {
             editType = 'add_tag';
           } else if (suggestion.type === 'interest') {
             editType = 'add_to_group';
+          }
+          
+          // Generate deduplication key for this suggestion
+          const dedupeKey = this.generateDedupeKey(suggestion, editType, field);
+          
+          // Skip if we've already created this edit in this batch
+          if (createdEditKeys.has(dedupeKey)) {
+            console.log('[EnrichmentReview] Skipping duplicate suggestion in batch:', dedupeKey);
+            duplicateCount++;
+            continue;
           }
           
           console.log('[EnrichmentReview] Applying:', editType, field ? `(${field})` : '', '=', suggestion.value);
@@ -547,17 +571,35 @@ class EnrichmentReview {
           });
           
           if (editResponse.ok) {
-            console.log('[EnrichmentReview] ✓ Applied suggestion:', editType);
+            const result = await editResponse.json();
+            
+            // Mark this edit as created
+            createdEditKeys.add(dedupeKey);
+            
+            // Log if this was a duplicate (server returned 200 instead of 201)
+            if (result.isDuplicate) {
+              console.log('[EnrichmentReview] Server returned existing edit (duplicate):', result.edit.id);
+              duplicateCount++;
+            } else {
+              console.log('[EnrichmentReview] ✓ Applied suggestion:', editType);
+              successCount++;
+            }
+            
             // Dispatch event to refresh edits list
             window.dispatchEvent(new CustomEvent('edits-updated'));
           } else {
             const errorText = await editResponse.text();
             console.error('[EnrichmentReview] ✗ Failed to apply suggestion:', editResponse.status, errorText);
+            failureCount++;
           }
         } catch (err) {
           console.error('[EnrichmentReview] ✗ Exception applying suggestion:', err);
+          failureCount++;
         }
       }
+      
+      // Log summary
+      console.log(`[EnrichmentReview] Summary: ${successCount} created, ${duplicateCount} duplicates, ${failureCount} failures`);
     } catch (error) {
       console.error('[EnrichmentReview] Error applying accepted suggestions:', error);
     }

@@ -125,7 +125,20 @@ router.post('/pending', async (req: AuthenticatedRequest, res: Response) => {
       source: source as EditSource,
     });
 
-    res.status(201).json({ edit });
+    // Determine if this is a new edit or a duplicate
+    // If the edit was created very recently (within 1 second), it's new (201)
+    // Otherwise it's a duplicate that was returned from the database (200)
+    const isNewEdit = edit.createdAt && 
+      (Date.now() - edit.createdAt.getTime()) < 1000;
+    
+    const statusCode = isNewEdit ? 201 : 200;
+    const isDuplicate = !isNewEdit;
+
+    res.status(statusCode).json({ 
+      edit,
+      isDuplicate,
+      message: isDuplicate ? 'Duplicate edit already exists' : 'Edit created successfully'
+    });
   } catch (error: any) {
     console.error('Error creating pending edit:', error);
     res.status(500).json({

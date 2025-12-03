@@ -860,7 +860,8 @@ export class VoiceNoteService extends EventEmitter {
           console.log(`Emitting ${newSuggestions.length} NEW enrichment suggestions for session ${sessionId}`);
           console.log(`Suggestion details:`, newSuggestions);
           
-          // Mark these suggestions as emitted
+          // Mark these suggestions as emitted BEFORE emitting them
+          // This prevents race conditions if multiple analysis runs happen concurrently
           for (const suggestion of newSuggestions) {
             session.emittedSuggestionIds.add(suggestion.id);
           }
