@@ -1,0 +1,661 @@
+/**
+ * Compact Edits UI Redesign
+ * 
+ * Compact, contact-grouped layout for pending edits
+ * Reduces visual footprint by 40-50% while maintaining clarity
+ */
+
+/* ============================================
+   Compact Layout CSS Variables
+   ============================================ */
+
+:root {
+  /* Color Palette - Edit Types */
+  --compact-edit-add: #10b981;      /* Green - Add/Tag */
+  --compact-edit-remove: #ef4444;   /* Red - Remove/Delete */
+  --compact-edit-update: #3b82f6;   /* Blue - Update/Field */
+  --compact-edit-create: #8b5cf6;   /* Purple - Create */
+  
+  /* Confidence Score Colors */
+  --compact-confidence-low: #ef4444;    /* Red - 0-50% */
+  --compact-confidence-mid: #f59e0b;    /* Yellow - 50-75% */
+  --compact-confidence-high: #10b981;   /* Green - 75-100% */
+  
+  /* Spacing */
+  --compact-spacing-xs: 4px;
+  --compact-spacing-sm: 8px;
+  --compact-spacing-md: 12px;
+  --compact-spacing-lg: 16px;
+  --compact-spacing-xl: 20px;
+  
+  /* Typography */
+  --compact-font-xs: 10px;
+  --compact-font-sm: 11px;
+  --compact-font-base: 12px;
+  --compact-font-md: 13px;
+  --compact-font-lg: 14px;
+  --compact-font-xl: 16px;
+  
+  /* Dimensions */
+  --compact-header-height: 40px;
+  --compact-item-height-single: 36px;
+  --compact-item-height-double: 44px;
+  --compact-icon-size: 16px;
+  --compact-avatar-size: 24px;
+  --compact-button-size: 24px;
+  
+  /* Transitions */
+  --compact-transition-fast: 150ms ease;
+  --compact-transition-normal: 200ms ease;
+  --compact-transition-slow: 300ms ease;
+  
+  /* Border Radius */
+  --compact-radius-sm: 3px;
+  --compact-radius-md: 6px;
+  --compact-radius-lg: 8px;
+}
+
+/* ============================================
+   Base Compact Styles
+   ============================================ */
+
+.edits-menu__content {
+  padding: var(--compact-spacing-md);
+  min-height: 200px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.edits-menu__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--compact-spacing-sm);
+}
+
+/* ============================================
+   Contact Group Header
+   ============================================ */
+
+.contact-group {
+  border-radius: var(--compact-radius-lg);
+  border: 1px solid var(--edits-border);
+  overflow: hidden;
+  transition: border-color var(--compact-transition-normal);
+}
+
+.contact-group:hover {
+  border-color: var(--edits-primary);
+}
+
+.contact-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--compact-header-height);
+  padding: 0 var(--compact-spacing-md);
+  background: var(--edits-bg-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--compact-transition-fast);
+}
+
+.contact-group-header:hover {
+  background: #f0f0f0;
+}
+
+[data-theme="dark"] .contact-group-header:hover {
+  background: #4b5563;
+}
+
+.contact-group-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--compact-spacing-md);
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-group-header__avatar {
+  width: var(--compact-avatar-size);
+  height: var(--compact-avatar-size);
+  border-radius: 50%;
+  background: var(--edits-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--compact-font-sm);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.contact-group-header__name {
+  font-size: var(--compact-font-lg);
+  font-weight: 600;
+  color: var(--edits-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contact-group-header__count {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--compact-spacing-xs);
+  padding: 2px 8px;
+  background: var(--edits-primary-light);
+  color: var(--edits-primary);
+  border-radius: var(--compact-radius-sm);
+  font-size: var(--compact-font-sm);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.contact-group-header__count--completed {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.contact-group-header__count--rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.contact-group-header__right {
+  display: flex;
+  align-items: center;
+  gap: var(--compact-spacing-sm);
+  flex-shrink: 0;
+}
+
+.contact-group-header__toggle {
+  width: var(--compact-button-size);
+  height: var(--compact-button-size);
+  border: none;
+  background: transparent;
+  color: var(--edits-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--compact-transition-fast), color var(--compact-transition-fast);
+  padding: 0;
+}
+
+.contact-group-header__toggle:hover {
+  color: var(--edits-text);
+}
+
+.contact-group-header__toggle.expanded {
+  transform: rotate(180deg);
+}
+
+.contact-group-header__bulk-actions {
+  display: none;
+  gap: var(--compact-spacing-xs);
+}
+
+.contact-group-header:hover .contact-group-header__bulk-actions {
+  display: flex;
+}
+
+/* ============================================
+   Contact Group Content
+   ============================================ */
+
+.contact-group-content {
+  display: none;
+  background: var(--edits-bg);
+  border-top: 1px solid var(--edits-border);
+}
+
+.contact-group.expanded .contact-group-content {
+  display: block;
+}
+
+.contact-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.contact-group-item {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color var(--compact-transition-fast);
+}
+
+.contact-group-item:last-child {
+  border-bottom: none;
+}
+
+.contact-group-item:hover {
+  background: #fafafa;
+}
+
+[data-theme="dark"] .contact-group-item:hover {
+  background: #374151;
+}
+
+.contact-group-item.accepted {
+  background: #f0fdf4;
+}
+
+.contact-group-item.rejected {
+  background: #fafafa;
+  opacity: 0.6;
+}
+
+.contact-group-footer {
+  display: flex;
+  gap: var(--compact-spacing-sm);
+  padding: var(--compact-spacing-md);
+  background: var(--edits-bg-secondary);
+  border-top: 1px solid var(--edits-border);
+}
+
+/* ============================================
+   Compact Edit Item
+   ============================================ */
+
+.edit-item-compact {
+  display: flex;
+  align-items: center;
+  gap: var(--compact-spacing-md);
+  padding: var(--compact-spacing-sm) var(--compact-spacing-md);
+  min-height: var(--compact-item-height-single);
+  transition: background-color var(--compact-transition-fast);
+}
+
+.edit-item-compact.accepted {
+  background: #f0fdf4;
+}
+
+.edit-item-compact.rejected {
+  opacity: 0.6;
+}
+
+.edit-item-compact__icon {
+  width: var(--compact-icon-size);
+  height: var(--compact-icon-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--compact-icon-size);
+  flex-shrink: 0;
+}
+
+.edit-item-compact__type {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--edits-primary);
+  color: white;
+  border-radius: var(--compact-radius-sm);
+  font-size: var(--compact-font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.edit-item-compact__type--add {
+  background: var(--compact-edit-add);
+}
+
+.edit-item-compact__type--remove {
+  background: var(--compact-edit-remove);
+}
+
+.edit-item-compact__type--update {
+  background: var(--compact-edit-update);
+}
+
+.edit-item-compact__type--create {
+  background: var(--compact-edit-create);
+}
+
+.edit-item-compact__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.edit-item-compact__field {
+  font-size: var(--compact-font-md);
+  font-weight: 500;
+  color: var(--edits-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edit-item-compact__value {
+  font-size: var(--compact-font-base);
+  color: var(--edits-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edit-item-compact__value-edit {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--edits-primary);
+  border-radius: var(--compact-radius-sm);
+  font-size: var(--compact-font-base);
+  font-family: inherit;
+  color: var(--edits-text);
+  background: var(--edits-bg);
+}
+
+.edit-item-compact__value-edit:focus {
+  outline: none;
+  border-color: var(--edits-primary-hover);
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.1);
+}
+
+.edit-item-compact__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--compact-spacing-sm);
+  flex-shrink: 0;
+}
+
+.edit-item-compact__source {
+  display: none;
+}
+
+.edit-item-compact:hover .edit-item-compact__source {
+  display: inline-flex;
+}
+
+/* ============================================
+   Confidence Badge
+   ============================================ */
+
+.confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  background: var(--compact-confidence-high);
+  color: white;
+  border-radius: var(--compact-radius-sm);
+  font-size: var(--compact-font-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: help;
+  transition: transform var(--compact-transition-fast);
+}
+
+.confidence-badge:hover {
+  transform: scale(1.05);
+}
+
+.confidence-badge--low {
+  background: var(--compact-confidence-low);
+}
+
+.confidence-badge--mid {
+  background: var(--compact-confidence-mid);
+  color: #1f2937;
+}
+
+.confidence-badge--high {
+  background: var(--compact-confidence-high);
+}
+
+/* ============================================
+   Source Badge
+   ============================================ */
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--edits-border);
+  color: var(--edits-text-secondary);
+  border-radius: var(--compact-radius-sm);
+  font-size: var(--compact-font-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--compact-transition-fast);
+}
+
+.source-badge:hover {
+  background: var(--edits-primary-light);
+  color: var(--edits-primary);
+}
+
+.source-badge__icon {
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================
+   Action Buttons
+   ============================================ */
+
+.edit-item-compact__actions {
+  display: flex;
+  gap: var(--compact-spacing-xs);
+  flex-shrink: 0;
+}
+
+.action-btn {
+  width: var(--compact-button-size);
+  height: var(--compact-button-size);
+  border: none;
+  background: transparent;
+  color: var(--edits-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--compact-radius-sm);
+  transition: all var(--compact-transition-fast);
+  padding: 0;
+  font-size: 14px;
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+}
+
+.action-btn--accept {
+  color: var(--compact-edit-add);
+}
+
+.action-btn--accept:hover {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--compact-edit-add);
+}
+
+.action-btn--accept.active {
+  background: var(--compact-edit-add);
+  color: white;
+}
+
+.action-btn--reject {
+  color: var(--compact-edit-remove);
+}
+
+.action-btn--reject:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--compact-edit-remove);
+}
+
+.action-btn--reject.active {
+  background: var(--compact-edit-remove);
+  color: white;
+}
+
+/* ============================================
+   Bulk Action Buttons
+   ============================================ */
+
+.bulk-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--compact-radius-md);
+  font-size: var(--compact-font-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--compact-transition-fast);
+  white-space: nowrap;
+}
+
+.bulk-action-btn--accept {
+  background: var(--compact-edit-add);
+  color: white;
+}
+
+.bulk-action-btn--accept:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.bulk-action-btn--reject {
+  background: var(--compact-edit-remove);
+  color: white;
+}
+
+.bulk-action-btn--reject:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+/* ============================================
+   Source Context Tooltip
+   ============================================ */
+
+.source-context-tooltip {
+  background: var(--edits-bg);
+  border: 1px solid var(--edits-border);
+  border-radius: var(--compact-radius-lg);
+  box-shadow: var(--edits-shadow-lg);
+  padding: var(--compact-spacing-md);
+  max-width: 300px;
+  animation: tooltipFadeIn var(--compact-transition-fast);
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.source-context-tooltip__type {
+  font-size: var(--compact-font-sm);
+  font-weight: 600;
+  color: var(--edits-primary);
+  margin-bottom: 4px;
+}
+
+.source-context-tooltip__excerpt {
+  font-size: var(--compact-font-base);
+  color: var(--edits-text);
+  font-style: italic;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.source-context-tooltip__time {
+  font-size: var(--compact-font-xs);
+  color: var(--edits-text-secondary);
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+
+@media (max-width: 768px) {
+  .edit-item-compact {
+    flex-wrap: wrap;
+    gap: var(--compact-spacing-sm);
+  }
+  
+  .edit-item-compact__meta {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .contact-group-header__bulk-actions {
+    display: none !important;
+  }
+  
+  .contact-group-footer {
+    flex-direction: column;
+  }
+  
+  .bulk-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .edits-menu__content {
+    padding: var(--compact-spacing-sm);
+  }
+  
+  .contact-group-header {
+    height: 36px;
+    padding: 0 var(--compact-spacing-sm);
+  }
+  
+  .contact-group-header__name {
+    font-size: var(--compact-font-md);
+  }
+  
+  .edit-item-compact {
+    padding: var(--compact-spacing-xs) var(--compact-spacing-sm);
+    font-size: 12px;
+  }
+  
+  .edit-item-compact__type {
+    font-size: var(--compact-font-xs);
+    padding: 2px 4px;
+  }
+  
+  .edit-item-compact__field {
+    font-size: var(--compact-font-base);
+  }
+  
+  .edit-item-compact__value {
+    font-size: var(--compact-font-xs);
+  }
+  
+  .action-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+  }
+  
+  .confidence-badge {
+    font-size: var(--compact-font-xs);
+    padding: 2px 4px;
+  }
+  
+  .source-badge {
+    display: none;
+  }
+}
+

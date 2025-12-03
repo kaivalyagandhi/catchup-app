@@ -3476,54 +3476,239 @@ async function processTextMessageForEnrichment(text) {
     }
 }
 
-// Edits Page
-function loadEditsPage() {
-    // Setup tab switching
-    setupEditsTabs();
-    
-    // Load pending edits
-    loadPendingEdits();
-}
+// Edits Page - Using Compact UI
+let editsMenuCompact = null;
 
-function setupEditsTabs() {
-    const tabs = document.querySelectorAll('#edits-page .voice-tab');
-    if (!tabs || tabs.length === 0) return;
+function loadEditsPage() {
+    const container = document.getElementById('edits-menu-container');
+    if (!container) return;
     
-    tabs.forEach(tab => {
-        if (!tab || !tab.dataset) return;
-        tab.addEventListener('click', () => {
-            const tabName = tab.dataset.tab;
-            if (tabName) {
-                switchEditsTab(tabName);
+    // Create compact edits menu if not already created
+    if (!editsMenuCompact) {
+        editsMenuCompact = new EditsMenuCompact({
+            onOpenChat: () => {
+                // Switch to contacts page and open chat
+                currentPage = 'contacts';
+                showPage('contacts');
+                if (floatingChatIcon) {
+                    floatingChatIcon.click();
+                }
+            },
+            onEditSubmit: (editId) => {
+                console.log('Submit edit:', editId);
+                submitEdit(editId);
+            },
+            onEditDismiss: (editId) => {
+                console.log('Dismiss edit:', editId);
+                dismissEdit(editId);
+            },
+            onEditUpdate: (editId, updates) => {
+                console.log('Update edit:', editId, updates);
+                // Handle edit updates if needed
+            },
+            onContactClick: (contactId) => {
+                // Navigate to contact details
+                if (contactId) {
+                    currentPage = 'contacts';
+                    showPage('contacts');
+                }
+            },
+            onGroupClick: (groupId) => {
+                // Navigate to group details
+                if (groupId) {
+                    currentPage = 'groups-tags';
+                    showPage('groups-tags');
+                }
+            },
+            onSearchContact: async (query) => {
+                // Search for contacts
+                try {
+                    const response = await fetch(`${API_BASE}/contacts/search?q=${encodeURIComponent(query)}`, {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'x-user-id': userId
+                        }
+                    });
+                    if (response.ok) {
+                        const results = await response.json();
+                        return (results || []).map(c => ({
+                            id: c.id,
+                            name: c.name,
+                            similarityScore: 1.0
+                        }));
+                    }
+                } catch (error) {
+                    console.error('Error searching contacts:', error);
+                }
+                return [];
             }
         });
-    });
+        
+        container.appendChild(editsMenuCompact.render());
+    }
+    
+    // Load pending edits and history
+    loadPendingEditsCompact();
 }
 
-function switchEditsTab(tabName) {
-    // Update active tab button
-    document.querySelectorAll('#edits-page .voice-tab').forEach(tab => {
-        if (tab && tab.dataset) {
-            tab.classList.toggle('active', tab.dataset.tab === tabName);
+// Load pending edits and history for compact UI
+async function loadPendingEditsCompact() {
+    if (!editsMenuCompact) {
+        console.warn('editsMenuCompact not initialized');
+        return;
+    }
+    
+    try {
+        console.log('Loading pending edits...');
+        
+        // Fetch pending edits
+        const editsResponse = await fetch(`${API_BASE}/edits/pending`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'x-user-id': userId
+            }
+        });
+        
+        let pendingEdits = [];
+        if (editsResponse.ok) {
+            const data = await editsResponse.json();
+            console.log('Pending edits response:', data);
+            pendingEdits = data.edits || data || [];
+        } else {
+            console.warn('Failed to fetch pending edits:', editsResponse.status);
         }
-    });
-    
-    // Show/hide tab content
-    const pendingTab = document.getElementById('edits-pending-tab');
-    const historyTab = document.getElementById('edits-history-tab');
-    
-    if (tabName === 'pending') {
-        if (pendingTab) pendingTab.classList.remove('hidden');
-        if (historyTab) historyTab.classList.add('hidden');
-        loadPendingEdits();
-    } else if (tabName === 'history') {
-        if (pendingTab) pendingTab.classList.add('hidden');
-        if (historyTab) historyTab.classList.remove('hidden');
-        loadEditsHistory();
+        
+        // Fetch edit history
+        const historyResponse = await fetch(`${API_BASE}/edits/history`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'x-user-id': userId
+            }
+        });
+        
+        let editHistory = [];
+        if (historyResponse.ok) {
+            const data = await historyResponse.json();
+            console.log('Edit history response:', data);
+            editHistory = data.history || data || [];
+        } else {
+            console.warn('Failed to fetch edit history:', historyResponse.status);
+        }
+        
+        console.log('Setting pending edits:', pendingEdits.length);
+        console.log('Setting edit history:', editHistory.length);
+        
+        // Update the compact menu
+        editsMenuCompact.setPendingEdits(pendingEdits);
+        editsMenuCompact.setEditHistory(editHistory);
+        
+        // Update pending count in chat components
+        updatePendingEditCounts(pendingEdits.length);
+    } catch (error) {
+        console.error('Error loading edits for compact UI:', error);
+    }
+}
+
+// Submit an edit (accept and apply)
+async function submitEdit(editId) {
+    console.log('submitEdit called with editId:', editId);
+    try {
+        const response = await fetch(`${API_BASE}/edits/pending/${editId}/submit`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userId })
+        });
+        
+        console.log('submitEdit response status:', response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.text();
+            console.error('Submit edit error response:', errorData);
+            throw new Error(`Failed to submit edit: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('submitEdit result:', result);
+        
+        showToast('Edit applied successfully!', 'success');
+        
+        // Reload edits after a short delay to ensure backend has processed
+        setTimeout(() => {
+            loadPendingEditsCompact();
+            loadContacts();
+        }, 500);
+        
+        // Update pending count
+        if (chatWindow) {
+            const currentCount = chatWindow.pendingEditCount || 0;
+            chatWindow.setPendingEditCount(Math.max(0, currentCount - 1));
+        }
+        if (floatingChatIcon) {
+            const currentCount = floatingChatIcon.pendingEditCount || 0;
+            floatingChatIcon.setPendingEditCount(Math.max(0, currentCount - 1));
+        }
+    } catch (error) {
+        console.error('Error submitting edit:', error);
+        showToast('Failed to submit edit: ' + error.message, 'error');
+    }
+}
+
+// Dismiss an edit (reject without applying)
+async function dismissEdit(editId) {
+    console.log('dismissEdit called with editId:', editId);
+    try {
+        const response = await fetch(`${API_BASE}/edits/pending/${editId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userId })
+        });
+        
+        console.log('dismissEdit response status:', response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.text();
+            console.error('Dismiss edit error response:', errorData);
+            throw new Error(`Failed to dismiss edit: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('dismissEdit result:', result);
+        
+        showToast('Edit dismissed', 'info');
+        
+        // Reload edits after a short delay to ensure backend has processed
+        setTimeout(() => {
+            loadPendingEditsCompact();
+        }, 500);
+        
+        // Update pending count
+        if (chatWindow) {
+            const currentCount = chatWindow.pendingEditCount || 0;
+            chatWindow.setPendingEditCount(Math.max(0, currentCount - 1));
+        }
+        if (floatingChatIcon) {
+            const currentCount = floatingChatIcon.pendingEditCount || 0;
+            floatingChatIcon.setPendingEditCount(Math.max(0, currentCount - 1));
+        }
+    } catch (error) {
+        console.error('Error dismissing edit:', error);
+        showToast('Failed to dismiss edit: ' + error.message, 'error');
     }
 }
 
 async function loadPendingEdits() {
+    // Update compact menu if it exists
+    if (editsMenuCompact) {
+        loadPendingEditsCompact();
+        return;
+    }
+    
     const container = document.getElementById('edits-pending-content');
     if (!container) return;
     
