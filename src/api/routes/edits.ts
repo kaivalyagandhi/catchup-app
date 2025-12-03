@@ -84,15 +84,36 @@ router.post('/pending', async (req: AuthenticatedRequest, res: Response) => {
       source,
     } = req.body;
 
-    if (!sessionId || !editType || proposedValue === undefined || confidenceScore === undefined || !source) {
+    if (!editType || proposedValue === undefined || confidenceScore === undefined || !source) {
       return res.status(400).json({
-        error: 'Missing required fields: sessionId, editType, proposedValue, confidenceScore, source',
+        error: 'Missing required fields: editType, proposedValue, confidenceScore, source',
       });
+    }
+
+    // If sessionId is provided, verify it exists; otherwise get or create an active session
+    let finalSessionId = sessionId;
+    
+    if (sessionId) {
+      // Verify the session exists
+      const session = await sessionManager.getSession(sessionId, userId);
+      if (!session) {
+        console.warn(`Session ${sessionId} not found, will use active session instead`);
+        finalSessionId = null;
+      }
+    }
+    
+    // If no valid sessionId, get or create an active session
+    if (!finalSessionId) {
+      let activeSession = await sessionManager.getActiveSession(userId);
+      if (!activeSession) {
+        activeSession = await sessionManager.startSession(userId);
+      }
+      finalSessionId = activeSession.id;
     }
 
     const edit = await editService.createPendingEdit({
       userId,
-      sessionId,
+      sessionId: finalSessionId,
       editType: editType as EditType,
       targetContactId,
       targetContactName,

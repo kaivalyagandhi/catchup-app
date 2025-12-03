@@ -222,6 +222,7 @@ export class VoiceNoteWebSocketHandler {
         this.sendMessage(ws, {
           type: WSMessageType.ENRICHMENT_UPDATE,
           data: {
+            sessionId: event.sessionId,
             contactId: event.contactId,
             contactName: event.contactName,
             suggestions: event.suggestions,

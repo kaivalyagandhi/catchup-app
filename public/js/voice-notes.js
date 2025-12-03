@@ -576,7 +576,7 @@ class VoiceNoteRecorder {
         this.updateFinalTranscript(data.transcript, data.confidence || 1.0);
         break;
       case 'enrichment_update':
-        this.handleEnrichmentUpdate(data.suggestions);
+        this.handleEnrichmentUpdate(data);
         break;
       case 'connection_status':
         this.updateConnectionStatus(data.status, data.attempt);
@@ -596,7 +596,7 @@ class VoiceNoteRecorder {
   
   handleEnrichmentUpdate(data) {
     // Handle both old format (suggestions array) and new format (grouped by contact)
-    let contactId, contactName, suggestions;
+    let contactId, contactName, suggestions, sessionId;
     
     if (Array.isArray(data)) {
       // Old format: array of suggestions
@@ -604,12 +604,14 @@ class VoiceNoteRecorder {
       suggestions = data;
       contactName = 'Unknown Contact';
       contactId = 'unknown';
+      sessionId = null;
     } else {
       // New format: grouped by contact
       contactId = data.contactId;
       contactName = data.contactName;
       suggestions = data.suggestions;
-      console.log('[VoiceNotes] Received grouped suggestions for contact:', contactName, 'count:', suggestions?.length || 0);
+      sessionId = data.sessionId;
+      console.log('[VoiceNotes] Received grouped suggestions for contact:', contactName, 'count:', suggestions?.length || 0, 'sessionId:', sessionId);
     }
     
     console.log('[VoiceNotes] handleEnrichmentUpdate called with', suggestions?.length || 0, 'suggestions for contact:', contactName);
@@ -620,6 +622,12 @@ class VoiceNoteRecorder {
       if (window.enrichmentReview && !window.enrichmentReview.isRecording) {
         console.log('[VoiceNotes] Showing enrichment review in recording mode');
         window.enrichmentReview.showRecordingMode();
+      }
+      
+      // Store sessionId in enrichmentReview for later use when applying suggestions
+      if (window.enrichmentReview && sessionId) {
+        window.enrichmentReview.currentSessionId = sessionId;
+        console.log('[VoiceNotes] Set enrichmentReview sessionId:', sessionId);
       }
       
       // Add each suggestion to the contact modal

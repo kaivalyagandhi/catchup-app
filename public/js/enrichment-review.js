@@ -9,6 +9,7 @@ class EnrichmentReview {
     this.container = null;
     this.onApplyCallback = null;
     this.isRecording = false;
+    this.currentSessionId = null; // Store the voice recording session ID
     
     // Contact modal management
     this.contactModals = new Map(); // Map<contactId, ModalState>
@@ -412,24 +413,154 @@ class EnrichmentReview {
   
   /**
    * Apply modal selections (confirm checked + reject unchecked)
+   * Only accepted suggestions are applied to the contact data
    * Requirements: 4.1, 4.2, 4.3, 4.4
    */
-  applyModalSelections(contactId) {
+  async applyModalSelections(contactId) {
     const modalState = this.contactModals.get(contactId);
     if (!modalState) return;
     
-    const acceptedCount = modalState.suggestions.filter(s => s.accepted).length;
-    const rejectedCount = modalState.suggestions.length - acceptedCount;
+    const acceptedSuggestions = modalState.suggestions.filter(s => s.accepted);
+    const rejectedCount = modalState.suggestions.length - acceptedSuggestions.length;
     
-    console.log(`[EnrichmentReview] Applying selections for ${contactId}: ${acceptedCount} confirmed, ${rejectedCount} rejected`);
+    console.log(`[EnrichmentReview] Applying selections for ${contactId}: ${acceptedSuggestions.length} confirmed, ${rejectedCount} rejected`);
+    
+    // Apply accepted suggestions to contact data
+    if (acceptedSuggestions.length > 0) {
+      await this.applyAcceptedSuggestions(contactId, modalState.contactName, acceptedSuggestions);
+    }
     
     // Show feedback
-    const message = `Confirmed ${acceptedCount}, Rejected ${rejectedCount}`;
+    const message = `Confirmed ${acceptedSuggestions.length}, Rejected ${rejectedCount}`;
     showToast(message, 'success');
     
-    // Keep modal open - user can continue selecting
-    // Reset auto-dismiss timer so modal doesn't close while they're working
-    this.resetAutoRemoveTimer(contactId);
+    // Close modal after applying
+    this.removeContactModal(contactId);
+  }
+  
+  /**
+   * Apply accepted suggestions directly to contact data
+   */
+  async applyAcceptedSuggestions(contactId, contactName, suggestions) {
+    try {
+      const token = localStorage.getItem('authToken');
+      const userId = localStorage.getItem('userId');
+      
+      if (!token || !userId) {
+        console.error('[EnrichmentReview] Missing auth token or userId');
+        return;
+      }
+      
+      // Fetch contacts to find the actual contact ID
+      let contact = null;
+      try {
+        const contactsResponse = await fetch(`/api/contacts?userId=${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (contactsResponse.ok) {
+          const contacts = await contactsResponse.json();
+          // Find contact by name
+          contact = contacts.find(c => c.name.toLowerCase() === contactName.toLowerCase());
+          
+          if (!contact) {
+            // Try fuzzy matching
+            const nameLower = contactName.toLowerCase();
+            const nameParts = nameLower.split(/\s+/);
+            contact = contacts.find(c => {
+              const contactNameLower = c.name.toLowerCase();
+              const contactParts = contactNameLower.split(/\s+/);
+              return nameParts.some(part => 
+                contactParts.some(cPart => 
+                  cPart.includes(part) || part.includes(cPart)
+                )
+              );
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[EnrichmentReview] Error fetching contacts:', err);
+        return;
+      }
+      
+      if (!contact) {
+        console.warn('[EnrichmentReview] Could not find contact for:', contactName);
+        return;
+      }
+      
+      console.log('[EnrichmentReview] Applying', suggestions.length, 'suggestions to contact:', contact.name);
+      
+      // Apply each accepted suggestion
+      for (const suggestion of suggestions) {
+        try {
+          // Map suggestion type to edit type and field
+          let editType = 'add_tag';
+          let field = undefined;
+          
+          if (suggestion.type === 'location') {
+            editType = 'update_contact_field';
+            field = 'location';
+          } else if (suggestion.type === 'phone') {
+            editType = 'update_contact_field';
+            field = 'phone';
+          } else if (suggestion.type === 'email') {
+            editType = 'update_contact_field';
+            field = 'email';
+          } else if (suggestion.type === 'note') {
+            editType = 'update_contact_field';
+            field = 'customNotes';
+          } else if (suggestion.type === 'tag') {
+            editType = 'add_tag';
+          } else if (suggestion.type === 'interest') {
+            editType = 'add_to_group';
+          }
+          
+          console.log('[EnrichmentReview] Applying:', editType, field ? `(${field})` : '', '=', suggestion.value);
+          console.log('[EnrichmentReview] Using sessionId:', this.currentSessionId);
+          
+          // Create pending edit via the edits API
+          const requestBody = {
+            sessionId: this.currentSessionId,
+            editType,
+            field,
+            proposedValue: suggestion.value,
+            targetContactId: contact.id,
+            targetContactName: contact.name,
+            confidenceScore: suggestion.confidence || 0.95,
+            source: {
+              type: 'voice_transcript',
+              transcriptExcerpt: suggestion.sourceText?.substring(0, 200),
+              timestamp: new Date().toISOString()
+            }
+          };
+          
+          console.log('[EnrichmentReview] Request body:', requestBody);
+          
+          const editResponse = await fetch('/api/edits/pending', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'x-user-id': userId,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+          });
+          
+          if (editResponse.ok) {
+            console.log('[EnrichmentReview] ✓ Applied suggestion:', editType);
+            // Dispatch event to refresh edits list
+            window.dispatchEvent(new CustomEvent('edits-updated'));
+          } else {
+            const errorText = await editResponse.text();
+            console.error('[EnrichmentReview] ✗ Failed to apply suggestion:', editResponse.status, errorText);
+          }
+        } catch (err) {
+          console.error('[EnrichmentReview] ✗ Exception applying suggestion:', err);
+        }
+      }
+    } catch (error) {
+      console.error('[EnrichmentReview] Error applying accepted suggestions:', error);
+    }
   }
   
   /**
