@@ -13,6 +13,7 @@ let groups = []; // Store groups for lookup
 let currentPage = 'contacts';
 let isLoginMode = true;
 let currentContactTags = []; // Tags being edited in the modal
+let originalContactTags = []; // Original tags before editing (for comparison on save)
 let currentContactGroups = []; // Group IDs being edited in the modal
 
 // Chat components
@@ -574,6 +575,7 @@ function showAddContactModal() {
     
     // Clear tags and groups
     currentContactTags = [];
+    originalContactTags = [];
     currentContactGroups = [];
     renderContactTags();
     renderContactGroups();
@@ -599,6 +601,7 @@ function editContact(id) {
     
     // Load tags and groups
     currentContactTags = contact.tags || [];
+    originalContactTags = JSON.parse(JSON.stringify(contact.tags || [])); // Deep copy for comparison
     currentContactGroups = contact.groups || [];
     renderContactTags();
     renderContactGroups();
@@ -671,8 +674,8 @@ async function saveContact(event) {
         const savedContact = await response.json();
         contactId = savedContact.id;
         
-        // Handle tags
-        await syncContactTags(contactId, savedContact.tags || []);
+        // Handle tags - compare against original tags, not the response tags
+        await syncContactTags(contactId, originalContactTags);
         
         // Handle groups
         await syncContactGroups(contactId, savedContact.groups || []);

@@ -108,9 +108,23 @@ router.post('/tags', async (req: Request, res: Response): Promise<void> => {
       return;
     }
     const tagService = new TagServiceImpl();
-    await tagService.addTag(contactId, userId, text, source);
-    res.status(201).send();
+    const tag = await tagService.addTag(contactId, userId, text, source);
+    res.status(201).json(tag);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Handle duplicate tag error with 409 Conflict
+    if (errorMessage.includes('Contact already has this tag')) {
+      res.status(409).json({ error: 'Contact already has this tag' });
+      return;
+    }
+    
+    // Handle validation errors with 400 Bad Request
+    if (errorMessage.includes('Tag must be') || errorMessage.includes('Tag text is required')) {
+      res.status(400).json({ error: errorMessage });
+      return;
+    }
+    
     console.error('Error adding tag:', error);
     res.status(500).json({ error: 'Failed to add tag' });
   }
@@ -157,6 +171,19 @@ router.delete('/tags/:id', async (req: Request, res: Response): Promise<void> =>
     await tagService.removeTag(contactId as string, req.params.id, userId as string);
     res.status(204).send();
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Handle not found errors
+    if (errorMessage.includes('Contact not found')) {
+      res.status(404).json({ error: 'Contact not found' });
+      return;
+    }
+    
+    if (errorMessage.includes('Tag not found')) {
+      res.status(404).json({ error: 'Tag not found' });
+      return;
+    }
+    
     console.error('Error removing tag:', error);
     res.status(500).json({ error: 'Failed to remove tag' });
   }

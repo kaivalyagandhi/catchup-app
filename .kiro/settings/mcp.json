@@ -19,7 +19,12 @@
       ],
       "disabled": false,
       "autoApprove": [
-        "take_snapshot"
+        "take_snapshot",
+        "navigate_page",
+        "click",
+        "fill",
+        "list_console_messages",
+        "list_network_requests"
       ]
     },
     "playwright": {
