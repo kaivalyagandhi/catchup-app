@@ -3889,6 +3889,8 @@ async function loadEditsHistory() {
     if (!container) return;
     
     // Show empty state by default
+    // Note: Edit history only contains successfully applied edits.
+    // Rejected/dismissed edits are deleted from pending_edits and do NOT appear in history.
     const showEmptyState = () => {
         container.innerHTML = `
             <div class="empty-state">
@@ -3940,9 +3942,18 @@ function renderHistoryEntry(entry) {
     };
     
     const typeLabel = editTypeLabels[entry.editType] || entry.editType;
-    const statusClass = entry.status === 'applied' ? 'status-success-bg' : 'status-error-bg';
-    const statusText = entry.status === 'applied' ? 'Applied' : 'Rejected';
-    const date = new Date(entry.appliedAt || entry.rejectedAt || entry.createdAt).toLocaleString();
+    // All entries in edit_history are successfully applied - no rejected status exists
+    const statusClass = 'status-success-bg';
+    const statusText = 'Applied';
+    const date = new Date(entry.submittedAt).toLocaleString();
+    
+    // Format the applied value for display
+    let displayValue = '';
+    if (typeof entry.appliedValue === 'object') {
+        displayValue = JSON.stringify(entry.appliedValue);
+    } else {
+        displayValue = String(entry.appliedValue || '');
+    }
     
     return `
         <div class="card">
@@ -3951,7 +3962,7 @@ function renderHistoryEntry(entry) {
                     <span class="tag-badge">${typeLabel}</span>
                     <span class="tag-badge" style="background: var(--${statusClass}); color: var(--${statusClass.replace('-bg', '-text')});">${statusText}</span>
                     <h3 style="margin-top: 8px;">${entry.targetContactName || 'Unknown Contact'}</h3>
-                    <p style="color: var(--text-secondary);">${entry.proposedValue || ''}</p>
+                    <p style="color: var(--text-secondary);">${displayValue}</p>
                     <p style="font-size: 12px; color: var(--text-tertiary);">${date}</p>
                 </div>
             </div>

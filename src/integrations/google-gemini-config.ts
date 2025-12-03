@@ -95,11 +95,11 @@ export interface GeminiConfig {
 /**
  * Default Gemini configuration
  * 
- * Uses gemini-2.5-flash for production stability (gemini-2.0-flash-exp is experimental).
+ * Uses gemini-2.0-flash-lite for higher free tier rate limits (30 RPM vs 10 RPM).
  * Lower temperature (0.2) ensures more consistent entity extraction.
  */
 export const DEFAULT_GEMINI_CONFIG: Omit<GeminiConfig, 'apiKey'> = {
-  model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  model: process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite',
   temperature: 0.2, // Lower temperature for more consistent extraction
   topP: 0.8,
   topK: 40,
