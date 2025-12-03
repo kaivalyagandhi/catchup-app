@@ -17,7 +17,7 @@
         "-y",
         "chrome-devtools-mcp@latest"
       ],
-      "disabled": true,
+      "disabled": false,
       "autoApprove": []
     },
     "playwright": {
@@ -26,7 +26,7 @@
         "-y",
         "@executeautomation/playwright-mcp-server"
       ],
-      "disabled": true,
+      "disabled": false,
       "autoApprove": [
         "playwright_screenshot"
       ]
