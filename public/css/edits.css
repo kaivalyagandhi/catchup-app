@@ -56,9 +56,14 @@
   justify-content: center;
   cursor: pointer;
   box-shadow: var(--edits-shadow-lg);
-  transition: transform 0.2s, background-color 0.2s, box-shadow 0.3s;
+  transition: transform 0.2s, background-color 0.2s, box-shadow 0.3s, opacity 0.2s;
   z-index: 1000;
   border: none;
+}
+
+.floating-chat-icon--hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .floating-chat-icon:hover {
@@ -155,7 +160,7 @@
    ============================================ */
 .chat-window {
   position: fixed;
-  bottom: 96px;
+  bottom: 24px;
   right: 24px;
   z-index: 1001;
   pointer-events: none;
@@ -940,7 +945,7 @@
   }
 
   .chat-window__container {
-    bottom: 80px;
+    bottom: 16px;
     right: 16px;
     left: 16px;
     width: auto;

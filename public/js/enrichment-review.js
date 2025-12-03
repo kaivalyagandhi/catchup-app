@@ -307,6 +307,28 @@ class EnrichmentReview {
       return;
     }
     
+    // Build all rows with contact grouping
+    let allRows = '';
+    let currentContact = null;
+    
+    contactsWithItems.forEach((contactProposal, contactIndex) => {
+      const { contactName, items } = contactProposal;
+      
+      items.forEach((item, itemIndex) => {
+        // Add contact group header if this is a new contact
+        if (currentContact !== contactName) {
+          if (currentContact !== null) {
+            allRows += `<tr class="table-spacer"><td colspan="5"></td></tr>`;
+          }
+          const acceptedCount = items.filter(i => i.accepted).length;
+          allRows += `<tr class="contact-group-header"><td colspan="5"><strong>${this.escapeHtml(contactName)}</strong> — ${acceptedCount} of ${items.length} selected</td></tr>`;
+          currentContact = contactName;
+        }
+        
+        allRows += this.renderEnrichmentItem(item, contactIndex, itemIndex);
+      });
+    });
+    
     container.innerHTML = `
       <div class="enrichment-review">
         <div class="enrichment-header">
@@ -314,9 +336,11 @@ class EnrichmentReview {
           <p class="enrichment-subtitle">Review and edit the information extracted from your voice note</p>
         </div>
         
-        <div class="enrichment-contacts">
-          ${contactsWithItems.map((contactProposal, index) => this.renderContactProposal(contactProposal, index)).join('')}
-        </div>
+        <table class="enrichment-table">
+          <tbody>
+            ${allRows}
+          </tbody>
+        </table>
         
         <div class="enrichment-actions">
           <button class="btn btn-secondary" onclick="enrichmentReview.acceptAll()">
@@ -333,34 +357,7 @@ class EnrichmentReview {
     `;
   }
   
-  renderContactProposal(contactProposal, index) {
-    const { contactId, contactName, items } = contactProposal;
-    const acceptedCount = items.filter(item => item.accepted).length;
-    
-    // Get contact initials for avatar
-    const initials = this.getInitials(contactName);
-    
-    return `
-      <div class="contact-proposal" data-contact-index="${index}">
-        <div class="contact-header" onclick="enrichmentReview.toggleContact(${index})">
-          <div class="contact-info">
-            <div class="contact-avatar">${initials}</div>
-            <div class="contact-details">
-              <h3 class="contact-name">${this.escapeHtml(contactName)}</h3>
-              <p class="contact-summary">${acceptedCount} of ${items.length} items selected</p>
-            </div>
-          </div>
-          <div class="expand-icon">
-            <span class="chevron">▼</span>
-          </div>
-        </div>
-        
-        <div class="contact-items expanded" id="contact-items-${index}">
-          ${items.map((item, itemIndex) => this.renderEnrichmentItem(item, index, itemIndex)).join('')}
-        </div>
-      </div>
-    `;
-  }
+
   
   renderEnrichmentItem(item, contactIndex, itemIndex) {
     const { id, type, action, field, value, accepted } = item;
@@ -389,40 +386,36 @@ class EnrichmentReview {
     const icon = this.getItemIcon(type, field);
     
     return `
-      <div class="enrichment-item ${accepted ? 'accepted' : 'rejected'}" data-item-id="${id}">
-        <div class="item-checkbox">
+      <tr class="enrichment-item ${accepted ? 'accepted' : 'rejected'}" data-item-id="${id}">
+        <td class="cell-checkbox">
           <input 
             type="checkbox" 
             id="item-${contactIndex}-${itemIndex}" 
             ${accepted ? 'checked' : ''}
             onchange="enrichmentReview.toggleItem(${contactIndex}, ${itemIndex})"
           />
-        </div>
+        </td>
         
-        <div class="item-icon">${icon}</div>
+        <td class="cell-icon">${icon}</td>
         
-        <div class="item-content">
-          <div class="item-header">
-            <span class="item-type">${displayText}</span>
-          </div>
-          
-          <div class="item-value-container">
-            <span class="item-value" id="value-display-${contactIndex}-${itemIndex}">
-              ${this.escapeHtml(displayValue)}
-            </span>
-            <input 
-              type="text" 
-              class="item-value-edit hidden" 
-              id="value-edit-${contactIndex}-${itemIndex}"
-              value="${this.escapeHtml(value)}"
-              data-type="${type}"
-              data-field="${field || ''}"
-            />
-            <span class="validation-error hidden" id="error-${contactIndex}-${itemIndex}"></span>
-          </div>
-        </div>
+        <td class="cell-type">${displayText}</td>
         
-        <div class="item-actions">
+        <td class="cell-value">
+          <span class="item-value" id="value-display-${contactIndex}-${itemIndex}">
+            ${this.escapeHtml(displayValue)}
+          </span>
+          <input 
+            type="text" 
+            class="item-value-edit hidden" 
+            id="value-edit-${contactIndex}-${itemIndex}"
+            value="${this.escapeHtml(value)}"
+            data-type="${type}"
+            data-field="${field || ''}"
+          />
+          <span class="validation-error hidden" id="error-${contactIndex}-${itemIndex}"></span>
+        </td>
+        
+        <td class="cell-actions">
           <button 
             class="btn-icon edit-btn" 
             id="edit-btn-${contactIndex}-${itemIndex}"
@@ -447,8 +440,8 @@ class EnrichmentReview {
           >
             ✗
           </button>
-        </div>
-      </div>
+        </td>
+      </tr>
     `;
   }
   
@@ -911,20 +904,7 @@ class EnrichmentReview {
         color: #6b7280;
       }
       
-      .enrichment-contacts {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        margin-bottom: 30px;
-      }
-      
-      .contact-proposal {
-        background: white;
-        border: 2px solid #e5e7eb;
-        border-radius: 12px;
-        overflow: hidden;
-        transition: all 0.2s;
-      }
+
       
       .contact-proposal:hover {
         border-color: #d1d5db;
@@ -942,186 +922,167 @@ class EnrichmentReview {
         transition: background 0.2s;
       }
       
-      .contact-header:hover {
-        background: #f3f4f6;
-      }
-      
-      .contact-info {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-      
-      .contact-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 13px;
-        flex-shrink: 0;
-      }
-      
-      .contact-details {
-        flex: 1;
+      .contact-header {
+        border-bottom: 1px solid #e5e7eb;
       }
       
       .contact-name {
-        margin: 0 0 4px 0;
-        font-size: 18px;
+        font-size: 14px;
         font-weight: 600;
         color: #1f2937;
       }
       
       .contact-summary {
-        margin: 0;
-        font-size: 14px;
-        color: #6b7280;
-      }
-      
-      .expand-icon {
+        font-size: 12px;
         color: #9ca3af;
-        transition: transform 0.2s;
       }
       
-      .chevron {
-        font-size: 14px;
-      }
-      
-      .contact-items {
-        max-height: 0;
+      .enrichment-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
         overflow: hidden;
-        transition: max-height 0.3s ease-out;
       }
       
-      .contact-items.expanded {
-        max-height: 2000px;
-        padding: 10px 20px 20px 20px;
+      .contact-group-header {
+        background: #f9fafb;
+        border-bottom: 2px solid #e5e7eb;
+        padding: 10px 12px !important;
+        font-weight: 600;
+        color: #1f2937;
       }
       
-      .contact-items.collapsed {
-        max-height: 0;
-        padding: 0 20px;
+      .contact-group-header td {
+        padding: 10px 12px;
+      }
+      
+      .table-spacer {
+        height: 8px;
+        background: white;
+      }
+      
+      .table-spacer td {
+        padding: 0;
+        border: none;
       }
       
       .enrichment-item {
-        display: grid;
-        grid-template-columns: 20px 18px 1fr auto;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 10px;
-        background: white;
-        border: 1px solid #f0f0f0;
-        border-radius: 6px;
-        margin-bottom: 6px;
-        transition: all 0.2s;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.2s;
       }
       
       .enrichment-item:last-child {
-        margin-bottom: 0;
+        border-bottom: none;
       }
       
       .enrichment-item.accepted {
-        border-color: #10b981;
         background: #f0fdf4;
       }
       
       .enrichment-item.rejected {
-        border-color: #e5e7eb;
+        background: #fafafa;
+        opacity: 0.5;
+      }
+      
+      .enrichment-item:hover {
         background: #f9fafb;
-        opacity: 0.6;
       }
       
-      .item-checkbox {
-        padding-top: 2px;
+      .enrichment-item.accepted:hover {
+        background: #ecfdf5;
       }
       
-      .item-checkbox input[type="checkbox"] {
-        width: 20px;
-        height: 20px;
+      .cell-checkbox {
+        width: 40px;
+        padding: 8px 10px;
+        text-align: center;
+      }
+      
+      .cell-checkbox input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
         cursor: pointer;
+        accent-color: #10b981;
       }
       
-      .item-icon {
-        font-size: 24px;
-        padding-top: 2px;
+      .cell-icon {
+        width: 40px;
+        padding: 8px 10px;
+        text-align: center;
+        font-size: 16px;
       }
       
-      .item-content {
-        flex: 1;
-        min-width: 0;
-      }
-      
-      .item-header {
-        margin-bottom: 6px;
-      }
-      
-      .item-type {
-        font-weight: 600;
+      .cell-type {
+        padding: 8px 10px;
+        font-weight: 500;
         color: #374151;
-        font-size: 14px;
+        width: 140px;
       }
       
-      .item-value-container {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+      .cell-value {
+        padding: 8px 10px;
+        flex: 1;
+      }
+      
+      .cell-actions {
+        padding: 8px 10px;
+        text-align: right;
+        width: 80px;
       }
       
       .item-value {
         color: #1f2937;
-        font-size: 15px;
         word-break: break-word;
+        line-height: 1.3;
       }
       
       .item-value-edit {
         width: 100%;
-        padding: 8px 12px;
-        border: 2px solid #3b82f6;
-        border-radius: 6px;
-        font-size: 15px;
+        padding: 4px 6px;
+        border: 1px solid #3b82f6;
+        border-radius: 4px;
+        font-size: 13px;
         font-family: inherit;
       }
       
       .item-value-edit:focus {
         outline: none;
         border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
       }
       
       .validation-error {
         color: #ef4444;
-        font-size: 13px;
-        margin-top: 4px;
+        font-size: 11px;
+        margin-top: 2px;
       }
       
       .item-actions {
         display: flex;
-        gap: 6px;
-        padding-top: 2px;
+        gap: 2px;
       }
       
       .btn-icon {
-        width: 32px;
-        height: 32px;
+        width: 24px;
+        height: 24px;
         padding: 0;
         border: none;
         background: transparent;
         cursor: pointer;
-        border-radius: 6px;
-        font-size: 16px;
-        transition: all 0.2s;
+        border-radius: 4px;
+        font-size: 13px;
+        transition: all 0.15s;
         display: flex;
         align-items: center;
         justify-content: center;
+        opacity: 0.6;
       }
       
       .btn-icon:hover {
-        background: #f3f4f6;
+        opacity: 1;
+        background: #f0f0f0;
       }
       
       .edit-btn:hover {
@@ -1139,17 +1100,18 @@ class EnrichmentReview {
       .enrichment-actions {
         display: flex;
         justify-content: flex-end;
-        gap: 12px;
-        padding: 20px;
-        background: #f9fafb;
-        border-radius: 12px;
+        gap: 8px;
+        padding: 12px;
+        background: #fafbfc;
+        border-radius: 8px;
+        margin-top: 8px;
       }
       
       .enrichment-actions .btn {
-        padding: 12px 24px;
-        font-size: 15px;
+        padding: 8px 16px;
+        font-size: 13px;
         font-weight: 600;
-        border-radius: 8px;
+        border-radius: 6px;
         cursor: pointer;
         transition: all 0.2s;
         border: none;
@@ -1169,12 +1131,12 @@ class EnrichmentReview {
       .btn-secondary {
         background: white;
         color: #374151;
-        border: 2px solid #e5e7eb;
+        border: 1px solid #d1d5db;
       }
       
       .btn-secondary:hover {
         background: #f9fafb;
-        border-color: #d1d5db;
+        border-color: #9ca3af;
       }
       
       .enrichment-success {

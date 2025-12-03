@@ -149,6 +149,12 @@ class ChatWindow {
       this.element.classList.add('chat-window--open');
       this.clearMessages();
       this.inputElement.focus();
+      
+      // Hide the floating chat button
+      const floatingButton = document.querySelector('.floating-chat-icon');
+      if (floatingButton) {
+        floatingButton.classList.add('floating-chat-icon--hidden');
+      }
     }
   }
 
@@ -160,6 +166,12 @@ class ChatWindow {
     
     if (this.element) {
       this.element.classList.remove('chat-window--open');
+      
+      // Show the floating chat button again
+      const floatingButton = document.querySelector('.floating-chat-icon');
+      if (floatingButton) {
+        floatingButton.classList.remove('floating-chat-icon--hidden');
+      }
     }
     
     this.onClose();
