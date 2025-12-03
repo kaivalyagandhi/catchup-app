@@ -16,6 +16,7 @@ import voiceNotesRouter from './routes/voice-notes';
 import preferencesRouter from './routes/preferences';
 import accountRouter from './routes/account';
 import testDataRouter from './routes/test-data';
+import editsRouter from './routes/edits';
 import { apiRateLimiter } from '../utils/rate-limiter';
 import { enforceHttps, securityHeaders } from './middleware/security';
 import { VoiceNoteWebSocketHandler } from '../voice/websocket-handler';
@@ -86,6 +87,7 @@ export function createServer(): Express {
   app.use('/api/voice-notes', voiceNotesRouter);
   app.use('/api/preferences', preferencesRouter);
   app.use('/api/account', accountRouter);
+  app.use('/api/edits', editsRouter);
   
   // Test data routes (for development/testing)
   try {

@@ -39,8 +39,87 @@ class EnrichmentReview {
           <div class="recording-pulse"></div>
           <p>Listening for contact information, locations, and other details...</p>
         </div>
+        
+        <div class="enrichment-live-suggestions" id="enrichment-live-suggestions">
+          <!-- Live suggestions will be added here -->
+        </div>
       </div>
     `;
+  }
+  
+  /**
+   * Add a live suggestion during recording
+   * @param {Object} suggestion - Enrichment suggestion
+   */
+  addLiveSuggestion(suggestion) {
+    if (!this.isRecording) return;
+    
+    const container = document.getElementById('enrichment-live-suggestions');
+    if (!container) return;
+    
+    // Check if suggestion already exists
+    const existingId = `live-suggestion-${suggestion.id}`;
+    if (document.getElementById(existingId)) {
+      return; // Already displayed
+    }
+    
+    // Create suggestion element
+    const suggestionEl = document.createElement('div');
+    suggestionEl.id = existingId;
+    suggestionEl.className = 'enrichment-live-suggestion';
+    
+    const icon = this.getItemIcon(suggestion.type, suggestion.field);
+    const displayText = this.formatSuggestionType(suggestion.type);
+    const contactName = suggestion.contactHint || 'Unknown Contact';
+    
+    suggestionEl.innerHTML = `
+      <div class="live-suggestion-content">
+        <div class="live-suggestion-icon">${icon}</div>
+        <div class="live-suggestion-info">
+          <div class="live-suggestion-contact">${this.escapeHtml(contactName)}</div>
+          <div class="live-suggestion-type">${displayText}</div>
+          <div class="live-suggestion-value">${this.escapeHtml(suggestion.value)}</div>
+        </div>
+        <div class="live-suggestion-confidence">
+          <span class="confidence-badge">${Math.round(suggestion.confidence * 100)}%</span>
+        </div>
+      </div>
+    `;
+    
+    container.appendChild(suggestionEl);
+    
+    // Animate in
+    setTimeout(() => {
+      suggestionEl.classList.add('visible');
+    }, 10);
+    
+    // Auto-remove after 8 seconds if not interacted with
+    setTimeout(() => {
+      if (suggestionEl.parentNode) {
+        suggestionEl.classList.remove('visible');
+        setTimeout(() => {
+          if (suggestionEl.parentNode) {
+            suggestionEl.remove();
+          }
+        }, 300);
+      }
+    }, 8000);
+  }
+  
+  /**
+   * Format suggestion type for display
+   */
+  formatSuggestionType(type) {
+    const typeMap = {
+      'tag': 'Add Tag',
+      'note': 'Add Note',
+      'interest': 'Add Interest',
+      'event': 'Add Event',
+      'location': 'Location',
+      'phone': 'Phone',
+      'email': 'Email'
+    };
+    return typeMap[type] || 'Add Item';
   }
   
   /**
@@ -67,10 +146,32 @@ class EnrichmentReview {
   }
   
   render() {
-    const container = document.getElementById('enrichment-review-container');
+    let container = document.getElementById('enrichment-review-container');
     if (!container) {
-      console.error('Enrichment review container not found');
-      return;
+      console.warn('Enrichment review container not found, attempting to create it');
+      
+      // Try to find chat window messages first
+      let parent = document.querySelector('.chat-window__messages');
+      
+      // If chat window doesn't exist, try voice-content
+      if (!parent) {
+        parent = document.getElementById('voice-content');
+      }
+      
+      // If still not found, create it
+      if (!parent) {
+        console.log('Creating chat-window__messages container');
+        parent = document.createElement('div');
+        parent.className = 'chat-window__messages';
+        document.body.appendChild(parent);
+      }
+      
+      // Now create the enrichment review container
+      container = document.createElement('div');
+      container.id = 'enrichment-review-container';
+      container.style.marginTop = '30px';
+      parent.appendChild(container);
+      console.log('Created enrichment-review-container in', parent.className || parent.id);
     }
     
     this.container = container;
@@ -683,6 +784,41 @@ class EnrichmentReview {
         margin: 0 auto;
       }
       
+      /* Floating panel context */
+      .enrichment-review-floating .enrichment-review {
+        max-width: 100%;
+        margin: 0;
+        padding: 16px;
+      }
+      
+      .enrichment-review-floating .enrichment-header {
+        margin-bottom: 16px;
+      }
+      
+      .enrichment-review-floating .enrichment-header h2 {
+        font-size: 16px;
+        margin-bottom: 4px;
+      }
+      
+      .enrichment-review-floating .enrichment-subtitle {
+        font-size: 12px;
+      }
+      
+      .enrichment-review-floating .enrichment-recording-state {
+        padding: 20px 0;
+        text-align: center;
+      }
+      
+      .enrichment-review-floating .recording-pulse {
+        width: 40px;
+        height: 40px;
+        margin: 0 auto 12px;
+      }
+      
+      .enrichment-review-floating .enrichment-recording-state p {
+        font-size: 13px;
+      }
+      
       .enrichment-header {
         margin-bottom: 30px;
       }
@@ -1029,6 +1165,83 @@ class EnrichmentReview {
         }
       }
       
+      /* Live suggestions during recording */
+      .enrichment-live-suggestions {
+        margin-top: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .enrichment-live-suggestion {
+        padding: 10px 12px;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        opacity: 0;
+        transform: translateX(-20px);
+        transition: all 0.3s ease;
+      }
+      
+      .enrichment-live-suggestion.visible {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      
+      .live-suggestion-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+      }
+      
+      .live-suggestion-icon {
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+      
+      .live-suggestion-info {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .live-suggestion-contact {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 12px;
+      }
+      
+      .live-suggestion-type {
+        color: #6b7280;
+        font-size: 11px;
+      }
+      
+      .live-suggestion-value {
+        color: #374151;
+        font-size: 12px;
+        margin-top: 2px;
+        word-break: break-word;
+      }
+      
+      .live-suggestion-confidence {
+        flex-shrink: 0;
+      }
+      
+      .confidence-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        background: #dbeafe;
+        color: #0369a1;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: 600;
+      }
+      
       @media (max-width: 768px) {
         .enrichment-item {
           flex-direction: column;
@@ -1042,6 +1255,15 @@ class EnrichmentReview {
         
         .enrichment-actions {
           flex-direction: column;
+        }
+        
+        .live-suggestion-content {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        
+        .live-suggestion-confidence {
+          align-self: flex-start;
         }
         
         .enrichment-actions .btn {

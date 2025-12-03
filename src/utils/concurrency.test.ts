@@ -205,9 +205,17 @@ describe('retryOnLockConflict', () => {
     const operation = vi.fn().mockRejectedValue(error);
 
     const promise = retryOnLockConflict(operation, 2, 10);
-    await vi.runAllTimersAsync();
+    
+    // Attach error handler before running timers to prevent unhandled rejection
+    let caughtError: unknown;
+    const handledPromise = promise.catch((e) => {
+      caughtError = e;
+    });
 
-    await expect(promise).rejects.toThrow('Lock error');
+    await vi.runAllTimersAsync();
+    await handledPromise;
+
+    expect((caughtError as Error).message).toBe('Lock error');
     expect(operation).toHaveBeenCalledTimes(3); // Initial + 2 retries
   });
 

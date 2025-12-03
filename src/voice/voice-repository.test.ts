@@ -188,14 +188,20 @@ describe('VoiceNoteRepository', () => {
 
   describe('listByUserId', () => {
     it('should list all voice notes for a user', async () => {
+      // Create with explicit timestamps to ensure ordering
+      const now = new Date();
+      const earlier = new Date(now.getTime() - 1000); // 1 second earlier
+      
       await repository.create({
         userId: testUserId,
         transcript: 'First transcript',
+        recordingTimestamp: earlier,
       });
 
       await repository.create({
         userId: testUserId,
         transcript: 'Second transcript',
+        recordingTimestamp: now,
       });
 
       const voiceNotes = await repository.listByUserId(testUserId);

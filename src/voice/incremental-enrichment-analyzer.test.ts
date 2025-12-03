@@ -8,9 +8,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IncrementalEnrichmentAnalyzer } from './incremental-enrichment-analyzer';
 import { Contact, ExtractedEntities } from '../types';
 
+// Mock disambiguationService to avoid requiring Gemini API key
+const createMockDisambiguationService = () => ({
+  disambiguateDetailed: vi.fn().mockResolvedValue({ matches: [], confidence: 0 }),
+  disambiguate: vi.fn().mockResolvedValue([]),
+});
+
 describe('IncrementalEnrichmentAnalyzer', () => {
   let analyzer: IncrementalEnrichmentAnalyzer;
   let mockExtractionService: any;
+  let mockDisambiguationService: any;
 
   beforeEach(() => {
     // Create mock extraction service
@@ -23,12 +30,18 @@ describe('IncrementalEnrichmentAnalyzer', () => {
       } as ExtractedEntities),
     };
 
-    analyzer = new IncrementalEnrichmentAnalyzer(mockExtractionService, {
-      minWordCount: 50,
-      pauseThresholdMs: 2000,
-      maxPendingWords: 200,
-      debounceMs: 500,
-    });
+    mockDisambiguationService = createMockDisambiguationService();
+
+    analyzer = new IncrementalEnrichmentAnalyzer(
+      mockExtractionService,
+      mockDisambiguationService,
+      {
+        minWordCount: 50,
+        pauseThresholdMs: 2000,
+        maxPendingWords: 200,
+        debounceMs: 500,
+      }
+    );
   });
 
   describe('processTranscript', () => {
@@ -55,27 +68,36 @@ describe('IncrementalEnrichmentAnalyzer', () => {
 
     it('should accumulate text across multiple calls', async () => {
       // Create a fresh analyzer to avoid timing issues
-      const freshAnalyzer = new IncrementalEnrichmentAnalyzer(mockExtractionService, {
-        minWordCount: 50,
-        pauseThresholdMs: 10000, // Set very high to avoid pause trigger
-        maxPendingWords: 200,
-        debounceMs: 100,
-      });
+      const freshAnalyzer = new IncrementalEnrichmentAnalyzer(
+        mockExtractionService,
+        createMockDisambiguationService(),
+        {
+          minWordCount: 50,
+          pauseThresholdMs: 10000, // Set very high to avoid pause trigger
+          maxPendingWords: 200,
+          debounceMs: 100,
+        }
+      );
       
-      // Add text in chunks - first chunk doesn't trigger (25 < 50)
-      await freshAnalyzer.processTranscript('session-1', 'word '.repeat(25).trim(), true);
+      // Reset mock to track calls
+      mockExtractionService.extractGeneric.mockClear();
+      
+      // Add text in chunks - first chunk triggers (25 >= 5 default minWordCount)
+      // But we set minWordCount to 50, so 25 < 50 won't trigger
+      const triggered1 = await freshAnalyzer.processTranscript('session-1', 'word '.repeat(25).trim(), true);
+      expect(triggered1).toBe(false);
       
       // Wait for debounce period
       await new Promise((resolve) => setTimeout(resolve, 150));
       
-      // Second chunk should trigger since we now have 50 words total
-      const triggered = await freshAnalyzer.processTranscript(
+      // Second chunk should trigger since we now have 50 words total in pending text
+      const triggered2 = await freshAnalyzer.processTranscript(
         'session-1',
         'word '.repeat(25).trim(),
         true
       );
 
-      expect(triggered).toBe(true);
+      expect(triggered2).toBe(true);
       expect(mockExtractionService.extractGeneric).toHaveBeenCalled();
     });
 
@@ -204,8 +226,11 @@ describe('IncrementalEnrichmentAnalyzer', () => {
           }),
       };
 
+      // Use config with minWordCount of 5 (default) so 50 words triggers
       const customAnalyzer = new IncrementalEnrichmentAnalyzer(
-        customExtraction as any
+        customExtraction as any,
+        createMockDisambiguationService(),
+        { minWordCount: 5, debounceMs: 100 }
       );
 
       // First enrichment
@@ -213,9 +238,10 @@ describe('IncrementalEnrichmentAnalyzer', () => {
       await customAnalyzer.processTranscript('session-1', text1, true);
 
       // Wait for debounce
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
-      // Second enrichment
+      // Second enrichment - note: implementation replaces suggestions entirely
+      // so we just verify the final state has one hiking suggestion
       const text2 = 'word '.repeat(50).trim();
       await customAnalyzer.processTranscript('session-1', text2, true);
 
@@ -224,7 +250,7 @@ describe('IncrementalEnrichmentAnalyzer', () => {
         (s) => s.type === 'tag' && s.value === 'hiking'
       );
 
-      // Should have only one hiking suggestion
+      // Should have only one hiking suggestion (implementation replaces, not merges)
       expect(hikingSuggestions).toHaveLength(1);
     });
   });
@@ -232,12 +258,16 @@ describe('IncrementalEnrichmentAnalyzer', () => {
   describe('finalize', () => {
     it('should process remaining pending text', async () => {
       // Create a fresh analyzer with high pause threshold to avoid auto-trigger
-      const freshAnalyzer = new IncrementalEnrichmentAnalyzer(mockExtractionService, {
-        minWordCount: 50,
-        pauseThresholdMs: 10000, // Very high to avoid pause trigger
-        maxPendingWords: 200,
-        debounceMs: 100,
-      });
+      const freshAnalyzer = new IncrementalEnrichmentAnalyzer(
+        mockExtractionService,
+        createMockDisambiguationService(),
+        {
+          minWordCount: 50,
+          pauseThresholdMs: 10000, // Very high to avoid pause trigger
+          maxPendingWords: 200,
+          debounceMs: 100,
+        }
+      );
       
       // Reset mock
       mockExtractionService.extractGeneric.mockClear();

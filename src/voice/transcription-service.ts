@@ -265,12 +265,16 @@ export class TranscriptionService {
    * @param data - Recognition response data
    */
   private handleStreamData(streamId: string, data: any): void {
+    console.log(`[TranscriptionService] Stream ${streamId} received data:`, JSON.stringify(data).substring(0, 200));
+    
     if (!data.results || data.results.length === 0) {
+      console.log(`[TranscriptionService] Stream ${streamId} - no results in data`);
       return;
     }
 
     const result = data.results[0];
     if (!result.alternatives || result.alternatives.length === 0) {
+      console.log(`[TranscriptionService] Stream ${streamId} - no alternatives in result`);
       return;
     }
 

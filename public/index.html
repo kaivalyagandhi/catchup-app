@@ -1984,6 +1984,365 @@
             background-color: var(--bg-secondary);
             color: var(--text-secondary);
         }
+        
+        /* ============================================
+           FLOATING CHAT ICON STYLES
+           ============================================ */
+        .floating-chat-icon {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            color: var(--text-inverse);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+            z-index: 1000;
+        }
+        
+        .floating-chat-icon:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+        }
+        
+        .floating-chat-icon:active {
+            transform: scale(0.98);
+        }
+        
+        .floating-chat-icon__icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .floating-chat-icon__badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 10px;
+            background: var(--color-danger);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .floating-chat-icon__badge--bounce {
+            animation: badge-bounce 0.3s ease;
+        }
+        
+        @keyframes badge-bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        /* Recording state - red glow */
+        .floating-chat-icon--recording {
+            background: var(--color-danger);
+        }
+        
+        .floating-chat-icon--glow {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            animation: glow-pulse 1.5s infinite;
+        }
+        
+        @keyframes glow-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        
+        /* Error state */
+        .floating-chat-icon--error {
+            background: var(--color-warning);
+        }
+        
+        /* Pulse animation for edit detection */
+        .floating-chat-icon--pulse {
+            animation: icon-pulse 0.6s ease;
+        }
+        
+        @keyframes icon-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        
+        /* ============================================
+           CHAT WINDOW STYLES
+           ============================================ */
+        .chat-window {
+            display: none;
+            position: fixed;
+            bottom: 90px;
+            right: 24px;
+            z-index: 1001;
+            /* No overlay - allows interaction with rest of site */
+        }
+        
+        .chat-window--open {
+            display: block;
+        }
+        
+        .chat-window__container {
+            position: relative;
+            width: 380px;
+            max-width: calc(100vw - 48px);
+            max-height: calc(100vh - 120px);
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-window__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid var(--border-primary);
+            background: var(--bg-tertiary);
+        }
+        
+        .chat-window__title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .chat-window__header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .chat-window__counter {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--status-info-bg);
+            color: var(--status-info-text);
+            border: none;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .chat-window__counter--muted {
+            opacity: 0.5;
+        }
+        
+        .chat-window__counter-value {
+            font-weight: 600;
+        }
+        
+        .chat-window__counter-value--animate {
+            animation: counter-pop 0.3s ease;
+        }
+        
+        @keyframes counter-pop {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+        
+        .chat-window__cancel-btn {
+            padding: 6px 12px;
+            background: var(--color-secondary);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .chat-window__cancel-btn:hover {
+            background: var(--color-secondary-hover);
+        }
+        
+        .chat-window__close-btn {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        
+        .chat-window__close-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        
+        .chat-window__messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            min-height: 200px;
+            max-height: 400px;
+        }
+        
+        .chat-message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            max-width: 85%;
+        }
+        
+        .chat-message--user {
+            background: var(--color-primary);
+            color: var(--text-inverse);
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .chat-message--system {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+        }
+        
+        .chat-message__content {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .chat-message__time {
+            display: block;
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        
+        .chat-message__edit-ref {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: inherit;
+            color: inherit;
+            text-decoration: underline;
+        }
+        
+        .chat-message__edit-ref:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+
+        .chat-window__input-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-primary);
+            background: var(--bg-tertiary);
+        }
+        
+        .chat-window__text-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--input-border);
+            border-radius: 20px;
+            font-size: 14px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            margin: 0;
+        }
+        
+        .chat-window__text-input:focus {
+            outline: none;
+            border-color: var(--input-focus-border);
+        }
+        
+        .chat-window__mic-btn,
+        .chat-window__send-btn {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: var(--color-primary);
+            color: var(--text-inverse);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.2s;
+        }
+        
+        .chat-window__mic-btn:hover,
+        .chat-window__send-btn:hover {
+            background: var(--color-primary-hover);
+            transform: scale(1.05);
+        }
+        
+        .chat-window__mic-btn--recording {
+            background: var(--color-danger);
+            animation: mic-pulse 1s infinite;
+        }
+        
+        @keyframes mic-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .chat-window__notification {
+            text-align: center;
+            padding: 8px;
+            background: var(--status-success-bg);
+            color: var(--status-success-text);
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 8px;
+            animation: notification-slide 0.3s ease;
+        }
+        
+        @keyframes notification-slide {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .chat-window__notification--fade {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 480px) {
+            .floating-chat-icon {
+                bottom: 16px;
+                right: 16px;
+                width: 52px;
+                height: 52px;
+            }
+            
+            .chat-window__container {
+                bottom: 80px;
+                right: 16px;
+                left: 16px;
+                width: auto;
+                max-width: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2030,7 +2389,7 @@
                 <a href="#contacts" class="nav-link active" data-page="contacts">👥 Contacts</a>
                 <a href="#groups-tags" class="nav-link" data-page="groups-tags">🏷️ Groups & Tags</a>
                 <a href="#suggestions" class="nav-link" data-page="suggestions">💡 Suggestions</a>
-                <a href="#voice" class="nav-link" data-page="voice">🎤 Voice Notes</a>
+                <a href="#edits" class="nav-link" data-page="edits">✏️ Edits</a>
             </nav>
             <div class="user-info">
                 <span class="user-email" id="user-email"></span>
@@ -2118,34 +2477,38 @@
                 <div id="suggestions-list"></div>
             </div>
             
-            <!-- Voice Notes Page -->
-            <div id="voice-page" class="page hidden">
-                <h2 style="margin-bottom: 20px;">Voice Notes</h2>
+            <!-- Edits Page -->
+            <div id="edits-page" class="page hidden">
+                <h2 style="margin-bottom: 20px;">Edits</h2>
                 
-                <!-- Voice Notes Tabs -->
+                <!-- Edits Tabs -->
                 <div class="voice-tabs" style="margin-bottom: 20px;">
-                    <button class="voice-tab active" data-tab="record">
-                        🎤 Record
+                    <button class="voice-tab active" data-tab="pending">
+                        📝 Pending
                     </button>
                     <button class="voice-tab" data-tab="history">
                         📋 History
                     </button>
                 </div>
                 
-                <!-- Record Tab Content -->
-                <div id="voice-record-tab" class="voice-tab-content">
-                    <div id="voice-content"></div>
-                    
-                    <!-- Contact Selector Container -->
-                    <div id="contact-selector-container" style="margin-top: 30px;"></div>
-                    
-                    <!-- Enrichment Review Container -->
-                    <div id="enrichment-review-container" style="margin-top: 30px;"></div>
+                <!-- Pending Tab Content -->
+                <div id="edits-pending-tab" class="voice-tab-content">
+                    <div id="edits-pending-content">
+                        <div class="empty-state">
+                            <h3>No pending edits</h3>
+                            <p>Use the chat button in the bottom right to record voice notes or type messages about your contacts.</p>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- History Tab Content -->
-                <div id="voice-history-tab" class="voice-tab-content hidden">
-                    <div id="voice-history-content"></div>
+                <div id="edits-history-tab" class="voice-tab-content hidden">
+                    <div id="edits-history-content">
+                        <div class="empty-state">
+                            <h3>No edit history</h3>
+                            <p>Applied edits will appear here.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -2392,6 +2755,7 @@
         </div>
     </div>
     
+    <link rel="stylesheet" href="/css/edits.css">
     <script src="/js/theme-manager.js"></script>
     <script src="/js/audio-manager.js"></script>
     <script src="/js/transcript-manager.js"></script>
@@ -2403,6 +2767,9 @@
     <script src="/js/enrichment-review.js"></script>
     <script src="/js/schedule-preview.js"></script>
     <script src="/js/google-contacts.js"></script>
+    <script src="/js/floating-chat-icon.js"></script>
+    <script src="/js/chat-window.js"></script>
+    <script src="/js/edits-menu.js"></script>
     <script src="/js/app.js"></script>
 </body>
 </html>

@@ -251,3 +251,178 @@ export interface CalendarEvent {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ============================================
+// Incremental Chat Edits Types
+// Requirements: 5.4, 5.5, 7.1
+// ============================================
+
+/**
+ * Edit types supported by the system
+ */
+export type EditType =
+  | 'create_contact'
+  | 'update_contact_field'
+  | 'add_tag'
+  | 'remove_tag'
+  | 'add_to_group'
+  | 'remove_from_group'
+  | 'create_group';
+
+/**
+ * Source of an edit (voice transcript, text input, or manual)
+ */
+export interface EditSource {
+  type: 'voice_transcript' | 'text_input' | 'manual';
+  transcriptExcerpt?: string;
+  timestamp: Date;
+  fullContext?: string;
+}
+
+/**
+ * Candidate contact for disambiguation
+ */
+export interface DisambiguationCandidate {
+  contactId: string;
+  contactName: string;
+  similarityScore: number;
+}
+
+/**
+ * Pending edit status
+ */
+export type PendingEditStatus = 'pending' | 'needs_disambiguation';
+
+/**
+ * Pending edit awaiting user confirmation
+ */
+export interface PendingEdit {
+  id: string;
+  userId: string;
+  sessionId: string;
+  editType: EditType;
+  targetContactId?: string;
+  targetContactName?: string;
+  targetGroupId?: string;
+  targetGroupName?: string;
+  field?: string;
+  proposedValue: any;
+  confidenceScore: number;
+  source: EditSource;
+  status: PendingEditStatus;
+  disambiguationCandidates?: DisambiguationCandidate[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Immutable edit history entry
+ */
+export interface EditHistoryEntry {
+  id: string;
+  userId: string;
+  originalEditId: string;
+  editType: EditType;
+  targetContactId?: string;
+  targetContactName?: string;
+  targetGroupId?: string;
+  targetGroupName?: string;
+  field?: string;
+  appliedValue: any;
+  previousValue?: any;
+  source: EditSource;
+  submittedAt: Date;
+}
+
+/**
+ * Chat session status
+ */
+export type ChatSessionStatus = 'active' | 'completed' | 'cancelled';
+
+/**
+ * Chat session for grouping edits
+ */
+export interface ChatSession {
+  id: string;
+  userId: string;
+  status: ChatSessionStatus;
+  startedAt: Date;
+  endedAt?: Date;
+}
+
+/**
+ * Chat message type
+ */
+export type ChatMessageType = 'user' | 'system';
+
+/**
+ * Reference to an edit in a chat message
+ */
+export interface EditReference {
+  editId: string;
+  displayText: string;
+  editType: EditType;
+}
+
+/**
+ * Disambiguation option in chat
+ */
+export interface DisambiguationOption {
+  contactId: string;
+  contactName: string;
+  similarityScore: number;
+}
+
+/**
+ * Chat message in the conversation
+ */
+export interface ChatMessage {
+  id: string;
+  type: ChatMessageType;
+  content: string;
+  timestamp: Date;
+  editReferences?: EditReference[];
+  disambiguationOptions?: DisambiguationOption[];
+}
+
+/**
+ * Fuzzy match result for contacts/groups
+ */
+export interface FuzzyMatchResult {
+  id: string;
+  name: string;
+  type: 'contact' | 'group';
+  similarityScore: number;
+}
+
+/**
+ * Options for querying edit history
+ */
+export interface EditHistoryOptions {
+  limit?: number;
+  offset?: number;
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+/**
+ * Transcript segment for incremental processing
+ */
+export interface TranscriptSegment {
+  text: string;
+  timestamp: Date;
+  isFinal: boolean;
+  confidence: number;
+}
+
+/**
+ * Detected edit from transcript processing
+ */
+export interface DetectedEdit {
+  editType: EditType;
+  extractedName?: string;
+  field?: string;
+  value: any;
+  confidence: number;
+  sourceSegment: TranscriptSegment;
+}

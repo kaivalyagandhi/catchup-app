@@ -59,10 +59,10 @@ export class ContactDisambiguationService {
   private model: GenerativeModel;
   
   /** Threshold for automatic matching (0-1) */
-  private readonly EXACT_MATCH_THRESHOLD = 0.85;
+  private readonly EXACT_MATCH_THRESHOLD = 0.7;
   
   /** Threshold for partial matching (0-1) */
-  private readonly PARTIAL_MATCH_THRESHOLD = 0.6;
+  private readonly PARTIAL_MATCH_THRESHOLD = 0.5;
   
   /** Maximum number of partial match candidates to return */
   private readonly MAX_CANDIDATES = 3;
@@ -327,15 +327,23 @@ export class ContactDisambiguationService {
     
     // Check if any part of the extracted name matches any part of the contact name
     for (const namePart of nameParts) {
+      // Skip very short name parts (less than 2 chars)
+      if (namePart.length < 2) continue;
+      
       for (const contactPart of contactParts) {
         if (namePart === contactPart) {
-          // Exact match on a name part
-          bestScore = Math.max(bestScore, 0.85);
+          // Exact match on a name part - high confidence for first name matches
+          // If matching first name (first part of contact name), give higher score
+          const isFirstName = contactPart === contactParts[0];
+          bestScore = Math.max(bestScore, isFirstName ? 0.9 : 0.85);
         } else {
           // Fuzzy match on name parts
           const fuzzyScore = this.calculateFuzzyScore(namePart, contactPart);
-          if (fuzzyScore > 0.7) {
-            bestScore = Math.max(bestScore, fuzzyScore * 0.8);
+          if (fuzzyScore > 0.6) {
+            // Higher weight for first name fuzzy matches
+            const isFirstName = contactPart === contactParts[0];
+            const weight = isFirstName ? 0.9 : 0.8;
+            bestScore = Math.max(bestScore, fuzzyScore * weight);
           }
         }
       }

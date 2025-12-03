@@ -309,6 +309,8 @@ class AudioManager {
       // Convert to blob and trigger callback
       const blob = new Blob([pcmData.buffer], { type: 'audio/l16' });
       
+      console.log(`[AudioManager] PCM chunk generated: ${blob.size} bytes`);
+      
       if (this.onAudioChunk) {
         this.onAudioChunk(blob);
       }

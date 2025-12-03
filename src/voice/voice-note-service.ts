@@ -27,7 +27,7 @@ import { ContactDisambiguationService } from './contact-disambiguation-service';
 import { EntityExtractionService } from './entity-extraction-service';
 import { EnrichmentService } from './enrichment-service';
 import { VoiceNoteRepository } from './voice-repository';
-import { Contact, VoiceNote, VoiceNoteStatus } from '../types';
+import { Contact, VoiceNote, VoiceNoteStatus, ExtractedEntities } from '../types';
 import { MultiContactEnrichmentProposal } from './enrichment-service';
 import { IncrementalEnrichmentAnalyzer, EnrichmentSuggestion } from './incremental-enrichment-analyzer';
 
@@ -99,7 +99,10 @@ export class VoiceNoteService extends EventEmitter {
     this.extractionService = extractionService || new EntityExtractionService();
     this.enrichmentService = enrichmentService || new EnrichmentService();
     this.repository = repository || new VoiceNoteRepository();
-    this.enrichmentAnalyzer = new IncrementalEnrichmentAnalyzer(this.extractionService);
+    this.enrichmentAnalyzer = new IncrementalEnrichmentAnalyzer(
+      this.extractionService,
+      this.disambiguationService
+    );
   }
 
   /**
@@ -194,6 +197,8 @@ export class VoiceNoteService extends EventEmitter {
       throw new Error(`Session ${sessionId} is not in recording state`);
     }
 
+    console.log(`[VoiceNoteService] Received audio chunk for session ${sessionId}: ${audioChunk.byteLength} bytes`);
+
     // Store audio chunk for segmentation
     session.audioSegments.push(audioChunk);
 
@@ -208,6 +213,7 @@ export class VoiceNoteService extends EventEmitter {
     }
 
     // Send audio chunk to transcription stream
+    console.log(`[VoiceNoteService] Sending audio chunk to transcription stream ${session.transcriptionStream.id}`);
     await this.transcriptionService.sendAudioChunk(
       session.transcriptionStream,
       audioChunk
@@ -297,13 +303,36 @@ export class VoiceNoteService extends EventEmitter {
           }
         }
 
-        // Match contact names to actual contacts
+        // Match contact names to actual contacts using fuzzy matching
         for (const name of contactNames) {
-          const contact = userContacts.find(c => 
+          // Try exact match first
+          let contact = userContacts.find(c => 
             c.name.toLowerCase() === name.toLowerCase()
           );
+          
+          // If no exact match, try partial/fuzzy matching
+          if (!contact) {
+            const nameLower = name.toLowerCase();
+            const nameParts = nameLower.split(/\s+/);
+            
+            // Try to find contact by first or last name
+            contact = userContacts.find(c => {
+              const contactNameLower = c.name.toLowerCase();
+              const contactParts = contactNameLower.split(/\s+/);
+              
+              // Check if any part of the extracted name matches any part of the contact name
+              return nameParts.some(part => 
+                contactParts.some(cPart => 
+                  cPart.includes(part) || part.includes(cPart)
+                )
+              );
+            });
+          }
+          
           if (contact) {
             identifiedContacts.push(contact);
+          } else {
+            console.warn(`[VoiceNoteService] Could not find contact for name: "${name}"`);
           }
         }
 
@@ -648,21 +677,67 @@ export class VoiceNoteService extends EventEmitter {
    */
   private setupTranscriptionHandlers(session: VoiceNoteSession): void {
     // Handle interim results
+    // Track last enrichment analysis time to debounce API calls
+    let lastEnrichmentAnalysisTime = 0;
+    const ENRICHMENT_DEBOUNCE_MS = 3000; // Only analyze every 3 seconds max
+    let enrichmentAnalysisTimeout: NodeJS.Timeout | null = null;
+
     this.transcriptionService.onInterimResult((result: TranscriptionResult) => {
       if (!result.isFinal) {
         session.interimTranscript = result.transcript;
+        
+        // Update final transcript with the latest interim result (Google sends full transcript each time)
+        session.finalTranscript = result.transcript;
+        
         this.emitSessionEvent(session.id, SessionEvent.INTERIM_TRANSCRIPT, {
           transcript: result.transcript,
           confidence: result.confidence,
         });
+        
+        // Debounce enrichment analysis to reduce API quota usage
+        // Only analyze if we have user contacts and enough time has passed
+        if (session.userContacts && session.userContacts.length > 0) {
+          const now = Date.now();
+          const timeSinceLastAnalysis = now - lastEnrichmentAnalysisTime;
+          
+          // Clear any pending timeout
+          if (enrichmentAnalysisTimeout) {
+            clearTimeout(enrichmentAnalysisTimeout);
+          }
+          
+          // Schedule analysis after debounce period
+          if (timeSinceLastAnalysis >= ENRICHMENT_DEBOUNCE_MS) {
+            // Enough time has passed, analyze immediately
+            console.log(`[VoiceNoteService] Analyzing enrichment immediately (${timeSinceLastAnalysis}ms since last)`);
+            lastEnrichmentAnalysisTime = now;
+            this.analyzeForEnrichment(session.id, result.transcript).catch(err => {
+              console.error('Error in incremental enrichment:', err);
+            });
+          } else {
+            // Schedule for later
+            const delayMs = ENRICHMENT_DEBOUNCE_MS - timeSinceLastAnalysis;
+            console.log(`[VoiceNoteService] Debouncing enrichment analysis (${delayMs}ms delay)`);
+            enrichmentAnalysisTimeout = setTimeout(() => {
+              console.log(`[VoiceNoteService] Analyzing enrichment after debounce`);
+              lastEnrichmentAnalysisTime = Date.now();
+              this.analyzeForEnrichment(session.id, session.finalTranscript).catch(err => {
+                console.error('Error in incremental enrichment:', err);
+              });
+            }, delayMs);
+          }
+        } else {
+          console.log(`[VoiceNoteService] Skipping enrichment analysis - no user contacts set for session ${session.id}`);
+        }
       }
     });
 
     // Handle final results
     this.transcriptionService.onFinalResult((result: TranscriptionResult) => {
       if (result.isFinal) {
-        // Append to final transcript
-        session.finalTranscript += (session.finalTranscript ? ' ' : '') + result.transcript;
+        console.log(`[VoiceNoteService] Final result received for session ${session.id}: "${result.transcript}"`);
+        
+        // Update final transcript with the final result
+        session.finalTranscript = result.transcript;
         
         // Clear interim transcript
         session.interimTranscript = '';
@@ -673,10 +748,23 @@ export class VoiceNoteService extends EventEmitter {
           confidence: result.confidence,
         });
         
-        // Trigger incremental enrichment analysis
-        this.analyzeForEnrichment(session.id, result.transcript).catch(err => {
-          console.error('Error in incremental enrichment:', err);
-        });
+        // Trigger incremental enrichment analysis on final results
+        // Only analyze if we have user contacts and haven't analyzed recently
+        if (session.userContacts && session.userContacts.length > 0) {
+          const timeSinceLastAnalysis = Date.now() - lastEnrichmentAnalysisTime;
+          if (timeSinceLastAnalysis >= 1000) {
+            // Only analyze if it's been at least 1 second since last analysis
+            console.log(`[VoiceNoteService] Triggering enrichment analysis on final result for session ${session.id} with ${session.userContacts.length} contacts`);
+            lastEnrichmentAnalysisTime = Date.now();
+            this.analyzeForEnrichment(session.id, result.transcript).catch(err => {
+              console.error('Error in incremental enrichment:', err);
+            });
+          } else {
+            console.log(`[VoiceNoteService] Skipping final result enrichment analysis - analyzed too recently (${timeSinceLastAnalysis}ms ago)`);
+          }
+        } else {
+          console.log(`[VoiceNoteService] Skipping enrichment analysis on final result - no user contacts set for session ${session.id}`);
+        }
       }
     });
 
@@ -729,7 +817,14 @@ export class VoiceNoteService extends EventEmitter {
     try {
       // Get session to access user contacts
       const session = this.activeSessions.get(sessionId);
-      const userContacts = session?.userContacts || [];
+      if (!session) {
+        console.warn(`Session ${sessionId} not found for enrichment analysis`);
+        return;
+      }
+
+      const userContacts = session.userContacts || [];
+      
+      console.log(`[EnrichmentAnalysis] Session ${sessionId}: analyzing "${newText.substring(0, 50)}..." with ${userContacts.length} contacts`);
       
       // Process the new text with user contacts for context (Proposal A & B)
       const triggered = await this.enrichmentAnalyzer.processTranscript(
@@ -739,19 +834,27 @@ export class VoiceNoteService extends EventEmitter {
         userContacts
       );
       
+      console.log(`[EnrichmentAnalysis] Session ${sessionId}: triggered=${triggered}`);
+      
       // If enrichment was triggered, get and emit the suggestions
       if (triggered) {
         const suggestions = this.enrichmentAnalyzer.getSuggestions(sessionId);
+        console.log(`[EnrichmentAnalysis] Session ${sessionId}: got ${suggestions.length} suggestions`);
+        
         if (suggestions && suggestions.length > 0) {
           console.log(`Emitting ${suggestions.length} enrichment suggestions for session ${sessionId}`);
+          console.log(`Suggestion details:`, suggestions);
           this.emit('enrichment_update', {
             sessionId,
             suggestions,
           });
+        } else {
+          console.log(`[EnrichmentAnalysis] Session ${sessionId}: triggered but no suggestions generated`);
         }
       }
     } catch (error) {
       console.error('Error analyzing for enrichment:', error);
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
     }
   }
 

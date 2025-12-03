@@ -57,10 +57,10 @@ interface EnrichmentState {
  * Default configuration - optimized for responsive live updates
  */
 const DEFAULT_CONFIG: EnrichmentTriggerConfig = {
-  minWordCount: 5,        // Trigger after 5 words for faster feedback
-  pauseThresholdMs: 800,  // Trigger after 0.8 second pause
-  maxPendingWords: 100,   // Don't let too many words accumulate
-  debounceMs: 200,        // Faster response between triggers
+  minWordCount: 1,        // Trigger after 1 word for immediate feedback
+  pauseThresholdMs: 300,  // Trigger after 0.3 second pause
+  maxPendingWords: 20,    // Don't let too many words accumulate
+  debounceMs: 50,         // Very fast response between triggers
 };
 
 /**
@@ -130,12 +130,8 @@ export class IncrementalEnrichmentAnalyzer {
       state.userContacts = userContacts;
     }
 
-    // Only accumulate final text
-    if (!isFinal) {
-      return false;
-    }
-
-    // Add new text to both pending buffer AND full transcript
+    // Accumulate both interim and final text for enrichment analysis
+    // Interim results help with live updates, final results ensure accuracy
     state.pendingText += (state.pendingText ? ' ' : '') + newText;
     state.fullTranscript += (state.fullTranscript ? ' ' : '') + newText;
 
@@ -255,11 +251,13 @@ export class IncrementalEnrichmentAnalyzer {
   ): boolean {
     // Debounce: Don't trigger too frequently
     if (timeSinceLastTrigger < this.config.debounceMs) {
+      console.log(`[EnrichmentAnalyzer] Debounce check failed: timeSinceLastTrigger=${timeSinceLastTrigger}ms < ${this.config.debounceMs}ms`);
       return false;
     }
 
     // Trigger on word count threshold
     if (wordCount >= this.config.minWordCount) {
+      console.log(`[EnrichmentAnalyzer] Trigger: word count threshold met (${wordCount} >= ${this.config.minWordCount})`);
       return true;
     }
 
@@ -270,14 +268,17 @@ export class IncrementalEnrichmentAnalyzer {
       wordCount > 0 &&
       timeSinceLastAnalysis >= this.config.pauseThresholdMs
     ) {
+      console.log(`[EnrichmentAnalyzer] Trigger: pause detected (${timeSinceLastAnalysis}ms >= ${this.config.pauseThresholdMs}ms)`);
       return true;
     }
 
     // Trigger if pending text is getting too large
     if (wordCount >= this.config.maxPendingWords) {
+      console.log(`[EnrichmentAnalyzer] Trigger: max pending words exceeded (${wordCount} >= ${this.config.maxPendingWords})`);
       return true;
     }
 
+    console.log(`[EnrichmentAnalyzer] No trigger: wordCount=${wordCount}, timeSinceLastAnalysis=${timeSinceLastAnalysis}ms, timeSinceLastTrigger=${timeSinceLastTrigger}ms, lastAnalyzedAt=${lastAnalyzedAt}`);
     return false;
   }
 
@@ -300,14 +301,17 @@ export class IncrementalEnrichmentAnalyzer {
     state: EnrichmentState
   ): Promise<void> {
     if (!state.fullTranscript.trim()) {
+      console.log(`[EnrichmentAnalyzer] triggerEnrichment: empty transcript, skipping`);
       return;
     }
 
     try {
+      console.log(`[EnrichmentAnalyzer] triggerEnrichment starting for session ${sessionId}`);
       const transcriptToAnalyze = state.fullTranscript;
       const suggestions: EnrichmentSuggestion[] = [];
 
       if (state.userContacts.length > 0) {
+        console.log(`[EnrichmentAnalyzer] triggerEnrichment: disambiguating with ${state.userContacts.length} contacts`);
         // Step 1: Disambiguate contacts (same as finalization)
         const disambiguationResult = await this.disambiguationService.disambiguateDetailed(
           transcriptToAnalyze,
@@ -319,6 +323,7 @@ export class IncrementalEnrichmentAnalyzer {
 
         // Step 2: Extract entities for each identified contact (same as finalization)
         if (identifiedContacts.length > 0) {
+          console.log(`[EnrichmentAnalyzer] triggerEnrichment: extracting entities for ${identifiedContacts.length} contacts`);
           const entitiesMap = await this.extractionService.extractForMultipleContacts(
             transcriptToAnalyze,
             identifiedContacts
@@ -333,19 +338,29 @@ export class IncrementalEnrichmentAnalyzer {
                 transcriptToAnalyze,
                 contact.name
               );
+              console.log(`[EnrichmentAnalyzer] Generated ${contactSuggestions.length} suggestions for ${contact.name}`);
               suggestions.push(...contactSuggestions);
             }
           }
+        } else {
+          console.log(`[EnrichmentAnalyzer] No contacts identified in transcript`);
         }
       } else {
+        console.log(`[EnrichmentAnalyzer] triggerEnrichment: no user contacts, using generic extraction`);
         // No contacts - fall back to generic extraction
         const entities = await this.extractionService.extractGeneric(transcriptToAnalyze);
         const genericSuggestions = this.entitiesToSuggestions(entities, transcriptToAnalyze, []);
+        console.log(`[EnrichmentAnalyzer] Generated ${genericSuggestions.length} generic suggestions`);
         suggestions.push(...genericSuggestions);
       }
 
-      // Replace suggestions entirely
-      state.suggestions = suggestions;
+      // Merge suggestions with existing ones (don't replace)
+      // Deduplicate by ID to avoid duplicates
+      const existingIds = new Set(state.suggestions.map(s => s.id));
+      const newSuggestions = suggestions.filter(s => !existingIds.has(s.id));
+      state.suggestions.push(...newSuggestions);
+      
+      console.log(`[EnrichmentAnalyzer] triggerEnrichment complete: ${suggestions.length} new suggestions, ${state.suggestions.length} total`);
 
       // Update state
       state.processedWordCount = this.countWords(state.fullTranscript);

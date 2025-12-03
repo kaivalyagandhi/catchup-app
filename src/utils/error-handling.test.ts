@@ -133,9 +133,16 @@ describe('retryWithBackoff', () => {
       initialDelayMs: 100,
     });
 
-    await vi.runAllTimersAsync();
+    // Attach error handler before running timers to prevent unhandled rejection
+    let caughtError: unknown;
+    const handledPromise = promise.catch((e) => {
+      caughtError = e;
+    });
 
-    await expect(promise).rejects.toEqual({ status: 503 });
+    await vi.runAllTimersAsync();
+    await handledPromise;
+
+    expect(caughtError).toEqual({ status: 503 });
     expect(fn).toHaveBeenCalledTimes(3); // Initial + 2 retries
   });
 
@@ -196,9 +203,17 @@ describe('handleGoogleCalendarError', () => {
     const fn = vi.fn().mockRejectedValue({ status: 503 });
 
     const promise = handleGoogleCalendarError(fn);
-    await vi.runAllTimersAsync();
+    
+    // Attach error handler before running timers to prevent unhandled rejection
+    let caughtError: unknown;
+    const handledPromise = promise.catch((e) => {
+      caughtError = e;
+    });
 
-    await expect(promise).rejects.toThrow('Google Calendar operation failed');
+    await vi.runAllTimersAsync();
+    await handledPromise;
+
+    expect((caughtError as Error).message).toBe('Google Calendar operation failed');
   });
 });
 
@@ -332,9 +347,17 @@ describe('handleDatabaseOperation', () => {
     const fn = vi.fn().mockRejectedValue(new Error('DB error'));
 
     const promise = handleDatabaseOperation(fn);
-    await vi.runAllTimersAsync();
+    
+    // Attach error handler before running timers to prevent unhandled rejection
+    let caughtError: unknown;
+    const handledPromise = promise.catch((e) => {
+      caughtError = e;
+    });
 
-    await expect(promise).rejects.toThrow('Database operation failed');
+    await vi.runAllTimersAsync();
+    await handledPromise;
+
+    expect((caughtError as Error).message).toBe('Database operation failed');
   });
 });
 

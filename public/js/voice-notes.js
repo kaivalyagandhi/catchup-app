@@ -13,6 +13,7 @@ class VoiceNoteRecorder {
     // WebSocket state
     this.websocket = null;
     this.sessionId = null;
+    this.chatSessionId = null;
     this.connectionState = 'disconnected';
     this.reconnectAttempt = 0;
     this.maxReconnectAttempts = 3;
@@ -33,6 +34,10 @@ class VoiceNoteRecorder {
     
     // Enrichment panel
     this.enrichmentPanel = null;
+    
+    // Enrichment state
+    this.currentEnrichmentProposal = null;
+    this.userApprovedEnrichment = null;
     
     // Audio level warnings state
     this.lastSilenceWarning = 0;
@@ -89,10 +94,20 @@ class VoiceNoteRecorder {
   }
   
   setupUI() {
-    const container = document.getElementById('voice-content');
-    if (!container) return;
+    // Find chat window messages container (where voice recorder UI should go)
+    let chatMessages = document.querySelector('.chat-window__messages');
     
-    container.innerHTML = `
+    if (!chatMessages) {
+      console.log('[VoiceNotes] Chat window not found, creating standalone container');
+      chatMessages = document.createElement('div');
+      chatMessages.id = 'voice-content';
+      document.body.appendChild(chatMessages);
+    }
+    
+    // Create a wrapper for voice recorder UI
+    const wrapper = document.createElement('div');
+    wrapper.className = 'voice-recorder-wrapper';
+    wrapper.innerHTML = `
       <div class="voice-recorder-container">
         <!-- Error Display -->
         <div id="voice-error" class="error hidden"></div>
@@ -130,6 +145,15 @@ class VoiceNoteRecorder {
       </div>
     `;
     
+    // Append wrapper to chat messages
+    chatMessages.appendChild(wrapper);
+    
+    // Create enrichment review container as a floating panel (visible during recording)
+    const enrichmentContainer = document.createElement('div');
+    enrichmentContainer.id = 'enrichment-review-container';
+    enrichmentContainer.className = 'enrichment-review-floating';
+    document.body.appendChild(enrichmentContainer);
+    
     // Get UI element references
     this.recordButton = document.getElementById('record-btn');
     this.stopButton = document.getElementById('stop-btn');
@@ -148,9 +172,54 @@ class VoiceNoteRecorder {
     const style = document.createElement('style');
     style.id = 'voice-notes-styles';
     style.textContent = `
+      /* Floating enrichment panel during recording */
+      .enrichment-review-floating {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 400px;
+        max-height: 600px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        z-index: 10000;
+        overflow-y: auto;
+        display: none;
+      }
+      
+      .enrichment-review-floating:not(:empty) {
+        display: block;
+      }
+      
+      @media (max-width: 1024px) {
+        .enrichment-review-floating {
+          width: 350px;
+          top: 10px;
+          right: 10px;
+        }
+      }
+      
+      @media (max-width: 768px) {
+        .enrichment-review-floating {
+          width: calc(100% - 20px);
+          top: 10px;
+          right: 10px;
+          left: 10px;
+          max-height: 400px;
+        }
+      }
+      
+      .voice-recorder-wrapper {
+        width: 100%;
+        padding: 16px;
+        background: white;
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+      
       .voice-recorder-container {
-        max-width: 800px;
-        margin: 0 auto;
+        max-width: 100%;
+        margin: 0;
       }
       
       .recording-controls {
@@ -436,13 +505,19 @@ class VoiceNoteRecorder {
       // Setup audio visualization
       this.setupAudioVisualization();
       
+      // Create chat session for pending edits
+      console.log('Creating chat session...');
+      await this.createSession();
+      console.log('Chat session created:', this.chatSessionId);
+      
       // Connect WebSocket for real-time transcription
       await this.connectWebSocket();
       
-      // Show enrichment review panel in recording mode
-      if (window.enrichmentReview) {
-        window.enrichmentReview.showRecordingMode();
-      }
+      // Don't show enrichment review during recording anymore
+      // Enrichment is now creating pending edits instead
+      // if (window.enrichmentReview) {
+      //   window.enrichmentReview.showRecordingMode();
+      // }
       
       // Update UI
       this.updateUIForRecording();
@@ -619,6 +694,29 @@ class VoiceNoteRecorder {
       
       if (!userId) {
         throw new Error('User not logged in');
+      }
+      
+      // Create a chat session for this recording (needed for pending edits)
+      try {
+        const sessionResponse = await fetch('/api/edits/sessions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'x-user-id': userId,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          this.chatSessionId = sessionData.session?.id || sessionData.id;
+          console.log('[VoiceNotes] Created chat session:', this.chatSessionId);
+        } else {
+          const errorData = await sessionResponse.json();
+          console.error('[VoiceNotes] Failed to create chat session:', sessionResponse.status, errorData);
+        }
+      } catch (err) {
+        console.error('[VoiceNotes] Error creating chat session:', err);
       }
       
       const response = await fetch('/api/voice-notes/sessions', {
@@ -915,22 +1013,182 @@ class VoiceNoteRecorder {
   }
   
   handleEnrichmentUpdate(suggestions) {
-    // Convert suggestions to proposal format and update enrichment-review panel
-    const proposal = this.suggestionsToProposal(suggestions);
+    console.log('[VoiceNotes] handleEnrichmentUpdate called with', suggestions?.length || 0, 'suggestions');
+    console.log('[VoiceNotes] Suggestions:', suggestions);
     
-    if (window.enrichmentReview) {
-      // Keep recording mode flag set
-      window.enrichmentReview.isRecording = true;
+    // Display live suggestions in enrichment review panel during recording
+    if (suggestions && suggestions.length > 0) {
+      // Show enrichment review panel if not already visible
+      if (window.enrichmentReview && !window.enrichmentReview.isRecording) {
+        console.log('[VoiceNotes] Showing enrichment review in recording mode');
+        window.enrichmentReview.showRecordingMode();
+      }
       
-      // Display the proposal in the review panel (live update)
-      window.enrichmentReview.display(proposal, async (approvedProposal) => {
-        // This callback will be called when user clicks "Apply Selected"
-        // For now, just log - actual apply happens after recording stops
-        console.log('Enrichment apply requested during recording');
-      });
+      // Add each suggestion to the live display
+      for (const suggestion of suggestions) {
+        if (window.enrichmentReview) {
+          console.log('[VoiceNotes] Adding live suggestion:', suggestion);
+          window.enrichmentReview.addLiveSuggestion(suggestion);
+        }
+      }
+      
+      // Also create pending edits in background for persistence
+      console.log('[VoiceNotes] Creating pending edits from suggestions');
+      this.createPendingEditsFromSuggestions(suggestions);
+    } else {
+      console.log('[VoiceNotes] No suggestions to process');
     }
-    
-    console.log('Enrichment update received:', suggestions);
+  }
+  
+  /**
+   * Create pending edits from enrichment suggestions
+   * This is called during recording to show edits in real-time
+   */
+  async createPendingEditsFromSuggestions(suggestions) {
+    try {
+      const token = localStorage.getItem('authToken');
+      const userId = localStorage.getItem('userId');
+      
+      console.log('[VoiceNotes] createPendingEditsFromSuggestions called with', suggestions.length, 'suggestions');
+      console.log('[VoiceNotes] sessionId:', this.sessionId);
+      
+      if (!token || !userId) {
+        console.error('[VoiceNotes] Missing auth token or userId');
+        return;
+      }
+      
+      // Fetch contacts once
+      let contacts = [];
+      try {
+        const contactsResponse = await fetch(`/api/contacts?userId=${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (contactsResponse.ok) {
+          contacts = await contactsResponse.json();
+          console.log('[VoiceNotes] Fetched', contacts.length, 'contacts');
+        } else {
+          console.warn('[VoiceNotes] Failed to fetch contacts:', contactsResponse.status);
+        }
+      } catch (err) {
+        console.error('[VoiceNotes] Error fetching contacts:', err);
+      }
+      
+      // Group suggestions by contact
+      const contactMap = new Map();
+      suggestions.forEach(suggestion => {
+        const contactName = suggestion.contactHint || 'Unknown Contact';
+        if (!contactMap.has(contactName)) {
+          contactMap.set(contactName, []);
+        }
+        contactMap.get(contactName).push(suggestion);
+      });
+      
+      console.log('[VoiceNotes] Grouped suggestions into', contactMap.size, 'contacts');
+      
+      // Create edits for each contact's suggestions
+      for (const [contactName, contactSuggestions] of contactMap) {
+        console.log('[VoiceNotes] Processing', contactSuggestions.length, 'suggestions for contact:', contactName);
+        
+        // Try to find the contact by name (exact match first, then fuzzy)
+        let contact = contacts.find(c => c.name.toLowerCase() === contactName.toLowerCase());
+        
+        if (!contact) {
+          // Try fuzzy matching
+          const nameLower = contactName.toLowerCase();
+          const nameParts = nameLower.split(/\s+/);
+          contact = contacts.find(c => {
+            const contactNameLower = c.name.toLowerCase();
+            const contactParts = contactNameLower.split(/\s+/);
+            return nameParts.some(part => 
+              contactParts.some(cPart => 
+                cPart.includes(part) || part.includes(cPart)
+              )
+            );
+          });
+        }
+        
+        if (!contact) {
+          console.warn('[VoiceNotes] Could not find contact for:', contactName);
+          continue;
+        }
+        
+        console.log('[VoiceNotes] Found contact:', contact.name, 'ID:', contact.id);
+        
+        // Create an edit for each suggestion
+        for (const suggestion of contactSuggestions) {
+          try {
+            // Skip if we don't have a valid chat session ID
+            if (!this.chatSessionId) {
+              console.warn('[VoiceNotes] Skipping edit creation - no chat session ID');
+              continue;
+            }
+            
+            // Map suggestion type to edit type and field
+            let editType = 'add_tag';
+            let field = undefined;
+            
+            if (suggestion.type === 'location') {
+              editType = 'update_contact_field';
+              field = 'location';
+            } else if (suggestion.type === 'phone') {
+              editType = 'update_contact_field';
+              field = 'phone';
+            } else if (suggestion.type === 'email') {
+              editType = 'update_contact_field';
+              field = 'email';
+            } else if (suggestion.type === 'note') {
+              editType = 'update_contact_field';
+              field = 'customNotes';
+            } else if (suggestion.type === 'tag') {
+              editType = 'add_tag';
+            } else if (suggestion.type === 'interest') {
+              editType = 'add_to_group';
+            }
+            
+            console.log('[VoiceNotes] Creating edit:', editType, field ? `(${field})` : '', '=', suggestion.value, 'sessionId:', this.chatSessionId);
+            
+            // Create pending edit via API
+            const editResponse = await fetch('/api/edits/pending', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'x-user-id': userId,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                sessionId: this.chatSessionId,
+                editType,
+                field,
+                proposedValue: suggestion.value,
+                targetContactId: contact.id,
+                targetContactName: contact.name,
+                confidenceScore: suggestion.confidence || 0.85,
+                source: {
+                  type: 'voice_transcript',
+                  transcriptExcerpt: suggestion.sourceText?.substring(0, 200),
+                  timestamp: new Date().toISOString()
+                }
+              })
+            });
+            
+            if (editResponse.ok) {
+              const editData = await editResponse.json();
+              console.log('[VoiceNotes] ✓ Created pending edit:', editData);
+              // Dispatch event to refresh edits list
+              window.dispatchEvent(new CustomEvent('edits-updated'));
+            } else {
+              const errorData = await editResponse.json();
+              console.error('[VoiceNotes] ✗ Failed to create edit:', editResponse.status, errorData);
+            }
+          } catch (err) {
+            console.error('[VoiceNotes] ✗ Exception creating edit:', err);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[VoiceNotes] Error creating pending edits:', error);
+    }
   }
   
   /**
@@ -1051,8 +1309,13 @@ class VoiceNoteRecorder {
   }
   
   renderTranscript() {
+    // Try to get container if not cached
     if (!this.transcriptContainer) {
-      console.warn('renderTranscript: transcriptContainer is null');
+      this.transcriptContainer = document.getElementById('transcript-display');
+    }
+    
+    if (!this.transcriptContainer) {
+      console.warn('renderTranscript: transcriptContainer is null, cannot render');
       return;
     }
     
@@ -1120,28 +1383,16 @@ class VoiceNoteRecorder {
     
     showToast('Voice note processed successfully!', 'success');
     
-    // Check if we have enrichment proposal with items
-    const hasProposalItems = proposal && 
-      proposal.contactProposals && 
-      proposal.contactProposals.some(cp => cp.items && cp.items.length > 0);
+    // Enrichment is now creating pending edits automatically
+    // No need to show enrichment review or apply manually
+    // Just show success and reset UI
+    showToast('Voice note saved! Check pending edits for enrichment.', 'success');
     
-    if (hasProposalItems && window.enrichmentReview) {
-      // Use the server's final proposal (more accurate)
-      window.enrichmentReview.display(proposal, async (approvedProposal) => {
-        await this.applyEnrichment(voiceNote.id, approvedProposal);
-      });
-    } else if (window.enrichmentReview && window.enrichmentReview.proposal) {
-      // Keep the live proposal if server didn't return items
-      // Just update the callback for applying
-      window.enrichmentReview.onApplyCallback = async (approvedProposal) => {
-        await this.applyEnrichment(voiceNote.id, approvedProposal);
-      };
-    } else {
-      // No enrichment, just show success and reset
-      setTimeout(() => {
-        this.resetUI();
-      }, 2000);
-    }
+    setTimeout(() => {
+      this.resetUI();
+      // Dispatch event to refresh edits list
+      window.dispatchEvent(new CustomEvent('edits-updated'));
+    }, 2000);
   }
   
   sendAudioChunk(audioBlob) {
@@ -1420,13 +1671,17 @@ class VoiceNoteRecorder {
     try {
       const token = localStorage.getItem('authToken');
       const userId = localStorage.getItem('userId');
+      
+      // Resolve contact names to actual contact IDs
+      const resolvedProposal = await this.resolveContactIds(proposal, token, userId);
+      
       const response = await fetch(`/api/voice-notes/${voiceNoteId}/enrichment/apply`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ userId, enrichmentProposal: proposal })
+        body: JSON.stringify({ userId, enrichmentProposal: resolvedProposal })
       });
       
       if (!response.ok) {
@@ -1458,6 +1713,56 @@ class VoiceNoteRecorder {
     } catch (error) {
       console.error('Error applying enrichment:', error);
       throw error;
+    }
+  }
+  
+  /**
+   * Resolve contact names in proposal to actual contact IDs
+   */
+  async resolveContactIds(proposal, token, userId) {
+    try {
+      // Fetch user's contacts
+      const contactsResponse = await fetch(`/api/contacts?userId=${userId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!contactsResponse.ok) {
+        console.warn('Failed to fetch contacts for ID resolution');
+        return proposal;
+      }
+      
+      const contacts = await contactsResponse.json();
+      
+      // Create a map of contact names to IDs
+      const nameToIdMap = new Map();
+      contacts.forEach(contact => {
+        nameToIdMap.set(contact.name.toLowerCase(), contact.id);
+      });
+      
+      // Resolve contact IDs in proposal
+      const resolvedProposal = {
+        ...proposal,
+        contactProposals: proposal.contactProposals.map(cp => {
+          // Try to find the real contact ID by name
+          const realContactId = nameToIdMap.get(cp.contactName.toLowerCase());
+          
+          if (realContactId) {
+            console.log(`[VoiceNotes] Resolved contact "${cp.contactName}" to ID: ${realContactId}`);
+            return {
+              ...cp,
+              contactId: realContactId
+            };
+          } else {
+            console.warn(`[VoiceNotes] Could not resolve contact ID for "${cp.contactName}"`);
+            return cp;
+          }
+        })
+      };
+      
+      return resolvedProposal;
+    } catch (error) {
+      console.error('Error resolving contact IDs:', error);
+      return proposal;
     }
   }
   
@@ -1586,10 +1891,31 @@ let voiceNoteRecorder = null;
 function initVoiceNotesPage() {
   if (!voiceNoteRecorder) {
     voiceNoteRecorder = new VoiceNoteRecorder();
+    // Expose globally for use in other components (e.g., chat window)
+    if (typeof window !== 'undefined') {
+      window.voiceNoteRecorder = voiceNoteRecorder;
+    }
+  }
+}
+
+// Initialize voice recorder globally on page load (for chat window and other components)
+function initGlobalVoiceRecorder() {
+  if (!window.voiceNoteRecorder) {
+    voiceNoteRecorder = new VoiceNoteRecorder();
+    window.voiceNoteRecorder = voiceNoteRecorder;
+    console.log('[VoiceNotes] Global voice recorder initialized');
   }
 }
 
 // Export for use in app.js
 if (typeof window !== 'undefined') {
   window.initVoiceNotesPage = initVoiceNotesPage;
+  window.initGlobalVoiceRecorder = initGlobalVoiceRecorder;
+  
+  // Initialize on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGlobalVoiceRecorder);
+  } else {
+    initGlobalVoiceRecorder();
+  }
 }

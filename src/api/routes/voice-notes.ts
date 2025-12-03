@@ -288,19 +288,53 @@ router.post('/:id/enrichment/apply', async (req: Request, res: Response): Promis
       return;
     }
     
-    // Apply enrichment using enrichment service
-    const result = await enrichmentService.applyEnrichment(enrichmentProposal, userId);
+    // Create pending edits for each enrichment item instead of applying directly
+    // This allows users to review before applying
+    const { EditService } = await import('../../edits/edit-service');
+    const editService = new EditService();
+    
+    let totalCreated = 0;
+    let totalFailed = 0;
+    
+    for (const contactProposal of enrichmentProposal.contactProposals) {
+      if (!contactProposal.contactId) continue;
+      
+      for (const item of contactProposal.items) {
+        if (!item.accepted) continue;
+        
+        try {
+          // Create a pending edit for each enrichment item
+          await editService.createPendingEdit({
+            userId,
+            sessionId: id, // Use voice note ID as session ID
+            editType: item.type as any,
+            proposedValue: item.value,
+            targetContactId: contactProposal.contactId,
+            targetContactName: contactProposal.contactName,
+            confidenceScore: 0.9, // High confidence for enrichment
+            source: {
+              type: 'voice_transcript',
+              transcriptExcerpt: voiceNote.transcript?.substring(0, 200),
+              timestamp: new Date(),
+            },
+          });
+          totalCreated++;
+        } catch (itemError) {
+          console.error(`Failed to create edit for item ${item.id}:`, itemError);
+          totalFailed++;
+        }
+      }
+    }
     
     // Update voice note status to 'applied' if successful
-    if (result.success) {
+    if (totalCreated > 0) {
       await voiceNoteRepository.update(id, userId, { status: 'applied' });
     }
     
     res.json({
-      success: result.success,
-      results: result.results,
-      totalApplied: result.totalApplied,
-      totalFailed: result.totalFailed,
+      success: totalFailed === 0,
+      totalApplied: totalCreated,
+      totalFailed: totalFailed,
     });
   } catch (error) {
     console.error('Error applying enrichment:', error);
@@ -371,6 +405,104 @@ router.patch('/:id/contacts', async (req: Request, res: Response): Promise<void>
     res.status(500).json({ 
       error: 'Failed to update contact associations',
       message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/voice-notes/text - Process a text message for enrichment (no audio)
+// This allows users to type messages like "Carol is moving to SF" and get enrichment proposals
+router.post('/text', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, text } = req.body;
+    
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+    
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      res.status(400).json({ error: 'text is required and must be a non-empty string' });
+      return;
+    }
+    
+    const transcript = text.trim();
+    console.log(`Processing text message for user ${userId}: "${transcript}"`);
+    
+    // 1. Get user contacts for disambiguation
+    const userContacts = await contactService.listContacts(userId);
+    
+    if (userContacts.length === 0) {
+      res.status(200).json({
+        voiceNote: null,
+        enrichmentProposal: null,
+        message: 'No contacts found. Add contacts first to enable enrichment.',
+      });
+      return;
+    }
+    
+    // 2. Disambiguate which contacts are mentioned in the text
+    const disambiguationService = new (await import('../../voice/contact-disambiguation-service')).ContactDisambiguationService();
+    const extractionService = new (await import('../../voice/entity-extraction-service')).EntityExtractionService();
+    const enrichmentServiceInstance = new (await import('../../voice/enrichment-service')).EnrichmentService();
+    
+    const mentionedContacts = await disambiguationService.disambiguate(transcript, userContacts);
+    console.log(`Identified ${mentionedContacts.length} mentioned contacts:`, mentionedContacts.map(c => c.name));
+    
+    if (mentionedContacts.length === 0) {
+      res.status(200).json({
+        voiceNote: null,
+        enrichmentProposal: null,
+        message: 'No contacts identified in the message. Try mentioning a contact by name.',
+        mentionedContacts: [],
+      });
+      return;
+    }
+    
+    // 3. Extract entities for mentioned contacts
+    const entities = await extractionService.extractForMultipleContacts(transcript, mentionedContacts);
+    console.log(`Entities extracted for ${mentionedContacts.length} contacts`);
+    
+    // 4. Create voice note record with the text as transcript
+    const voiceNote = await voiceNoteRepository.create({
+      userId,
+      transcript,
+      status: 'extracting' as any,
+    });
+    
+    console.log(`Voice note created from text: ${voiceNote.id}`);
+    
+    // 5. Generate enrichment proposal
+    const proposal = await enrichmentServiceInstance.generateProposal(voiceNote.id, entities, mentionedContacts);
+    console.log(`Enrichment proposal generated with ${proposal.contactProposals.length} contact proposals`);
+    
+    // 6. Associate mentioned contacts with the voice note
+    const contactIds = mentionedContacts.map(c => c.id);
+    await voiceNoteRepository.associateContacts(voiceNote.id, userId, contactIds);
+    console.log(`Associated ${contactIds.length} contacts with voice note`);
+    
+    // 7. Update voice note with enrichment data and mark as ready
+    const updatedVoiceNote = await voiceNoteRepository.update(voiceNote.id, userId, {
+      enrichmentData: proposal,
+      status: 'ready' as any,
+    });
+    
+    // Check if there are any actual enrichment items
+    const hasEnrichmentItems = proposal.contactProposals.some(cp => cp.items.length > 0);
+    
+    res.status(201).json({
+      voiceNote: updatedVoiceNote,
+      enrichmentProposal: proposal,
+      mentionedContacts: mentionedContacts.map(c => ({ id: c.id, name: c.name })),
+      message: hasEnrichmentItems 
+        ? `Found ${proposal.contactProposals.reduce((sum, cp) => sum + cp.items.length, 0)} enrichment items for ${mentionedContacts.length} contact(s).`
+        : 'Contact identified but no new information to add.',
+    });
+  } catch (error) {
+    console.error('Error processing text message:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ 
+      error: 'Failed to process text message',
+      details: errorMessage 
     });
   }
 });

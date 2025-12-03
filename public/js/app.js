@@ -15,6 +15,10 @@ let isLoginMode = true;
 let currentContactTags = []; // Tags being edited in the modal
 let currentContactGroups = []; // Group IDs being edited in the modal
 
+// Chat components
+let floatingChatIcon = null;
+let chatWindow = null;
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize theme before anything else to ensure proper styling
@@ -49,6 +53,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentPage === 'groups-tags') {
             console.log('Refreshing groups and tags');
             loadGroupsAndTags();
+        }
+    });
+    
+    // Listen for edits updates from voice notes enrichment
+    window.addEventListener('edits-updated', async () => {
+        console.log('edits-updated event received, currentPage:', currentPage);
+        
+        // Always fetch and update the pending edits count
+        try {
+            const response = await fetch(`${API_BASE}/edits/pending`, {
+                headers: { 
+                    'Authorization': `Bearer ${authToken}`,
+                    'x-user-id': userId
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const count = (data.edits || []).length;
+                console.log('Updated pending edits count:', count);
+                updatePendingEditCounts(count);
+            }
+        } catch (error) {
+            console.error('Error fetching pending edits count:', error);
+        }
+        
+        // Refresh pending edits if on edits page
+        if (currentPage === 'edits') {
+            console.log('Refreshing pending edits');
+            loadPendingEdits();
         }
     });
 });
@@ -91,6 +125,102 @@ function showMainApp() {
     document.getElementById('user-email').textContent = userEmail;
     updateThemeIcon();
     loadContacts();
+    
+    // Initialize floating chat icon and chat window
+    initializeChatComponents();
+}
+
+/**
+ * Initialize the floating chat icon and chat window components
+ */
+function initializeChatComponents() {
+    // Only initialize if components exist and not already initialized
+    if (floatingChatIcon || typeof FloatingChatIcon === 'undefined') {
+        return;
+    }
+    
+    // Create chat window first
+    if (typeof ChatWindow !== 'undefined') {
+        chatWindow = new ChatWindow({
+            onClose: () => {
+                console.log('Chat window closed');
+            },
+            onCancelSession: () => {
+                console.log('Chat session cancelled');
+                if (floatingChatIcon) {
+                    floatingChatIcon.setPendingEditCount(0);
+                }
+            },
+            onStartRecording: () => {
+                console.log('Recording started from chat');
+                if (floatingChatIcon) {
+                    floatingChatIcon.setRecordingState(true);
+                }
+                // Start audio level monitoring for chat visualization
+                startChatAudioMonitoring();
+            },
+            onStopRecording: () => {
+                console.log('Recording stopped from chat');
+                if (floatingChatIcon) {
+                    floatingChatIcon.setRecordingState(false);
+                }
+                // Stop audio level monitoring
+                stopChatAudioMonitoring();
+            },
+            onSendMessage: async (text) => {
+                console.log('Message sent:', text);
+                // Add user message to chat
+                chatWindow.addMessage({
+                    id: Date.now().toString(),
+                    type: 'user',
+                    content: text,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Process message for contact enrichment
+                await processTextMessageForEnrichment(text);
+            },
+            onEditClick: (editId) => {
+                console.log('Edit clicked:', editId);
+                // Navigate to edits page and highlight the edit
+                navigateTo('edits');
+            },
+            onCounterClick: () => {
+                console.log('Counter clicked - show pending edits');
+                // Navigate to edits page
+                navigateTo('edits');
+                chatWindow.close();
+            }
+        });
+        
+        const chatWindowEl = chatWindow.render();
+        document.body.appendChild(chatWindowEl);
+    }
+    
+    // Create floating chat icon
+    floatingChatIcon = new FloatingChatIcon({
+        onClick: () => {
+            if (chatWindow) {
+                if (chatWindow.isOpen) {
+                    chatWindow.close();
+                } else {
+                    chatWindow.open('session-' + Date.now());
+                    // Add welcome message
+                    chatWindow.addMessage({
+                        id: 'welcome',
+                        type: 'system',
+                        content: 'Hi! You can record voice notes or type messages to update your contacts. What would you like to do?',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            }
+        }
+    });
+    
+    const iconEl = floatingChatIcon.render();
+    document.body.appendChild(iconEl);
+    
+    console.log('Chat components initialized');
 }
 
 function toggleAuthMode() {
@@ -169,6 +299,16 @@ function logout() {
     userId = null;
     userEmail = null;
     
+    // Clean up chat components
+    if (chatWindow) {
+        chatWindow.destroy();
+        chatWindow = null;
+    }
+    if (floatingChatIcon) {
+        floatingChatIcon.destroy();
+        floatingChatIcon = null;
+    }
+    
     showAuthScreen();
     document.getElementById('auth-form').reset();
 }
@@ -230,8 +370,8 @@ function navigateTo(page) {
         case 'suggestions':
             loadSuggestions();
             break;
-        case 'voice':
-            loadVoiceNotes();
+        case 'edits':
+            loadEditsPage();
             break;
         case 'preferences':
             loadPreferences();
@@ -731,8 +871,8 @@ async function seedTestData() {
             loadGroupsTagsManagement();
         } else if (currentPage === 'suggestions') {
             loadSuggestions();
-        } else if (currentPage === 'voice') {
-            loadVoiceNotes();
+        } else if (currentPage === 'edits') {
+            loadEditsPage();
         }
     } catch (error) {
         console.error('Error seeding test data:', error);
@@ -742,7 +882,7 @@ async function seedTestData() {
 }
 
 async function clearTestData() {
-    if (!confirm('This will delete ALL your contacts, groups, tags, suggestions, and voice notes. This cannot be undone. Continue?')) return;
+    if (!confirm('This will delete ALL your contacts, groups, tags, suggestions, and edits. This cannot be undone. Continue?')) return;
     
     const loadingToastId = showToast('Clearing all data...', 'loading');
     
@@ -777,8 +917,8 @@ async function clearTestData() {
             loadGroupsTagsManagement();
         } else if (currentPage === 'suggestions') {
             loadSuggestions();
-        } else if (currentPage === 'voice') {
-            loadVoiceNotes();
+        } else if (currentPage === 'edits') {
+            loadEditsPage();
         }
     } catch (error) {
         console.error('Error clearing test data:', error);
@@ -3143,74 +3283,680 @@ async function getAvailableSlots(startTime, endTime, slotDurationMinutes = 30) {
     }
 }
 
-// Voice Notes
-function loadVoiceNotes() {
-    // Setup tab switching
-    setupVoiceNoteTabs();
-    
-    // Initialize voice notes recorder if available
-    if (typeof window.initVoiceNotesPage === 'function') {
-        window.initVoiceNotesPage();
-    } else {
-        // Fallback if voice-notes.js hasn't loaded yet
-        const container = document.getElementById('voice-content');
-        container.innerHTML = `
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <p>Loading voice notes...</p>
-            </div>
-        `;
+// Audio monitoring for chat window
+let chatAudioStream = null;
+let chatAudioContext = null;
+let chatAudioAnalyser = null;
+let chatAudioAnimationFrame = null;
+
+async function startChatAudioMonitoring() {
+    try {
+        // Request microphone access
+        chatAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         
-        // Try again after a short delay
-        setTimeout(() => {
-            if (typeof window.initVoiceNotesPage === 'function') {
-                window.initVoiceNotesPage();
-            } else {
-                container.innerHTML = `
-                    <div class="error-state">
-                        <h3>Failed to Load Voice Notes</h3>
-                        <p>Please refresh the page to try again.</p>
-                        <button onclick="location.reload()" class="retry-btn">Refresh Page</button>
-                    </div>
-                `;
+        // Create audio context and analyser
+        chatAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        chatAudioAnalyser = chatAudioContext.createAnalyser();
+        chatAudioAnalyser.fftSize = 256;
+        
+        const source = chatAudioContext.createMediaStreamSource(chatAudioStream);
+        source.connect(chatAudioAnalyser);
+        
+        // Start monitoring loop
+        const dataArray = new Uint8Array(chatAudioAnalyser.frequencyBinCount);
+        
+        function updateLevel() {
+            if (!chatAudioAnalyser) return;
+            
+            chatAudioAnalyser.getByteFrequencyData(dataArray);
+            
+            // Calculate average level
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
             }
-        }, 1000);
+            const average = sum / dataArray.length;
+            const normalizedLevel = average / 255; // 0 to 1
+            
+            // Update chat window audio indicator
+            if (chatWindow && chatWindow.setAudioLevel) {
+                chatWindow.setAudioLevel(normalizedLevel);
+            }
+            
+            chatAudioAnimationFrame = requestAnimationFrame(updateLevel);
+        }
+        
+        updateLevel();
+        console.log('Chat audio monitoring started');
+    } catch (error) {
+        console.error('Error starting chat audio monitoring:', error);
     }
 }
 
-function setupVoiceNoteTabs() {
-    const tabs = document.querySelectorAll('.voice-tab');
+function stopChatAudioMonitoring() {
+    // Stop animation frame
+    if (chatAudioAnimationFrame) {
+        cancelAnimationFrame(chatAudioAnimationFrame);
+        chatAudioAnimationFrame = null;
+    }
+    
+    // Close audio context
+    if (chatAudioContext) {
+        chatAudioContext.close();
+        chatAudioContext = null;
+        chatAudioAnalyser = null;
+    }
+    
+    // Stop media stream
+    if (chatAudioStream) {
+        chatAudioStream.getTracks().forEach(track => track.stop());
+        chatAudioStream = null;
+    }
+    
+    // Reset audio indicator
+    if (chatWindow && chatWindow.setAudioLevel) {
+        chatWindow.setAudioLevel(0);
+    }
+    
+    console.log('Chat audio monitoring stopped');
+}
+
+// Process text message for contact enrichment
+async function processTextMessageForEnrichment(text) {
+    try {
+        // Show processing indicator
+        if (chatWindow) {
+            chatWindow.addMessage({
+                id: 'processing-' + Date.now(),
+                type: 'system',
+                content: 'Processing your message...',
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        const response = await fetch(`${API_BASE}/voice-notes/text`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                userId: userId,
+                text: text
+            })
+        });
+        
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to process message');
+        }
+        
+        // Show result in chat
+        if (chatWindow) {
+            if (result.enrichmentProposal && result.enrichmentProposal.contactProposals) {
+                const proposals = result.enrichmentProposal.contactProposals;
+                const totalItems = proposals.reduce((sum, cp) => sum + cp.items.length, 0);
+                
+                if (totalItems > 0) {
+                    // Build enrichment summary message
+                    let summaryParts = [];
+                    for (const proposal of proposals) {
+                        if (proposal.items.length > 0) {
+                            const itemDescriptions = proposal.items.map(item => {
+                                if (item.type === 'tag') return `tag "${item.value}"`;
+                                if (item.type === 'group') return `group "${item.value}"`;
+                                if (item.type === 'field') return `${item.field}: "${item.value}"`;
+                                return `${item.type}: "${item.value}"`;
+                            });
+                            summaryParts.push(`${proposal.contactName}: ${itemDescriptions.join(', ')}`);
+                        }
+                    }
+                    
+                    chatWindow.addMessage({
+                        id: 'enrichment-' + Date.now(),
+                        type: 'system',
+                        content: `✨ Found enrichments!\n${summaryParts.join('\n')}\n\nGo to Edits to review and apply these changes.`,
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    // Update pending edit count
+                    if (floatingChatIcon) {
+                        const currentCount = floatingChatIcon.pendingEditCount || 0;
+                        floatingChatIcon.setPendingEditCount(currentCount + totalItems);
+                    }
+                    if (chatWindow) {
+                        const currentCount = chatWindow.pendingEditCount || 0;
+                        chatWindow.setPendingEditCount(currentCount + totalItems);
+                    }
+                    
+                    // Refresh the pending edits page if it's currently visible
+                    if (currentPage === 'edits') {
+                        loadPendingEdits();
+                    }
+                } else {
+                    chatWindow.addMessage({
+                        id: 'no-enrichment-' + Date.now(),
+                        type: 'system',
+                        content: result.message || 'Contact identified but no new information to add.',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            } else {
+                chatWindow.addMessage({
+                    id: 'no-contact-' + Date.now(),
+                    type: 'system',
+                    content: result.message || 'No contacts identified in your message. Try mentioning a contact by name.',
+                    timestamp: new Date().toISOString()
+                });
+            }
+        }
+        
+        console.log('Text message processed:', result);
+        
+    } catch (error) {
+        console.error('Error processing text message:', error);
+        if (chatWindow) {
+            chatWindow.addMessage({
+                id: 'error-' + Date.now(),
+                type: 'system',
+                content: `Sorry, I couldn't process that message. ${error.message}`,
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+}
+
+// Edits Page
+function loadEditsPage() {
+    // Setup tab switching
+    setupEditsTabs();
+    
+    // Load pending edits
+    loadPendingEdits();
+}
+
+function setupEditsTabs() {
+    const tabs = document.querySelectorAll('#edits-page .voice-tab');
+    if (!tabs || tabs.length === 0) return;
     
     tabs.forEach(tab => {
+        if (!tab || !tab.dataset) return;
         tab.addEventListener('click', () => {
             const tabName = tab.dataset.tab;
-            switchVoiceNoteTab(tabName);
+            if (tabName) {
+                switchEditsTab(tabName);
+            }
         });
     });
 }
 
-function switchVoiceNoteTab(tabName) {
+function switchEditsTab(tabName) {
     // Update active tab button
-    document.querySelectorAll('.voice-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.tab === tabName);
+    document.querySelectorAll('#edits-page .voice-tab').forEach(tab => {
+        if (tab && tab.dataset) {
+            tab.classList.toggle('active', tab.dataset.tab === tabName);
+        }
     });
     
     // Show/hide tab content
-    const recordTab = document.getElementById('voice-record-tab');
-    const historyTab = document.getElementById('voice-history-tab');
+    const pendingTab = document.getElementById('edits-pending-tab');
+    const historyTab = document.getElementById('edits-history-tab');
     
-    if (tabName === 'record') {
-        recordTab.classList.remove('hidden');
-        historyTab.classList.add('hidden');
+    if (tabName === 'pending') {
+        if (pendingTab) pendingTab.classList.remove('hidden');
+        if (historyTab) historyTab.classList.add('hidden');
+        loadPendingEdits();
     } else if (tabName === 'history') {
-        recordTab.classList.add('hidden');
-        historyTab.classList.remove('hidden');
+        if (pendingTab) pendingTab.classList.add('hidden');
+        if (historyTab) historyTab.classList.remove('hidden');
+        loadEditsHistory();
+    }
+}
+
+async function loadPendingEdits() {
+    const container = document.getElementById('edits-pending-content');
+    if (!container) return;
+    
+    // Show empty state by default - edits API may not be fully configured
+    const showEmptyState = () => {
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>No pending edits</h3>
+                <p>Use the chat button in the bottom right to record voice notes or type messages about your contacts.</p>
+            </div>
+        `;
+    };
+    
+    try {
+        // Fetch both pending edits AND voice notes with pending enrichments
+        const [editsResponse, voiceNotesResponse] = await Promise.all([
+            fetch(`${API_BASE}/edits/pending`, {
+                headers: { 
+                    'Authorization': `Bearer ${authToken}`,
+                    'x-user-id': userId
+                }
+            }),
+            fetch(`${API_BASE}/voice-notes?userId=${userId}&status=ready`, {
+                headers: { 
+                    'Authorization': `Bearer ${authToken}`
+                }
+            })
+        ]);
         
-        // Initialize history view if not already done
-        if (typeof window.initVoiceNotesHistoryPage === 'function') {
-            window.initVoiceNotesHistoryPage();
+        let edits = [];
+        let voiceNoteEnrichments = [];
+        
+        // Process pending edits from edits API
+        if (editsResponse.ok) {
+            const data = await editsResponse.json();
+            edits = data.edits || [];
+        }
+        
+        // Process voice notes with pending enrichments
+        if (voiceNotesResponse.ok) {
+            const voiceNotes = await voiceNotesResponse.json();
+            // Filter voice notes that have enrichment data with pending items
+            voiceNoteEnrichments = (voiceNotes || [])
+                .filter(vn => vn.enrichmentData && vn.enrichmentData.contactProposals)
+                .flatMap(vn => convertVoiceNoteToEdits(vn));
+        }
+        
+        // Combine both sources
+        const allEdits = [...edits, ...voiceNoteEnrichments];
+        
+        if (allEdits.length === 0) {
+            showEmptyState();
+            return;
+        }
+        
+        container.innerHTML = allEdits.map(edit => {
+            // Use different renderer based on source
+            if (edit.isVoiceNoteEnrichment) {
+                return renderVoiceNoteEnrichment(edit);
+            }
+            return renderPendingEdit(edit);
+        }).join('');
+        
+        // Update pending count in chat components
+        updatePendingEditCounts(allEdits.length);
+    } catch (error) {
+        console.error('Error loading pending edits:', error);
+        showEmptyState();
+    }
+}
+
+/**
+ * Convert voice note enrichment data to edit-like objects for display
+ */
+function convertVoiceNoteToEdits(voiceNote) {
+    const edits = [];
+    const proposal = voiceNote.enrichmentData;
+    
+    if (!proposal || !proposal.contactProposals) return edits;
+    
+    for (const contactProposal of proposal.contactProposals) {
+        for (const item of contactProposal.items) {
+            edits.push({
+                id: `vn-${voiceNote.id}-${contactProposal.contactId}-${item.type}-${edits.length}`,
+                voiceNoteId: voiceNote.id,
+                isVoiceNoteEnrichment: true,
+                editType: mapEnrichmentTypeToEditType(item.type),
+                targetContactId: contactProposal.contactId,
+                targetContactName: contactProposal.contactName,
+                field: item.field || item.type,
+                proposedValue: item.value,
+                confidenceScore: item.confidence || 0.8,
+                source: 'voice_note',
+                createdAt: voiceNote.createdAt,
+                enrichmentItem: item,
+                contactProposal: contactProposal
+            });
         }
     }
+    
+    return edits;
+}
+
+/**
+ * Map enrichment item type to edit type
+ */
+function mapEnrichmentTypeToEditType(type) {
+    const typeMap = {
+        'tag': 'add_tag',
+        'group': 'add_to_group',
+        'field': 'update_contact_field',
+        'lastContactDate': 'update_contact_field'
+    };
+    return typeMap[type] || 'update_contact_field';
+}
+
+/**
+ * Render a voice note enrichment item
+ */
+function renderVoiceNoteEnrichment(edit) {
+    const editTypeLabels = {
+        'add_tag': 'Add Tag',
+        'add_to_group': 'Add to Group',
+        'update_contact_field': 'Update Field',
+        'create_contact': 'New Contact'
+    };
+    
+    const typeLabel = editTypeLabels[edit.editType] || edit.field || 'Update';
+    const confidence = Math.round((edit.confidenceScore || 0) * 100);
+    const fieldLabel = edit.field ? ` (${edit.field})` : '';
+    
+    return `
+        <div class="card" data-edit-id="${edit.id}" data-voice-note-id="${edit.voiceNoteId}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <span class="tag-badge" style="background: var(--color-primary);">${typeLabel}${fieldLabel}</span>
+                    <span class="tag-badge" style="background: var(--color-secondary); margin-left: 4px;">📝 From Chat</span>
+                    <h3 style="margin-top: 8px;">${escapeHtml(edit.targetContactName || 'Unknown Contact')}</h3>
+                    <p style="color: var(--text-secondary); font-size: 14px;">${escapeHtml(String(edit.proposedValue || ''))}</p>
+                    <p style="font-size: 12px; color: var(--text-tertiary);">Confidence: ${confidence}%</p>
+                </div>
+            </div>
+            <div class="card-actions">
+                <button onclick="applyVoiceNoteEnrichment('${edit.voiceNoteId}', '${edit.targetContactId}', ${JSON.stringify(edit.enrichmentItem).replace(/"/g, '&quot;')})">Apply</button>
+                <button class="secondary" onclick="dismissVoiceNoteEnrichment('${edit.voiceNoteId}', '${edit.targetContactId}', '${edit.field}')">Dismiss</button>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Update pending edit counts in chat components
+ */
+function updatePendingEditCounts(count) {
+    if (chatWindow) {
+        chatWindow.setPendingEditCount(count);
+    }
+    if (floatingChatIcon) {
+        floatingChatIcon.setPendingEditCount(count);
+    }
+}
+
+/**
+ * Apply a single enrichment item from a voice note
+ */
+async function applyVoiceNoteEnrichment(voiceNoteId, contactId, enrichmentItem) {
+    try {
+        // Parse the enrichment item if it's a string
+        const item = typeof enrichmentItem === 'string' ? JSON.parse(enrichmentItem) : enrichmentItem;
+        
+        // Build a minimal enrichment proposal for just this item
+        const enrichmentProposal = {
+            voiceNoteId: voiceNoteId,
+            contactProposals: [{
+                contactId: contactId,
+                contactName: '', // Will be looked up server-side
+                items: [item]
+            }]
+        };
+        
+        const response = await fetch(`${API_BASE}/voice-notes/${voiceNoteId}/enrichment/apply`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: userId,
+                enrichmentProposal: enrichmentProposal
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to apply enrichment');
+        }
+        
+        showToast('Enrichment applied successfully!', 'success');
+        loadPendingEdits();
+        loadContacts();
+        
+        // Dispatch event to notify other components
+        window.dispatchEvent(new CustomEvent('contacts-updated'));
+    } catch (error) {
+        console.error('Error applying voice note enrichment:', error);
+        showToast(error.message || 'Failed to apply enrichment', 'error');
+    }
+}
+
+/**
+ * Dismiss a voice note enrichment item (mark as rejected/remove from proposal)
+ */
+async function dismissVoiceNoteEnrichment(voiceNoteId, contactId, field) {
+    try {
+        // For now, we'll update the voice note to remove this item from the enrichment data
+        // In a full implementation, you might want a dedicated endpoint for this
+        
+        // Get the current voice note
+        const response = await fetch(`${API_BASE}/voice-notes/${voiceNoteId}?userId=${userId}`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch voice note');
+        }
+        
+        const voiceNote = await response.json();
+        
+        if (voiceNote.enrichmentData && voiceNote.enrichmentData.contactProposals) {
+            // Remove the specific item from the proposal
+            const updatedProposals = voiceNote.enrichmentData.contactProposals.map(cp => {
+                if (cp.contactId === contactId) {
+                    return {
+                        ...cp,
+                        items: cp.items.filter(item => item.field !== field && item.type !== field)
+                    };
+                }
+                return cp;
+            }).filter(cp => cp.items.length > 0);
+            
+            // If no items left, mark the voice note as applied (completed)
+            if (updatedProposals.length === 0) {
+                // Mark as applied since all items have been handled
+                await fetch(`${API_BASE}/voice-notes/${voiceNoteId}/enrichment/apply`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        enrichmentProposal: { contactProposals: [] }
+                    })
+                });
+            }
+        }
+        
+        showToast('Enrichment dismissed', 'info');
+        loadPendingEdits();
+    } catch (error) {
+        console.error('Error dismissing voice note enrichment:', error);
+        showToast('Failed to dismiss enrichment', 'error');
+    }
+}
+
+function renderPendingEdit(edit) {
+    const editTypeLabels = {
+        'create_contact': 'New Contact',
+        'update_contact_field': 'Update Contact',
+        'add_tag': 'Add Tag',
+        'remove_tag': 'Remove Tag',
+        'add_to_group': 'Add to Group',
+        'remove_from_group': 'Remove from Group',
+        'create_group': 'New Group'
+    };
+    
+    const typeLabel = editTypeLabels[edit.editType] || edit.editType;
+    const confidence = Math.round((edit.confidenceScore || 0) * 100);
+    
+    return `
+        <div class="card" data-edit-id="${edit.id}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <span class="tag-badge">${typeLabel}</span>
+                    <h3 style="margin-top: 8px;">${edit.targetContactName || 'Unknown Contact'}</h3>
+                    <p style="color: var(--text-secondary);">${edit.proposedValue || ''}</p>
+                    <p style="font-size: 12px; color: var(--text-tertiary);">Confidence: ${confidence}%</p>
+                </div>
+            </div>
+            <div class="card-actions">
+                <button onclick="applyEdit('${edit.id}')">Apply</button>
+                <button class="secondary" onclick="rejectEdit('${edit.id}')">Reject</button>
+            </div>
+        </div>
+    `;
+}
+
+async function applyEdit(editId) {
+    try {
+        const response = await fetch(`${API_BASE}/edits/pending/${editId}/submit`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userId })
+        });
+        
+        if (!response.ok) throw new Error('Failed to apply edit');
+        
+        showToast('Edit applied successfully!', 'success');
+        loadPendingEdits();
+        loadEditsHistory(); // Refresh history to show applied edit
+        loadContacts(); // Refresh contacts
+        
+        // Update pending count in chat
+        if (chatWindow) {
+            const currentCount = chatWindow.pendingEditCount || 0;
+            chatWindow.setPendingEditCount(Math.max(0, currentCount - 1));
+        }
+        if (floatingChatIcon) {
+            const currentCount = floatingChatIcon.pendingEditCount || 0;
+            floatingChatIcon.setPendingEditCount(Math.max(0, currentCount - 1));
+        }
+    } catch (error) {
+        console.error('Error applying edit:', error);
+        showToast('Failed to apply edit', 'error');
+    }
+}
+
+async function rejectEdit(editId) {
+    try {
+        const response = await fetch(`${API_BASE}/edits/pending/${editId}`, {
+            method: 'DELETE',
+            headers: { 
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userId })
+        });
+        
+        if (!response.ok) throw new Error('Failed to reject edit');
+        
+        showToast('Edit rejected', 'info');
+        loadPendingEdits();
+        loadEditsHistory(); // Refresh history (no new entry for rejected edits)
+        
+        // Update pending count in chat
+        if (chatWindow) {
+            const currentCount = chatWindow.pendingEditCount || 0;
+            chatWindow.setPendingEditCount(Math.max(0, currentCount - 1));
+        }
+        if (floatingChatIcon) {
+            const currentCount = floatingChatIcon.pendingEditCount || 0;
+            floatingChatIcon.setPendingEditCount(Math.max(0, currentCount - 1));
+        }
+    } catch (error) {
+        console.error('Error rejecting edit:', error);
+        showToast('Failed to reject edit', 'error');
+    }
+}
+
+async function loadEditsHistory() {
+    const container = document.getElementById('edits-history-content');
+    if (!container) return;
+    
+    // Show empty state by default
+    const showEmptyState = () => {
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>No edit history</h3>
+                <p>Applied edits will appear here.</p>
+            </div>
+        `;
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE}/edits/history`, {
+            headers: { 
+                'Authorization': `Bearer ${authToken}`,
+                'x-user-id': userId
+            }
+        });
+        
+        // Don't logout on 401 for edits - just show empty state
+        if (!response.ok) {
+            console.log('Edits history API returned:', response.status);
+            showEmptyState();
+            return;
+        }
+        
+        const data = await response.json();
+        const history = data.history || [];
+        
+        if (history.length === 0) {
+            showEmptyState();
+            return;
+        }
+        
+        container.innerHTML = history.map(entry => renderHistoryEntry(entry)).join('');
+    } catch (error) {
+        console.error('Error loading edit history:', error);
+        showEmptyState();
+    }
+}
+
+function renderHistoryEntry(entry) {
+    const editTypeLabels = {
+        'create_contact': 'New Contact',
+        'update_contact_field': 'Update Contact',
+        'add_tag': 'Add Tag',
+        'remove_tag': 'Remove Tag',
+        'add_to_group': 'Add to Group',
+        'remove_from_group': 'Remove from Group',
+        'create_group': 'New Group'
+    };
+    
+    const typeLabel = editTypeLabels[entry.editType] || entry.editType;
+    const statusClass = entry.status === 'applied' ? 'status-success-bg' : 'status-error-bg';
+    const statusText = entry.status === 'applied' ? 'Applied' : 'Rejected';
+    const date = new Date(entry.appliedAt || entry.rejectedAt || entry.createdAt).toLocaleString();
+    
+    return `
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <span class="tag-badge">${typeLabel}</span>
+                    <span class="tag-badge" style="background: var(--${statusClass}); color: var(--${statusClass.replace('-bg', '-text')});">${statusText}</span>
+                    <h3 style="margin-top: 8px;">${entry.targetContactName || 'Unknown Contact'}</h3>
+                    <p style="color: var(--text-secondary);">${entry.proposedValue || ''}</p>
+                    <p style="font-size: 12px; color: var(--text-tertiary);">${date}</p>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 // Preferences
@@ -3790,8 +4536,8 @@ async function clearAllTestData() {
             await loadSuggestions();
         } else if (currentPage === 'groups-tags') {
             await loadGroupsTagsManagement();
-        } else if (currentPage === 'voice') {
-            await loadVoiceNotes();
+        } else if (currentPage === 'edits') {
+            await loadEditsPage();
         }
         
         // Refresh the status counts
@@ -3947,8 +4693,8 @@ async function deleteAllUserData() {
             await loadSuggestions();
         } else if (currentPage === 'groups-tags') {
             await loadGroupsTagsManagement();
-        } else if (currentPage === 'voice') {
-            await loadVoiceNotes();
+        } else if (currentPage === 'edits') {
+            await loadEditsPage();
         }
         
         // Also refresh test data counts

@@ -226,7 +226,7 @@
     - Test deleted groups
     - _Requirements: 6.1, 6.2, 6.3, 6.6, 6.7, 6.8, 6.9, 6.10_
 
-- [ ] 9. Checkpoint - Ensure all tests pass
+- [x] 9. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 10. Sync API routes
@@ -365,7 +365,7 @@
     - Test performance warnings
     - _Requirements: 12.4_
 
-- [ ] 17. Checkpoint - Ensure all tests pass
+- [x] 17. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 18. Contact data preservation
