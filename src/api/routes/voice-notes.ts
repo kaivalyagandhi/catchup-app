@@ -537,4 +537,32 @@ router.post('/:id/enrichment', async (req: Request, res: Response): Promise<void
   }
 });
 
+// POST /api/voice-notes/sessions/:sessionId/reject-suggestion
+// Record a rejected enrichment suggestion
+router.post('/sessions/:sessionId/reject-suggestion', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sessionId } = req.params;
+    const { suggestionId } = req.body;
+    
+    if (!suggestionId) {
+      res.status(400).json({ error: 'suggestionId is required' });
+      return;
+    }
+    
+    voiceNoteService.recordRejectedSuggestion(sessionId, suggestionId);
+    
+    res.json({ 
+      success: true,
+      message: `Suggestion ${suggestionId} recorded as rejected`
+    });
+  } catch (error) {
+    console.error('Error recording rejected suggestion:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ 
+      error: 'Failed to record rejected suggestion',
+      details: errorMessage 
+    });
+  }
+});
+
 export default router;

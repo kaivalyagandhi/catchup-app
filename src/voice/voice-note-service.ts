@@ -49,6 +49,7 @@ export interface VoiceNoteSession {
   lastSegmentTime: Date;
   userContacts?: Contact[]; // User's contacts for incremental enrichment context
   emittedSuggestionIds?: Set<string>; // Track which suggestions have been emitted to avoid duplicates
+  rejectedSuggestionIds?: Set<string>; // Track which suggestions have been rejected by user
 }
 
 /**
@@ -156,6 +157,8 @@ export class VoiceNoteService extends EventEmitter {
       totalPausedDuration: 0,
       audioSegments: [],
       lastSegmentTime: new Date(),
+      emittedSuggestionIds: new Set(),
+      rejectedSuggestionIds: new Set(),
     };
 
     // Store active session
@@ -287,7 +290,17 @@ export class VoiceNoteService extends EventEmitter {
       });
 
       // Check if we have incremental enrichment results to use
-      const incrementalSuggestions = this.enrichmentAnalyzer.getSuggestions(sessionId);
+      let incrementalSuggestions = this.enrichmentAnalyzer.getSuggestions(sessionId);
+      
+      // Filter out rejected suggestions
+      if (session.rejectedSuggestionIds && session.rejectedSuggestionIds.size > 0) {
+        const rejectedIds = session.rejectedSuggestionIds;
+        const originalCount = incrementalSuggestions.length;
+        incrementalSuggestions = incrementalSuggestions.filter(
+          s => !rejectedIds.has(s.id)
+        );
+        console.log(`[VoiceNoteService] Filtered out ${originalCount - incrementalSuggestions.length} rejected suggestions`);
+      }
       
       let identifiedContacts: Contact[] = [];
       let entitiesMap: Map<string, ExtractedEntities> = new Map();
@@ -600,6 +613,30 @@ export class VoiceNoteService extends EventEmitter {
     }
 
     return totalElapsed - session.totalPausedDuration - currentPauseDuration;
+  }
+
+  /**
+   * Record a rejected enrichment suggestion
+   * 
+   * Tracks suggestions that the user has rejected so they won't be
+   * re-proposed when the voice session is finalized.
+   * 
+   * @param sessionId - Session ID
+   * @param suggestionId - ID of the rejected suggestion
+   */
+  recordRejectedSuggestion(sessionId: string, suggestionId: string): void {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      console.warn(`Session ${sessionId} not found when recording rejection`);
+      return;
+    }
+
+    if (!session.rejectedSuggestionIds) {
+      session.rejectedSuggestionIds = new Set();
+    }
+
+    session.rejectedSuggestionIds.add(suggestionId);
+    console.log(`[VoiceNoteService] Recorded rejection for suggestion ${suggestionId} in session ${sessionId}`);
   }
 
   /**

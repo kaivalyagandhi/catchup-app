@@ -784,7 +784,12 @@ class VoiceNoteRecorder {
             
             if (editResponse.ok) {
               const editData = await editResponse.json();
-              console.log('[VoiceNotes] ✓ Created pending edit:', editData);
+              const editId = editData.edit.id;
+              console.log('[VoiceNotes] ✓ Created pending edit:', editId);
+              
+              // Store the edit ID in the suggestion for later reference
+              suggestion.editId = editId;
+              
               // Dispatch event to refresh edits list
               window.dispatchEvent(new CustomEvent('edits-updated'));
             } else {

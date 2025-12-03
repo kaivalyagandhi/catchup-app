@@ -413,7 +413,8 @@ class EnrichmentReview {
   
   /**
    * Apply modal selections (confirm checked + reject unchecked)
-   * Only accepted suggestions are applied to the contact data
+   * Accepted edits are submitted to history
+   * Rejected edits are deleted from pending
    * Requirements: 4.1, 4.2, 4.3, 4.4
    */
   async applyModalSelections(contactId) {
@@ -421,17 +422,22 @@ class EnrichmentReview {
     if (!modalState) return;
     
     const acceptedSuggestions = modalState.suggestions.filter(s => s.accepted);
-    const rejectedCount = modalState.suggestions.length - acceptedSuggestions.length;
+    const rejectedSuggestions = modalState.suggestions.filter(s => !s.accepted);
     
-    console.log(`[EnrichmentReview] Applying selections for ${contactId}: ${acceptedSuggestions.length} confirmed, ${rejectedCount} rejected`);
+    console.log(`[EnrichmentReview] Applying selections for ${contactId}: ${acceptedSuggestions.length} confirmed, ${rejectedSuggestions.length} rejected`);
     
-    // Apply accepted suggestions to contact data
+    // Delete rejected edits from pending
+    if (rejectedSuggestions.length > 0) {
+      await this.deleteRejectedEdits(rejectedSuggestions);
+    }
+    
+    // Submit accepted edits to history
     if (acceptedSuggestions.length > 0) {
-      await this.applyAcceptedSuggestions(contactId, modalState.contactName, acceptedSuggestions);
+      await this.submitAcceptedEdits(acceptedSuggestions);
     }
     
     // Show feedback
-    const message = `Confirmed ${acceptedSuggestions.length}, Rejected ${rejectedCount}`;
+    const message = `Confirmed ${acceptedSuggestions.length}, Rejected ${rejectedSuggestions.length}`;
     showToast(message, 'success');
     
     // Close modal after applying
@@ -439,17 +445,10 @@ class EnrichmentReview {
   }
   
   /**
-   * Apply accepted suggestions directly to contact data
+   * Delete rejected edits from pending
+   * Removes the pending edits that correspond to rejected suggestions
    */
-  /**
-   * Generate a deduplication key for a suggestion
-   * Used to prevent duplicate submissions in the same batch
-   */
-  generateDedupeKey(suggestion, editType, field) {
-    return `${editType}:${field || ''}:${JSON.stringify(suggestion.value)}`;
-  }
-
-  async applyAcceptedSuggestions(contactId, contactName, suggestions) {
+  async deleteRejectedEdits(rejectedSuggestions) {
     try {
       const token = localStorage.getItem('authToken');
       const userId = localStorage.getItem('userId');
@@ -459,151 +458,94 @@ class EnrichmentReview {
         return;
       }
       
-      // Fetch contacts to find the actual contact ID
-      let contact = null;
-      try {
-        const contactsResponse = await fetch(`/api/contacts?userId=${userId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (contactsResponse.ok) {
-          const contacts = await contactsResponse.json();
-          // Find contact by name
-          contact = contacts.find(c => c.name.toLowerCase() === contactName.toLowerCase());
-          
-          if (!contact) {
-            // Try fuzzy matching
-            const nameLower = contactName.toLowerCase();
-            const nameParts = nameLower.split(/\s+/);
-            contact = contacts.find(c => {
-              const contactNameLower = c.name.toLowerCase();
-              const contactParts = contactNameLower.split(/\s+/);
-              return nameParts.some(part => 
-                contactParts.some(cPart => 
-                  cPart.includes(part) || part.includes(cPart)
-                )
-              );
-            });
-          }
+      // Delete each rejected edit
+      for (const suggestion of rejectedSuggestions) {
+        if (!suggestion.editId) {
+          console.warn('[EnrichmentReview] Suggestion has no editId:', suggestion.id);
+          continue;
         }
-      } catch (err) {
-        console.error('[EnrichmentReview] Error fetching contacts:', err);
-        return;
-      }
-      
-      if (!contact) {
-        console.warn('[EnrichmentReview] Could not find contact for:', contactName);
-        return;
-      }
-      
-      console.log('[EnrichmentReview] Applying', suggestions.length, 'suggestions to contact:', contact.name);
-      
-      // Track which edits we've already created in this batch to prevent duplicates
-      const createdEditKeys = new Set();
-      let successCount = 0;
-      let duplicateCount = 0;
-      let failureCount = 0;
-      
-      // Apply each accepted suggestion
-      for (const suggestion of suggestions) {
+        
         try {
-          // Map suggestion type to edit type and field
-          let editType = 'add_tag';
-          let field = undefined;
-          
-          if (suggestion.type === 'location') {
-            editType = 'update_contact_field';
-            field = 'location';
-          } else if (suggestion.type === 'phone') {
-            editType = 'update_contact_field';
-            field = 'phone';
-          } else if (suggestion.type === 'email') {
-            editType = 'update_contact_field';
-            field = 'email';
-          } else if (suggestion.type === 'note') {
-            editType = 'update_contact_field';
-            field = 'customNotes';
-          } else if (suggestion.type === 'tag') {
-            editType = 'add_tag';
-          } else if (suggestion.type === 'interest') {
-            editType = 'add_to_group';
-          }
-          
-          // Generate deduplication key for this suggestion
-          const dedupeKey = this.generateDedupeKey(suggestion, editType, field);
-          
-          // Skip if we've already created this edit in this batch
-          if (createdEditKeys.has(dedupeKey)) {
-            console.log('[EnrichmentReview] Skipping duplicate suggestion in batch:', dedupeKey);
-            duplicateCount++;
-            continue;
-          }
-          
-          console.log('[EnrichmentReview] Applying:', editType, field ? `(${field})` : '', '=', suggestion.value);
-          console.log('[EnrichmentReview] Using sessionId:', this.currentSessionId);
-          
-          // Create pending edit via the edits API
-          const requestBody = {
-            sessionId: this.currentSessionId,
-            editType,
-            field,
-            proposedValue: suggestion.value,
-            targetContactId: contact.id,
-            targetContactName: contact.name,
-            confidenceScore: suggestion.confidence || 0.95,
-            source: {
-              type: 'voice_transcript',
-              transcriptExcerpt: suggestion.sourceText?.substring(0, 200),
-              timestamp: new Date().toISOString()
+          const response = await fetch(`/api/edits/pending/${suggestion.editId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'x-user-id': userId,
+              'Content-Type': 'application/json'
             }
-          };
+          });
           
-          console.log('[EnrichmentReview] Request body:', requestBody);
-          
-          const editResponse = await fetch('/api/edits/pending', {
+          if (response.ok) {
+            console.log(`[EnrichmentReview] ✓ Deleted rejected edit ${suggestion.editId}`);
+          } else {
+            console.error(`[EnrichmentReview] ✗ Failed to delete edit ${suggestion.editId}:`, response.status);
+          }
+        } catch (err) {
+          console.error(`[EnrichmentReview] ✗ Error deleting edit ${suggestion.editId}:`, err);
+        }
+      }
+      
+      // Refresh edits list
+      window.dispatchEvent(new CustomEvent('edits-updated'));
+    } catch (error) {
+      console.error('[EnrichmentReview] Error deleting rejected edits:', error);
+    }
+  }
+  
+  /**
+   * Submit accepted edits to history
+   * Moves the pending edits to history so they're applied
+   */
+  async submitAcceptedEdits(acceptedSuggestions) {
+    try {
+      const token = localStorage.getItem('authToken');
+      const userId = localStorage.getItem('userId');
+      
+      if (!token || !userId) {
+        console.error('[EnrichmentReview] Missing auth token or userId');
+        return;
+      }
+      
+      // Submit each accepted edit
+      for (const suggestion of acceptedSuggestions) {
+        if (!suggestion.editId) {
+          console.warn('[EnrichmentReview] Suggestion has no editId:', suggestion.id);
+          continue;
+        }
+        
+        try {
+          const response = await fetch(`/api/edits/pending/${suggestion.editId}/submit`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
               'x-user-id': userId,
               'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
+            }
           });
           
-          if (editResponse.ok) {
-            const result = await editResponse.json();
-            
-            // Mark this edit as created
-            createdEditKeys.add(dedupeKey);
-            
-            // Log if this was a duplicate (server returned 200 instead of 201)
-            if (result.isDuplicate) {
-              console.log('[EnrichmentReview] Server returned existing edit (duplicate):', result.edit.id);
-              duplicateCount++;
-            } else {
-              console.log('[EnrichmentReview] ✓ Applied suggestion:', editType);
-              successCount++;
-            }
-            
-            // Dispatch event to refresh edits list
-            window.dispatchEvent(new CustomEvent('edits-updated'));
+          if (response.ok) {
+            console.log(`[EnrichmentReview] ✓ Submitted edit ${suggestion.editId} to history`);
           } else {
-            const errorText = await editResponse.text();
-            console.error('[EnrichmentReview] ✗ Failed to apply suggestion:', editResponse.status, errorText);
-            failureCount++;
+            console.error(`[EnrichmentReview] ✗ Failed to submit edit ${suggestion.editId}:`, response.status);
           }
         } catch (err) {
-          console.error('[EnrichmentReview] ✗ Exception applying suggestion:', err);
-          failureCount++;
+          console.error(`[EnrichmentReview] ✗ Error submitting edit ${suggestion.editId}:`, err);
         }
       }
       
-      // Log summary
-      console.log(`[EnrichmentReview] Summary: ${successCount} created, ${duplicateCount} duplicates, ${failureCount} failures`);
+      // Refresh edits list
+      window.dispatchEvent(new CustomEvent('edits-updated'));
     } catch (error) {
-      console.error('[EnrichmentReview] Error applying accepted suggestions:', error);
+      console.error('[EnrichmentReview] Error submitting accepted edits:', error);
     }
   }
+  
+  /**
+   * Apply accepted suggestions directly to contact data
+   */
+
+
+
   
   /**
    * Show the panel in recording mode (waiting for suggestions)
