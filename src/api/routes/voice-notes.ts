@@ -303,12 +303,31 @@ router.post('/:id/enrichment/apply', async (req: Request, res: Response): Promis
         if (!item.accepted) continue;
         
         try {
+          // Map enrichment item types to edit types
+          let editType: string;
+          let proposedValue: string;
+          
+          if (item.type === 'tag') {
+            editType = 'add_tag';
+            proposedValue = item.value;
+          } else if (item.type === 'group') {
+            editType = 'add_to_group';
+            proposedValue = item.value;
+          } else if (item.type === 'field') {
+            editType = 'update_contact_field';
+            proposedValue = item.value;
+          } else {
+            console.warn(`Unknown enrichment item type: ${item.type}`);
+            totalFailed++;
+            continue;
+          }
+          
           // Create a pending edit for each enrichment item
           await editService.createPendingEdit({
             userId,
             sessionId: id, // Use voice note ID as session ID
-            editType: item.type as any,
-            proposedValue: item.value,
+            editType: editType as any,
+            proposedValue: proposedValue,
             targetContactId: contactProposal.contactId,
             targetContactName: contactProposal.contactName,
             confidenceScore: 0.9, // High confidence for enrichment
@@ -480,7 +499,71 @@ router.post('/text', async (req: Request, res: Response): Promise<void> => {
     await voiceNoteRepository.associateContacts(voiceNote.id, userId, contactIds);
     console.log(`Associated ${contactIds.length} contacts with voice note`);
     
-    // 7. Update voice note with enrichment data and mark as ready
+    // 7. Create a chat session for this text input
+    const { SessionManager } = await import('../../edits/session-manager');
+    const sessionManager = new SessionManager();
+    const chatSession = await sessionManager.startSession(userId);
+    console.log(`Chat session created: ${chatSession.id}`);
+    
+    // 8. Create pending edits for each enrichment item (same as audio flow)
+    const { EditService } = await import('../../edits/edit-service');
+    const editService = new EditService();
+    
+    let totalCreated = 0;
+    let totalFailed = 0;
+    
+    for (const contactProposal of proposal.contactProposals) {
+      if (!contactProposal.contactId) continue;
+      
+      for (const item of contactProposal.items) {
+        if (!item.accepted) continue;
+        
+        try {
+          // Map enrichment item types to edit types
+          let editType: string;
+          let proposedValue: string;
+          
+          if (item.type === 'tag') {
+            editType = 'add_tag';
+            proposedValue = item.value;
+          } else if (item.type === 'group') {
+            editType = 'add_to_group';
+            proposedValue = item.value;
+          } else if (item.type === 'field') {
+            editType = 'update_contact_field';
+            proposedValue = item.value;
+          } else {
+            console.warn(`Unknown enrichment item type: ${item.type}`);
+            totalFailed++;
+            continue;
+          }
+          
+          // Create a pending edit for each enrichment item
+          await editService.createPendingEdit({
+            userId,
+            sessionId: chatSession.id, // Use chat session ID
+            editType: editType as any,
+            proposedValue: proposedValue,
+            targetContactId: contactProposal.contactId,
+            targetContactName: contactProposal.contactName,
+            confidenceScore: 0.9, // High confidence for enrichment
+            source: {
+              type: 'text_input',
+              transcriptExcerpt: transcript.substring(0, 200),
+              timestamp: new Date(),
+            },
+          });
+          totalCreated++;
+        } catch (itemError) {
+          console.error(`Failed to create edit for item ${item.id}:`, itemError);
+          totalFailed++;
+        }
+      }
+    }
+    
+    console.log(`Created ${totalCreated} pending edits from text message`);
+    
+    // 9. Update voice note with enrichment data and mark as ready
     const updatedVoiceNote = await voiceNoteRepository.update(voiceNote.id, userId, {
       enrichmentData: proposal,
       status: 'ready' as any,
@@ -493,6 +576,7 @@ router.post('/text', async (req: Request, res: Response): Promise<void> => {
       voiceNote: updatedVoiceNote,
       enrichmentProposal: proposal,
       mentionedContacts: mentionedContacts.map(c => ({ id: c.id, name: c.name })),
+      editsCreated: totalCreated,
       message: hasEnrichmentItems 
         ? `Found ${proposal.contactProposals.reduce((sum, cp) => sum + cp.items.length, 0)} enrichment items for ${mentionedContacts.length} contact(s).`
         : 'Contact identified but no new information to add.',

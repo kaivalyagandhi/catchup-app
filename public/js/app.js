@@ -3432,6 +3432,65 @@ async function processTextMessageForEnrichment(text) {
                         timestamp: new Date().toISOString()
                     });
                     
+                    // Show enrichment review modals with timed auto-dismiss
+                    if (window.enrichmentReview && result.enrichmentProposal) {
+                        console.log('[App] Displaying enrichment modals for text input');
+                        
+                        // Fetch pending edits to get editIds
+                        try {
+                            const editsResponse = await fetch(`${API_BASE}/edits/pending`, {
+                                headers: { 
+                                    'Authorization': `Bearer ${authToken}`,
+                                    'x-user-id': userId
+                                }
+                            });
+                            
+                            if (editsResponse.ok) {
+                                const editsData = await editsResponse.json();
+                                const pendingEdits = editsData.edits || [];
+                                
+                                // Add each enrichment item to the review interface
+                                for (const contactProposal of result.enrichmentProposal.contactProposals) {
+                                    if (contactProposal.items && contactProposal.items.length > 0) {
+                                        const contactName = contactProposal.contactName;
+                                        const contactId = window.enrichmentReview.generateContactId(contactName);
+                                        
+                                        // Get or create modal for this contact
+                                        window.enrichmentReview.getOrCreateContactModal(contactId, contactName);
+                                        
+                                        for (const item of contactProposal.items) {
+                                            // Find matching pending edit
+                                            const matchingEdit = pendingEdits.find(edit => 
+                                                edit.targetContactId === contactProposal.contactId &&
+                                                edit.proposedValue === item.value
+                                            );
+                                            
+                                            const suggestion = {
+                                                id: item.id,
+                                                type: item.type,
+                                                value: item.value,
+                                                field: item.field,
+                                                accepted: item.accepted !== false,
+                                                contactHint: contactName,
+                                                editId: matchingEdit?.id // Use the actual pending edit ID
+                                            };
+                                            console.log('[App] Adding suggestion to modal:', suggestion);
+                                            window.enrichmentReview.addSuggestionToModal(contactId, suggestion);
+                                        }
+                                        
+                                        // Show the modal with timed auto-dismiss
+                                        console.log('[App] Showing modal for contact:', contactName);
+                                        window.enrichmentReview.showContactModal(contactId);
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.error('[App] Error fetching pending edits for enrichment display:', error);
+                        }
+                    } else {
+                        console.warn('[App] enrichmentReview not available or no enrichment proposal');
+                    }
+                    
                     // Update pending edit count
                     if (floatingChatIcon) {
                         const currentCount = floatingChatIcon.pendingEditCount || 0;
