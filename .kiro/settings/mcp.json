@@ -18,7 +18,9 @@
         "chrome-devtools-mcp@latest"
       ],
       "disabled": false,
-      "autoApprove": []
+      "autoApprove": [
+        "take_snapshot"
+      ]
     },
     "playwright": {
       "command": "npx",

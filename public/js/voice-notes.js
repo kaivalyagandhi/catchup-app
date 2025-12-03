@@ -22,15 +22,7 @@ class VoiceNoteRecorder {
     this.maxBufferSize = 100 * 1024 * 1024; // 100MB
     
     // UI Elements
-    this.recordButton = null;
-    this.stopButton = null;
-    this.pauseButton = null;
-    this.resumeButton = null;
-    this.transcriptContainer = null;
     this.errorDisplay = null;
-    this.waveformCanvas = null;
-    this.waveformContext = null;
-    this.visualizationWarnings = null;
     
     // Enrichment panel
     this.enrichmentPanel = null;
@@ -39,11 +31,7 @@ class VoiceNoteRecorder {
     this.currentEnrichmentProposal = null;
     this.userApprovedEnrichment = null;
     
-    // Audio level warnings state
-    this.lastSilenceWarning = 0;
-    this.lastLowLevelWarning = 0;
-    this.lastClippingWarning = 0;
-    this.warningThrottleMs = 5000; // Show warnings at most every 5 seconds
+
     
     this.init();
   }
@@ -104,44 +92,13 @@ class VoiceNoteRecorder {
       document.body.appendChild(chatMessages);
     }
     
-    // Create a wrapper for voice recorder UI
+    // Create a minimal wrapper for error display only
     const wrapper = document.createElement('div');
     wrapper.className = 'voice-recorder-wrapper';
     wrapper.innerHTML = `
       <div class="voice-recorder-container">
         <!-- Error Display -->
         <div id="voice-error" class="error hidden"></div>
-        
-        <!-- Recording Controls -->
-        <div class="recording-controls">
-          <button id="record-btn" class="record-button">
-            <span class="record-icon">🎤</span>
-            <span class="record-text">Start Recording</span>
-          </button>
-          
-          <button id="stop-btn" class="stop-button hidden">
-            <span class="stop-icon">⏹️</span>
-            <span class="stop-text">Stop Recording</span>
-          </button>
-        </div>
-        
-        <!-- Waveform Visualization -->
-        <div class="waveform-container hidden" id="waveform-container">
-          <canvas id="waveform-canvas" width="600" height="100"></canvas>
-          <div id="visualization-warnings" class="visualization-warnings"></div>
-        </div>
-        
-        <!-- Transcript Display -->
-        <div class="transcript-container">
-          <h3>Transcript</h3>
-          <div class="transcript-display" id="transcript-display"></div>
-        </div>
-        
-        <!-- Processing Status -->
-        <div id="processing-status" class="processing-status hidden">
-          <div class="spinner"></div>
-          <span class="processing-text">Processing...</span>
-        </div>
       </div>
     `;
     
@@ -155,13 +112,7 @@ class VoiceNoteRecorder {
     document.body.appendChild(enrichmentContainer);
     
     // Get UI element references
-    this.recordButton = document.getElementById('record-btn');
-    this.stopButton = document.getElementById('stop-btn');
-    this.transcriptContainer = document.getElementById('transcript-display');
     this.errorDisplay = document.getElementById('voice-error');
-    this.waveformCanvas = document.getElementById('waveform-canvas');
-    this.waveformContext = this.waveformCanvas?.getContext('2d');
-    this.visualizationWarnings = document.getElementById('visualization-warnings');
     
     this.addStyles();
   }
@@ -210,263 +161,14 @@ class VoiceNoteRecorder {
       }
       
       .voice-recorder-wrapper {
-        width: 100%;
-        padding: 16px;
-        background: white;
-        border-radius: 8px;
-        margin-bottom: 12px;
-      }
-      
-      .voice-recorder-container {
-        max-width: 100%;
-        margin: 0;
-      }
-      
-      .recording-controls {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 30px;
-        flex-wrap: wrap;
-      }
-      
-      .record-button, .pause-button, .resume-button, .stop-button {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 15px 30px;
-        font-size: 16px;
-        font-weight: 600;
-        border-radius: 8px;
-        transition: all 0.3s;
-      }
-      
-      .record-button {
-        background: #2563eb;
-        color: white;
-      }
-      
-      .record-button:hover {
-        background: #1d4ed8;
-        transform: scale(1.05);
-      }
-      
-      .pause-button {
-        background: #f59e0b;
-        color: white;
-      }
-      
-      .pause-button:hover {
-        background: #d97706;
-      }
-      
-      .resume-button {
-        background: #10b981;
-        color: white;
-      }
-      
-      .resume-button:hover {
-        background: #059669;
-      }
-      
-      .stop-button {
-        background: #ef4444;
-        color: white;
-      }
-      
-      .stop-button:hover {
-        background: #dc2626;
-      }
-      
-      .status-indicator {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        background: #fee2e2;
-        border-radius: 20px;
-        color: #991b1b;
-        font-weight: 500;
-      }
-      
-      .status-dot {
-        width: 12px;
-        height: 12px;
-        background: #ef4444;
-        border-radius: 50%;
-        animation: pulse 1.5s ease-in-out infinite;
-      }
-      
-      @keyframes pulse {
-        0%, 100% {
-          opacity: 1;
-          transform: scale(1);
-        }
-        50% {
-          opacity: 0.5;
-          transform: scale(1.1);
-        }
-      }
-      
-      .duration-display {
-        padding: 8px 16px;
-        background: #f3f4f6;
-        border-radius: 20px;
-        font-weight: 600;
-        color: #374151;
-        font-family: 'Courier New', monospace;
-        font-size: 16px;
-      }
-      
-      .waveform-container {
-        margin-bottom: 30px;
-        padding: 20px;
-        background: #f9fafb;
-        border-radius: 8px;
-        border: 1px solid #e5e7eb;
-      }
-      
-      #waveform-canvas {
-        width: 100%;
-        height: 100px;
-        display: block;
-      }
-      
-      .visualization-warnings {
-        margin-top: 10px;
-        min-height: 24px;
-      }
-      
-      .visualization-warning {
-        display: inline-block;
-        padding: 6px 12px;
-        margin: 4px;
-        border-radius: 4px;
-        font-size: 14px;
-        font-weight: 500;
-      }
-      
-      .warning-silence {
-        background: #fef3c7;
-        color: #92400e;
-      }
-      
-      .warning-low-level {
-        background: #fed7aa;
-        color: #9a3412;
-      }
-      
-      .warning-clipping {
-        background: #fecaca;
-        color: #991b1b;
-      }
-      
-      .transcript-container {
-        margin-top: 30px;
-      }
-      
-      .transcript-container h3 {
-        margin-bottom: 15px;
-        color: #1f2937;
-      }
-      
-      .transcript-display {
-        min-height: 200px;
-        max-height: 400px;
-        overflow-y: auto;
-        padding: 20px;
-        background: white;
-        border: 2px solid #e5e7eb;
-        border-radius: 8px;
-        font-size: 16px;
-        line-height: 1.6;
-      }
-      
-      .transcript-segment {
-        display: inline;
-      }
-      
-      .transcript-final {
-        color: #1f2937;
-      }
-      
-      .transcript-interim {
-        color: #9ca3af;
-        font-style: italic;
-      }
-      
-      .transcript-pause-marker {
-        color: #f59e0b;
-        font-weight: bold;
-        margin: 0 4px;
-      }
-      
-      .confidence-high {
-        font-weight: 600;
-      }
-      
-      .confidence-medium {
-        font-weight: normal;
-      }
-      
-      .confidence-low {
-        color: #9ca3af;
-        font-weight: 300;
-      }
-      
-      .processing-status {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 15px 20px;
-        background: #e0f2fe;
-        border-radius: 8px;
-        margin-top: 20px;
-        color: #0369a1;
-        font-weight: 500;
-      }
-      
-      .spinner {
-        width: 20px;
-        height: 20px;
-        border: 3px solid #bfdbfe;
-        border-top-color: #0284c7;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-      
-      @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-      
-      @media (max-width: 768px) {
-        .recording-controls {
-          flex-direction: column;
-          align-items: stretch;
-        }
-        
-        .record-button, .stop-button {
-          width: 100%;
-          justify-content: center;
-        }
-        
-        .status-indicator, .duration-display {
-          justify-content: center;
-        }
+        display: none;
       }
     `;
     document.head.appendChild(style);
   }
   
   attachEventListeners() {
-    if (this.recordButton) {
-      this.recordButton.addEventListener('click', () => this.startRecording());
-    }
-    
-    if (this.stopButton) {
-      this.stopButton.addEventListener('click', () => this.stopRecording());
-    }
+    // Event listeners removed - recording is now triggered via enrichment panel
   }
   
   async startRecording() {
@@ -502,9 +204,6 @@ class VoiceNoteRecorder {
       // Clear transcript manager
       this.transcriptManager.clear();
       
-      // Setup audio visualization
-      this.setupAudioVisualization();
-      
       // Create chat session for pending edits
       console.log('Creating chat session...');
       await this.createSession();
@@ -513,20 +212,8 @@ class VoiceNoteRecorder {
       // Connect WebSocket for real-time transcription
       await this.connectWebSocket();
       
-      // Don't show enrichment review during recording anymore
-      // Enrichment is now creating pending edits instead
-      // if (window.enrichmentReview) {
-      //   window.enrichmentReview.showRecordingMode();
-      // }
-      
-      // Update UI
-      this.updateUIForRecording();
-      
       // Show recording indicator
       this.updateRecordingIndicator();
-      
-      // Start waveform animation
-      this.animateWaveform();
       
       // Start updating indicator time
       this.startIndicatorTimer();
@@ -557,53 +244,10 @@ class VoiceNoteRecorder {
       // Used for visualization - no action needed here
     };
     
-    // Silence detected callback
-    this.audioManager.onSilenceDetected = () => {
-      this.showVisualizationWarning('silence', 'No audio detected. Please speak into the microphone.');
-    };
-    
-    // Low level detected callback
-    this.audioManager.onLowLevelDetected = () => {
-      this.showVisualizationWarning('low-level', 'Audio level is low. Please speak louder or move closer to the microphone.');
-    };
-    
-    // Clipping detected callback
-    this.audioManager.onClippingDetected = () => {
-      this.showVisualizationWarning('clipping', 'Audio is clipping. Please speak softer or move away from the microphone.');
-    };
+    // Audio level callbacks removed - no visualization needed
   }
   
-  showVisualizationWarning(type, message) {
-    if (!this.visualizationWarnings) return;
-    
-    // Throttle warnings
-    const now = Date.now();
-    if (type === 'silence' && now - this.lastSilenceWarning < this.warningThrottleMs) return;
-    if (type === 'low-level' && now - this.lastLowLevelWarning < this.warningThrottleMs) return;
-    if (type === 'clipping' && now - this.lastClippingWarning < this.warningThrottleMs) return;
-    
-    // Update last warning time
-    if (type === 'silence') this.lastSilenceWarning = now;
-    if (type === 'low-level') this.lastLowLevelWarning = now;
-    if (type === 'clipping') this.lastClippingWarning = now;
-    
-    // Clear existing warnings of this type
-    const existingWarning = this.visualizationWarnings.querySelector(`.warning-${type}`);
-    if (existingWarning) {
-      existingWarning.remove();
-    }
-    
-    // Add new warning
-    const warning = document.createElement('div');
-    warning.className = `visualization-warning warning-${type}`;
-    warning.textContent = message;
-    this.visualizationWarnings.appendChild(warning);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-      warning.remove();
-    }, 5000);
-  }
+
   
   pauseRecording() {
     if (!this.audioManager || !this.audioManager.isRecording()) {
@@ -625,14 +269,8 @@ class VoiceNoteRecorder {
       // Insert pause marker in transcript
       this.transcriptManager.insertPauseMarker();
       
-      // Update UI
-      this.updateUIForPaused();
-      
       // Update recording indicator
       this.updateRecordingIndicator();
-      
-      // Render updated transcript
-      this.renderTranscript();
       
     } catch (error) {
       console.error('Error pausing recording:', error);
@@ -656,9 +294,6 @@ class VoiceNoteRecorder {
           data: {}
         }));
       }
-      
-      // Update UI
-      this.updateUIForRecording();
       
       // Update recording indicator
       this.updateRecordingIndicator();
@@ -740,60 +375,7 @@ class VoiceNoteRecorder {
     }
   }
   
-  setupAudioVisualization() {
-    // AudioManager handles audio analysis internally
-    // We just need to access its analyser for visualization
-    if (!this.audioManager || !this.audioManager.analyser) {
-      console.warn('Audio visualization not available');
-      return;
-    }
-  }
-  
-  animateWaveform() {
-    if (!this.audioManager || !this.audioManager.isRecording() || !this.waveformContext) {
-      return;
-    }
-    
-    requestAnimationFrame(() => this.animateWaveform());
-    
-    const analyser = this.audioManager.analyser;
-    const dataArray = this.audioManager.dataArray;
-    
-    if (!analyser || !dataArray) return;
-    
-    analyser.getByteTimeDomainData(dataArray);
-    
-    const canvas = this.waveformCanvas;
-    const ctx = this.waveformContext;
-    const width = canvas.width;
-    const height = canvas.height;
-    
-    ctx.fillStyle = '#f9fafb';
-    ctx.fillRect(0, 0, width, height);
-    
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#2563eb';
-    ctx.beginPath();
-    
-    const sliceWidth = width / dataArray.length;
-    let x = 0;
-    
-    for (let i = 0; i < dataArray.length; i++) {
-      const v = dataArray[i] / 128.0;
-      const y = (v * height) / 2;
-      
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-      
-      x += sliceWidth;
-    }
-    
-    ctx.lineTo(width, height / 2);
-    ctx.stroke();
-  }
+
   
   async connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -1299,39 +881,17 @@ class VoiceNoteRecorder {
   updateInterimTranscript(text, confidence = 0.8) {
     console.log('updateInterimTranscript called with:', { text, confidence, length: text?.length });
     this.transcriptManager.addInterimText(text, confidence);
-    this.renderTranscript();
   }
   
   updateFinalTranscript(text, confidence = 1.0) {
     console.log('updateFinalTranscript called with:', { text, confidence, length: text?.length });
     this.transcriptManager.finalizeText(text, confidence);
-    this.renderTranscript();
   }
   
   renderTranscript() {
-    // Try to get container if not cached
-    if (!this.transcriptContainer) {
-      this.transcriptContainer = document.getElementById('transcript-display');
-    }
-    
-    if (!this.transcriptContainer) {
-      console.warn('renderTranscript: transcriptContainer is null, cannot render');
-      return;
-    }
-    
-    // Clear container
-    this.transcriptContainer.innerHTML = '';
-    
-    // Render transcript using TranscriptManager
-    const transcriptElement = this.transcriptManager.render();
-    this.transcriptContainer.appendChild(transcriptElement);
-    
-    // Debug: log what we're rendering
+    // Transcript rendering removed - transcripts are now stored internally only
     const fullText = this.transcriptManager.getFullTranscript();
-    console.log('renderTranscript: rendered', fullText.length, 'chars');
-    
-    // Scroll to bottom
-    this.transcriptContainer.scrollTop = this.transcriptContainer.scrollHeight;
+    console.log('Transcript updated:', fullText.length, 'chars');
   }
   
   updateRecordingIndicator() {
@@ -1378,7 +938,6 @@ class VoiceNoteRecorder {
     // Display final transcript if not already shown
     if (voiceNote.transcript && this.transcriptManager.getWordCount() === 0) {
       this.transcriptManager.finalizeText(voiceNote.transcript, 1.0);
-      this.renderTranscript();
     }
     
     showToast('Voice note processed successfully!', 'success');
@@ -1543,7 +1102,6 @@ class VoiceNoteRecorder {
       // Display transcript using TranscriptManager
       if (voiceNote.transcript) {
         this.transcriptManager.finalizeText(voiceNote.transcript, 1.0);
-        this.renderTranscript();
       }
       
       showToast('Voice note processed successfully!', 'success');
@@ -1767,49 +1325,17 @@ class VoiceNoteRecorder {
   }
   
   updateUIForRecording() {
-    if (this.recordButton) {
-      this.recordButton.classList.add('hidden');
-    }
-    
-    if (this.stopButton) {
-      this.stopButton.classList.remove('hidden');
-    }
-    
-    const waveformContainer = document.getElementById('waveform-container');
-    if (waveformContainer) {
-      waveformContainer.classList.remove('hidden');
-    }
+    // UI updates removed - recording is now background-only
   }
   
   updateUIForStopped() {
-    if (this.recordButton) {
-      this.recordButton.classList.remove('hidden');
-    }
-    
-    if (this.stopButton) {
-      this.stopButton.classList.add('hidden');
-    }
-    
-    const waveformContainer = document.getElementById('waveform-container');
-    if (waveformContainer) {
-      waveformContainer.classList.add('hidden');
-    }
+    // UI updates removed - recording is now background-only
   }
   
   resetUI() {
     // Clear transcript manager
     if (this.transcriptManager) {
       this.transcriptManager.clear();
-    }
-    
-    // Clear transcript display
-    if (this.transcriptContainer) {
-      this.transcriptContainer.innerHTML = '';
-    }
-    
-    // Clear visualization warnings
-    if (this.visualizationWarnings) {
-      this.visualizationWarnings.innerHTML = '';
     }
     
     // Clear enrichment panel
@@ -1870,18 +1396,12 @@ class VoiceNoteRecorder {
   }
   
   showProcessingStatus(message) {
-    const statusElement = document.getElementById('processing-status');
-    if (statusElement) {
-      statusElement.querySelector('.processing-text').textContent = message;
-      statusElement.classList.remove('hidden');
-    }
+    // Processing status UI removed - logging only
+    console.log('[VoiceNotes] Status:', message);
   }
   
   hideProcessingStatus() {
-    const statusElement = document.getElementById('processing-status');
-    if (statusElement) {
-      statusElement.classList.add('hidden');
-    }
+    // Processing status UI removed
   }
 }
 
