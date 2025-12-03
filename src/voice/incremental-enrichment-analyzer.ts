@@ -355,12 +355,18 @@ export class IncrementalEnrichmentAnalyzer {
       }
 
       // Merge suggestions with existing ones (don't replace)
-      // Deduplicate by ID to avoid duplicates
+      // Deduplicate by ID and by value to avoid duplicates
       const existingIds = new Set(state.suggestions.map(s => s.id));
-      const newSuggestions = suggestions.filter(s => !existingIds.has(s.id));
+      const existingValues = new Set(state.suggestions.map(s => this.getSuggestionKey(s)));
+      
+      const newSuggestions = suggestions.filter(s => {
+        const suggestionKey = this.getSuggestionKey(s);
+        return !existingIds.has(s.id) && !existingValues.has(suggestionKey);
+      });
+      
       state.suggestions.push(...newSuggestions);
       
-      console.log(`[EnrichmentAnalyzer] triggerEnrichment complete: ${suggestions.length} new suggestions, ${state.suggestions.length} total`);
+      console.log(`[EnrichmentAnalyzer] triggerEnrichment complete: ${suggestions.length} new suggestions (${newSuggestions.length} after dedup), ${state.suggestions.length} total`);
 
       // Update state
       state.processedWordCount = this.countWords(state.fullTranscript);

@@ -97,6 +97,7 @@ export class EnrichmentService {
    *
    * Creates separate proposals for each contact based on extracted entities.
    * Supports shared information that applies to all contacts.
+   * Deduplicates items to prevent duplicate tags, notes, and fields.
    *
    * Requirements: 3.5
    *
@@ -137,14 +138,23 @@ export class EnrichmentService {
       }
 
       const items: EnrichmentItem[] = [];
+      
+      // Track added items to deduplicate within this proposal
+      const addedTags = new Set<string>();
+      const addedGroups = new Set<string>();
+      const addedFields = new Set<string>();
 
       // Generate tag enrichment items
       for (const tag of contactEntities.tags) {
+        const tagLower = tag.toLowerCase();
+        
         // Check if contact already has this tag (case-insensitive)
         const hasTag = contact.tags.some(
-          (t) => t.text.toLowerCase() === tag.toLowerCase()
+          (t) => t.text.toLowerCase() === tagLower
         );
-        if (!hasTag) {
+        
+        // Check if we've already added this tag in this proposal (deduplication)
+        if (!hasTag && !addedTags.has(tagLower)) {
           items.push({
             id: uuidv4(),
             type: 'tag',
@@ -152,16 +162,21 @@ export class EnrichmentService {
             value: tag,
             accepted: true, // Default to accepted
           });
+          addedTags.add(tagLower);
         }
       }
 
       // Generate group enrichment items
       for (const group of contactEntities.groups) {
+        const groupLower = group.toLowerCase();
+        
         // Check if contact already in this group (case-insensitive)
         const inGroup = contact.groups.some(
-          (g) => g.toLowerCase() === group.toLowerCase()
+          (g) => g.toLowerCase() === groupLower
         );
-        if (!inGroup) {
+        
+        // Check if we've already added this group in this proposal (deduplication)
+        if (!inGroup && !addedGroups.has(groupLower)) {
           items.push({
             id: uuidv4(),
             type: 'group',
@@ -169,36 +184,49 @@ export class EnrichmentService {
             value: group,
             accepted: true,
           });
+          addedGroups.add(groupLower);
         }
       }
 
       // Generate field enrichment items
       for (const [fieldName, fieldValue] of Object.entries(contactEntities.fields)) {
         if (fieldValue !== null && fieldValue !== undefined && fieldValue !== '') {
-          // Determine if this is an add or update
-          const currentValue = (contact as any)[fieldName];
-          const action = currentValue ? 'update' : 'add';
+          const fieldKey = `${fieldName}:${String(fieldValue).toLowerCase()}`;
+          
+          // Check if we've already added this field in this proposal (deduplication)
+          if (!addedFields.has(fieldKey)) {
+            // Determine if this is an add or update
+            const currentValue = (contact as any)[fieldName];
+            const action = currentValue ? 'update' : 'add';
 
-          items.push({
-            id: uuidv4(),
-            type: 'field',
-            action,
-            field: fieldName,
-            value: fieldValue,
-            accepted: true,
-          });
+            items.push({
+              id: uuidv4(),
+              type: 'field',
+              action,
+              field: fieldName,
+              value: fieldValue,
+              accepted: true,
+            });
+            addedFields.add(fieldKey);
+          }
         }
       }
 
       // Generate lastContactDate enrichment item
       if (contactEntities.lastContactDate) {
-        items.push({
-          id: uuidv4(),
-          type: 'lastContactDate',
-          action: contact.lastContactDate ? 'update' : 'add',
-          value: contactEntities.lastContactDate,
-          accepted: true,
-        });
+        const dateKey = `lastContactDate:${contactEntities.lastContactDate.toISOString()}`;
+        
+        // Check if we've already added this date in this proposal (deduplication)
+        if (!addedFields.has(dateKey)) {
+          items.push({
+            id: uuidv4(),
+            type: 'lastContactDate',
+            action: contact.lastContactDate ? 'update' : 'add',
+            value: contactEntities.lastContactDate,
+            accepted: true,
+          });
+          addedFields.add(dateKey);
+        }
       }
 
       contactProposals.push({

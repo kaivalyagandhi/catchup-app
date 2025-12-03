@@ -48,6 +48,7 @@ export interface VoiceNoteSession {
   audioSegments: Buffer[]; // For long recording segmentation
   lastSegmentTime: Date;
   userContacts?: Contact[]; // User's contacts for incremental enrichment context
+  emittedSuggestionIds?: Set<string>; // Track which suggestions have been emitted to avoid duplicates
 }
 
 /**
@@ -808,6 +809,7 @@ export class VoiceNoteService extends EventEmitter {
    * Analyze transcript for incremental enrichment
    * 
    * Triggers enrichment analysis at natural breakpoints and emits suggestions.
+   * Only emits NEW suggestions that haven't been sent before to avoid duplicates.
    * 
    * @param sessionId - Session ID
    * @param newText - New transcript text to analyze
@@ -836,20 +838,36 @@ export class VoiceNoteService extends EventEmitter {
       
       console.log(`[EnrichmentAnalysis] Session ${sessionId}: triggered=${triggered}`);
       
-      // If enrichment was triggered, get and emit the suggestions
+      // If enrichment was triggered, get and emit only NEW suggestions
       if (triggered) {
-        const suggestions = this.enrichmentAnalyzer.getSuggestions(sessionId);
-        console.log(`[EnrichmentAnalysis] Session ${sessionId}: got ${suggestions.length} suggestions`);
+        const allSuggestions = this.enrichmentAnalyzer.getSuggestions(sessionId);
+        console.log(`[EnrichmentAnalysis] Session ${sessionId}: got ${allSuggestions.length} total suggestions`);
         
-        if (suggestions && suggestions.length > 0) {
-          console.log(`Emitting ${suggestions.length} enrichment suggestions for session ${sessionId}`);
-          console.log(`Suggestion details:`, suggestions);
+        // Initialize emitted suggestions tracking if needed
+        if (!session.emittedSuggestionIds) {
+          session.emittedSuggestionIds = new Set();
+        }
+        
+        // Filter to only NEW suggestions that haven't been emitted yet
+        const newSuggestions = allSuggestions.filter(s => !session.emittedSuggestionIds!.has(s.id));
+        
+        console.log(`[EnrichmentAnalysis] Session ${sessionId}: ${newSuggestions.length} new suggestions (${allSuggestions.length} total, ${session.emittedSuggestionIds.size} already emitted)`);
+        
+        if (newSuggestions && newSuggestions.length > 0) {
+          console.log(`Emitting ${newSuggestions.length} NEW enrichment suggestions for session ${sessionId}`);
+          console.log(`Suggestion details:`, newSuggestions);
+          
+          // Mark these suggestions as emitted
+          for (const suggestion of newSuggestions) {
+            session.emittedSuggestionIds.add(suggestion.id);
+          }
+          
           this.emit('enrichment_update', {
             sessionId,
-            suggestions,
+            suggestions: newSuggestions,
           });
         } else {
-          console.log(`[EnrichmentAnalysis] Session ${sessionId}: triggered but no suggestions generated`);
+          console.log(`[EnrichmentAnalysis] Session ${sessionId}: triggered but no NEW suggestions to emit`);
         }
       }
     } catch (error) {

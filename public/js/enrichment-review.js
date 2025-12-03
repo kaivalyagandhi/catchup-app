@@ -935,10 +935,10 @@ class EnrichmentReview {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px;
+        padding: 10px 12px;
         cursor: pointer;
         user-select: none;
-        background: #f9fafb;
+        background: #fafbfc;
         transition: background 0.2s;
       }
       
@@ -953,8 +953,8 @@ class EnrichmentReview {
       }
       
       .contact-avatar {
-        width: 48px;
-        height: 48px;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -962,7 +962,8 @@ class EnrichmentReview {
         align-items: center;
         justify-content: center;
         font-weight: 600;
-        font-size: 18px;
+        font-size: 13px;
+        flex-shrink: 0;
       }
       
       .contact-details {
@@ -1008,14 +1009,15 @@ class EnrichmentReview {
       }
       
       .enrichment-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 16px;
+        display: grid;
+        grid-template-columns: 20px 18px 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
         background: white;
-        border: 2px solid #e5e7eb;
-        border-radius: 8px;
-        margin-bottom: 12px;
+        border: 1px solid #f0f0f0;
+        border-radius: 6px;
+        margin-bottom: 6px;
         transition: all 0.2s;
       }
       
