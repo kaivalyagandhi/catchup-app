@@ -19,91 +19,126 @@ class EnrichmentReview {
   
   /**
    * Show the panel in recording mode (waiting for suggestions)
+   * Now just sets the flag - toasts will be shown as suggestions arrive
    */
   showRecordingMode() {
     this.isRecording = true;
     this.proposal = null;
     
     const container = document.getElementById('enrichment-review-container');
-    if (!container) return;
-    
-    this.container = container;
-    container.innerHTML = `
-      <div class="enrichment-review">
-        <div class="enrichment-header">
-          <h2>🎤 Live Enrichment</h2>
-          <p class="enrichment-subtitle">Suggestions will appear as you speak...</p>
-        </div>
-        
-        <div class="enrichment-recording-state">
-          <div class="recording-pulse"></div>
-          <p>Listening for contact information, locations, and other details...</p>
-        </div>
-        
-        <div class="enrichment-live-suggestions" id="enrichment-live-suggestions">
-          <!-- Live suggestions will be added here -->
-        </div>
-      </div>
-    `;
+    if (container) {
+      container.innerHTML = '';
+    }
   }
   
   /**
-   * Add a live suggestion during recording
+   * Add a live suggestion during recording as a toast
    * @param {Object} suggestion - Enrichment suggestion
    */
   addLiveSuggestion(suggestion) {
     if (!this.isRecording) return;
     
-    const container = document.getElementById('enrichment-live-suggestions');
-    if (!container) return;
-    
-    // Check if suggestion already exists
-    const existingId = `live-suggestion-${suggestion.id}`;
-    if (document.getElementById(existingId)) {
-      return; // Already displayed
-    }
-    
-    // Create suggestion element
-    const suggestionEl = document.createElement('div');
-    suggestionEl.id = existingId;
-    suggestionEl.className = 'enrichment-live-suggestion';
-    
     const icon = this.getItemIcon(suggestion.type, suggestion.field);
     const displayText = this.formatSuggestionType(suggestion.type);
     const contactName = suggestion.contactHint || 'Unknown Contact';
+    const value = this.escapeHtml(suggestion.value);
     
-    suggestionEl.innerHTML = `
-      <div class="live-suggestion-content">
-        <div class="live-suggestion-icon">${icon}</div>
-        <div class="live-suggestion-info">
-          <div class="live-suggestion-contact">${this.escapeHtml(contactName)}</div>
-          <div class="live-suggestion-type">${displayText}</div>
-          <div class="live-suggestion-value">${this.escapeHtml(suggestion.value)}</div>
-        </div>
-        <div class="live-suggestion-confidence">
-          <span class="confidence-badge">${Math.round(suggestion.confidence * 100)}%</span>
+    // Create toast message
+    const message = `${icon} <strong>${this.escapeHtml(contactName)}</strong><br>${displayText}: ${value}`;
+    
+    // Show as toast with confirm/reject buttons
+    this.showEnrichmentToast(message, suggestion);
+  }
+  
+  /**
+   * Show enrichment suggestion as a toast with action buttons
+   */
+  showEnrichmentToast(message, suggestion) {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('enrichment-toast-container');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.id = 'enrichment-toast-container';
+      toastContainer.className = 'enrichment-toast-container';
+      document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'enrichment-toast';
+    
+    const toastId = `toast-${suggestion.id || Date.now()}`;
+    toast.id = toastId;
+    
+    toast.innerHTML = `
+      <div class="enrichment-toast-content">
+        <div class="enrichment-toast-message">${message}</div>
+        <div class="enrichment-toast-actions">
+          <button class="toast-btn toast-confirm" onclick="enrichmentReview.confirmToastSuggestion('${toastId}', ${JSON.stringify(suggestion).replace(/'/g, '&#39;')})">
+            ✓ Confirm
+          </button>
+          <button class="toast-btn toast-reject" onclick="enrichmentReview.rejectToastSuggestion('${toastId}')">
+            ✗ Reject
+          </button>
         </div>
       </div>
     `;
     
-    container.appendChild(suggestionEl);
+    toastContainer.appendChild(toast);
     
     // Animate in
     setTimeout(() => {
-      suggestionEl.classList.add('visible');
+      toast.classList.add('visible');
     }, 10);
     
-    // Auto-remove after 8 seconds if not interacted with
+    // Auto-dismiss after 10 seconds if not interacted with
+    const autoRemoveTimer = setTimeout(() => {
+      this.removeToast(toastId);
+    }, 10000);
+    
+    // Store timer for cleanup
+    toast.dataset.autoRemoveTimer = autoRemoveTimer;
+  }
+  
+  /**
+   * Confirm a toast suggestion
+   */
+  confirmToastSuggestion(toastId, suggestion) {
+    console.log('Confirmed suggestion:', suggestion);
+    this.removeToast(toastId);
+    showToast('Suggestion confirmed and saved', 'success');
+  }
+  
+  /**
+   * Reject a toast suggestion
+   */
+  rejectToastSuggestion(toastId) {
+    console.log('Rejected suggestion');
+    this.removeToast(toastId);
+    showToast('Suggestion rejected', 'info');
+  }
+  
+  /**
+   * Remove a toast
+   */
+  removeToast(toastId) {
+    const toast = document.getElementById(toastId);
+    if (!toast) return;
+    
+    // Clear auto-remove timer if exists
+    if (toast.dataset.autoRemoveTimer) {
+      clearTimeout(parseInt(toast.dataset.autoRemoveTimer));
+    }
+    
+    // Animate out
+    toast.classList.remove('visible');
+    
+    // Remove after animation
     setTimeout(() => {
-      if (suggestionEl.parentNode) {
-        suggestionEl.classList.remove('visible');
-        setTimeout(() => {
-          if (suggestionEl.parentNode) {
-            suggestionEl.remove();
-          }
-        }, 300);
+      if (toast.parentNode) {
+        toast.remove();
       }
-    }, 8000);
+    }, 300);
   }
   
   /**
@@ -123,13 +158,19 @@ class EnrichmentReview {
   }
   
   /**
-   * Hide the panel
+   * Hide the panel and clear toasts
    */
   hide() {
     this.isRecording = false;
     const container = document.getElementById('enrichment-review-container');
     if (container) {
       container.innerHTML = '';
+    }
+    
+    // Clear any remaining toasts
+    const toastContainer = document.getElementById('enrichment-toast-container');
+    if (toastContainer) {
+      toastContainer.innerHTML = '';
     }
   }
   
@@ -1242,7 +1283,93 @@ class EnrichmentReview {
         font-weight: 600;
       }
       
+      /* Toast styles for live enrichment suggestions */
+      .enrichment-toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 400px;
+        pointer-events: none;
+      }
+      
+      .enrichment-toast {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        opacity: 0;
+        transform: translateX(400px);
+        transition: all 0.3s ease;
+        pointer-events: auto;
+      }
+      
+      .enrichment-toast.visible {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      
+      .enrichment-toast-content {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .enrichment-toast-message {
+        font-size: 14px;
+        line-height: 1.5;
+        color: #1f2937;
+      }
+      
+      .enrichment-toast-actions {
+        display: flex;
+        gap: 8px;
+      }
+      
+      .toast-btn {
+        flex: 1;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      
+      .toast-confirm {
+        background: #10b981;
+        color: white;
+      }
+      
+      .toast-confirm:hover {
+        background: #059669;
+        transform: translateY(-1px);
+      }
+      
+      .toast-reject {
+        background: #f3f4f6;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+      }
+      
+      .toast-reject:hover {
+        background: #e5e7eb;
+        transform: translateY(-1px);
+      }
+      
       @media (max-width: 768px) {
+        .enrichment-toast-container {
+          top: 10px;
+          right: 10px;
+          left: 10px;
+          max-width: none;
+        }
+        
         .enrichment-item {
           flex-direction: column;
           gap: 12px;
