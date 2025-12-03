@@ -86,11 +86,23 @@ export const RateLimits = {
  * 
  * This implementation uses Redis sorted sets to track requests
  * within a sliding time window.
+ * 
+ * Can be disabled for development by setting DISABLE_RATE_LIMITING=true
  */
 export async function checkRateLimit(
   identifier: string,
   config: RateLimitConfig
 ): Promise<RateLimitResult> {
+  // Bypass rate limiting if disabled (useful for local development)
+  if (process.env.DISABLE_RATE_LIMITING === 'true') {
+    const now = Date.now();
+    return {
+      allowed: true,
+      remaining: config.maxRequests,
+      resetAt: new Date(now + config.windowMs),
+    };
+  }
+
   const key = `${config.keyPrefix || 'ratelimit'}:${identifier}`;
   const now = Date.now();
   const windowStart = now - config.windowMs;
