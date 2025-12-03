@@ -6,7 +6,8 @@
  * Requirements: 7.5, 7.6, 7.7, 4.1, 4.4, 4.6, 1.4, 10.2
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { EditService } from '../../edits/edit-service';
 import { SessionManager } from '../../edits/session-manager';
 import { FuzzyMatcherService } from '../../edits/fuzzy-matcher-service';
@@ -17,17 +18,8 @@ const editService = new EditService();
 const sessionManager = new SessionManager();
 const fuzzyMatcher = new FuzzyMatcherService();
 
-/**
- * Helper to get user ID from request
- */
-function getUserId(req: Request): string {
-  // In production, this would come from JWT/session
-  const userId = (req as any).user?.id || req.headers['x-user-id'] as string;
-  if (!userId) {
-    throw new Error('User not authenticated');
-  }
-  return userId;
-}
+// Apply authentication middleware to all routes
+router.use(authenticate);
 
 // ============================================
 // Pending Edits Routes
@@ -37,14 +29,14 @@ function getUserId(req: Request): string {
  * GET /api/edits/pending
  * List all pending edits for the authenticated user
  */
-router.get('/pending', async (req: Request, res: Response) => {
+router.get('/pending', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const edits = await editService.getPendingEdits(userId);
     res.json({ edits });
   } catch (error: any) {
     console.error('Error fetching pending edits:', error);
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to fetch pending edits',
     });
   }
@@ -54,9 +46,9 @@ router.get('/pending', async (req: Request, res: Response) => {
  * GET /api/edits/pending/:id
  * Get a single pending edit
  */
-router.get('/pending/:id', async (req: Request, res: Response) => {
+router.get('/pending/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const edit = await editService.getPendingEdit(req.params.id, userId);
     
     if (!edit) {
@@ -66,7 +58,7 @@ router.get('/pending/:id', async (req: Request, res: Response) => {
     res.json({ edit });
   } catch (error: any) {
     console.error('Error fetching pending edit:', error);
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to fetch pending edit',
     });
   }
@@ -76,9 +68,9 @@ router.get('/pending/:id', async (req: Request, res: Response) => {
  * POST /api/edits/pending
  * Create a new pending edit
  */
-router.post('/pending', async (req: Request, res: Response) => {
+router.post('/pending', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const {
       sessionId,
       editType,
@@ -115,7 +107,7 @@ router.post('/pending', async (req: Request, res: Response) => {
     res.status(201).json({ edit });
   } catch (error: any) {
     console.error('Error creating pending edit:', error);
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to create pending edit',
     });
   }
@@ -125,9 +117,9 @@ router.post('/pending', async (req: Request, res: Response) => {
  * PATCH /api/edits/pending/:id
  * Update a pending edit
  */
-router.patch('/pending/:id', async (req: Request, res: Response) => {
+router.patch('/pending/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const { targetContactId, targetContactName, targetGroupId, targetGroupName, proposedValue } = req.body;
 
     const edit = await editService.updatePendingEdit(req.params.id, userId, {
@@ -144,7 +136,7 @@ router.patch('/pending/:id', async (req: Request, res: Response) => {
     if (error.message === 'Pending edit not found') {
       return res.status(404).json({ error: error.message });
     }
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to update pending edit',
     });
   }
@@ -154,9 +146,9 @@ router.patch('/pending/:id', async (req: Request, res: Response) => {
  * DELETE /api/edits/pending/:id
  * Dismiss a pending edit
  */
-router.delete('/pending/:id', async (req: Request, res: Response) => {
+router.delete('/pending/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     await editService.dismissEdit(req.params.id, userId);
     res.json({ success: true });
   } catch (error: any) {
@@ -164,7 +156,7 @@ router.delete('/pending/:id', async (req: Request, res: Response) => {
     if (error.message === 'Pending edit not found') {
       return res.status(404).json({ error: error.message });
     }
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to dismiss pending edit',
     });
   }
@@ -174,9 +166,9 @@ router.delete('/pending/:id', async (req: Request, res: Response) => {
  * POST /api/edits/pending/:id/submit
  * Submit a pending edit (apply and move to history)
  */
-router.post('/pending/:id/submit', async (req: Request, res: Response) => {
+router.post('/pending/:id/submit', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const historyEntry = await editService.submitEdit(req.params.id, userId);
     res.json({ historyEntry });
   } catch (error: any) {
@@ -184,7 +176,7 @@ router.post('/pending/:id/submit', async (req: Request, res: Response) => {
     if (error.message === 'Pending edit not found') {
       return res.status(404).json({ error: error.message });
     }
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to submit edit',
     });
   }
@@ -194,9 +186,9 @@ router.post('/pending/:id/submit', async (req: Request, res: Response) => {
  * POST /api/edits/pending/:id/resolve-disambiguation
  * Resolve disambiguation by selecting a contact
  */
-router.post('/pending/:id/resolve-disambiguation', async (req: Request, res: Response) => {
+router.post('/pending/:id/resolve-disambiguation', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const { contactId } = req.body;
 
     if (!contactId) {
@@ -210,7 +202,7 @@ router.post('/pending/:id/resolve-disambiguation', async (req: Request, res: Res
     if (error.message === 'Pending edit not found' || error.message === 'Contact not found') {
       return res.status(404).json({ error: error.message });
     }
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to resolve disambiguation',
     });
   }
@@ -224,9 +216,9 @@ router.post('/pending/:id/resolve-disambiguation', async (req: Request, res: Res
  * GET /api/edits/history
  * List edit history for the authenticated user with pagination
  */
-router.get('/history', async (req: Request, res: Response) => {
+router.get('/history', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
     const dateFrom = req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined;
@@ -242,7 +234,7 @@ router.get('/history', async (req: Request, res: Response) => {
     res.json({ history });
   } catch (error: any) {
     console.error('Error fetching edit history:', error);
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to fetch edit history',
     });
   }
@@ -256,14 +248,14 @@ router.get('/history', async (req: Request, res: Response) => {
  * POST /api/edits/sessions
  * Start a new chat session
  */
-router.post('/sessions', async (req: Request, res: Response) => {
+router.post('/sessions', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const session = await sessionManager.startSession(userId);
     res.status(201).json({ session });
   } catch (error: any) {
     console.error('Error starting session:', error);
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to start session',
     });
   }
@@ -273,14 +265,14 @@ router.post('/sessions', async (req: Request, res: Response) => {
  * GET /api/edits/sessions/active
  * Get the active session for the user
  */
-router.get('/sessions/active', async (req: Request, res: Response) => {
+router.get('/sessions/active', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const session = await sessionManager.getActiveSession(userId);
     res.json({ session });
   } catch (error: any) {
     console.error('Error fetching active session:', error);
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to fetch active session',
     });
   }
@@ -290,9 +282,9 @@ router.get('/sessions/active', async (req: Request, res: Response) => {
  * GET /api/edits/sessions/:id
  * Get a session by ID
  */
-router.get('/sessions/:id', async (req: Request, res: Response) => {
+router.get('/sessions/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const session = await sessionManager.getSession(req.params.id, userId);
     
     if (!session) {
@@ -302,7 +294,7 @@ router.get('/sessions/:id', async (req: Request, res: Response) => {
     res.json({ session });
   } catch (error: any) {
     console.error('Error fetching session:', error);
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to fetch session',
     });
   }
@@ -312,14 +304,14 @@ router.get('/sessions/:id', async (req: Request, res: Response) => {
  * GET /api/edits/sessions/:id/edits
  * Get all edits for a session
  */
-router.get('/sessions/:id/edits', async (req: Request, res: Response) => {
+router.get('/sessions/:id/edits', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const edits = await sessionManager.getSessionEdits(req.params.id, userId);
     res.json({ edits });
   } catch (error: any) {
     console.error('Error fetching session edits:', error);
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to fetch session edits',
     });
   }
@@ -329,9 +321,9 @@ router.get('/sessions/:id/edits', async (req: Request, res: Response) => {
  * PATCH /api/edits/sessions/:id
  * End a session (preserve edits)
  */
-router.patch('/sessions/:id', async (req: Request, res: Response) => {
+router.patch('/sessions/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     await sessionManager.endSession(req.params.id, userId);
     res.json({ success: true });
   } catch (error: any) {
@@ -339,7 +331,7 @@ router.patch('/sessions/:id', async (req: Request, res: Response) => {
     if (error.message === 'Chat session not found') {
       return res.status(404).json({ error: error.message });
     }
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to end session',
     });
   }
@@ -349,9 +341,9 @@ router.patch('/sessions/:id', async (req: Request, res: Response) => {
  * DELETE /api/edits/sessions/:id
  * Cancel a session (remove all session edits)
  */
-router.delete('/sessions/:id', async (req: Request, res: Response) => {
+router.delete('/sessions/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     await sessionManager.cancelSession(req.params.id, userId);
     res.json({ success: true });
   } catch (error: any) {
@@ -359,7 +351,7 @@ router.delete('/sessions/:id', async (req: Request, res: Response) => {
     if (error.message === 'Chat session not found') {
       return res.status(404).json({ error: error.message });
     }
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to cancel session',
     });
   }
@@ -373,9 +365,9 @@ router.delete('/sessions/:id', async (req: Request, res: Response) => {
  * GET /api/edits/search/contacts
  * Search contacts with fuzzy matching
  */
-router.get('/search/contacts', async (req: Request, res: Response) => {
+router.get('/search/contacts', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const query = req.query.q as string;
     const limit = parseInt(req.query.limit as string) || 10;
 
@@ -387,7 +379,7 @@ router.get('/search/contacts', async (req: Request, res: Response) => {
     res.json({ results });
   } catch (error: any) {
     console.error('Error searching contacts:', error);
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to search contacts',
     });
   }
@@ -397,9 +389,9 @@ router.get('/search/contacts', async (req: Request, res: Response) => {
  * GET /api/edits/search/groups
  * Search groups with fuzzy matching
  */
-router.get('/search/groups', async (req: Request, res: Response) => {
+router.get('/search/groups', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.userId!;
     const query = req.query.q as string;
     const limit = parseInt(req.query.limit as string) || 10;
 
@@ -411,7 +403,7 @@ router.get('/search/groups', async (req: Request, res: Response) => {
     res.json({ results });
   } catch (error: any) {
     console.error('Error searching groups:', error);
-    res.status(error.message === 'User not authenticated' ? 401 : 500).json({
+    res.status(500).json({
       error: error.message || 'Failed to search groups',
     });
   }
