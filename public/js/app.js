@@ -970,6 +970,56 @@ let allTags = [];
 async function loadGroupsTagsManagement() {
     await loadGroupsList();
     await loadTags();
+    await loadGroupMappingsSection();
+}
+
+async function loadGroupMappingsSection() {
+    // Only show if Google Contacts is connected
+    if (typeof loadAllGroupMappings !== 'function') {
+        return;
+    }
+    
+    try {
+        // Check if user has Google Contacts connected
+        const statusResponse = await fetch(`${API_BASE}/contacts/oauth/status`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (!statusResponse.ok) {
+            return;
+        }
+        
+        const status = await statusResponse.json();
+        if (!status.connected) {
+            return;
+        }
+        
+        // Load and render group mappings
+        const allMappings = await loadAllGroupMappings();
+        const pendingMappings = allMappings.filter(m => m.mappingStatus === 'pending');
+        const approvedMappings = allMappings.filter(m => m.mappingStatus === 'approved');
+        const rejectedMappings = allMappings.filter(m => m.mappingStatus === 'rejected');
+        
+        if (allMappings.length > 0 && typeof renderGroupMappingReview === 'function') {
+            // Find the groups-tags-page container
+            const page = document.getElementById('groups-tags-page');
+            if (!page) return;
+            
+            // Remove existing mapping section if present
+            const existingSection = page.querySelector('#google-group-mappings-section');
+            if (existingSection) {
+                existingSection.remove();
+            }
+            
+            // Create and append new section
+            const groupMappingSection = document.createElement('div');
+            groupMappingSection.id = 'google-group-mappings-section';
+            groupMappingSection.innerHTML = renderGroupMappingReview(pendingMappings, approvedMappings, rejectedMappings);
+            page.appendChild(groupMappingSection);
+        }
+    } catch (error) {
+        console.error('Error loading group mappings section:', error);
+    }
 }
 
 async function loadGroupsList() {
@@ -3589,23 +3639,7 @@ async function loadPreferences() {
         googleContactsCard.innerHTML = renderGoogleContactsCard(googleContactsStatus);
     }
     
-    // Load and render group mappings if connected
-    if (googleContactsStatus.connected && typeof loadAllGroupMappings === 'function') {
-        try {
-            const allMappings = await loadAllGroupMappings();
-            const pendingMappings = allMappings.filter(m => m.mappingStatus === 'pending');
-            const approvedMappings = allMappings.filter(m => m.mappingStatus === 'approved');
-            const rejectedMappings = allMappings.filter(m => m.mappingStatus === 'rejected');
-            
-            if (allMappings.length > 0 && typeof renderGroupMappingReview === 'function') {
-                const groupMappingSection = document.createElement('div');
-                groupMappingSection.innerHTML = renderGroupMappingReview(pendingMappings, approvedMappings, rejectedMappings);
-                container.appendChild(groupMappingSection);
-            }
-        } catch (error) {
-            console.error('Error loading group mappings:', error);
-        }
-    }
+    // Group mappings moved to Groups & Tags page
     
     // Load account information
     loadAccountInfo();

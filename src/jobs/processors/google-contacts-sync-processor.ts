@@ -11,6 +11,7 @@ import Bull from 'bull';
 import { GoogleContactsSyncJobData, GoogleContactsSyncResult } from '../types';
 import { googleContactsSyncService } from '../../integrations/google-contacts-sync-service';
 import { googleContactsOAuthService } from '../../integrations/google-contacts-oauth-service';
+import { groupSyncService } from '../../integrations/group-sync-service';
 
 /**
  * Process Google Contacts sync job
@@ -67,13 +68,32 @@ export async function processGoogleContactsSync(
       syncResult = await googleContactsSyncService.performIncrementalSync(userId, accessToken);
     }
 
+    // Sync contact groups and generate mapping suggestions
+    console.log(`Syncing contact groups for user ${userId}`);
+    let groupsImported = 0;
+    try {
+      const groupSyncResult = await groupSyncService.syncContactGroups(userId, accessToken);
+      groupsImported = groupSyncResult.groupsImported + groupSyncResult.groupsUpdated;
+      console.log(
+        `Group sync completed - imported: ${groupSyncResult.groupsImported}, ` +
+          `updated: ${groupSyncResult.groupsUpdated}, ` +
+          `suggestions: ${groupSyncResult.suggestionsGenerated}`
+      );
+    } catch (groupError) {
+      const groupErrorMsg =
+        groupError instanceof Error ? groupError.message : String(groupError);
+      console.error(`Group sync failed: ${groupErrorMsg}`);
+      result.errors.push(`Group sync error: ${groupErrorMsg}`);
+      // Don't fail the entire sync if group sync fails
+    }
+
     // Populate result
     result.contactsImported = syncResult.contactsImported;
     result.contactsUpdated = syncResult.contactsUpdated;
     result.contactsDeleted = syncResult.contactsDeleted;
-    result.groupsImported = syncResult.groupsImported;
+    result.groupsImported = groupsImported;
     result.duration = syncResult.duration;
-    result.errors = syncResult.errors.map((e) => e.errorMessage);
+    result.errors = syncResult.errors.map((e) => e.errorMessage).concat(result.errors);
 
     console.log(
       `${syncType} sync completed for user ${userId} - ` +

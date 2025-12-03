@@ -88,7 +88,10 @@ export class ImportServiceImpl implements ImportService {
 
     if (existingContact) {
       // Update existing contact
-      return this.updateContact(existingContact.id, userId, contactData);
+      const updated = await this.updateContact(existingContact.id, userId, contactData);
+      // Update memberships
+      await this.updateContactMemberships(userId, updated.id, person.memberships || []);
+      return updated;
     }
 
     // Fallback deduplication by email
@@ -132,7 +135,51 @@ export class ImportServiceImpl implements ImportService {
       lastSyncedAt: contactData.lastSyncedAt,
     };
 
-    return this.repository.create(userId, createData);
+    const newContact = await this.repository.create(userId, createData);
+    // Store memberships
+    await this.updateContactMemberships(userId, newContact.id, person.memberships || []);
+    return newContact;
+  }
+
+  /**
+   * Update contact's Google group memberships
+   */
+  private async updateContactMemberships(
+    userId: string,
+    contactId: string,
+    memberships: Array<{ contactGroupMembership?: { contactGroupResourceName: string } }>
+  ): Promise<void> {
+    const pool = await import('../db/connection').then((m) => m.default);
+
+    // Extract group resource names
+    const groupResourceNames = memberships
+      .map((m) => m.contactGroupMembership?.contactGroupResourceName)
+      .filter((name): name is string => !!name);
+
+    if (groupResourceNames.length === 0) {
+      // No memberships, clear any existing ones
+      await pool.query(
+        'DELETE FROM contact_google_memberships WHERE contact_id = $1',
+        [contactId]
+      );
+      return;
+    }
+
+    // Delete old memberships
+    await pool.query(
+      'DELETE FROM contact_google_memberships WHERE contact_id = $1',
+      [contactId]
+    );
+
+    // Insert new memberships
+    for (const groupResourceName of groupResourceNames) {
+      await pool.query(
+        `INSERT INTO contact_google_memberships (user_id, contact_id, google_group_resource_name)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (contact_id, google_group_resource_name) DO NOTHING`,
+        [userId, contactId, groupResourceName]
+      );
+    }
   }
 
   /**

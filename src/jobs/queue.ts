@@ -153,8 +153,20 @@ googleContactsSyncQueue.on('error', (error) => {
   console.error('Google Contacts sync queue error:', error);
 });
 
-googleContactsSyncQueue.on('failed', (job, error) => {
+googleContactsSyncQueue.on('failed', async (job, error) => {
   console.error(`Google Contacts sync job ${job.id} failed:`, error.message);
+  
+  // Clean up sync state on failure
+  try {
+    const { markSyncFailed } = await import('../integrations/sync-state-repository');
+    await markSyncFailed(job.data.userId, error.message);
+  } catch (cleanupError) {
+    console.error('Failed to clean up sync state:', cleanupError);
+  }
+});
+
+googleContactsSyncQueue.on('completed', async (job) => {
+  console.log(`Google Contacts sync job ${job.id} completed successfully`);
 });
 
 // Graceful shutdown

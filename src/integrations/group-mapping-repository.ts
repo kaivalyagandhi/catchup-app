@@ -212,6 +212,10 @@ export class PostgresGroupMappingRepository implements GroupMappingRepository {
       fields.push(`sync_enabled = $${paramCount++}`);
       values.push(data.syncEnabled);
     }
+    if (data.mappingStatus !== undefined) {
+      fields.push(`mapping_status = $${paramCount++}`);
+      values.push(data.mappingStatus);
+    }
 
     if (fields.length === 0) {
       // No updates, just return current mapping

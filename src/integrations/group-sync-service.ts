@@ -488,7 +488,157 @@ export class GroupSyncService {
   }
 
   /**
+   * Sync members for a specific mapping (used after approval)
+   *
+   * Requirements: 6.8
+   */
+  async syncMembersForMapping(
+    userId: string,
+    mappingId: string,
+    excludedContactIds: string[] = []
+  ): Promise<number> {
+    console.log(`Syncing members for mapping ${mappingId}`);
+    if (excludedContactIds.length > 0) {
+      console.log(`Excluding ${excludedContactIds.length} contacts from sync`);
+    }
+
+    let membershipsUpdated = 0;
+
+    try {
+      const pool = await import('../db/connection').then((m) => m.default);
+
+      // Get the specific mapping
+      const allMappings = await this.groupMappingRepository.findAll(userId, false);
+      const mapping = allMappings.find((m) => m.id === mappingId);
+
+      if (!mapping || !mapping.catchupGroupId) {
+        console.log('Mapping not found or not approved');
+        return 0;
+      }
+
+      // Find all contacts that are members of this Google group
+      let query = `SELECT DISTINCT contact_id 
+                   FROM contact_google_memberships 
+                   WHERE user_id = $1 AND google_group_resource_name = $2`;
+      const params: any[] = [userId, mapping.googleResourceName];
+      
+      // Exclude specific contacts if provided
+      if (excludedContactIds.length > 0) {
+        query += ` AND contact_id NOT IN (${excludedContactIds.map((_, i) => `$${i + 3}`).join(', ')})`;
+        params.push(...excludedContactIds);
+      }
+
+      const result = await pool.query(query, params);
+
+      console.log(
+        `Found ${result.rows.length} contacts for Google group ${mapping.googleName}`
+      );
+
+      // Assign each contact to the CatchUp group
+      for (const row of result.rows) {
+        try {
+          await this.groupRepository.assignContact(row.contact_id, mapping.catchupGroupId, userId);
+          membershipsUpdated++;
+        } catch (error) {
+          // Ignore if already assigned
+          if (error instanceof Error && !error.message.includes('already exists')) {
+            console.error(
+              `Error assigning contact ${row.contact_id} to group ${mapping.catchupGroupId}: ${error.message}`
+            );
+          }
+        }
+      }
+
+      console.log(`Synced ${membershipsUpdated} members for mapping ${mappingId}`);
+
+      return membershipsUpdated;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Member sync for mapping failed: ${errorMessage}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Sync group memberships using stored membership data (no API calls)
+   *
+   * Uses the contact_google_memberships table populated during contact sync
+   * to assign contacts to approved CatchUp groups.
+   *
+   * Requirements: 6.8
+   */
+  async syncGroupMembershipsFromCache(userId: string, excludedContactIds: string[] = []): Promise<number> {
+    console.log(`Starting cached group membership sync for user ${userId}`);
+    if (excludedContactIds.length > 0) {
+      console.log(`Excluding ${excludedContactIds.length} contacts from sync`);
+    }
+
+    let membershipsUpdated = 0;
+
+    try {
+      const pool = await import('../db/connection').then((m) => m.default);
+
+      // Get all approved mappings (those with catchupGroupId)
+      const allMappings = await this.groupMappingRepository.findAll(userId, true);
+      const approvedMappings = allMappings.filter((m) => m.catchupGroupId !== null);
+
+      console.log(`Found ${approvedMappings.length} approved group mappings`);
+
+      if (approvedMappings.length === 0) {
+        return 0;
+      }
+
+      // For each approved mapping, find contacts with that Google group membership
+      for (const mapping of approvedMappings) {
+        if (!mapping.catchupGroupId) continue;
+
+        // Find all contacts that are members of this Google group
+        let query = `SELECT DISTINCT contact_id 
+                     FROM contact_google_memberships 
+                     WHERE user_id = $1 AND google_group_resource_name = $2`;
+        const params: any[] = [userId, mapping.googleResourceName];
+        
+        // Exclude specific contacts if provided
+        if (excludedContactIds.length > 0) {
+          query += ` AND contact_id NOT IN (${excludedContactIds.map((_, i) => `$${i + 3}`).join(', ')})`;
+          params.push(...excludedContactIds);
+        }
+
+        const result = await pool.query(query, params);
+
+        console.log(
+          `Found ${result.rows.length} contacts for Google group ${mapping.googleName}`
+        );
+
+        // Assign each contact to the CatchUp group
+        for (const row of result.rows) {
+          try {
+            await this.groupRepository.assignContact(row.contact_id, mapping.catchupGroupId, userId);
+            membershipsUpdated++;
+          } catch (error) {
+            // Ignore if already assigned
+            if (error instanceof Error && !error.message.includes('already exists')) {
+              console.error(
+                `Error assigning contact ${row.contact_id} to group ${mapping.catchupGroupId}: ${error.message}`
+              );
+            }
+          }
+        }
+      }
+
+      console.log(`Cached group membership sync completed. Updated ${membershipsUpdated} memberships`);
+
+      return membershipsUpdated;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Cached group membership sync failed: ${errorMessage}`);
+      throw error;
+    }
+  }
+
+  /**
    * Sync group memberships for contacts (only for approved mappings)
+   * DEPRECATED: Use syncGroupMembershipsFromCache instead
    *
    * Processes contact memberships from Google and adds contacts ONLY to
    * groups with approved mappings. Skips pending and rejected mappings.
