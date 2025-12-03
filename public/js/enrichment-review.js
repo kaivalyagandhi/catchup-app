@@ -15,6 +15,34 @@ class EnrichmentReview {
   
   init() {
     this.setupStyles();
+    this.setupToastEventListeners();
+  }
+  
+  /**
+   * Setup event delegation for toast buttons
+   */
+  setupToastEventListeners() {
+    document.addEventListener('click', (e) => {
+      // Handle confirm button clicks
+      if (e.target.classList.contains('toast-confirm-btn')) {
+        const toastId = e.target.dataset.toastId;
+        const suggestionJson = e.target.dataset.suggestion;
+        
+        try {
+          const suggestion = JSON.parse(suggestionJson);
+          this.confirmToastSuggestion(toastId, suggestion);
+        } catch (error) {
+          console.error('Error parsing suggestion from data attribute:', error);
+          this.removeToast(toastId);
+        }
+      }
+      
+      // Handle reject button clicks
+      if (e.target.classList.contains('toast-reject-btn')) {
+        const toastId = e.target.dataset.toastId;
+        this.rejectToastSuggestion(toastId);
+      }
+    });
   }
   
   /**
@@ -70,14 +98,17 @@ class EnrichmentReview {
     const toastId = `toast-${suggestion.id || Date.now()}`;
     toast.id = toastId;
     
+    // Store suggestion as JSON in data attribute
+    const suggestionJson = JSON.stringify(suggestion);
+    
     toast.innerHTML = `
       <div class="enrichment-toast-content">
         <div class="enrichment-toast-message">${message}</div>
         <div class="enrichment-toast-actions">
-          <button class="toast-btn toast-confirm" onclick="enrichmentReview.confirmToastSuggestion('${toastId}', ${JSON.stringify(suggestion).replace(/'/g, '&#39;')})">
+          <button class="toast-btn toast-confirm-btn" data-toast-id="${toastId}" data-suggestion='${suggestionJson}'>
             ✓ Confirm
           </button>
-          <button class="toast-btn toast-reject" onclick="enrichmentReview.rejectToastSuggestion('${toastId}')">
+          <button class="toast-btn toast-reject-btn" data-toast-id="${toastId}">
             ✗ Reject
           </button>
         </div>
