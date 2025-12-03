@@ -19,6 +19,10 @@ let currentContactGroups = []; // Group IDs being edited in the modal
 let floatingChatIcon = null;
 let chatWindow = null;
 
+// Request queuing for edit rejection (prevent 429 rate limit errors)
+let rejectQueue = Promise.resolve();
+let isRejectingInProgress = false;
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize theme before anything else to ensure proper styling
@@ -3854,30 +3858,44 @@ async function applyEdit(editId) {
 
 async function rejectEdit(editId) {
     try {
-        const response = await fetch(`${API_BASE}/edits/pending/${editId}`, {
-            method: 'DELETE',
-            headers: { 
-                'Authorization': `Bearer ${authToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ userId })
+        // Queue the request to prevent rate limiting
+        rejectQueue = rejectQueue.then(async () => {
+            if (isRejectingInProgress) return;
+            isRejectingInProgress = true;
+            
+            try {
+                const response = await fetch(`${API_BASE}/edits/pending/${editId}`, {
+                    method: 'DELETE',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId })
+                });
+                
+                if (!response.ok) throw new Error('Failed to reject edit');
+                
+                showToast('Edit rejected', 'info');
+                loadPendingEdits();
+                loadEditsHistory(); // Refresh history (no new entry for rejected edits)
+                
+                // Update pending count in chat
+                if (chatWindow) {
+                    const currentCount = chatWindow.pendingEditCount || 0;
+                    chatWindow.setPendingEditCount(Math.max(0, currentCount - 1));
+                }
+                if (floatingChatIcon) {
+                    const currentCount = floatingChatIcon.pendingEditCount || 0;
+                    floatingChatIcon.setPendingEditCount(Math.max(0, currentCount - 1));
+                }
+            } finally {
+                isRejectingInProgress = false;
+                // Add delay between requests to prevent rate limiting
+                await new Promise(resolve => setTimeout(resolve, 150));
+            }
         });
         
-        if (!response.ok) throw new Error('Failed to reject edit');
-        
-        showToast('Edit rejected', 'info');
-        loadPendingEdits();
-        loadEditsHistory(); // Refresh history (no new entry for rejected edits)
-        
-        // Update pending count in chat
-        if (chatWindow) {
-            const currentCount = chatWindow.pendingEditCount || 0;
-            chatWindow.setPendingEditCount(Math.max(0, currentCount - 1));
-        }
-        if (floatingChatIcon) {
-            const currentCount = floatingChatIcon.pendingEditCount || 0;
-            floatingChatIcon.setPendingEditCount(Math.max(0, currentCount - 1));
-        }
+        await rejectQueue;
     } catch (error) {
         console.error('Error rejecting edit:', error);
         showToast('Failed to reject edit', 'error');
