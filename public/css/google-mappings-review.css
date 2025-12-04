@@ -1,0 +1,326 @@
+/**
+ * Google Mappings Review Component Styles
+ * Requirements: 15.1, 15.2, 15.3, 15.4, 15.5
+ */
+
+.google-mappings-review {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 28px;
+  animation: slideDown 0.3s ease-out;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mappings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.mappings-header h3 {
+  margin: 0;
+  color: #1e40af;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.pending-badge {
+  background: #f59e0b;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(245, 158, 11, 0.3);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.mappings-description {
+  color: #1e40af;
+  font-size: 14px;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.mappings-list {
+  display: grid;
+  gap: 16px;
+}
+
+.mapping-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  padding: 18px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.mapping-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.mapping-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.mapping-info {
+  flex: 1;
+}
+
+.mapping-title {
+  margin: 0 0 6px 0;
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mapping-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.member-count {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.member-count:hover {
+  color: #2563eb;
+}
+
+.confidence-score {
+  font-weight: 600;
+}
+
+.mapping-members {
+  margin-top: 12px;
+}
+
+.suggested-action {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 4px;
+  border-left: 3px solid #2563eb;
+}
+
+.action-label {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 4px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.action-value {
+  font-size: 14px;
+  color: #1f2937;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.action-detail {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.suggestion-reason {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+  border-left: 3px solid #3b82f6;
+}
+
+.reason-label {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 4px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.reason-text {
+  font-size: 13px;
+  color: #1f2937;
+  line-height: 1.5;
+}
+
+.mapping-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn-approve,
+.btn-reject {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-approve {
+  background: #10b981;
+  color: white;
+}
+
+.btn-approve:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.btn-approve:active {
+  transform: translateY(0);
+}
+
+.btn-reject {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.btn-reject:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.btn-reject:active {
+  transform: scale(0.98);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .google-mappings-review {
+    padding: 16px;
+  }
+
+  .mappings-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .mappings-header h3 {
+    font-size: 16px;
+  }
+
+  .mapping-card {
+    padding: 12px;
+  }
+
+  .mapping-title {
+    font-size: 14px;
+  }
+
+  .mapping-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .google-mappings-review {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+    border-color: #3b82f6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  .mappings-header h3 {
+    color: #dbeafe;
+  }
+
+  .mappings-description {
+    color: #bfdbfe;
+  }
+
+  .mapping-card {
+    background: #1f2937;
+    border-color: #374151;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  .pending-badge {
+    box-shadow: 0 1px 2px rgba(245, 158, 11, 0.4);
+  }
+
+  .mapping-title {
+    color: #f9fafb;
+  }
+
+  .mapping-meta {
+    color: #9ca3af;
+  }
+
+  .suggested-action {
+    background: #374151;
+  }
+
+  .action-value {
+    color: #f9fafb;
+  }
+
+  .action-detail {
+    color: #9ca3af;
+  }
+
+  .suggestion-reason {
+    background: rgba(59, 130, 246, 0.2);
+  }
+
+  .reason-text {
+    color: #f9fafb;
+  }
+
+  .btn-reject {
+    background: #374151;
+    color: #9ca3af;
+    border-color: #4b5563;
+  }
+
+  .btn-reject:hover {
+    background: #4b5563;
+    color: #d1d5db;
+  }
+}

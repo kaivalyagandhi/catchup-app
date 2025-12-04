@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tab Navigation Verification</title>
+    <link rel="stylesheet" href="public/css/contacts-table.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            margin-bottom: 10px;
+            color: #2563eb;
+        }
+        
+        .test-info {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #0284c7;
+        }
+        
+        .test-info h3 {
+            margin-bottom: 10px;
+            color: #0369a1;
+        }
+        
+        .test-info ul {
+            margin-left: 20px;
+        }
+        
+        .test-info li {
+            margin-bottom: 5px;
+        }
+        
+        .test-controls {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .test-controls h3 {
+            margin-bottom: 10px;
+        }
+        
+        .test-controls button {
+            margin: 5px;
+            padding: 8px 16px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .test-controls button:hover {
+            background: #1d4ed8;
+        }
+        
+        .state-display {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #e5e7eb;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .state-display h3 {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin-bottom: 10px;
+        }
+        
+        .state-display pre {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        
+        /* Directory Tabs */
+        .directory-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0;
+            margin-bottom: 25px;
+        }
+        
+        .directory-tab {
+            background: transparent;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .directory-tab:hover {
+            color: #2563eb;
+            background: #f9fafb;
+        }
+        
+        .directory-tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            font-weight: 600;
+        }
+        
+        .directory-tab-content {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .directory-tab-content.hidden {
+            display: none;
+        }
+        
+        /* Red dot indicator */
+        .directory-tab .notification-dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .tab-content-box {
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .success {
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .error {
+            color: #ef4444;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tab Navigation Verification</h1>
+        <p style="margin-bottom: 20px; color: #6b7280;">Testing Requirements 7.2, 7.3, 7.4, 7.5, 7.6</p>
+        
+        <div class="test-info">
+            <h3>Test Instructions</h3>
+            <ul>
+                <li><strong>Requirement 7.2:</strong> Click different tabs - only the selected tab content should be visible</li>
+                <li><strong>Requirement 7.3:</strong> Verify that clicking a tab hides all other tab contents</li>
+                <li><strong>Requirement 7.4:</strong> Enter a search query in Contacts tab, switch to another tab, then back - the search should be preserved</li>
+                <li><strong>Requirement 7.5:</strong> Check the URL hash updates when switching tabs (e.g., #directory/groups)</li>
+                <li><strong>Requirement 7.6:</strong> Manually change the URL hash (e.g., to #directory/tags) - the page should switch tabs without reloading</li>
+            </ul>
+        </div>
+        
+        <div class="test-controls">
+            <h3>Test Controls</h3>
+            <button onclick="testTabSwitching()">Test Tab Switching</button>
+            <button onclick="testHashSync()">Test Hash Synchronization</button>
+            <button onclick="testStatePreservation()">Test State Preservation</button>
+            <button onclick="testNotifications()">Test Notification Badge</button>
+            <button onclick="showCurrentState()">Show Current State</button>
+        </div>
+        
+        <div class="state-display">
+            <h3>Current State</h3>
+            <pre id="state-output">Click "Show Current State" to see tab navigation state</pre>
+        </div>
+        
+        <!-- Directory Tab Navigation -->
+        <div class="directory-tabs">
+            <button class="directory-tab active" data-tab="contacts">
+                <span style="margin-right: 6px;">👥</span>Contacts
+            </button>
+            <button class="directory-tab" data-tab="circles">
+                <span style="margin-right: 6px;">🎯</span>Circles
+            </button>
+            <button class="directory-tab" data-tab="groups">
+                <span style="margin-right: 6px;">👥</span>Groups
+            </button>
+            <button class="directory-tab" data-tab="tags">
+                <span style="margin-right: 6px;">🏷️</span>Tags
+            </button>
+        </div>
+        
+        <!-- Contacts Tab Content -->
+        <div id="contacts-tab" class="directory-tab-content">
+            <div id="search-filter-bar-container"></div>
+            <div class="tab-content-box">
+                <h3>Contacts Tab</h3>
+                <p>This is the Contacts tab content.</p>
+                <p>Try entering a search query above, then switch to another tab and back.</p>
+                <p>Current URL hash: <span id="hash-contacts" class="success"></span></p>
+            </div>
+        </div>
+        
+        <!-- Circles Tab Content -->
+        <div id="circles-tab" class="directory-tab-content hidden">
+            <div class="tab-content-box">
+                <h3>Circles Tab</h3>
+                <p>This is the Circles tab content.</p>
+                <p>Current URL hash: <span id="hash-circles" class="success"></span></p>
+            </div>
+        </div>
+        
+        <!-- Groups Tab Content -->
+        <div id="groups-tab" class="directory-tab-content hidden">
+            <div class="tab-content-box">
+                <h3>Groups Tab</h3>
+                <p>This is the Groups tab content.</p>
+                <p>Current URL hash: <span id="hash-groups" class="success"></span></p>
+            </div>
+        </div>
+        
+        <!-- Tags Tab Content -->
+        <div id="tags-tab" class="directory-tab-content hidden">
+            <div class="tab-content-box">
+                <h3>Tags Tab</h3>
+                <p>This is the Tags tab content.</p>
+                <p>Current URL hash: <span id="hash-tags" class="success"></span></p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="public/js/contacts-table.js"></script>
+    <script>
+        // Initialize TabNavigation
+        let tabNavigation;
+        let searchFilterBar;
+        
+        function updateHashDisplay() {
+            const hash = window.location.hash;
+            document.querySelectorAll('[id^="hash-"]').forEach(el => {
+                el.textContent = hash || '(no hash)';
+            });
+        }
+        
+        function initializeSearchFilterBar() {
+            searchFilterBar = new SearchFilterBar('search-filter-bar-container', {
+                onSearch: (text, filters) => {
+                    console.log('Search:', text, 'Filters:', filters);
+                    
+                    // Save filter state to tab navigation
+                    if (tabNavigation) {
+                        tabNavigation.setTabState('contacts', {
+                            searchQuery: text,
+                            filters: filters
+                        });
+                    }
+                },
+                onFetchTags: async () => {
+                    return ['work', 'friend', 'family'];
+                },
+                onFetchGroups: async () => {
+                    return [
+                        { id: 'g1', name: 'Work' },
+                        { id: 'g2', name: 'Family' }
+                    ];
+                }
+            });
+            searchFilterBar.render();
+            
+            // Make searchFilterBar globally accessible
+            window.searchFilterBar = searchFilterBar;
+        }
+        
+        // Test functions
+        function testTabSwitching() {
+            console.log('Testing tab switching...');
+            const tabs = ['contacts', 'circles', 'groups', 'tags'];
+            let index = 0;
+            
+            const interval = setInterval(() => {
+                if (index >= tabs.length) {
+                    clearInterval(interval);
+                    console.log('✓ Tab switching test complete');
+                    alert('Tab switching test complete! Check console for details.');
+                    return;
+                }
+                
+                const tab = tabs[index];
+                console.log(`Switching to ${tab} tab...`);
+                tabNavigation.switchTab(tab);
+                index++;
+            }, 1000);
+        }
+        
+        function testHashSync() {
+            console.log('Testing hash synchronization...');
+            
+            // Test 1: Switch tab and check hash
+            tabNavigation.switchTab('groups');
+            const hash1 = window.location.hash;
+            console.log(`After switching to groups: ${hash1}`);
+            
+            setTimeout(() => {
+                // Test 2: Manually change hash
+                console.log('Manually changing hash to #directory/tags...');
+                window.location.hash = '#directory/tags';
+                
+                setTimeout(() => {
+                    const currentTab = tabNavigation.getCurrentTab();
+                    console.log(`Current tab after hash change: ${currentTab}`);
+                    
+                    if (currentTab === 'tags') {
+                        console.log('✓ Hash synchronization working correctly');
+                        alert('Hash synchronization test passed!');
+                    } else {
+                        console.error('✗ Hash synchronization failed');
+                        alert('Hash synchronization test failed!');
+                    }
+                }, 500);
+            }, 1000);
+        }
+        
+        function testStatePreservation() {
+            console.log('Testing state preservation...');
+            
+            // Set a search query
+            if (searchFilterBar) {
+                searchFilterBar.setQuery('test query tag:work');
+                console.log('Set search query: "test query tag:work"');
+                
+                setTimeout(() => {
+                    // Switch to another tab
+                    console.log('Switching to circles tab...');
+                    tabNavigation.switchTab('circles');
+                    
+                    setTimeout(() => {
+                        // Switch back to contacts
+                        console.log('Switching back to contacts tab...');
+                        tabNavigation.switchTab('contacts');
+                        
+                        setTimeout(() => {
+                            // Check if query was preserved
+                            const currentQuery = searchFilterBar.getQuery();
+                            console.log(`Restored query: "${currentQuery}"`);
+                            
+                            if (currentQuery === 'test query tag:work') {
+                                console.log('✓ State preservation working correctly');
+                                alert('State preservation test passed!');
+                            } else {
+                                console.error('✗ State preservation failed');
+                                alert('State preservation test failed!');
+                            }
+                        }, 500);
+                    }, 1000);
+                }, 500);
+            }
+        }
+        
+        function testNotifications() {
+            console.log('Testing notification badges...');
+            
+            // Show notification on groups tab
+            tabNavigation.showNotification('groups', 3);
+            console.log('Added notification badge to groups tab');
+            
+            setTimeout(() => {
+                // Hide notification
+                tabNavigation.hideNotification('groups');
+                console.log('Removed notification badge from groups tab');
+                alert('Notification badge test complete!');
+            }, 2000);
+        }
+        
+        function showCurrentState() {
+            const state = {
+                currentTab: tabNavigation.getCurrentTab(),
+                urlHash: window.location.hash,
+                tabStates: {
+                    contacts: tabNavigation.getTabState('contacts'),
+                    circles: tabNavigation.getTabState('circles'),
+                    groups: tabNavigation.getTabState('groups'),
+                    tags: tabNavigation.getTabState('tags')
+                }
+            };
+            
+            document.getElementById('state-output').textContent = JSON.stringify(state, null, 2);
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Create TabNavigation instance
+            tabNavigation = new TabNavigation({
+                tabs: ['contacts', 'circles', 'groups', 'tags'],
+                defaultTab: 'contacts',
+                onTabChange: (newTab, oldTab) => {
+                    console.log(`Tab changed from ${oldTab} to ${newTab}`);
+                    updateHashDisplay();
+                    
+                    // Handle tab-specific initialization
+                    if (newTab === 'contacts' && !window.contactsInitialized) {
+                        initializeSearchFilterBar();
+                        window.contactsInitialized = true;
+                    }
+                }
+            });
+            
+            // Attach click handlers to tab buttons
+            tabNavigation.attachTabHandlers();
+            
+            // Initialize tab navigation
+            tabNavigation.init();
+            
+            updateHashDisplay();
+            
+            console.log('Tab navigation initialized');
+            console.log('Use the test controls to verify functionality');
+        });
+    </script>
+</body>
+</html>

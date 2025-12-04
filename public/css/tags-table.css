@@ -1,0 +1,545 @@
+/**
+ * TagsTable Styles
+ * 
+ * Modern, clean design consistent with ContactsTable and GroupsTable
+ * Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 16.1, 16.2, 16.3, 16.4
+ * 
+ * Design Principles:
+ * - Ample whitespace for readability
+ * - Subtle borders for visual separation
+ * - Clear typography hierarchy
+ * - Consistent spacing and alignment
+ */
+
+/* Add Tag Button */
+.tags-table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.btn-add-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+}
+
+.btn-add-tag:hover {
+  background: #2563eb;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-add-tag:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Table Wrapper */
+.tags-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f3f4f6;
+}
+
+.tags-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+/* Table Header */
+.tags-table thead {
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.tags-table th {
+  padding: 14px 20px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tags-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.tags-table th.sortable:hover {
+  background: #f3f4f6;
+  color: #2563eb;
+}
+
+/* Sort Indicators */
+.sort-indicator {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  color: #9ca3af;
+  transition: color 0.2s ease;
+}
+
+.sort-indicator.sort-asc,
+.sort-indicator.sort-desc {
+  color: #3b82f6;
+  font-weight: bold;
+}
+
+/* Table Body */
+.tags-table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.15s ease;
+}
+
+/* Row Hover Effect - Requirement 16.3 */
+.tags-table tbody tr:hover {
+  background-color: #f9fafb;
+  box-shadow: inset 0 0 0 1px #e5e7eb;
+}
+
+.tags-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.tags-table td {
+  padding: 12px 20px;
+  color: #1f2937;
+  vertical-align: middle;
+}
+
+/* Tag Name Column */
+.tags-table td.tag-name {
+  font-weight: 500;
+  color: #111827;
+  max-width: 300px;
+}
+
+/* Contact Count Column */
+.tags-table td.tag-contact-count {
+  text-align: center;
+  width: 150px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+/* Source Column - Requirement 14.5 */
+.tags-table td.tag-source {
+  width: 120px;
+}
+
+.badge-automated {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #f3e8ff;
+  color: #7c3aed;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #e9d5ff;
+  box-shadow: 0 1px 2px rgba(124, 58, 237, 0.1);
+  transition: all 0.2s ease;
+}
+
+/* Actions Column */
+.tags-table td.tag-actions {
+  text-align: center;
+  width: 80px;
+}
+
+.btn-delete {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  opacity: 0.6;
+}
+
+.btn-delete:hover {
+  background-color: #fee2e2;
+  opacity: 1;
+}
+
+/* Empty State */
+.tags-table .empty-state td {
+  padding: 60px 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 15px;
+}
+
+/* Editable Cells - Requirement 14.2 */
+.tags-table td.editable {
+  cursor: pointer;
+  position: relative;
+}
+
+.tags-table td.editable:hover:not(.editing) {
+  background-color: #f3f4f6;
+  outline: 1px solid #e5e7eb;
+}
+
+.tags-table td.editing {
+  padding: 4px;
+  background-color: white;
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+/* New Tag Row - Requirement 14.3 */
+.new-tag-row {
+  background-color: #eff6ff;
+  border: 2px solid #3b82f6;
+  animation: slideInFromTop 0.3s ease;
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.new-tag-row td {
+  padding: 8px;
+  vertical-align: middle;
+}
+
+.new-tag-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1f2937;
+  background: white;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.new-tag-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.new-tag-input.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.new-tag-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Save and Cancel buttons for new tag */
+.btn-save-new,
+.btn-cancel-new {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.8;
+}
+
+.btn-save-new:hover {
+  background-color: #d1fae5;
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.btn-cancel-new:hover {
+  background-color: #fee2e2;
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.btn-save-new:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Dark Mode Support - Requirement 16.5 */
+@media (prefers-color-scheme: dark) {
+  .tags-table-wrapper {
+    background: #1f2937;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    border-color: #374151;
+  }
+
+  .tags-table thead {
+    background: #111827;
+    border-bottom-color: #374151;
+  }
+
+  .tags-table th {
+    color: #e5e7eb;
+  }
+
+  .tags-table th.sortable:hover {
+    background: #1f2937;
+    color: #60a5fa;
+  }
+
+  .tags-table tbody tr {
+    border-bottom-color: #374151;
+  }
+
+  .tags-table tbody tr:hover {
+    background-color: #111827;
+    box-shadow: inset 0 0 0 1px #374151;
+  }
+
+  .tags-table td {
+    color: #d1d5db;
+  }
+
+  .tags-table td.tag-name {
+    color: #f3f4f6;
+  }
+
+  .tags-table td.tag-contact-count {
+    color: #9ca3af;
+  }
+
+  .badge-automated {
+    background: #581c87;
+    color: #e9d5ff;
+    border-color: #6b21a8;
+    box-shadow: 0 1px 2px rgba(88, 28, 135, 0.3);
+  }
+
+  .btn-delete:hover {
+    background-color: #7f1d1d;
+  }
+
+  .tags-table .empty-state td {
+    color: #6b7280;
+  }
+
+  .tags-table td.editable:hover:not(.editing) {
+    background-color: #374151;
+    outline-color: #4b5563;
+  }
+
+  .tags-table td.editing {
+    background-color: #1f2937;
+    outline-color: #60a5fa;
+  }
+
+  .new-tag-row {
+    background-color: #1e3a8a;
+    border-color: #60a5fa;
+  }
+
+  .new-tag-input {
+    background: #111827;
+    border-color: #4b5563;
+    color: #f3f4f6;
+  }
+
+  .new-tag-input:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+  }
+
+  .new-tag-input.error {
+    border-color: #f87171;
+    box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.1);
+  }
+
+  .new-tag-input::placeholder {
+    color: #6b7280;
+  }
+
+  .btn-save-new:hover {
+    background-color: #064e3b;
+  }
+
+  .btn-cancel-new:hover {
+    background-color: #7f1d1d;
+  }
+
+  .btn-add-tag {
+    background: #2563eb;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.4);
+  }
+
+  .btn-add-tag:hover {
+    background: #1d4ed8;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.5);
+  }
+
+  .sort-indicator {
+    color: #6b7280;
+  }
+
+  .sort-indicator.sort-asc,
+  .sort-indicator.sort-desc {
+    color: #60a5fa;
+  }
+}
+
+/* Mobile Responsive - Requirement 17.1, 17.2 */
+@media (max-width: 768px) {
+  .tags-table-wrapper {
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+  }
+
+  /* Transform table to card-based layout */
+  .tags-table thead {
+    display: none;
+  }
+
+  .tags-table,
+  .tags-table tbody,
+  .tags-table tr,
+  .tags-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .tags-table tbody tr {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 4px var(--card-shadow);
+  }
+
+  .tags-table tbody tr:hover {
+    box-shadow: 0 4px 8px var(--card-shadow);
+  }
+
+  .tags-table td {
+    padding: 8px 0;
+    border: none;
+    max-width: none;
+    white-space: normal;
+    text-overflow: clip;
+    overflow: visible;
+  }
+
+  /* Add labels before each field */
+  .tags-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  /* Tag name - larger and prominent */
+  .tags-table td.tag-name {
+    font-size: 18px;
+    font-weight: 600;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-primary);
+    margin-bottom: 12px;
+    max-width: none;
+  }
+
+  .tags-table td.tag-name::before {
+    display: none;
+  }
+
+  /* Contact count */
+  .tags-table td.tag-contact-count {
+    text-align: left;
+  }
+
+  /* Source */
+  .tags-table td.tag-source {
+    width: auto;
+  }
+
+  /* Actions at the bottom */
+  .tags-table td.tag-actions {
+    text-align: right;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-primary);
+    margin-top: 12px;
+  }
+
+  .tags-table td.tag-actions::before {
+    display: none;
+  }
+
+  .btn-add-tag {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .new-tag-input {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  /* New tag row in mobile */
+  .new-tag-row {
+    display: block;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+
+  .new-tag-row td {
+    display: block;
+    padding: 8px 0;
+  }
+
+  .new-tag-row td::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .new-tag-row td.tag-actions::before {
+    display: none;
+  }
+}

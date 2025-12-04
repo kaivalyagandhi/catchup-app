@@ -12,16 +12,25 @@ The redesign consolidates three distinct data types (Contacts, Groups, Tags) int
 
 ```
 DirectoryPage
-├── TabNavigation (Contacts | Groups | Tags)
+├── TabNavigation (Contacts | Circles | Groups | Tags)
 ├── ContactsTab
-│   ├── SearchFilterBar
-│   ├── SortControls
+│   ├── SearchFilterBar (supports circle: filter)
+│   ├── SortControls (includes circle sort option)
 │   ├── ContactsTable
-│   │   ├── TableHeader (sortable columns)
+│   │   ├── TableHeader (sortable columns including Circle)
 │   │   ├── TableBody (virtualized rows)
 │   │   └── InlineEditCell
 │   ├── AZScrollbar
 │   └── AddContactButton
+├── CirclesTab
+│   ├── ManageCirclesButton
+│   ├── GroupFilterDropdown
+│   └── CircularVisualizer
+│       ├── CircleLegend (capacity indicators)
+│       ├── SVGCanvas
+│       │   ├── CircleZones (5 concentric circles)
+│       │   └── ContactDots (positioned in zones)
+│       └── ContactTooltip
 ├── GroupsTab
 │   ├── GoogleMappingsReview (conditional)
 │   ├── SearchBar
@@ -52,14 +61,19 @@ DirectoryPage
 
 ```javascript
 const directoryState = {
-  currentTab: 'contacts', // 'contacts' | 'groups' | 'tags'
+  currentTab: 'contacts', // 'contacts' | 'circles' | 'groups' | 'tags'
   contacts: {
     data: [],
     filteredData: [],
     searchQuery: '',
-    filters: {},
+    filters: {}, // Supports circle: filter
     sortBy: 'name',
     sortOrder: 'asc'
+  },
+  circles: {
+    visualizer: null, // CircularVisualizer instance
+    activeGroupFilter: null,
+    distribution: {} // Contact count per circle
   },
   groups: {
     data: [],
@@ -125,6 +139,7 @@ class ContactsTable {
 - Location (editable)
 - Timezone (editable, dropdown)
 - Frequency (editable, dropdown)
+- Circle (read-only, badge, sortable, filterable)
 - Tags (editable, multi-select with autocomplete)
 - Groups (editable, multi-select with autocomplete)
 - Source (read-only, badge)
@@ -156,8 +171,9 @@ class SearchFilterBar {
 - `tag:work` - Filter by tag
 - `group:family` - Filter by group
 - `source:google` - Filter by source
+- `circle:inner` - Filter by Dunbar circle (inner, close, active, casual, acquaintance)
 - `location:NYC` - Filter by location
-- Multiple filters: `tag:work group:colleagues`
+- Multiple filters: `tag:work group:colleagues circle:close`
 - Text search: Any text without prefix searches name/email/phone
 
 **Behavior**:
@@ -166,7 +182,48 @@ class SearchFilterBar {
 - Visual chips showing active filters
 - Clear all filters button
 
-### 4. AZScrollbar Component
+### 4. CircularVisualizer Component
+
+**Purpose**: Display contacts in concentric circles based on Dunbar's number theory
+
+**Interface**:
+```javascript
+class CircularVisualizer {
+  constructor(containerId)
+  render(contacts, groups)
+  updateContact(contactId, newCircle)
+  showGroupFilter(groupId)
+  clearGroupFilter()
+  getCircleDistribution()
+  on(event, callback) // Events: contactClick, contactUpdate
+}
+```
+
+**Circle Definitions**:
+- **Inner Circle**: 0-80px radius, 5 contacts max, color: #8b5cf6 (purple)
+- **Close Friends**: 80-160px radius, 15 contacts max, color: #3b82f6 (blue)
+- **Active Friends**: 160-240px radius, 50 contacts max, color: #10b981 (green)
+- **Casual Network**: 240-320px radius, 150 contacts max, color: #f59e0b (amber)
+- **Acquaintances**: 320-400px radius, 500 contacts max, color: #6b7280 (gray)
+
+**Features**:
+- SVG-based rendering with 900x900 viewBox
+- Contact dots positioned evenly around mid-radius of each zone
+- Contact dots are 36px diameter with initials
+- Hover tooltips showing contact details
+- Group filter to highlight specific group members
+- Circle legend with capacity indicators (green/orange/red)
+- Responsive scaling to fit container
+- Click handler for contact selection
+
+**Behavior**:
+- Contacts distributed evenly in circular pattern within their zone
+- No drag-and-drop (assignment happens via onboarding flow)
+- Group filter dims non-matching contacts to 20% opacity
+- Legend shows "X / Y" format with color-coded status
+- Smooth transitions when filtering
+
+### 5. AZScrollbar Component
 
 **Purpose**: Provide quick alphabetical navigation
 
@@ -305,8 +362,10 @@ interface Contact {
   customNotes?: string
   source?: 'manual' | 'google'
   lastSyncedAt?: Date
-  dunbarCircle?: number // Stored but not displayed in Directory
-  circleConfidence?: number // Stored but not displayed in Directory
+  circle?: 'inner' | 'close' | 'active' | 'casual' | 'acquaintance' // Dunbar circle assignment
+  dunbarCircle?: number // Legacy field, mapped to circle
+  circleConfidence?: number // AI confidence score for circle assignment
+  color?: string // Custom color for visualization
   tags: Tag[]
   groups: string[] // Group IDs
   createdAt: Date

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Contact Functionality Test</title>
+  <link rel="stylesheet" href="public/css/contacts-table.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 40px;
+      background: #f9fafb;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #111827;
+      margin-bottom: 10px;
+    }
+    .test-info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      color: #1e40af;
+    }
+    .test-info h3 {
+      margin-top: 0;
+      color: #1e3a8a;
+    }
+    .test-info ul {
+      margin: 8px 0;
+      padding-left: 24px;
+    }
+    .test-info li {
+      margin: 4px 0;
+    }
+    #contacts-container {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10000;
+      animation: slideInRight 0.3s ease;
+    }
+    .toast.success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .toast.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(100px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Add Contact Functionality Test</h1>
+  
+  <div class="test-info">
+    <h3>Test Instructions:</h3>
+    <ul>
+      <li><strong>Task 6.1:</strong> Verify "Add Contact" button appears above the table</li>
+      <li><strong>Task 6.2:</strong> Click "Add Contact" - a new editable row should appear at the top with empty fields</li>
+      <li><strong>Task 6.2:</strong> Verify the name field receives focus automatically</li>
+      <li><strong>Task 6.3:</strong> Fill in contact details (name is required)</li>
+      <li><strong>Task 6.3:</strong> Click Save (💾) or press Enter to save the contact</li>
+      <li><strong>Task 6.3:</strong> Try saving without a name - should show validation error</li>
+      <li><strong>Task 6.3:</strong> Click Cancel (✕) or press Escape to cancel without saving</li>
+      <li><strong>Task 6.5:</strong> After saving, verify the contact appears in the correct alphabetical position</li>
+    </ul>
+    <p><strong>Note:</strong> This test uses mock data. In production, contacts are saved to the database via API.</p>
+  </div>
+
+  <div id="contacts-container"></div>
+
+  <script src="public/js/contacts-table.js"></script>
+  <script>
+    // Mock userId for testing
+    window.userId = 'test-user-123';
+
+    // Mock showToast function
+    window.showToast = function(message, type) {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideInRight 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    };
+
+    // Sample contact data
+    const sampleContacts = [
+      {
+        id: '1',
+        name: 'Alice Johnson',
+        phone: '+1-555-0101',
+        email: 'alice@example.com',
+        location: 'New York, NY',
+        timezone: 'America/New_York',
+        frequencyPreference: 'weekly',
+        dunbarCircle: 'inner',
+        tags: [{ text: 'work' }, { text: 'friend' }],
+        groups: ['group-1'],
+        source: 'manual'
+      },
+      {
+        id: '2',
+        name: 'Bob Smith',
+        phone: '+1-555-0102',
+        email: 'bob@example.com',
+        location: 'San Francisco, CA',
+        timezone: 'America/Los_Angeles',
+        frequencyPreference: 'biweekly',
+        dunbarCircle: 'close',
+        tags: [{ text: 'colleague' }],
+        groups: ['group-2'],
+        source: 'google'
+      },
+      {
+        id: '3',
+        name: 'Charlie Davis',
+        phone: '+1-555-0103',
+        email: 'charlie@example.com',
+        location: 'Chicago, IL',
+        timezone: 'America/Chicago',
+        frequencyPreference: 'monthly',
+        dunbarCircle: 'active',
+        tags: [{ text: 'family' }],
+        groups: [],
+        source: 'manual'
+      },
+      {
+        id: '4',
+        name: 'Diana Prince',
+        phone: '+1-555-0104',
+        email: 'diana@example.com',
+        location: 'London, UK',
+        timezone: 'Europe/London',
+        frequencyPreference: 'quarterly',
+        dunbarCircle: 'casual',
+        tags: [{ text: 'friend' }, { text: 'travel' }],
+        groups: ['group-1', 'group-3'],
+        source: 'google'
+      },
+      {
+        id: '5',
+        name: 'Eve Martinez',
+        phone: '+1-555-0105',
+        email: 'eve@example.com',
+        location: 'Austin, TX',
+        timezone: 'America/Chicago',
+        frequencyPreference: 'weekly',
+        dunbarCircle: 'acquaintance',
+        tags: [{ text: 'networking' }],
+        groups: [],
+        source: 'manual'
+      }
+    ];
+
+    // Mock API for creating contacts
+    let contactIdCounter = 6;
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+      // Mock POST /api/contacts
+      if (url === '/api/contacts' && options?.method === 'POST') {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            const body = JSON.parse(options.body);
+            const newContact = {
+              id: `${contactIdCounter++}`,
+              name: body.name || '',
+              phone: body.phone || '',
+              email: body.email || '',
+              location: body.location || '',
+              timezone: body.timezone || '',
+              frequencyPreference: body.frequencyPreference || '',
+              dunbarCircle: null,
+              tags: [],
+              groups: [],
+              source: 'manual',
+              createdAt: new Date().toISOString()
+            };
+            
+            console.log('✅ Mock API: Created contact', newContact);
+            
+            resolve({
+              ok: true,
+              status: 201,
+              json: async () => newContact
+            });
+          }, 500); // Simulate network delay
+        });
+      }
+      
+      // Fall back to original fetch for other requests
+      return originalFetch(url, options);
+    };
+
+    // Initialize ContactsTable
+    const table = new ContactsTable('contacts-container', sampleContacts, {
+      sortBy: 'name',
+      sortOrder: 'asc',
+      onAdd: (contact) => {
+        console.log('✅ Contact added:', contact);
+        showToast(`Contact "${contact.name}" added successfully!`, 'success');
+      },
+      onEdit: (contactId, field, value) => {
+        console.log('✏️ Contact edited:', contactId, field, value);
+      },
+      onDelete: (contactId) => {
+        console.log('🗑️ Contact deleted:', contactId);
+        const index = table.data.findIndex(c => c.id === contactId);
+        if (index !== -1) {
+          table.data.splice(index, 1);
+          table.filteredData = table.data;
+          table.render();
+          showToast('Contact deleted', 'success');
+        }
+      }
+    });
+
+    table.render();
+
+    console.log('📋 Test page loaded with', sampleContacts.length, 'sample contacts');
+    console.log('🎯 Click "Add Contact" button to test the functionality');
+  </script>
+</body>
+</html>

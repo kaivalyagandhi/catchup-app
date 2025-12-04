@@ -103,6 +103,12 @@ class CircularVisualizer {
     this.container.innerHTML = `
       <div class="circular-visualizer">
         <div class="visualizer-controls">
+          <div class="group-filter-container" id="${this.containerId}-group-filter" style="display: none;">
+            <label for="${this.containerId}-group-select" class="group-filter-label">Filter by Group:</label>
+            <select id="${this.containerId}-group-select" class="group-filter-select">
+              <option value="">All Contacts</option>
+            </select>
+          </div>
           <div class="circle-legend">
             ${CIRCLE_ORDER.map(circleId => this.renderLegendItem(circleId)).join('')}
           </div>
@@ -120,6 +126,7 @@ class CircularVisualizer {
     `;
     
     this.svg = document.getElementById(`${this.containerId}-svg`);
+    this.setupGroupFilterListener();
   }
 
   renderLegendItem(circleId) {
@@ -145,9 +152,25 @@ class CircularVisualizer {
     const height = canvas.clientHeight;
     
     if (this.svg) {
+      // Set viewBox to maintain aspect ratio
       this.svg.setAttribute('viewBox', `0 0 ${this.viewportSize} ${this.viewportSize}`);
-      this.svg.setAttribute('width', width);
-      this.svg.setAttribute('height', height);
+      
+      // Calculate dimensions to fit viewport while maintaining aspect ratio
+      const size = Math.min(width, height);
+      
+      // For mobile viewports, scale to fit available space
+      if (window.innerWidth <= 768) {
+        // On mobile, use full available width/height (whichever is smaller)
+        this.svg.setAttribute('width', size);
+        this.svg.setAttribute('height', size);
+      } else {
+        // On desktop, use canvas dimensions
+        this.svg.setAttribute('width', width);
+        this.svg.setAttribute('height', height);
+      }
+      
+      // Ensure SVG maintains aspect ratio
+      this.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     }
     
     if (this.contacts.length > 0) {
@@ -155,6 +178,20 @@ class CircularVisualizer {
     }
   }
   
+  setupGroupFilterListener() {
+    const select = document.getElementById(`${this.containerId}-group-select`);
+    if (select) {
+      select.addEventListener('change', (e) => {
+        const groupId = e.target.value;
+        if (groupId) {
+          this.showGroupFilter(groupId);
+        } else {
+          this.clearGroupFilter();
+        }
+      });
+    }
+  }
+
   render(contacts, groups = []) {
     this.contacts = contacts || [];
     this.groups = groups || [];
@@ -163,6 +200,9 @@ class CircularVisualizer {
       console.error('SVG element not initialized');
       return;
     }
+    
+    // Update group filter dropdown
+    this.updateGroupFilterDropdown();
     
     const defs = this.svg.querySelector('defs');
     this.svg.innerHTML = '';
@@ -173,6 +213,40 @@ class CircularVisualizer {
     this.renderCircleZones();
     this.renderContacts();
     this.updateLegendCounts();
+  }
+  
+  updateGroupFilterDropdown() {
+    const container = document.getElementById(`${this.containerId}-group-filter`);
+    const select = document.getElementById(`${this.containerId}-group-select`);
+    
+    if (!container || !select) return;
+    
+    // Hide dropdown if no groups exist
+    if (!this.groups || this.groups.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+    
+    // Show dropdown and populate with groups
+    container.style.display = 'flex';
+    
+    // Preserve current selection
+    const currentValue = select.value;
+    
+    // Clear and repopulate options
+    select.innerHTML = '<option value="">All Contacts</option>';
+    
+    this.groups.forEach(group => {
+      const option = document.createElement('option');
+      option.value = group.id;
+      option.textContent = group.name;
+      select.appendChild(option);
+    });
+    
+    // Restore selection if it still exists
+    if (currentValue && this.groups.find(g => g.id === currentValue)) {
+      select.value = currentValue;
+    }
   }
 
   renderCircleZones() {
@@ -249,16 +323,10 @@ class CircularVisualizer {
       const circleContacts = contactsByCircle[circleId] || [];
       if (circleContacts.length === 0) return;
       
-      let filteredContacts = circleContacts;
-      if (this.activeGroupFilter) {
-        filteredContacts = circleContacts.filter(contact => 
-          contact.groups && contact.groups.includes(this.activeGroupFilter)
-        );
-      }
+      // Don't filter out contacts, render all of them
+      const positions = this.calculateContactPositionsInZone(circleId, circleContacts.length);
       
-      const positions = this.calculateContactPositionsInZone(circleId, filteredContacts.length);
-      
-      filteredContacts.forEach((contact, index) => {
+      circleContacts.forEach((contact, index) => {
         const pos = positions[index];
         const contactElement = this.createContactDot(contact, pos.x, pos.y);
         contactsGroup.appendChild(contactElement);
@@ -586,11 +654,13 @@ class CircularVisualizer {
   }
   
   showGroupFilter(groupId) {
-    console.log('Show group filter:', groupId);
+    this.activeGroupFilter = groupId;
+    this.render(this.contacts, this.groups);
   }
   
   clearGroupFilter() {
-    console.log('Clear group filter');
+    this.activeGroupFilter = null;
+    this.render(this.contacts, this.groups);
   }
 
   setupStyles() {
@@ -613,6 +683,46 @@ class CircularVisualizer {
         padding: 20px;
         background: white;
         border-bottom: 2px solid #e5e7eb;
+      }
+      
+      .group-filter-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding: 12px;
+        background: #f9fafb;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+      }
+      
+      .group-filter-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+        white-space: nowrap;
+      }
+      
+      .group-filter-select {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: white;
+        font-size: 14px;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      
+      .group-filter-select:hover {
+        border-color: #9ca3af;
+      }
+      
+      .group-filter-select:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
       }
       
       .circle-legend {
@@ -763,6 +873,17 @@ class CircularVisualizer {
         .visualizer-canvas {
           min-height: 400px;
           padding: 15px;
+          /* Ensure canvas takes full width on mobile */
+          width: 100%;
+        }
+        
+        .visualizer-svg {
+          /* Scale SVG to fit mobile viewport while maintaining aspect ratio */
+          width: 100% !important;
+          height: auto !important;
+          max-width: 100%;
+          display: block;
+          margin: 0 auto;
         }
       }
       
@@ -803,8 +924,19 @@ class CircularVisualizer {
         }
         
         .visualizer-canvas {
-          min-height: 350px;
+          min-height: 300px;
           padding: 10px;
+          /* Maximize available space on small screens */
+          width: 100%;
+        }
+        
+        .visualizer-svg {
+          /* Ensure SVG scales to fit small mobile screens */
+          width: 100% !important;
+          height: auto !important;
+          max-width: 100%;
+          display: block;
+          margin: 0 auto;
         }
         
         .contact-tooltip {
@@ -815,6 +947,20 @@ class CircularVisualizer {
         
         .tooltip-name {
           font-size: 13px;
+        }
+        
+        .group-filter-container {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 8px;
+        }
+        
+        .group-filter-label {
+          font-size: 13px;
+        }
+        
+        .group-filter-select {
+          width: 100%;
         }
       }
     `;

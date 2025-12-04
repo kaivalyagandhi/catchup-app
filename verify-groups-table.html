@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GroupsTable Verification</title>
+    <link rel="stylesheet" href="public/css/contacts-table.css">
+    <link rel="stylesheet" href="public/css/groups-table.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        .test-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #1e40af;
+        }
+        .test-info h3 {
+            margin: 0 0 10px 0;
+            color: #1e40af;
+        }
+        .test-info ul {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+        .test-info li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GroupsTable Component Verification</h1>
+        
+        <div class="test-info">
+            <h3>✅ Features to Test:</h3>
+            <ul>
+                <li><strong>Basic Rendering:</strong> Table displays with Name, Description, Contact Count, Actions columns</li>
+                <li><strong>Expandable Rows:</strong> Click on contact count to expand/collapse member list</li>
+                <li><strong>Inline Editing:</strong> Click on Name or Description to edit inline</li>
+                <li><strong>Add Group:</strong> Click "Add Group" button to create new group</li>
+                <li><strong>Delete Group:</strong> Click delete button (🗑️) to remove group</li>
+                <li><strong>Sorting:</strong> Click column headers to sort</li>
+            </ul>
+        </div>
+
+        <div id="groups-table-container"></div>
+    </div>
+
+    <!-- Load InlineEditCell from contacts-table.js -->
+    <script src="public/js/contacts-table.js"></script>
+    <script src="public/js/groups-table.js"></script>
+    
+    <script>
+        // Mock userId for testing
+        window.userId = 'test-user-123';
+
+        // Mock showToast function
+        window.showToast = function(message, type) {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            alert(`${type.toUpperCase()}: ${message}`);
+        };
+
+        // Sample contacts data
+        const sampleContacts = [
+            { id: 'c1', name: 'Alice Johnson', email: 'alice@example.com', phone: '555-0101' },
+            { id: 'c2', name: 'Bob Smith', email: 'bob@example.com', phone: '555-0102' },
+            { id: 'c3', name: 'Carol Williams', email: 'carol@example.com', phone: '555-0103' },
+            { id: 'c4', name: 'David Brown', email: 'david@example.com', phone: '555-0104' },
+            { id: 'c5', name: 'Eve Davis', email: 'eve@example.com', phone: '555-0105' }
+        ];
+
+        // Sample groups data
+        const sampleGroups = [
+            {
+                id: 'g1',
+                name: 'Work Team',
+                description: 'Colleagues from the office',
+                contactIds: ['c1', 'c2', 'c3']
+            },
+            {
+                id: 'g2',
+                name: 'Family',
+                description: 'Close family members',
+                contactIds: ['c4', 'c5']
+            },
+            {
+                id: 'g3',
+                name: 'Book Club',
+                description: 'Monthly book discussion group',
+                contactIds: ['c1', 'c4']
+            },
+            {
+                id: 'g4',
+                name: 'Empty Group',
+                description: 'A group with no members yet',
+                contactIds: []
+            }
+        ];
+
+        // Initialize GroupsTable
+        const groupsTable = new GroupsTable(
+            'groups-table-container',
+            sampleGroups,
+            sampleContacts,
+            {
+                onEdit: (groupId, field, value) => {
+                    console.log('Group edited:', groupId, field, value);
+                },
+                onDelete: (groupId) => {
+                    console.log('Group deleted:', groupId);
+                },
+                onAdd: (group) => {
+                    console.log('Group added:', group);
+                }
+            }
+        );
+
+        // Render the table
+        groupsTable.render();
+
+        console.log('GroupsTable initialized with', sampleGroups.length, 'groups and', sampleContacts.length, 'contacts');
+        console.log('Try the following:');
+        console.log('1. Click on contact count badges to expand/collapse member lists');
+        console.log('2. Click on Name or Description cells to edit inline');
+        console.log('3. Click "Add Group" to create a new group');
+        console.log('4. Click delete buttons to remove groups');
+        console.log('5. Click column headers to sort');
+    </script>
+</body>
+</html>

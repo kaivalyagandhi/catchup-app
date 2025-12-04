@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tags Table Verification</title>
+  <link rel="stylesheet" href="/css/tags-table.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      margin-top: 0;
+      color: #111827;
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #6b7280;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .test-controls {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f9fafb;
+      border-radius: 8px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .test-controls button {
+      padding: 8px 16px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .test-controls button:hover {
+      background: #2563eb;
+    }
+    .search-bar {
+      margin-bottom: 20px;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 10px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      background: #10b981;
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+    .toast.error {
+      background: #ef4444;
+    }
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Tags Table Verification</h1>
+    <p class="subtitle">Testing TagsTable component with inline editing, add/delete functionality, and AI/voice badges</p>
+
+    <div class="test-controls">
+      <button onclick="loadSampleData()">Load Sample Data</button>
+      <button onclick="addManualTag()">Add Manual Tag</button>
+      <button onclick="addAITag()">Add AI Tag</button>
+      <button onclick="addVoiceTag()">Add Voice Tag</button>
+      <button onclick="clearData()">Clear All</button>
+      <button onclick="sortByName()">Sort by Name</button>
+      <button onclick="sortByCount()">Sort by Count</button>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Search tags..." oninput="filterTags()">
+    </div>
+
+    <div id="tags-table-container"></div>
+  </div>
+
+  <script src="/js/contacts-table.js"></script>
+  <script src="/js/tags-table.js"></script>
+  <script>
+    // Sample data
+    let sampleTags = [
+      { id: '1', text: 'work', source: 'manual', userId: 'user1' },
+      { id: '2', text: 'family', source: 'manual', userId: 'user1' },
+      { id: '3', text: 'friends', source: 'manual', userId: 'user1' },
+      { id: '4', text: 'hiking', source: 'ai', userId: 'user1' },
+      { id: '5', text: 'photography', source: 'voice', userId: 'user1' },
+      { id: '6', text: 'cooking', source: 'ai', userId: 'user1' },
+      { id: '7', text: 'travel', source: 'manual', userId: 'user1' },
+      { id: '8', text: 'music', source: 'voice', userId: 'user1' }
+    ];
+
+    let sampleContacts = [
+      { id: 'c1', name: 'Alice Johnson', tags: [{ id: '1', text: 'work' }, { id: '4', text: 'hiking' }] },
+      { id: 'c2', name: 'Bob Smith', tags: [{ id: '1', text: 'work' }, { id: '2', text: 'family' }] },
+      { id: 'c3', name: 'Carol Davis', tags: [{ id: '3', text: 'friends' }, { id: '5', text: 'photography' }] },
+      { id: 'c4', name: 'David Wilson', tags: [{ id: '4', text: 'hiking' }, { id: '7', text: 'travel' }] },
+      { id: 'c5', name: 'Eve Martinez', tags: [{ id: '6', text: 'cooking' }, { id: '8', text: 'music' }] },
+      { id: 'c6', name: 'Frank Brown', tags: [{ id: '1', text: 'work' }] },
+      { id: 'c7', name: 'Grace Lee', tags: [{ id: '2', text: 'family' }, { id: '3', text: 'friends' }] },
+      { id: 'c8', name: 'Henry Taylor', tags: [{ id: '5', text: 'photography' }, { id: '7', text: 'travel' }] }
+    ];
+
+    let tagsTable;
+
+    // Initialize table
+    function initTable() {
+      tagsTable = new TagsTable('tags-table-container', sampleTags, sampleContacts, {
+        onEdit: (tagId, field, value) => {
+          console.log('Tag edited:', tagId, field, value);
+          showToast('Tag updated successfully', 'success');
+        },
+        onDelete: (tagId) => {
+          console.log('Tag deleted:', tagId);
+          // Remove from sample data
+          sampleTags = sampleTags.filter(t => t.id !== tagId);
+          showToast('Tag deleted successfully', 'success');
+        },
+        onAdd: (tag) => {
+          console.log('Tag added:', tag);
+          showToast('Tag added successfully', 'success');
+        }
+      });
+      tagsTable.render();
+    }
+
+    // Load sample data
+    function loadSampleData() {
+      sampleTags = [
+        { id: '1', text: 'work', source: 'manual', userId: 'user1' },
+        { id: '2', text: 'family', source: 'manual', userId: 'user1' },
+        { id: '3', text: 'friends', source: 'manual', userId: 'user1' },
+        { id: '4', text: 'hiking', source: 'ai', userId: 'user1' },
+        { id: '5', text: 'photography', source: 'voice', userId: 'user1' },
+        { id: '6', text: 'cooking', source: 'ai', userId: 'user1' },
+        { id: '7', text: 'travel', source: 'manual', userId: 'user1' },
+        { id: '8', text: 'music', source: 'voice', userId: 'user1' }
+      ];
+      tagsTable.refresh(sampleTags, sampleContacts);
+      showToast('Sample data loaded', 'success');
+    }
+
+    // Add manual tag
+    function addManualTag() {
+      const newTag = {
+        id: 'new-' + Date.now(),
+        text: 'new-tag-' + Math.floor(Math.random() * 1000),
+        source: 'manual',
+        userId: 'user1'
+      };
+      sampleTags.push(newTag);
+      tagsTable.refresh(sampleTags, sampleContacts);
+      showToast('Manual tag added', 'success');
+    }
+
+    // Add AI tag
+    function addAITag() {
+      const newTag = {
+        id: 'ai-' + Date.now(),
+        text: 'ai-tag-' + Math.floor(Math.random() * 1000),
+        source: 'ai',
+        userId: 'user1'
+      };
+      sampleTags.push(newTag);
+      tagsTable.refresh(sampleTags, sampleContacts);
+      showToast('AI tag added', 'success');
+    }
+
+    // Add voice tag
+    function addVoiceTag() {
+      const newTag = {
+        id: 'voice-' + Date.now(),
+        text: 'voice-tag-' + Math.floor(Math.random() * 1000),
+        source: 'voice',
+        userId: 'user1'
+      };
+      sampleTags.push(newTag);
+      tagsTable.refresh(sampleTags, sampleContacts);
+      showToast('Voice tag added', 'success');
+    }
+
+    // Clear data
+    function clearData() {
+      sampleTags = [];
+      tagsTable.refresh(sampleTags, sampleContacts);
+      showToast('All tags cleared', 'success');
+    }
+
+    // Sort by name
+    function sortByName() {
+      tagsTable.sort('text', 'asc');
+      showToast('Sorted by name', 'success');
+    }
+
+    // Sort by count
+    function sortByCount() {
+      tagsTable.sort('contactCount', 'desc');
+      showToast('Sorted by contact count', 'success');
+    }
+
+    // Filter tags
+    function filterTags() {
+      const query = document.getElementById('search-input').value;
+      tagsTable.filter(query);
+    }
+
+    // Toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      initTable();
+    });
+  </script>
+</body>
+</html>
