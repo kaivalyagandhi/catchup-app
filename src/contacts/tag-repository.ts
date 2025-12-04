@@ -248,8 +248,8 @@ export class PostgresTagRepository implements TagRepository {
       `SELECT t.*, COUNT(DISTINCT ct.contact_id) as contact_count
        FROM tags t
        LEFT JOIN contact_tags ct ON t.id = ct.tag_id
-       LEFT JOIN contacts c ON ct.contact_id = c.id
-       WHERE c.user_id = $1 OR ct.contact_id IS NULL
+       LEFT JOIN contacts c ON ct.contact_id = c.id AND c.user_id = $1
+       WHERE t.user_id = $1
        GROUP BY t.id
        ORDER BY t.text ASC`,
       [userId]

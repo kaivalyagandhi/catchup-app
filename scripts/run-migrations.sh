@@ -128,12 +128,16 @@ echo "Running migration 023: Add contact Google memberships..."
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/023_add_contact_google_memberships.sql
 
 echo ""
-echo "Running migration 024: Create chat edits tables..."
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/024_create_chat_edits_tables.sql
+echo "Running migration 024: Add excluded members to mappings..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/024_add_excluded_members_to_mappings.sql
 
 echo ""
-echo "Running migration 025: Add pending edits deduplication..."
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/025_add_pending_edits_deduplication.sql
+echo "Running migration 026: Create chat edits tables..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/026_create_chat_edits_tables.sql
+
+echo ""
+echo "Running migration 027: Add pending edits deduplication..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/027_add_pending_edits_deduplication.sql
 
 echo ""
 echo "✓ All migrations completed successfully!"

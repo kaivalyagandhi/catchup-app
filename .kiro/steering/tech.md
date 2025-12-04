@@ -38,11 +38,11 @@
 
 ## Testing Standards
 
-- **Required**: Write tests for all new functionality
-- **Unit tests**: Core logic, matching algorithms, tag generation
-- **Integration tests**: Calendar APIs, notification services, database operations
-- **Property-based tests**: Matching logic, tag deduplication, availability calculations
-- **Validation**: All tests must pass before merging
+- **Direct Integration**: Implement changes directly into the app, not in isolated test files
+- **Manual Testing**: Guide user to test changes in the running application via chat or .md docs
+- **Testing Instructions**: Provide clear step-by-step testing instructions in chat responses
+- **Unit Tests**: Only create automated tests when explicitly requested by user
+- **Validation**: Test changes by running the actual application
 - **Linting**: Enforce consistent code style (ESLint/Prettier for JS/TS, Black/Ruff for Python)
 
 ## Code Quality

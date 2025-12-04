@@ -89,7 +89,7 @@
 - Can skip and set later
 
 ### Options
-- **Frequency**: Daily, Weekly, Biweekly, Monthly, Quarterly, Custom
+- **Frequency**: Daily, Weekly, Biweekly, Monthly, Quarterly, Yearly, Flexible, N/A
 - **Methods**: Phone, Text, Email, In-person, Video
 - **Times**: Weekday mornings/evenings, Weekends, Specific days
 

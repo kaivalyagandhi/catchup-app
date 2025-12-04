@@ -12,7 +12,7 @@ class GroupsTable {
       : container;
     this.data = data;
     this.contacts = contacts; // All contacts for member display
-    this.filteredData = data;
+    this.filteredData = [...data]; // Create a copy to avoid reference issues
     this.options = {
       sortBy: 'name',
       sortOrder: 'asc',
@@ -120,7 +120,7 @@ class GroupsTable {
     `;
 
     // Add expanded member rows if group is expanded (Requirement 13.2)
-    if (isExpanded && contactCount > 0) {
+    if (isExpanded) {
       html += this.renderMemberRows(group);
     }
 

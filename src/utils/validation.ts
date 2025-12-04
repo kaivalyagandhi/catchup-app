@@ -125,11 +125,11 @@ export function validateCalendarEvent(event: CalendarEventData): ValidationResul
 /**
  * Validate frequency preference
  */
-export type FrequencyOption = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'flexible';
+export type FrequencyOption = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' | 'flexible' | 'na';
 
 export function validateFrequencyPreference(frequency: string): ValidationResult {
   const errors: string[] = [];
-  const validOptions: FrequencyOption[] = ['daily', 'weekly', 'monthly', 'yearly', 'flexible'];
+  const validOptions: FrequencyOption[] = ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly', 'flexible', 'na'];
 
   if (!frequency || frequency.trim() === '') {
     errors.push('Frequency preference is required');

@@ -42,6 +42,8 @@ export const VALID_FREQUENCIES = [
   'monthly',
   'quarterly',
   'yearly',
+  'flexible',
+  'na',
 ] as const;
 export type FrequencyPreference = (typeof VALID_FREQUENCIES)[number];
 

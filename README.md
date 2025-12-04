@@ -2,6 +2,24 @@
 
 CatchUp is an intelligent relationship management application that helps users maintain meaningful connections by identifying and prioritizing catchup opportunities, reducing coordination friction, and facilitating connection through intelligent scheduling and suggestion capabilities.
 
+## 📚 Documentation
+
+**Complete documentation index**: [docs/INDEX.md](docs/INDEX.md)
+
+### Quick Links
+- **Getting Started**: [docs/development/QUICK_START.md](docs/development/QUICK_START.md)
+- **API Reference**: [docs/API.md](docs/API.md)
+- **Deployment**: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- **Testing Guide**: [docs/testing/TESTING_GUIDE.md](docs/testing/TESTING_GUIDE.md)
+
+### Feature Documentation
+- **Directory Page**: [docs/features/directory-page/](docs/features/directory-page/)
+- **Google Integrations**: [docs/features/google-integrations/](docs/features/google-integrations/)
+- **Enrichment & Edits**: [docs/features/enrichment/](docs/features/enrichment/)
+- **Voice Notes**: [docs/features/voice-notes/](docs/features/voice-notes/)
+- **SMS/MMS**: [docs/features/sms-mms/](docs/features/sms-mms/)
+- **Contact Onboarding**: [docs/features/onboarding/](docs/features/onboarding/)
+
 ## Project Structure
 
 ```

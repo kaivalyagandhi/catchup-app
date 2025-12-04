@@ -9,9 +9,12 @@
 export enum FrequencyOption {
   DAILY = 'daily',
   WEEKLY = 'weekly',
+  BIWEEKLY = 'biweekly',
   MONTHLY = 'monthly',
+  QUARTERLY = 'quarterly',
   YEARLY = 'yearly',
   FLEXIBLE = 'flexible',
+  NA = 'na',
 }
 
 export enum InteractionType {

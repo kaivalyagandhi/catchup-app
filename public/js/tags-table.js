@@ -12,7 +12,7 @@ class TagsTable {
       : container;
     this.data = data;
     this.contacts = contacts; // All contacts for count calculation
-    this.filteredData = data;
+    this.filteredData = [...data]; // Create a copy to avoid reference issues
     this.options = {
       sortBy: 'text',
       sortOrder: 'asc',
@@ -112,7 +112,7 @@ class TagsTable {
     `;
 
     // Add expanded member rows if tag is expanded
-    if (isExpanded && contactCount > 0) {
+    if (isExpanded) {
       html += this.renderMemberRows(tag);
     }
 
