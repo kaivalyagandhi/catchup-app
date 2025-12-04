@@ -59,18 +59,12 @@ export function validateEnvironmentVariables(): EnvValidationResult {
   if (process.env.PORT) {
     const port = parseInt(process.env.PORT, 10);
     if (isNaN(port) || port < 1 || port > 65535) {
-      errors.push(
-        `PORT must be a valid port number (1-65535), got: ${process.env.PORT}`
-      );
+      errors.push(`PORT must be a valid port number (1-65535), got: ${process.env.PORT}`);
     }
   }
 
   // Google OAuth configuration (required)
-  const googleOAuthVars = [
-    'GOOGLE_CLIENT_ID',
-    'GOOGLE_CLIENT_SECRET',
-    'GOOGLE_REDIRECT_URI',
-  ];
+  const googleOAuthVars = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI'];
 
   for (const varName of googleOAuthVars) {
     if (!process.env[varName]) {
@@ -81,7 +75,10 @@ export function validateEnvironmentVariables(): EnvValidationResult {
   }
 
   // Validate GOOGLE_CLIENT_ID format
-  if (process.env.GOOGLE_CLIENT_ID && !process.env.GOOGLE_CLIENT_ID.endsWith('.apps.googleusercontent.com')) {
+  if (
+    process.env.GOOGLE_CLIENT_ID &&
+    !process.env.GOOGLE_CLIENT_ID.endsWith('.apps.googleusercontent.com')
+  ) {
     warnings.push(
       'GOOGLE_CLIENT_ID does not match expected format (*.apps.googleusercontent.com). ' +
         'This may indicate an incorrect client ID.'
@@ -103,9 +100,7 @@ export function validateEnvironmentVariables(): EnvValidationResult {
 
       // Check protocol
       if (!['http:', 'https:'].includes(url.protocol)) {
-        errors.push(
-          `GOOGLE_REDIRECT_URI must use http or https protocol, got: ${url.protocol}`
-        );
+        errors.push(`GOOGLE_REDIRECT_URI must use http or https protocol, got: ${url.protocol}`);
       }
 
       // Warn if using http in production
@@ -203,7 +198,11 @@ export function validateEnvironmentVariables(): EnvValidationResult {
   }
 
   // Optional but recommended: Twilio SMS
-  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
+  if (
+    !process.env.TWILIO_ACCOUNT_SID ||
+    !process.env.TWILIO_AUTH_TOKEN ||
+    !process.env.TWILIO_PHONE_NUMBER
+  ) {
     warnings.push(
       'Twilio SMS configuration is incomplete. ' +
         'SMS notification features will not work. ' +
@@ -251,7 +250,9 @@ export function logValidationStatus(validation: EnvValidationResult): void {
   console.log(`  DATABASE_USER: ${process.env.DATABASE_USER ? '✓ Set' : '✗ Not set'}`);
   console.log(`  DATABASE_PASSWORD: ${process.env.DATABASE_PASSWORD ? '✓ Set' : '✗ Not set'}`);
   console.log(`  GOOGLE_CLIENT_ID: ${process.env.GOOGLE_CLIENT_ID ? '✓ Set' : '✗ Not set'}`);
-  console.log(`  GOOGLE_CLIENT_SECRET: ${process.env.GOOGLE_CLIENT_SECRET ? '✓ Set' : '✗ Not set'}`);
+  console.log(
+    `  GOOGLE_CLIENT_SECRET: ${process.env.GOOGLE_CLIENT_SECRET ? '✓ Set' : '✗ Not set'}`
+  );
   console.log(`  GOOGLE_REDIRECT_URI: ${process.env.GOOGLE_REDIRECT_URI ? '✓ Set' : '✗ Not set'}`);
   console.log(`  JWT_SECRET: ${process.env.JWT_SECRET ? '✓ Set' : '✗ Not set'}`);
   console.log(`  ENCRYPTION_KEY: ${process.env.ENCRYPTION_KEY ? '✓ Set' : '✗ Not set'}`);
@@ -268,12 +269,8 @@ export function logValidationStatus(validation: EnvValidationResult): void {
   console.log(
     `  GOOGLE_GEMINI_API_KEY: ${process.env.GOOGLE_GEMINI_API_KEY ? '✓ Set' : '✗ Not set'}`
   );
-  console.log(
-    `  TWILIO_ACCOUNT_SID: ${process.env.TWILIO_ACCOUNT_SID ? '✓ Set' : '✗ Not set'}`
-  );
-  console.log(
-    `  SENDGRID_API_KEY: ${process.env.SENDGRID_API_KEY ? '✓ Set' : '✗ Not set'}`
-  );
+  console.log(`  TWILIO_ACCOUNT_SID: ${process.env.TWILIO_ACCOUNT_SID ? '✓ Set' : '✗ Not set'}`);
+  console.log(`  SENDGRID_API_KEY: ${process.env.SENDGRID_API_KEY ? '✓ Set' : '✗ Not set'}`);
 
   console.log(`\nValidation Status: ${validation.valid ? '✓ Valid' : '✗ Invalid'}`);
 
@@ -318,8 +315,6 @@ export function validateAndFailFast(): void {
   if (validation.warnings.length === 0) {
     console.log('✓ All environment variables are valid and ready to use.\n');
   } else {
-    console.log(
-      '✓ Environment variables are valid but have warnings. Review warnings above.\n'
-    );
+    console.log('✓ Environment variables are valid but have warnings. Review warnings above.\n');
   }
 }

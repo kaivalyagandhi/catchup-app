@@ -18,12 +18,12 @@ const router = Router();
 router.get('/authorize', (req: Request, res: Response) => {
   try {
     const { userId } = req.query;
-    
+
     if (!userId || typeof userId !== 'string') {
       res.status(400).json({ error: 'userId is required' });
       return;
     }
-    
+
     // Encode userId as state parameter
     const state = Buffer.from(userId).toString('base64');
     const authUrl = getAuthorizationUrl(state);
@@ -145,9 +145,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         userId: userId,
         reason: 'calendar_sync',
       });
-      console.log(
-        `Initial calendar sync and suggestion regeneration queued for user ${userId}`
-      );
+      console.log(`Initial calendar sync and suggestion regeneration queued for user ${userId}`);
     } catch (syncError) {
       console.error('Failed to sync calendar or enqueue suggestion regeneration:', syncError);
       // Don't fail the OAuth flow if sync fails

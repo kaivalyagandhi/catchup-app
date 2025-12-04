@@ -1,6 +1,6 @@
 /**
  * Google SSO API Routes
- * 
+ *
  * Handles Google Single Sign-On OAuth 2.0 flow
  * - Authorization URL generation
  * - OAuth callback handling
@@ -74,187 +74,195 @@ function createRateLimiter(config: RateLimitConfig) {
 /**
  * GET /api/auth/google/authorize
  * Generate Google OAuth authorization URL
- * 
+ *
  * Returns the URL to redirect the user to for Google authentication
  */
-router.get('/authorize', createRateLimiter(RATE_LIMITS.AUTHORIZE), (req: Request, res: Response) => {
-  try {
-    const googleSSOService = getGoogleSSOService();
-    const stateManager = getOAuthStateManager();
+router.get(
+  '/authorize',
+  createRateLimiter(RATE_LIMITS.AUTHORIZE),
+  (req: Request, res: Response) => {
+    try {
+      const googleSSOService = getGoogleSSOService();
+      const stateManager = getOAuthStateManager();
 
-    // Generate CSRF protection state
-    const state = stateManager.generateState();
+      // Generate CSRF protection state
+      const state = stateManager.generateState();
 
-    // Generate authorization URL
-    const authUrl = googleSSOService.getAuthorizationUrl(state);
+      // Generate authorization URL
+      const authUrl = googleSSOService.getAuthorizationUrl(state);
 
-    console.log('[Google SSO] Authorization URL generated');
+      console.log('[Google SSO] Authorization URL generated');
 
-    res.json({
-      authUrl,
-      state, // Return state so client can verify it in callback
-    });
-  } catch (error) {
-    // Log error with context
-    googleSSOErrorHandler.logError(error as Error, req, {
-      endpoint: '/authorize',
-      action: 'generate_auth_url',
-    });
+      res.json({
+        authUrl,
+        state, // Return state so client can verify it in callback
+      });
+    } catch (error) {
+      // Log error with context
+      googleSSOErrorHandler.logError(error as Error, req, {
+        endpoint: '/authorize',
+        action: 'generate_auth_url',
+      });
 
-    // Format and send error response
-    const errorResponse = googleSSOErrorHandler.formatError(error as Error);
-    const statusCode = error instanceof GoogleSSOError ? error.statusCode : 500;
-    res.status(statusCode).json(errorResponse);
+      // Format and send error response
+      const errorResponse = googleSSOErrorHandler.formatError(error as Error);
+      const statusCode = error instanceof GoogleSSOError ? error.statusCode : 500;
+      res.status(statusCode).json(errorResponse);
+    }
   }
-});
+);
 
 /**
  * GET /api/auth/google/callback
  * Handle OAuth callback from Google
- * 
+ *
  * Query parameters:
  * - code: Authorization code from Google
  * - state: CSRF protection state parameter
  * - error: Error code if authorization failed
  */
-router.get('/callback', createRateLimiter(RATE_LIMITS.CALLBACK), async (req: Request, res: Response) => {
-  try {
-    const { code, state, error: oauthError } = req.query;
+router.get(
+  '/callback',
+  createRateLimiter(RATE_LIMITS.CALLBACK),
+  async (req: Request, res: Response) => {
+    try {
+      const { code, state, error: oauthError } = req.query;
 
-    // Check for OAuth errors
-    if (oauthError) {
-      console.error('[Google SSO] OAuth error:', oauthError);
-      
+      // Check for OAuth errors
+      if (oauthError) {
+        console.error('[Google SSO] OAuth error:', oauthError);
+
+        await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
+          metadata: {
+            provider: 'google',
+            error: oauthError,
+            method: 'oauth_callback',
+          },
+          success: false,
+          errorMessage: `OAuth error: ${oauthError}`,
+        });
+
+        res.status(400).json({
+          error: {
+            code: 'OAUTH_ERROR',
+            message: 'Google authentication was cancelled or failed',
+            details: process.env.NODE_ENV === 'development' ? String(oauthError) : undefined,
+          },
+        });
+        return;
+      }
+
+      // Validate required parameters
+      if (!code || typeof code !== 'string') {
+        res.status(400).json({
+          error: {
+            code: GoogleSSOErrorCode.INVALID_CODE,
+            message: 'Authorization code is required',
+          },
+        });
+        return;
+      }
+
+      if (!state || typeof state !== 'string') {
+        res.status(400).json({
+          error: {
+            code: GoogleSSOErrorCode.STATE_MISMATCH,
+            message: 'State parameter is required',
+          },
+        });
+        return;
+      }
+
+      // Verify state for CSRF protection
+      const stateManager = getOAuthStateManager();
+      const isValidState = stateManager.validateState(state);
+
+      if (!isValidState) {
+        console.error('[Google SSO] Invalid or expired state');
+
+        await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
+          metadata: {
+            provider: 'google',
+            error: 'state_mismatch',
+            method: 'oauth_callback',
+          },
+          success: false,
+          errorMessage: 'State validation failed',
+        });
+
+        res.status(400).json({
+          error: {
+            code: GoogleSSOErrorCode.STATE_MISMATCH,
+            message: 'Security validation failed. Please try again.',
+          },
+        });
+        return;
+      }
+
+      console.log('[Google SSO] Exchanging authorization code for tokens...');
+
+      // Exchange code for tokens
+      const googleSSOService = getGoogleSSOService();
+      const tokenResponse = await googleSSOService.exchangeCodeForToken(code);
+
+      console.log('[Google SSO] Validating ID token...');
+
+      // Validate and decode ID token
+      const userInfo = await googleSSOService.validateAndDecodeToken(tokenResponse.id_token);
+
+      console.log('[Google SSO] User authenticated:', { email: userInfo.email, sub: userInfo.sub });
+
+      // Authenticate or create user
+      const { user, token, isNewUser } = await authenticateWithGoogle(userInfo);
+
+      console.log('[Google SSO] User logged in:', {
+        userId: user.id,
+        email: user.email,
+        isNewUser,
+      });
+
+      // Redirect to frontend with token and user info in URL
+      // Frontend will extract and store authentication data
+      const redirectUrl = `/?auth_success=true&token=${encodeURIComponent(token)}&userId=${user.id}&userEmail=${encodeURIComponent(user.email)}&isNewUser=${isNewUser}`;
+      res.redirect(redirectUrl);
+    } catch (error) {
+      // Log error with context
+      googleSSOErrorHandler.logError(error as Error, req, {
+        endpoint: '/callback',
+        action: 'oauth_callback',
+        code: req.query.code ? 'present' : 'missing',
+        state: req.query.state ? 'present' : 'missing',
+      });
+
+      // Log failed authentication attempt
       await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
-        metadata: { 
+        metadata: {
           provider: 'google',
-          error: oauthError,
-          method: 'oauth_callback'
+          method: 'oauth_callback',
+          error: error instanceof Error ? error.message : String(error),
         },
         success: false,
-        errorMessage: `OAuth error: ${oauthError}`,
+        errorMessage: error instanceof Error ? error.message : String(error),
       });
 
-      res.status(400).json({
-        error: {
-          code: 'OAUTH_ERROR',
-          message: 'Google authentication was cancelled or failed',
-          details: process.env.NODE_ENV === 'development' ? String(oauthError) : undefined,
-        },
-      });
-      return;
+      // Format and send error response with guidance
+      const errorResponse = googleSSOErrorHandler.formatError(error as Error);
+      const statusCode = error instanceof GoogleSSOError ? error.statusCode : 500;
+
+      // Add retry guidance to the message
+      if (errorResponse.error && error instanceof Error) {
+        errorResponse.error.message = googleSSOErrorHandler.getMessageWithGuidance(error);
+      }
+
+      res.status(statusCode).json(errorResponse);
     }
-
-    // Validate required parameters
-    if (!code || typeof code !== 'string') {
-      res.status(400).json({
-        error: {
-          code: GoogleSSOErrorCode.INVALID_CODE,
-          message: 'Authorization code is required',
-        },
-      });
-      return;
-    }
-
-    if (!state || typeof state !== 'string') {
-      res.status(400).json({
-        error: {
-          code: GoogleSSOErrorCode.STATE_MISMATCH,
-          message: 'State parameter is required',
-        },
-      });
-      return;
-    }
-
-    // Verify state for CSRF protection
-    const stateManager = getOAuthStateManager();
-    const isValidState = stateManager.validateState(state);
-
-    if (!isValidState) {
-      console.error('[Google SSO] Invalid or expired state');
-      
-      await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
-        metadata: { 
-          provider: 'google',
-          error: 'state_mismatch',
-          method: 'oauth_callback'
-        },
-        success: false,
-        errorMessage: 'State validation failed',
-      });
-
-      res.status(400).json({
-        error: {
-          code: GoogleSSOErrorCode.STATE_MISMATCH,
-          message: 'Security validation failed. Please try again.',
-        },
-      });
-      return;
-    }
-
-    console.log('[Google SSO] Exchanging authorization code for tokens...');
-
-    // Exchange code for tokens
-    const googleSSOService = getGoogleSSOService();
-    const tokenResponse = await googleSSOService.exchangeCodeForToken(code);
-
-    console.log('[Google SSO] Validating ID token...');
-
-    // Validate and decode ID token
-    const userInfo = await googleSSOService.validateAndDecodeToken(tokenResponse.id_token);
-
-    console.log('[Google SSO] User authenticated:', { email: userInfo.email, sub: userInfo.sub });
-
-    // Authenticate or create user
-    const { user, token, isNewUser } = await authenticateWithGoogle(userInfo);
-
-    console.log('[Google SSO] User logged in:', { 
-      userId: user.id, 
-      email: user.email,
-      isNewUser 
-    });
-
-    // Redirect to frontend with token and user info in URL
-    // Frontend will extract and store authentication data
-    const redirectUrl = `/?auth_success=true&token=${encodeURIComponent(token)}&userId=${user.id}&userEmail=${encodeURIComponent(user.email)}&isNewUser=${isNewUser}`;
-    res.redirect(redirectUrl);
-  } catch (error) {
-    // Log error with context
-    googleSSOErrorHandler.logError(error as Error, req, {
-      endpoint: '/callback',
-      action: 'oauth_callback',
-      code: req.query.code ? 'present' : 'missing',
-      state: req.query.state ? 'present' : 'missing',
-    });
-
-    // Log failed authentication attempt
-    await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
-      metadata: { 
-        provider: 'google',
-        method: 'oauth_callback',
-        error: error instanceof Error ? error.message : String(error)
-      },
-      success: false,
-      errorMessage: error instanceof Error ? error.message : String(error),
-    });
-
-    // Format and send error response with guidance
-    const errorResponse = googleSSOErrorHandler.formatError(error as Error);
-    const statusCode = error instanceof GoogleSSOError ? error.statusCode : 500;
-    
-    // Add retry guidance to the message
-    if (errorResponse.error && error instanceof Error) {
-      errorResponse.error.message = googleSSOErrorHandler.getMessageWithGuidance(error);
-    }
-    
-    res.status(statusCode).json(errorResponse);
   }
-});
+);
 
 /**
  * POST /api/auth/google/token
  * Alternative token exchange flow for SPAs
- * 
+ *
  * Request body:
  * - code: Authorization code from Google
  * - state: CSRF protection state parameter
@@ -290,12 +298,12 @@ router.post('/token', createRateLimiter(RATE_LIMITS.TOKEN), async (req: Request,
 
     if (!isValidState) {
       console.error('[Google SSO] Invalid or expired state');
-      
+
       await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
-        metadata: { 
+        metadata: {
           provider: 'google',
           error: 'state_mismatch',
-          method: 'token_exchange'
+          method: 'token_exchange',
         },
         success: false,
         errorMessage: 'State validation failed',
@@ -326,10 +334,10 @@ router.post('/token', createRateLimiter(RATE_LIMITS.TOKEN), async (req: Request,
     // Authenticate or create user
     const { user, token, isNewUser } = await authenticateWithGoogle(userInfo);
 
-    console.log('[Google SSO] User logged in:', { 
-      userId: user.id, 
+    console.log('[Google SSO] User logged in:', {
+      userId: user.id,
       email: user.email,
-      isNewUser 
+      isNewUser,
     });
 
     // Return JWT token and user info
@@ -356,10 +364,10 @@ router.post('/token', createRateLimiter(RATE_LIMITS.TOKEN), async (req: Request,
 
     // Log failed authentication attempt
     await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
-      metadata: { 
+      metadata: {
         provider: 'google',
         method: 'token_exchange',
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       },
       success: false,
       errorMessage: error instanceof Error ? error.message : String(error),
@@ -368,12 +376,12 @@ router.post('/token', createRateLimiter(RATE_LIMITS.TOKEN), async (req: Request,
     // Format and send error response with guidance
     const errorResponse = googleSSOErrorHandler.formatError(error as Error);
     const statusCode = error instanceof GoogleSSOError ? error.statusCode : 500;
-    
+
     // Add retry guidance to the message
     if (errorResponse.error && error instanceof Error) {
       errorResponse.error.message = googleSSOErrorHandler.getMessageWithGuidance(error);
     }
-    
+
     res.status(statusCode).json(errorResponse);
   }
 });
@@ -381,7 +389,7 @@ router.post('/token', createRateLimiter(RATE_LIMITS.TOKEN), async (req: Request,
 /**
  * GET /api/auth/google/status
  * Check Google SSO connection status for authenticated user
- * 
+ *
  * Requires authentication
  */
 router.get('/status', authenticate, async (req: AuthenticatedRequest, res: Response) => {

@@ -108,13 +108,15 @@ export class GroupSyncService {
       console.log(`Fetched ${contactGroups.length} contact groups`);
 
       // Process groups in batches to avoid memory issues
-      const userGroups = contactGroups.filter(g => g.groupType === 'USER_CONTACT_GROUP');
+      const userGroups = contactGroups.filter((g) => g.groupType === 'USER_CONTACT_GROUP');
       const batchSize = 20;
-      
+
       for (let i = 0; i < userGroups.length; i += batchSize) {
         const batch = userGroups.slice(i, i + batchSize);
-        console.log(`Processing group batch ${i / batchSize + 1} of ${Math.ceil(userGroups.length / batchSize)}`);
-        
+        console.log(
+          `Processing group batch ${i / batchSize + 1} of ${Math.ceil(userGroups.length / batchSize)}`
+        );
+
         for (const group of batch) {
           const googleGroup: GoogleContactGroup = {
             resourceName: group.resourceName!,
@@ -160,7 +162,7 @@ export class GroupSyncService {
             suggestionsGenerated++;
           }
         }
-        
+
         // Allow garbage collection between batches
         if (global.gc) {
           global.gc();
@@ -234,7 +236,7 @@ export class GroupSyncService {
     // Process in batches to avoid memory issues
     const batchSize = 10;
     const similarities = [];
-    
+
     for (let i = 0; i < existingGroups.length; i += batchSize) {
       const batch = existingGroups.slice(i, i + batchSize);
       const batchResults = await Promise.all(
@@ -318,31 +320,33 @@ export class GroupSyncService {
 
     // Early exit for identical strings
     if (str1 === str2) return 0;
-    
+
     // Limit string length to prevent excessive memory usage
     const maxLength = 100;
     const s1 = str1.slice(0, maxLength);
     const s2 = str2.slice(0, maxLength);
-    
+
     // Use space-optimized algorithm with only 2 rows
-    let prevRow = Array(n + 1).fill(0).map((_, i) => i);
+    let prevRow = Array(n + 1)
+      .fill(0)
+      .map((_, i) => i);
     let currRow = Array(n + 1).fill(0);
 
     for (let i = 1; i <= s1.length; i++) {
       currRow[0] = i;
-      
+
       for (let j = 1; j <= s2.length; j++) {
         if (s1[i - 1] === s2[j - 1]) {
           currRow[j] = prevRow[j - 1];
         } else {
           currRow[j] = Math.min(
-            prevRow[j] + 1,     // deletion
+            prevRow[j] + 1, // deletion
             currRow[j - 1] + 1, // insertion
-            prevRow[j - 1] + 1  // substitution
+            prevRow[j - 1] + 1 // substitution
           );
         }
       }
-      
+
       // Swap rows
       [prevRow, currRow] = [currRow, prevRow];
     }
@@ -418,8 +422,8 @@ export class GroupSyncService {
    * Requirements: 6.6, 15.7, 15.8
    */
   async approveMappingSuggestion(
-    userId: string, 
-    mappingId: string, 
+    userId: string,
+    mappingId: string,
     excludedMembers: string[] = []
   ): Promise<void> {
     console.log(`Approving mapping suggestion ${mappingId} for user ${userId}`);
@@ -550,7 +554,7 @@ export class GroupSyncService {
                    FROM contact_google_memberships 
                    WHERE user_id = $1 AND google_group_resource_name = $2`;
       const params: any[] = [userId, mapping.googleResourceName];
-      
+
       // Exclude specific contacts if provided
       if (excludedContactIds.length > 0) {
         query += ` AND contact_id NOT IN (${excludedContactIds.map((_, i) => `$${i + 3}`).join(', ')})`;
@@ -559,9 +563,7 @@ export class GroupSyncService {
 
       const result = await pool.query(query, params);
 
-      console.log(
-        `Found ${result.rows.length} contacts for Google group ${mapping.googleName}`
-      );
+      console.log(`Found ${result.rows.length} contacts for Google group ${mapping.googleName}`);
 
       // Assign each contact to the CatchUp group
       for (const row of result.rows) {
@@ -596,7 +598,10 @@ export class GroupSyncService {
    *
    * Requirements: 6.8
    */
-  async syncGroupMembershipsFromCache(userId: string, excludedContactIds: string[] = []): Promise<number> {
+  async syncGroupMembershipsFromCache(
+    userId: string,
+    excludedContactIds: string[] = []
+  ): Promise<number> {
     console.log(`Starting cached group membership sync for user ${userId}`);
     if (excludedContactIds.length > 0) {
       console.log(`Excluding ${excludedContactIds.length} contacts from sync`);
@@ -626,13 +631,10 @@ export class GroupSyncService {
                      FROM contact_google_memberships 
                      WHERE user_id = $1 AND google_group_resource_name = $2`;
         const params: any[] = [userId, mapping.googleResourceName];
-        
+
         // Combine excluded members from mapping with any additional exclusions
-        const allExcludedIds = [
-          ...(mapping.excludedMembers || []),
-          ...excludedContactIds
-        ];
-        
+        const allExcludedIds = [...(mapping.excludedMembers || []), ...excludedContactIds];
+
         // Exclude contacts (both from mapping and additional exclusions)
         if (allExcludedIds.length > 0) {
           query += ` AND contact_id NOT IN (${allExcludedIds.map((_, i) => `$${i + 3}`).join(', ')})`;
@@ -641,14 +643,16 @@ export class GroupSyncService {
 
         const result = await pool.query(query, params);
 
-        console.log(
-          `Found ${result.rows.length} contacts for Google group ${mapping.googleName}`
-        );
+        console.log(`Found ${result.rows.length} contacts for Google group ${mapping.googleName}`);
 
         // Assign each contact to the CatchUp group
         for (const row of result.rows) {
           try {
-            await this.groupRepository.assignContact(row.contact_id, mapping.catchupGroupId, userId);
+            await this.groupRepository.assignContact(
+              row.contact_id,
+              mapping.catchupGroupId,
+              userId
+            );
             membershipsUpdated++;
           } catch (error) {
             // Ignore if already assigned
@@ -661,7 +665,9 @@ export class GroupSyncService {
         }
       }
 
-      console.log(`Cached group membership sync completed. Updated ${membershipsUpdated} memberships`);
+      console.log(
+        `Cached group membership sync completed. Updated ${membershipsUpdated} memberships`
+      );
 
       return membershipsUpdated;
     } catch (error) {

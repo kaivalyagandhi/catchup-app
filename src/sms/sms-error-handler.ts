@@ -209,18 +209,12 @@ export function classifyError(error: any): SMSErrorType {
   }
 
   // Invalid phone number
-  if (
-    message.includes('invalid phone') ||
-    message.includes('invalid number')
-  ) {
+  if (message.includes('invalid phone') || message.includes('invalid number')) {
     return SMSErrorType.INVALID_PHONE_NUMBER;
   }
 
   // Permission denied
-  if (
-    message.includes('permission denied') ||
-    message.includes('access denied')
-  ) {
+  if (message.includes('permission denied') || message.includes('access denied')) {
     return SMSErrorType.PERMISSION_DENIED;
   }
 
@@ -257,9 +251,7 @@ export async function logErrorWithContext(
   error: SMSProcessingError | Error,
   context: ErrorContext
 ): Promise<void> {
-  const errorType = error instanceof SMSProcessingError 
-    ? error.errorType 
-    : classifyError(error);
+  const errorType = error instanceof SMSProcessingError ? error.errorType : classifyError(error);
 
   const logEntry = {
     timestamp: context.timestamp,
@@ -351,12 +343,7 @@ export async function retryWithBackoff<T>(
       const errorType = classifyError(error);
 
       // Create SMS processing error
-      const smsError = new SMSProcessingError(
-        lastError.message,
-        errorType,
-        context,
-        lastError
-      );
+      const smsError = new SMSProcessingError(lastError.message, errorType, context, lastError);
 
       // Log error with context
       await logErrorWithContext(smsError, context);
@@ -385,7 +372,7 @@ export async function retryWithBackoff<T>(
 
       console.warn(
         `Recoverable error (${errorType}) for message ${context.messageSid}, ` +
-        `retrying in ${delay}ms (attempt ${attempt + 1}/${config.maxAttempts})`
+          `retrying in ${delay}ms (attempt ${attempt + 1}/${config.maxAttempts})`
       );
 
       // Wait before retrying
@@ -445,32 +432,28 @@ export async function notifyUserOfFailure(
  */
 function getUserFriendlyErrorMessage(errorType: SMSErrorType): string {
   const messages: Record<SMSErrorType, string> = {
-    [SMSErrorType.NETWORK_TIMEOUT]: 
+    [SMSErrorType.NETWORK_TIMEOUT]:
       "We couldn't process your message due to a network issue. Please try again.",
-    [SMSErrorType.SERVICE_UNAVAILABLE]: 
-      "Our service is temporarily unavailable. Please try again in a few minutes.",
-    [SMSErrorType.RATE_LIMIT_EXTERNAL]: 
-      "We're experiencing high demand. Please try again shortly.",
-    [SMSErrorType.DATABASE_CONNECTION]: 
+    [SMSErrorType.SERVICE_UNAVAILABLE]:
+      'Our service is temporarily unavailable. Please try again in a few minutes.',
+    [SMSErrorType.RATE_LIMIT_EXTERNAL]: "We're experiencing high demand. Please try again shortly.",
+    [SMSErrorType.DATABASE_CONNECTION]:
       "We're experiencing technical difficulties. Please try again later.",
-    [SMSErrorType.TEMPORARY_FAILURE]: 
-      "We couldn't process your message. Please try again.",
-    [SMSErrorType.INVALID_CREDENTIALS]: 
-      "There's a configuration issue. Please contact support.",
-    [SMSErrorType.MALFORMED_MEDIA]: 
+    [SMSErrorType.TEMPORARY_FAILURE]: "We couldn't process your message. Please try again.",
+    [SMSErrorType.INVALID_CREDENTIALS]: "There's a configuration issue. Please contact support.",
+    [SMSErrorType.MALFORMED_MEDIA]:
       "We couldn't process your media file. Please ensure it's a valid audio, image, or video file.",
-    [SMSErrorType.UNSUPPORTED_MEDIA_TYPE]: 
+    [SMSErrorType.UNSUPPORTED_MEDIA_TYPE]:
       "This media type isn't supported. Please send text, voice notes, images, or videos.",
-    [SMSErrorType.QUOTA_EXCEEDED]: 
+    [SMSErrorType.QUOTA_EXCEEDED]:
       "You've reached your processing limit. Please try again later or contact support.",
-    [SMSErrorType.AUTHENTICATION_FAILED]: 
-      "Authentication failed. Please verify your phone number in the web app.",
-    [SMSErrorType.INVALID_PHONE_NUMBER]: 
+    [SMSErrorType.AUTHENTICATION_FAILED]:
+      'Authentication failed. Please verify your phone number in the web app.',
+    [SMSErrorType.INVALID_PHONE_NUMBER]:
       "This phone number isn't linked to a CatchUp account. Visit the web app to link it.",
-    [SMSErrorType.MEDIA_SIZE_EXCEEDED]: 
-      "Your file is too large (max 5MB). Please send a smaller file.",
-    [SMSErrorType.PERMISSION_DENIED]: 
-      "Permission denied. Please contact support.",
+    [SMSErrorType.MEDIA_SIZE_EXCEEDED]:
+      'Your file is too large (max 5MB). Please send a smaller file.',
+    [SMSErrorType.PERMISSION_DENIED]: 'Permission denied. Please contact support.',
   };
 
   return messages[errorType] || "We couldn't process your message. Please try again later.";
@@ -494,25 +477,21 @@ export async function processWithErrorHandling<T>(
 
     return { success: true, result };
   } catch (error) {
-    const smsError = error instanceof SMSProcessingError
-      ? error
-      : new SMSProcessingError(
-          (error as Error).message,
-          classifyError(error),
-          context,
-          error as Error
-        );
+    const smsError =
+      error instanceof SMSProcessingError
+        ? error
+        : new SMSProcessingError(
+            (error as Error).message,
+            classifyError(error),
+            context,
+            error as Error
+          );
 
     // Notify user of failure
     // Requirement 9.3: Notify after all retries fail
     // Requirement 9.4: Notify immediately for unrecoverable errors
     if (context.phoneNumber) {
-      await notifyUserOfFailure(
-        context.userId,
-        context.phoneNumber,
-        smsError.errorType,
-        context
-      );
+      await notifyUserOfFailure(context.userId, context.phoneNumber, smsError.errorType, context);
     }
 
     return { success: false, error: smsError };

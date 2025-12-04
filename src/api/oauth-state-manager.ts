@@ -2,7 +2,7 @@ import crypto from 'crypto';
 
 /**
  * OAuth State Manager
- * 
+ *
  * Manages OAuth state tokens for CSRF protection during the OAuth flow.
  * States are stored in-memory with expiration and automatic cleanup.
  */

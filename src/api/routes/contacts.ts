@@ -112,19 +112,19 @@ router.post('/tags', async (req: Request, res: Response): Promise<void> => {
     res.status(201).json(tag);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
+
     // Handle duplicate tag error with 409 Conflict
     if (errorMessage.includes('Contact already has this tag')) {
       res.status(409).json({ error: 'Contact already has this tag' });
       return;
     }
-    
+
     // Handle validation errors with 400 Bad Request
     if (errorMessage.includes('Tag must be') || errorMessage.includes('Tag text is required')) {
       res.status(400).json({ error: errorMessage });
       return;
     }
-    
+
     console.error('Error adding tag:', error);
     res.status(500).json({ error: 'Failed to add tag' });
   }
@@ -172,18 +172,18 @@ router.delete('/tags/:id', async (req: Request, res: Response): Promise<void> =>
     res.status(204).send();
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
+
     // Handle not found errors
     if (errorMessage.includes('Contact not found')) {
       res.status(404).json({ error: 'Contact not found' });
       return;
     }
-    
+
     if (errorMessage.includes('Tag not found')) {
       res.status(404).json({ error: 'Tag not found' });
       return;
     }
-    
+
     console.error('Error removing tag:', error);
     res.status(500).json({ error: 'Failed to remove tag' });
   }
@@ -225,13 +225,13 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     if (search) filters.search = search as string;
 
     const contacts = await contactService.listContacts(userId as string, filters);
-    
+
     // Log Emma Brown's location for debugging
     const emmaContact = contacts.find((c: any) => c.name === 'Emma Brown');
     if (emmaContact) {
       console.log(`[ContactsAPI] Emma Brown location: ${emmaContact.location}`);
     }
-    
+
     res.json(contacts);
   } catch (error) {
     console.error('Error listing contacts:', error);

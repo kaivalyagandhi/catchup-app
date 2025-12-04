@@ -1,19 +1,15 @@
 /**
  * SMS/MMS Performance Monitoring API
- * 
+ *
  * Provides endpoints for monitoring performance metrics,
  * cache statistics, and connection pool health.
- * 
+ *
  * Requirements: All (Performance monitoring)
  */
 
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../middleware/error-handler';
-import {
-  getCacheStats,
-  resetMetrics,
-  checkPoolHealth,
-} from '../../sms/performance-optimizer';
+import { getCacheStats, resetMetrics, checkPoolHealth } from '../../sms/performance-optimizer';
 import { connectionPoolManager } from '../../sms/connection-pool-manager';
 import { smsMonitoringService } from '../../sms/sms-monitoring-service';
 

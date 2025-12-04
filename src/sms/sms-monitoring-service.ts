@@ -412,7 +412,9 @@ export class SMSMonitoringService {
         : 0;
 
     const avgLatency =
-      totalCalls > 0 ? (avgGeminiLatency * geminiCalls + avgSpeechLatency * speechCalls) / totalCalls : 0;
+      totalCalls > 0
+        ? (avgGeminiLatency * geminiCalls + avgSpeechLatency * speechCalls) / totalCalls
+        : 0;
 
     return {
       totalCalls,

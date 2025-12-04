@@ -63,7 +63,9 @@ export class AccountDeletionService {
       );
       result.enrichmentsDeleted = enrichmentResult.rowCount || 0;
 
-      console.log(`Deleted ${result.enrichmentsDeleted} SMS/MMS enrichment items for user ${userId}`);
+      console.log(
+        `Deleted ${result.enrichmentsDeleted} SMS/MMS enrichment items for user ${userId}`
+      );
 
       // 2. Delete phone number records
       // Note: The database has ON DELETE CASCADE, but we delete explicitly

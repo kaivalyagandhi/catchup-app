@@ -1,12 +1,12 @@
 /**
  * Connection Pool Manager for External APIs
- * 
+ *
  * Manages connection pooling and reuse for external services:
  * - Google Cloud Speech-to-Text
  * - Google Gemini API
  * - Twilio API
  * - Redis connections
- * 
+ *
  * Requirements: All (Performance optimization for external API calls)
  */
 
@@ -200,11 +200,7 @@ class TwilioClientPool {
   private accountSid: string;
   private authToken: string;
 
-  constructor(
-    accountSid: string,
-    authToken: string,
-    poolConfig: Partial<PoolConfig> = {}
-  ) {
+  constructor(accountSid: string, authToken: string, poolConfig: Partial<PoolConfig> = {}) {
     this.accountSid = accountSid;
     this.authToken = authToken;
     this.config = { ...DEFAULT_POOL_CONFIG, ...poolConfig };

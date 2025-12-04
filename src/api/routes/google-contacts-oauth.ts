@@ -19,12 +19,12 @@ const router = Router();
 router.get('/authorize', (req: Request, res: Response) => {
   try {
     const { userId } = req.query;
-    
+
     if (!userId || typeof userId !== 'string') {
       res.status(400).json({ error: 'userId is required' });
       return;
     }
-    
+
     // Encode userId as state parameter
     const state = Buffer.from(userId).toString('base64');
     const authUrl = googleContactsOAuthService.getAuthorizationUrl(state);

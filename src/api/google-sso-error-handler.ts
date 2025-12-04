@@ -80,7 +80,10 @@ export class GoogleSSOErrorHandler {
    * @param includeDetails - Whether to include detailed error information
    * @returns Formatted error response
    */
-  formatErrorResponse(error: GoogleSSOError | Error, includeDetails: boolean = false): ErrorResponse {
+  formatErrorResponse(
+    error: GoogleSSOError | Error,
+    includeDetails: boolean = false
+  ): ErrorResponse {
     if (error instanceof GoogleSSOError) {
       const response: ErrorResponse = {
         error: {
@@ -128,7 +131,7 @@ export class GoogleSSOErrorHandler {
   ): ErrorLogEntry {
     // Extract user info from request if available (from authenticated requests)
     const reqWithUser = req as any;
-    
+
     const logEntry: ErrorLogEntry = {
       timestamp: new Date(),
       errorCode: error instanceof GoogleSSOError ? error.code : 'INTERNAL_ERROR',
@@ -166,7 +169,11 @@ export class GoogleSSOErrorHandler {
     }
 
     // Write to audit log for security events and high-severity errors
-    if (this.isSecurityEvent(error) || severity === ErrorSeverity.HIGH || severity === ErrorSeverity.CRITICAL) {
+    if (
+      this.isSecurityEvent(error) ||
+      severity === ErrorSeverity.HIGH ||
+      severity === ErrorSeverity.CRITICAL
+    ) {
       this.writeToAuditLog(logEntry).catch((auditError) => {
         console.error('Failed to write to audit log:', auditError);
       });
@@ -182,7 +189,7 @@ export class GoogleSSOErrorHandler {
   private async writeToAuditLog(logEntry: ErrorLogEntry): Promise<void> {
     try {
       const { logAuditEvent, AuditAction } = await import('../utils/audit-logger');
-      
+
       // Determine the appropriate audit action
       let action: string;
       if (this.isSecurityEvent({ code: logEntry.errorCode } as GoogleSSOError)) {
@@ -382,7 +389,11 @@ export const googleSSOErrorHandler = {
     return getGoogleSSOErrorHandler().formatErrorResponse(error);
   },
 
-  logError(error: GoogleSSOError | Error, req?: Request, context?: Record<string, any>): ErrorLogEntry {
+  logError(
+    error: GoogleSSOError | Error,
+    req?: Request,
+    context?: Record<string, any>
+  ): ErrorLogEntry {
     return getGoogleSSOErrorHandler().logError(error, req, context);
   },
 
@@ -398,7 +409,14 @@ export const googleSSOErrorHandler = {
     req?: Request,
     context?: Record<string, any>
   ): GoogleSSOError {
-    return getGoogleSSOErrorHandler().createError(message, code, userMessage, statusCode, req, context);
+    return getGoogleSSOErrorHandler().createError(
+      message,
+      code,
+      userMessage,
+      statusCode,
+      req,
+      context
+    );
   },
 
   isRetryable(error: GoogleSSOError | Error): boolean {

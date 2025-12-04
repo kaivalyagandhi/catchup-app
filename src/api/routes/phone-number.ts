@@ -62,7 +62,7 @@ router.post(
     // Validate phone number format (basic validation)
     // Remove formatting characters but keep + and digits
     const cleanedNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
-    
+
     // Check if it contains only valid characters (+ and digits)
     if (!/^[\+\d]+$/.test(cleanedNumber)) {
       res.status(400).json({
@@ -71,7 +71,7 @@ router.post(
       });
       return;
     }
-    
+
     // Check if it matches E.164 format (+ followed by 1-15 digits)
     const phoneRegex = /^\+?[1-9]\d{7,14}$/;
     if (!phoneRegex.test(cleanedNumber)) {

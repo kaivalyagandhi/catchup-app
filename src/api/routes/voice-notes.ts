@@ -457,23 +457,23 @@ router.patch('/:id/contacts', async (req: Request, res: Response): Promise<void>
 router.post('/text', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, text } = req.body;
-    
+
     if (!userId) {
       res.status(400).json({ error: 'userId is required' });
       return;
     }
-    
+
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
       res.status(400).json({ error: 'text is required and must be a non-empty string' });
       return;
     }
-    
+
     const transcript = text.trim();
     console.log(`Processing text message for user ${userId}: "${transcript}"`);
-    
+
     // 1. Get user contacts for disambiguation
     const userContacts = await contactService.listContacts(userId);
-    
+
     if (userContacts.length === 0) {
       res.status(200).json({
         voiceNote: null,
@@ -482,15 +482,24 @@ router.post('/text', async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
-    
+
     // 2. Disambiguate which contacts are mentioned in the text
-    const disambiguationService = new (await import('../../voice/contact-disambiguation-service')).ContactDisambiguationService();
-    const extractionService = new (await import('../../voice/entity-extraction-service')).EntityExtractionService();
-    const enrichmentServiceInstance = new (await import('../../voice/enrichment-service')).EnrichmentService();
-    
+    const disambiguationService = new (
+      await import('../../voice/contact-disambiguation-service')
+    ).ContactDisambiguationService();
+    const extractionService = new (
+      await import('../../voice/entity-extraction-service')
+    ).EntityExtractionService();
+    const enrichmentServiceInstance = new (
+      await import('../../voice/enrichment-service')
+    ).EnrichmentService();
+
     const mentionedContacts = await disambiguationService.disambiguate(transcript, userContacts);
-    console.log(`Identified ${mentionedContacts.length} mentioned contacts:`, mentionedContacts.map(c => c.name));
-    
+    console.log(
+      `Identified ${mentionedContacts.length} mentioned contacts:`,
+      mentionedContacts.map((c) => c.name)
+    );
+
     if (mentionedContacts.length === 0) {
       res.status(200).json({
         voiceNote: null,
@@ -500,54 +509,63 @@ router.post('/text', async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
-    
+
     // 3. Extract entities for mentioned contacts
-    const entities = await extractionService.extractForMultipleContacts(transcript, mentionedContacts);
+    const entities = await extractionService.extractForMultipleContacts(
+      transcript,
+      mentionedContacts
+    );
     console.log(`Entities extracted for ${mentionedContacts.length} contacts`);
-    
+
     // 4. Create voice note record with the text as transcript
     const voiceNote = await voiceNoteRepository.create({
       userId,
       transcript,
       status: 'extracting' as any,
     });
-    
+
     console.log(`Voice note created from text: ${voiceNote.id}`);
-    
+
     // 5. Generate enrichment proposal
-    const proposal = await enrichmentServiceInstance.generateProposal(voiceNote.id, entities, mentionedContacts);
-    console.log(`Enrichment proposal generated with ${proposal.contactProposals.length} contact proposals`);
-    
+    const proposal = await enrichmentServiceInstance.generateProposal(
+      voiceNote.id,
+      entities,
+      mentionedContacts
+    );
+    console.log(
+      `Enrichment proposal generated with ${proposal.contactProposals.length} contact proposals`
+    );
+
     // 6. Associate mentioned contacts with the voice note
-    const contactIds = mentionedContacts.map(c => c.id);
+    const contactIds = mentionedContacts.map((c) => c.id);
     await voiceNoteRepository.associateContacts(voiceNote.id, userId, contactIds);
     console.log(`Associated ${contactIds.length} contacts with voice note`);
-    
+
     // 7. Create a chat session for this text input
     const { SessionManager } = await import('../../edits/session-manager');
     const sessionManager = new SessionManager();
     const chatSession = await sessionManager.startSession(userId);
     console.log(`Chat session created: ${chatSession.id}`);
-    
+
     // 8. Create pending edits for each enrichment item (same as audio flow)
     const { EditService } = await import('../../edits/edit-service');
     const editService = new EditService();
-    
+
     let totalCreated = 0;
     let totalFailed = 0;
-    
+
     for (const contactProposal of proposal.contactProposals) {
       if (!contactProposal.contactId) continue;
-      
+
       for (const item of contactProposal.items) {
         if (!item.accepted) continue;
-        
+
         try {
           // Map enrichment item types to edit types
           let editType: string;
           let proposedValue: string;
           let field: string | undefined;
-          
+
           if (item.type === 'tag') {
             editType = 'add_tag';
             proposedValue = item.value;
@@ -567,7 +585,7 @@ router.post('/text', async (req: Request, res: Response): Promise<void> => {
             totalFailed++;
             continue;
           }
-          
+
           // Create a pending edit for each enrichment item
           await editService.createPendingEdit({
             userId,
@@ -591,33 +609,33 @@ router.post('/text', async (req: Request, res: Response): Promise<void> => {
         }
       }
     }
-    
+
     console.log(`Created ${totalCreated} pending edits from text message`);
-    
+
     // 9. Update voice note with enrichment data and mark as ready
     const updatedVoiceNote = await voiceNoteRepository.update(voiceNote.id, userId, {
       enrichmentData: proposal,
       status: 'ready' as any,
     });
-    
+
     // Check if there are any actual enrichment items
-    const hasEnrichmentItems = proposal.contactProposals.some(cp => cp.items.length > 0);
-    
+    const hasEnrichmentItems = proposal.contactProposals.some((cp) => cp.items.length > 0);
+
     res.status(201).json({
       voiceNote: updatedVoiceNote,
       enrichmentProposal: proposal,
-      mentionedContacts: mentionedContacts.map(c => ({ id: c.id, name: c.name })),
+      mentionedContacts: mentionedContacts.map((c) => ({ id: c.id, name: c.name })),
       editsCreated: totalCreated,
-      message: hasEnrichmentItems 
+      message: hasEnrichmentItems
         ? `Found ${proposal.contactProposals.reduce((sum, cp) => sum + cp.items.length, 0)} enrichment items for ${mentionedContacts.length} contact(s).`
         : 'Contact identified but no new information to add.',
     });
   } catch (error) {
     console.error('Error processing text message:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to process text message',
-      details: errorMessage 
+      details: errorMessage,
     });
   }
 });
@@ -654,30 +672,33 @@ router.post('/:id/enrichment', async (req: Request, res: Response): Promise<void
 
 // POST /api/voice-notes/sessions/:sessionId/reject-suggestion
 // Record a rejected enrichment suggestion
-router.post('/sessions/:sessionId/reject-suggestion', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { sessionId } = req.params;
-    const { suggestionId } = req.body;
-    
-    if (!suggestionId) {
-      res.status(400).json({ error: 'suggestionId is required' });
-      return;
+router.post(
+  '/sessions/:sessionId/reject-suggestion',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { sessionId } = req.params;
+      const { suggestionId } = req.body;
+
+      if (!suggestionId) {
+        res.status(400).json({ error: 'suggestionId is required' });
+        return;
+      }
+
+      voiceNoteService.recordRejectedSuggestion(sessionId, suggestionId);
+
+      res.json({
+        success: true,
+        message: `Suggestion ${suggestionId} recorded as rejected`,
+      });
+    } catch (error) {
+      console.error('Error recording rejected suggestion:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({
+        error: 'Failed to record rejected suggestion',
+        details: errorMessage,
+      });
     }
-    
-    voiceNoteService.recordRejectedSuggestion(sessionId, suggestionId);
-    
-    res.json({ 
-      success: true,
-      message: `Suggestion ${suggestionId} recorded as rejected`
-    });
-  } catch (error) {
-    console.error('Error recording rejected suggestion:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ 
-      error: 'Failed to record rejected suggestion',
-      details: errorMessage 
-    });
   }
-});
+);
 
 export default router;

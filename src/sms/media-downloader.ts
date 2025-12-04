@@ -1,12 +1,12 @@
 /**
  * Media Downloader Service
- * 
+ *
  * Handles downloading media files from Twilio URLs with:
  * - File size validation (5MB limit)
  * - Streaming downloads to avoid memory issues
  * - Timeout handling for slow downloads
  * - Temporary file cleanup
- * 
+ *
  * Requirements: 3.1, 4.1, 4.5, 5.1, 5.5
  */
 
@@ -43,7 +43,7 @@ export class MediaDownloader {
 
   /**
    * Download media from a URL with streaming and size validation
-   * 
+   *
    * @param url - The URL to download from (Twilio media URL)
    * @param authToken - Twilio auth token for authentication
    * @returns Promise resolving to buffer and metadata
@@ -53,17 +53,17 @@ export class MediaDownloader {
     return new Promise((resolve, reject) => {
       const urlObj = new URL(url);
       const protocol = urlObj.protocol === 'https:' ? https : http;
-      
+
       // Prepare authentication header
       // For Twilio URLs, extract account SID; otherwise use a default username
       const accountSid = this.extractAccountSid(url) || 'ACdefault';
       const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-      
+
       const options = {
         headers: {
-          'Authorization': `Basic ${auth}`
+          Authorization: `Basic ${auth}`,
         },
-        timeout: this.timeoutMs
+        timeout: this.timeoutMs,
       };
 
       const request = protocol.get(url, options, async (response) => {
@@ -90,14 +90,14 @@ export class MediaDownloader {
 
         response.on('data', (chunk: Buffer) => {
           downloadedSize += chunk.length;
-          
+
           // Check size during download
           if (!this.validateSize(downloadedSize)) {
             reject(new Error(`Media file exceeds ${this.maxSizeMB}MB limit`));
             response.destroy();
             return;
           }
-          
+
           chunks.push(chunk);
         });
 
@@ -106,7 +106,7 @@ export class MediaDownloader {
           resolve({
             buffer,
             contentType,
-            size: downloadedSize
+            size: downloadedSize,
           });
         });
 
@@ -129,7 +129,7 @@ export class MediaDownloader {
   /**
    * Download media to a temporary file using streaming
    * Useful for very large files to avoid memory issues
-   * 
+   *
    * @param url - The URL to download from
    * @param authToken - Twilio auth token
    * @returns Promise resolving to file path and metadata
@@ -145,16 +145,16 @@ export class MediaDownloader {
     return new Promise((resolve, reject) => {
       const urlObj = new URL(url);
       const protocol = urlObj.protocol === 'https:' ? https : http;
-      
+
       // For Twilio URLs, extract account SID; otherwise use a default username
       const accountSid = this.extractAccountSid(url) || 'ACdefault';
       const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-      
+
       const options = {
         headers: {
-          'Authorization': `Basic ${auth}`
+          Authorization: `Basic ${auth}`,
         },
-        timeout: this.timeoutMs
+        timeout: this.timeoutMs,
       };
 
       const request = protocol.get(url, options, async (response) => {
@@ -177,7 +177,7 @@ export class MediaDownloader {
 
         response.on('data', (chunk: Buffer) => {
           downloadedSize += chunk.length;
-          
+
           if (!this.validateSize(downloadedSize)) {
             reject(new Error(`Media file exceeds ${this.maxSizeMB}MB limit`));
             response.destroy();
@@ -190,15 +190,15 @@ export class MediaDownloader {
 
         try {
           await pipeline(response, fileStream);
-          
+
           // Read file back to buffer
           const buffer = await fs.readFile(tempFilePath);
-          
+
           resolve({
             buffer,
             contentType,
             size: downloadedSize,
-            tempFilePath
+            tempFilePath,
           });
         } catch (error) {
           // Clean up on error
@@ -220,7 +220,7 @@ export class MediaDownloader {
 
   /**
    * Validate if a buffer or size is within the allowed limit
-   * 
+   *
    * @param bufferOrSize - Buffer or size in bytes
    * @param maxSizeMB - Optional max size override
    * @returns true if valid, false if exceeds limit
@@ -233,7 +233,7 @@ export class MediaDownloader {
 
   /**
    * Clean up temporary files older than specified days
-   * 
+   *
    * @param olderThanDays - Delete files older than this many days
    * @returns Promise resolving to number of files deleted
    */
@@ -245,12 +245,12 @@ export class MediaDownloader {
       const files = await fs.readdir(this.tempDir);
       const now = Date.now();
       const maxAge = olderThanDays * 24 * 60 * 60 * 1000; // Convert days to milliseconds
-      
+
       let deletedCount = 0;
 
       for (const file of files) {
         const filePath = path.join(this.tempDir, file);
-        
+
         try {
           const stats = await fs.stat(filePath);
           const age = now - stats.mtimeMs;
@@ -273,7 +273,7 @@ export class MediaDownloader {
 
   /**
    * Delete a specific temporary file
-   * 
+   *
    * @param filePath - Path to the file to delete
    */
   async deleteTempFile(filePath: string): Promise<void> {
@@ -289,13 +289,13 @@ export class MediaDownloader {
 
   /**
    * Get the size of the temp directory
-   * 
+   *
    * @returns Promise resolving to size in bytes
    */
   async getTempDirSize(): Promise<number> {
     try {
       await this.ensureTempDir();
-      
+
       const files = await fs.readdir(this.tempDir);
       let totalSize = 0;
 

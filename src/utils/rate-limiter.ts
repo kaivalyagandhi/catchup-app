@@ -86,7 +86,7 @@ export const RateLimits = {
  *
  * This implementation uses Redis sorted sets to track requests
  * within a sliding time window.
- * 
+ *
  * Can be disabled for development by setting DISABLE_RATE_LIMITING=true
  */
 export async function checkRateLimit(

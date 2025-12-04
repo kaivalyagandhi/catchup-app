@@ -60,10 +60,9 @@ export class PhoneNumberRepository {
    * Find phone number by phone number string
    */
   async findByPhoneNumber(phoneNumber: string): Promise<UserPhoneNumber | null> {
-    const result = await pool.query(
-      'SELECT * FROM user_phone_numbers WHERE phone_number = $1',
-      [phoneNumber]
-    );
+    const result = await pool.query('SELECT * FROM user_phone_numbers WHERE phone_number = $1', [
+      phoneNumber,
+    ]);
 
     if (result.rows.length === 0) {
       return null;
@@ -76,10 +75,9 @@ export class PhoneNumberRepository {
    * Find phone number by user ID
    */
   async findByUserId(userId: string): Promise<UserPhoneNumber | null> {
-    const result = await pool.query(
-      'SELECT * FROM user_phone_numbers WHERE user_id = $1',
-      [userId]
-    );
+    const result = await pool.query('SELECT * FROM user_phone_numbers WHERE user_id = $1', [
+      userId,
+    ]);
 
     if (result.rows.length === 0) {
       return null;

@@ -322,7 +322,7 @@ export class ContactDisambiguationService {
     for (const namePart of nameParts) {
       // Skip very short name parts (less than 2 chars)
       if (namePart.length < 2) continue;
-      
+
       for (const contactPart of contactParts) {
         if (namePart === contactPart) {
           // Exact match on a name part - high confidence for first name matches

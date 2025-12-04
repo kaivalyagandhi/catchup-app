@@ -138,7 +138,7 @@ export class EnrichmentService {
       }
 
       const items: EnrichmentItem[] = [];
-      
+
       // Track added items to deduplicate within this proposal
       const addedTags = new Set<string>();
       const addedGroups = new Set<string>();
@@ -149,9 +149,7 @@ export class EnrichmentService {
         const tagLower = tag.toLowerCase();
 
         // Check if contact already has this tag (case-insensitive)
-        const hasTag = contact.tags.some(
-          (t) => t.text.toLowerCase() === tagLower
-        );
+        const hasTag = contact.tags.some((t) => t.text.toLowerCase() === tagLower);
 
         // Check if we've already added this tag in this proposal (deduplication)
         if (!hasTag && !addedTags.has(tagLower)) {
@@ -171,9 +169,7 @@ export class EnrichmentService {
         const groupLower = group.toLowerCase();
 
         // Check if contact already in this group (case-insensitive)
-        const inGroup = contact.groups.some(
-          (g) => g.toLowerCase() === groupLower
-        );
+        const inGroup = contact.groups.some((g) => g.toLowerCase() === groupLower);
 
         // Check if we've already added this group in this proposal (deduplication)
         if (!inGroup && !addedGroups.has(groupLower)) {
@@ -192,7 +188,7 @@ export class EnrichmentService {
       for (const [fieldName, fieldValue] of Object.entries(contactEntities.fields)) {
         if (fieldValue !== null && fieldValue !== undefined && fieldValue !== '') {
           const fieldKey = `${fieldName}:${String(fieldValue).toLowerCase()}`;
-          
+
           // Check if we've already added this field in this proposal (deduplication)
           if (!addedFields.has(fieldKey)) {
             // Determine if this is an add or update
@@ -215,7 +211,7 @@ export class EnrichmentService {
       // Generate lastContactDate enrichment item
       if (contactEntities.lastContactDate) {
         const dateKey = `lastContactDate:${contactEntities.lastContactDate.toISOString()}`;
-        
+
         // Check if we've already added this date in this proposal (deduplication)
         if (!addedFields.has(dateKey)) {
           items.push({

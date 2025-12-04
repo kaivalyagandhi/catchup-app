@@ -94,11 +94,11 @@ export class EditService implements EditServiceInterface {
 
   /**
    * Create a pending edit from extraction with deduplication
-   * 
+   *
    * Returns existing edit if duplicate found, creates new one otherwise.
    * This makes the operation idempotent - calling it multiple times with the same
    * parameters will return the same edit without creating duplicates.
-   * 
+   *
    * Requirements: 8.1, 8.2
    */
   async createPendingEdit(params: CreateEditParams): Promise<PendingEdit> {
@@ -121,7 +121,9 @@ export class EditService implements EditServiceInterface {
     try {
       const existingEdit = await this.editRepository.findDuplicate(data);
       if (existingEdit) {
-        console.log(`[EditService] Duplicate edit detected, returning existing: ${existingEdit.id}`);
+        console.log(
+          `[EditService] Duplicate edit detected, returning existing: ${existingEdit.id}`
+        );
         return existingEdit;
       }
     } catch (error) {
@@ -142,7 +144,11 @@ export class EditService implements EditServiceInterface {
    * Update a pending edit
    * Requirements: 7.5
    */
-  async updatePendingEdit(editId: string, userId: string, updates: EditUpdates): Promise<PendingEdit> {
+  async updatePendingEdit(
+    editId: string,
+    userId: string,
+    updates: EditUpdates
+  ): Promise<PendingEdit> {
     const updateData: UpdatePendingEditData = {};
 
     if (updates.targetContactId !== undefined) {
@@ -170,7 +176,7 @@ export class EditService implements EditServiceInterface {
    */
   async submitEdit(editId: string, userId: string): Promise<EditHistoryEntry> {
     console.log(`[EditService] submitEdit called: editId=${editId}, userId=${userId}`);
-    
+
     const edit = await this.editRepository.findById(editId, userId);
     if (!edit) {
       console.error(`[EditService] Edit not found: ${editId}`);
@@ -251,7 +257,11 @@ export class EditService implements EditServiceInterface {
    * Resolve disambiguation by selecting a contact
    * Requirements: 8.4
    */
-  async resolveDisambiguation(editId: string, userId: string, contactId: string): Promise<PendingEdit> {
+  async resolveDisambiguation(
+    editId: string,
+    userId: string,
+    contactId: string
+  ): Promise<PendingEdit> {
     const edit = await this.editRepository.findById(editId, userId);
     if (!edit) {
       throw new Error('Pending edit not found');
@@ -278,7 +288,9 @@ export class EditService implements EditServiceInterface {
   private async applyEdit(edit: PendingEdit): Promise<any> {
     let previousValue: any = undefined;
 
-    console.log(`[EditService] Applying edit: type=${edit.editType}, contactId=${edit.targetContactId}, field=${edit.field}, value=${JSON.stringify(edit.proposedValue)}`);
+    console.log(
+      `[EditService] Applying edit: type=${edit.editType}, contactId=${edit.targetContactId}, field=${edit.field}, value=${JSON.stringify(edit.proposedValue)}`
+    );
 
     switch (edit.editType) {
       case 'create_contact':
@@ -290,43 +302,65 @@ export class EditService implements EditServiceInterface {
 
       case 'update_contact_field':
         if (edit.targetContactId && edit.field) {
-          console.log(`[EditService] Updating contact field: contactId=${edit.targetContactId}, field=${edit.field}, newValue=${JSON.stringify(edit.proposedValue)}`);
+          console.log(
+            `[EditService] Updating contact field: contactId=${edit.targetContactId}, field=${edit.field}, newValue=${JSON.stringify(edit.proposedValue)}`
+          );
           const contact = await this.contactRepository.findById(edit.targetContactId, edit.userId);
           if (contact) {
             previousValue = (contact as any)[edit.field];
-            console.log(`[EditService] Previous value: ${JSON.stringify(previousValue)}, New value: ${JSON.stringify(edit.proposedValue)}`);
-            
+            console.log(
+              `[EditService] Previous value: ${JSON.stringify(previousValue)}, New value: ${JSON.stringify(edit.proposedValue)}`
+            );
+
             // Check if the value is already the same
             if (previousValue === edit.proposedValue) {
-              console.log(`[EditService] ⚠️  Value is already set to ${JSON.stringify(edit.proposedValue)}, skipping update`);
+              console.log(
+                `[EditService] ⚠️  Value is already set to ${JSON.stringify(edit.proposedValue)}, skipping update`
+              );
               return previousValue;
             }
-            
+
             // Build update data with proper type casting
             const updateData: Partial<any> = {};
-            
+
             // Map field names to the repository's expected format
             // All fields are camelCase in the repository interface
             const validFields = [
-              'name', 'phone', 'email', 'linkedIn', 'instagram', 'xHandle',
-              'otherSocialMedia', 'location', 'timezone', 'customNotes',
-              'lastContactDate', 'frequencyPreference', 'source',
-              'googleResourceName', 'googleEtag', 'lastSyncedAt'
+              'name',
+              'phone',
+              'email',
+              'linkedIn',
+              'instagram',
+              'xHandle',
+              'otherSocialMedia',
+              'location',
+              'timezone',
+              'customNotes',
+              'lastContactDate',
+              'frequencyPreference',
+              'source',
+              'googleResourceName',
+              'googleEtag',
+              'lastSyncedAt',
             ];
-            
+
             if (!validFields.includes(edit.field)) {
               console.warn(`[EditService] Unknown field: ${edit.field}, skipping update`);
               return previousValue;
             }
-            
+
             // Set the field value
             (updateData as any)[edit.field] = edit.proposedValue;
             console.log(`[EditService] Applying update: ${JSON.stringify(updateData)}`);
-            
+
             // Apply the update
-            await this.contactRepository.update(edit.targetContactId, edit.userId, updateData as any);
+            await this.contactRepository.update(
+              edit.targetContactId,
+              edit.userId,
+              updateData as any
+            );
             console.log(`[EditService] ✓ Contact field updated successfully`);
-            
+
             // Invalidate contact cache so the updated value is fetched fresh
             await invalidateContactCache(edit.userId, edit.targetContactId);
             console.log(`[EditService] ✓ Contact cache invalidated`);
@@ -334,21 +368,22 @@ export class EditService implements EditServiceInterface {
             console.warn(`[EditService] Contact not found: ${edit.targetContactId}`);
           }
         } else {
-          console.warn(`[EditService] Missing targetContactId or field for update_contact_field edit`);
+          console.warn(
+            `[EditService] Missing targetContactId or field for update_contact_field edit`
+          );
         }
         break;
 
       case 'add_tag':
         if (edit.targetContactId) {
           console.log(`[EditService] Adding tag to contact: ${edit.targetContactId}`);
-          const tagText = typeof edit.proposedValue === 'string' 
-            ? edit.proposedValue 
-            : edit.proposedValue.text;
+          const tagText =
+            typeof edit.proposedValue === 'string' ? edit.proposedValue : edit.proposedValue.text;
           // Create or find the tag, then add to contact
           const tag = await this.tagRepository.create(tagText, TagSource.VOICE_MEMO, edit.userId);
           await this.tagRepository.addToContact(edit.targetContactId, tag.id, edit.userId);
           console.log(`[EditService] ✓ Tag added successfully: ${tagText}`);
-          
+
           // Invalidate contact cache
           await invalidateContactCache(edit.userId, edit.targetContactId);
         } else {
@@ -359,18 +394,21 @@ export class EditService implements EditServiceInterface {
       case 'remove_tag':
         if (edit.targetContactId) {
           console.log(`[EditService] Removing tag from contact: ${edit.targetContactId}`);
-          const tagText = typeof edit.proposedValue === 'string'
-            ? edit.proposedValue
-            : edit.proposedValue.text;
+          const tagText =
+            typeof edit.proposedValue === 'string' ? edit.proposedValue : edit.proposedValue.text;
           // Find and remove the tag
           const contact = await this.contactRepository.findById(edit.targetContactId, edit.userId);
           if (contact) {
-            const existingTag = contact.tags.find(t => t.text === tagText);
+            const existingTag = contact.tags.find((t) => t.text === tagText);
             if (existingTag) {
               previousValue = existingTag;
-              await this.tagRepository.removeFromContact(edit.targetContactId, existingTag.id, edit.userId);
+              await this.tagRepository.removeFromContact(
+                edit.targetContactId,
+                existingTag.id,
+                edit.userId
+              );
               console.log(`[EditService] ✓ Tag removed successfully: ${tagText}`);
-              
+
               // Invalidate contact cache
               await invalidateContactCache(edit.userId, edit.targetContactId);
             } else {
@@ -386,24 +424,30 @@ export class EditService implements EditServiceInterface {
 
       case 'add_to_group':
         if (edit.targetContactId && edit.targetGroupId) {
-          console.log(`[EditService] Adding contact to group: contactId=${edit.targetContactId}, groupId=${edit.targetGroupId}`);
+          console.log(
+            `[EditService] Adding contact to group: contactId=${edit.targetContactId}, groupId=${edit.targetGroupId}`
+          );
           await this.groupRepository.assignContact(
             edit.targetContactId,
             edit.targetGroupId,
             edit.userId
           );
           console.log(`[EditService] ✓ Contact added to group successfully`);
-          
+
           // Invalidate contact cache
           await invalidateContactCache(edit.userId, edit.targetContactId);
         } else {
-          console.warn(`[EditService] Missing targetContactId or targetGroupId for add_to_group edit`);
+          console.warn(
+            `[EditService] Missing targetContactId or targetGroupId for add_to_group edit`
+          );
         }
         break;
 
       case 'remove_from_group':
         if (edit.targetContactId && edit.targetGroupId) {
-          console.log(`[EditService] Removing contact from group: contactId=${edit.targetContactId}, groupId=${edit.targetGroupId}`);
+          console.log(
+            `[EditService] Removing contact from group: contactId=${edit.targetContactId}, groupId=${edit.targetGroupId}`
+          );
           previousValue = { groupId: edit.targetGroupId };
           await this.groupRepository.removeContact(
             edit.targetContactId,
@@ -411,11 +455,13 @@ export class EditService implements EditServiceInterface {
             edit.userId
           );
           console.log(`[EditService] ✓ Contact removed from group successfully`);
-          
+
           // Invalidate contact cache
           await invalidateContactCache(edit.userId, edit.targetContactId);
         } else {
-          console.warn(`[EditService] Missing targetContactId or targetGroupId for remove_from_group edit`);
+          console.warn(
+            `[EditService] Missing targetContactId or targetGroupId for remove_from_group edit`
+          );
         }
         break;
 

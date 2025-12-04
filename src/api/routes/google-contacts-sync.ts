@@ -54,7 +54,7 @@ router.post('/full', authenticate, async (req: AuthenticatedRequest, res: Respon
     // Check database sync state for stale locks
     const { getSyncState } = await import('../../integrations/sync-state-repository');
     const syncState = await getSyncState(req.userId);
-    
+
     if (syncState?.lastSyncStatus === 'in_progress') {
       // Check if sync has been running for more than 5 minutes (stale lock)
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
@@ -138,7 +138,7 @@ router.post('/incremental', authenticate, async (req: AuthenticatedRequest, res:
     // Check database sync state for stale locks
     const { getSyncState } = await import('../../integrations/sync-state-repository');
     const syncState = await getSyncState(req.userId);
-    
+
     if (syncState?.lastSyncStatus === 'in_progress') {
       // Check if sync has been running for more than 5 minutes (stale lock)
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
@@ -327,13 +327,9 @@ router.post(
       const { excludedMembers = [] } = req.body;
 
       const { groupSyncService } = await import('../../integrations/group-sync-service');
-      
+
       // Approve mapping and store excluded members
-      await groupSyncService.approveMappingSuggestion(
-        req.userId,
-        mappingId,
-        excludedMembers
-      );
+      await groupSyncService.approveMappingSuggestion(req.userId, mappingId, excludedMembers);
 
       // Sync members for this specific mapping only, excluding the ones user removed
       const membershipsUpdated = await groupSyncService.syncMembersForMapping(
@@ -480,7 +476,9 @@ router.post('/groups/members', authenticate, async (req: AuthenticatedRequest, r
     const { groupSyncService } = await import('../../integrations/group-sync-service');
     const membershipsUpdated = await groupSyncService.syncGroupMembershipsFromCache(req.userId);
 
-    console.log(`Group member sync completed for user ${req.userId}: ${membershipsUpdated} memberships updated`);
+    console.log(
+      `Group member sync completed for user ${req.userId}: ${membershipsUpdated} memberships updated`
+    );
 
     res.json({
       message: 'Group members synced successfully',

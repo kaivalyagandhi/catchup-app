@@ -69,7 +69,7 @@ function getDefaultMessage(messageType: TwiMLMessageType, resetTime?: Date): str
   switch (messageType) {
     case TwiMLMessageType.SUCCESS:
       // Requirement 2.5: Send confirmation message within 5 seconds
-      return "Got it! Processing your enrichment. Check the web app to review.";
+      return 'Got it! Processing your enrichment. Check the web app to review.';
 
     case TwiMLMessageType.PROCESSING:
       return "Processing your message. You'll receive a confirmation shortly.";
@@ -89,7 +89,7 @@ function getDefaultMessage(messageType: TwiMLMessageType, resetTime?: Date): str
       return "We couldn't process this media type. Please send text, voice notes, images, or videos.";
 
     case TwiMLMessageType.MEDIA_TOO_LARGE:
-      return "File size exceeds 5MB limit. Please send a smaller file.";
+      return 'File size exceeds 5MB limit. Please send a smaller file.';
 
     case TwiMLMessageType.ERROR:
     default:
@@ -107,7 +107,8 @@ function getDefaultMessage(messageType: TwiMLMessageType, resetTime?: Date): str
  * - 8.3: Send notification explaining rate limit
  */
 export function generateTwiML(options: TwiMLOptions): string {
-  const message = options.customMessage || getDefaultMessage(options.messageType, options.resetTime);
+  const message =
+    options.customMessage || getDefaultMessage(options.messageType, options.resetTime);
   const escapedMessage = escapeXML(message);
 
   // Generate TwiML XML

@@ -14,7 +14,7 @@ const router = Router();
 /**
  * GET /api/auth/test-mode
  * Get test mode status
- * 
+ *
  * Returns whether test mode is enabled and which authentication methods are available
  */
 router.get('/test-mode', (req: Request, res: Response) => {
@@ -25,7 +25,7 @@ router.get('/test-mode', (req: Request, res: Response) => {
 /**
  * POST /api/auth/register
  * Register a new user
- * 
+ *
  * Note: This endpoint is only available when TEST_MODE is enabled
  */
 router.post('/register', enforceTestMode, async (req: Request, res: Response) => {
@@ -59,7 +59,7 @@ router.post('/register', enforceTestMode, async (req: Request, res: Response) =>
 /**
  * POST /api/auth/login
  * Login user
- * 
+ *
  * Note: This endpoint is only available when TEST_MODE is enabled
  */
 router.post('/login', enforceTestMode, async (req: Request, res: Response) => {
@@ -135,7 +135,7 @@ router.get('/last-login', authenticate, async (req: AuthenticatedRequest, res: R
     }
 
     const { getUserAuditLogs, AuditAction } = await import('../../utils/audit-logger');
-    
+
     // Get the most recent login event (excluding the current session)
     const logs = await getUserAuditLogs(req.userId, {
       actions: [AuditAction.USER_LOGIN],

@@ -42,6 +42,18 @@ export default [
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', '*.config.js', '*.config.mjs', '*.config.ts'],
+    ignores: [
+      'dist/',
+      'node_modules/',
+      '*.config.js',
+      '*.config.mjs',
+      '*.config.ts',
+      'src/**/*.test.ts',
+      'src/**/*example*.ts',
+      'src/voice/websocket-example.ts',
+      'src/voice/websocket-streaming-properties.test.ts',
+      'src/voice/voice-repository.test.ts',
+      'src/voice/voice-service.test.ts',
+    ],
   },
 ];

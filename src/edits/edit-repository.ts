@@ -136,7 +136,9 @@ export class EditRepository implements EditRepositoryInterface {
     }
     if (data.disambiguationCandidates !== undefined) {
       updates.push(`disambiguation_candidates = $${paramCount++}`);
-      values.push(data.disambiguationCandidates ? JSON.stringify(data.disambiguationCandidates) : null);
+      values.push(
+        data.disambiguationCandidates ? JSON.stringify(data.disambiguationCandidates) : null
+      );
     }
 
     if (updates.length === 0) {
@@ -168,10 +170,10 @@ export class EditRepository implements EditRepositoryInterface {
    * Delete a pending edit
    */
   async delete(id: string, userId: string): Promise<void> {
-    const result = await pool.query(
-      'DELETE FROM pending_edits WHERE id = $1 AND user_id = $2',
-      [id, userId]
-    );
+    const result = await pool.query('DELETE FROM pending_edits WHERE id = $1 AND user_id = $2', [
+      id,
+      userId,
+    ]);
 
     if (result.rowCount === 0) {
       throw new Error('Pending edit not found');
@@ -182,10 +184,10 @@ export class EditRepository implements EditRepositoryInterface {
    * Find a pending edit by ID
    */
   async findById(id: string, userId: string): Promise<PendingEdit | null> {
-    const result = await pool.query(
-      'SELECT * FROM pending_edits WHERE id = $1 AND user_id = $2',
-      [id, userId]
-    );
+    const result = await pool.query('SELECT * FROM pending_edits WHERE id = $1 AND user_id = $2', [
+      id,
+      userId,
+    ]);
 
     if (result.rows.length === 0) {
       return null;
@@ -234,20 +236,20 @@ export class EditRepository implements EditRepositoryInterface {
   /**
    * Find a duplicate pending edit with the same parameters
    * Returns the existing edit if found, null otherwise
-   * 
+   *
    * Checks for edits with matching:
    * - user_id, session_id, edit_type
    * - target_contact_id (or both NULL)
    * - field (or both NULL)
    * - proposed_value
    * - status != 'dismissed'
-   * 
+   *
    * Requirements: 8.1, 8.2
    */
   async findDuplicate(data: CreatePendingEditData): Promise<PendingEdit | null> {
     try {
       const proposedValueJson = JSON.stringify(data.proposedValue);
-      
+
       // Build WHERE clause that handles NULL values correctly
       // In PostgreSQL, NULL = NULL is NULL (not true), so we need IS NULL checks
       const result = await pool.query(

@@ -1,6 +1,6 @@
 /**
  * Test Mode Middleware
- * 
+ *
  * Enforces test mode restrictions for email/password authentication.
  * When TEST_MODE is disabled (production), email/password endpoints are blocked.
  * When TEST_MODE is enabled (development/testing), both Google SSO and email/password work.
@@ -19,7 +19,7 @@ export function isTestModeEnabled(): boolean {
 /**
  * Middleware to enforce test mode restrictions
  * Blocks email/password authentication endpoints when test mode is disabled
- * 
+ *
  * Usage:
  * router.post('/register', enforceTestMode, registerHandler);
  * router.post('/login', enforceTestMode, loginHandler);
@@ -30,11 +30,12 @@ export function enforceTestMode(req: Request, res: Response, next: NextFunction)
   // If test mode is disabled, block email/password authentication
   if (!testMode) {
     console.log('[Test Mode] Email/password authentication blocked - test mode disabled');
-    
+
     res.status(403).json({
       error: {
         code: 'TEST_MODE_DISABLED',
-        message: 'Email/password authentication is only available in test mode. Please use Google Sign-In.',
+        message:
+          'Email/password authentication is only available in test mode. Please use Google Sign-In.',
         testMode: false,
       },
     });
@@ -49,7 +50,7 @@ export function enforceTestMode(req: Request, res: Response, next: NextFunction)
 /**
  * Middleware to add test mode indicator to API responses
  * Adds a testMode field to the response body
- * 
+ *
  * Usage:
  * router.get('/status', addTestModeIndicator, statusHandler);
  */

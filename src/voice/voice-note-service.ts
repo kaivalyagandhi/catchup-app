@@ -204,7 +204,9 @@ export class VoiceNoteService extends EventEmitter {
       throw new Error(`Session ${sessionId} is not in recording state`);
     }
 
-    console.log(`[VoiceNoteService] Received audio chunk for session ${sessionId}: ${audioChunk.byteLength} bytes`);
+    console.log(
+      `[VoiceNoteService] Received audio chunk for session ${sessionId}: ${audioChunk.byteLength} bytes`
+    );
 
     // Store audio chunk for segmentation
     session.audioSegments.push(audioChunk);
@@ -294,11 +296,8 @@ export class VoiceNoteService extends EventEmitter {
       // Filter out rejected suggestions
       if (session.rejectedSuggestionIds && session.rejectedSuggestionIds.size > 0) {
         const rejectedIds = session.rejectedSuggestionIds;
-        incrementalSuggestions = incrementalSuggestions.filter(
-          s => !rejectedIds.has(s.id)
-        );
+        incrementalSuggestions = incrementalSuggestions.filter((s) => !rejectedIds.has(s.id));
       }
-
 
       let identifiedContacts: Contact[] = [];
       let entitiesMap: Map<string, any> = new Map();
@@ -320,9 +319,7 @@ export class VoiceNoteService extends EventEmitter {
         // Match contact names to actual contacts using fuzzy matching
         for (const name of contactNames) {
           // Try exact match first
-          let contact = userContacts.find(c =>
-            c.name.toLowerCase() === name.toLowerCase()
-          );
+          let contact = userContacts.find((c) => c.name.toLowerCase() === name.toLowerCase());
 
           // If no exact match, try partial/fuzzy matching
           if (!contact) {
@@ -330,15 +327,13 @@ export class VoiceNoteService extends EventEmitter {
             const nameParts = nameLower.split(/\s+/);
 
             // Try to find contact by first or last name
-            contact = userContacts.find(c => {
+            contact = userContacts.find((c) => {
               const contactNameLower = c.name.toLowerCase();
               const contactParts = contactNameLower.split(/\s+/);
 
               // Check if any part of the extracted name matches any part of the contact name
-              return nameParts.some(part =>
-                contactParts.some(cPart =>
-                  cPart.includes(part) || part.includes(cPart)
-                )
+              return nameParts.some((part) =>
+                contactParts.some((cPart) => cPart.includes(part) || part.includes(cPart))
               );
             });
           }
@@ -612,10 +607,10 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Record a rejected enrichment suggestion
-   * 
+   *
    * Tracks suggestions that the user has rejected so they won't be
    * re-proposed when the voice session is finalized.
-   * 
+   *
    * @param sessionId - Session ID
    * @param suggestionId - ID of the rejected suggestion
    */
@@ -631,7 +626,9 @@ export class VoiceNoteService extends EventEmitter {
     }
 
     session.rejectedSuggestionIds.add(suggestionId);
-    console.log(`[VoiceNoteService] Recorded rejection for suggestion ${suggestionId} in session ${sessionId}`);
+    console.log(
+      `[VoiceNoteService] Recorded rejection for suggestion ${suggestionId} in session ${sessionId}`
+    );
   }
 
   /**
@@ -716,32 +713,34 @@ export class VoiceNoteService extends EventEmitter {
     this.transcriptionService.onInterimResult((result: TranscriptionResult) => {
       if (!result.isFinal) {
         session.interimTranscript = result.transcript;
-        
+
         // Update final transcript with the latest interim result (Google sends full transcript each time)
         session.finalTranscript = result.transcript;
-        
+
         this.emitSessionEvent(session.id, SessionEvent.INTERIM_TRANSCRIPT, {
           transcript: result.transcript,
           confidence: result.confidence,
         });
-        
+
         // Debounce enrichment analysis to reduce API quota usage
         // Only analyze if we have user contacts and enough time has passed
         if (session.userContacts && session.userContacts.length > 0) {
           const now = Date.now();
           const timeSinceLastAnalysis = now - lastEnrichmentAnalysisTime;
-          
+
           // Clear any pending timeout
           if (enrichmentAnalysisTimeout) {
             clearTimeout(enrichmentAnalysisTimeout);
           }
-          
+
           // Schedule analysis after debounce period
           if (timeSinceLastAnalysis >= ENRICHMENT_DEBOUNCE_MS) {
             // Enough time has passed, analyze immediately
-            console.log(`[VoiceNoteService] Analyzing enrichment immediately (${timeSinceLastAnalysis}ms since last)`);
+            console.log(
+              `[VoiceNoteService] Analyzing enrichment immediately (${timeSinceLastAnalysis}ms since last)`
+            );
             lastEnrichmentAnalysisTime = now;
-            this.analyzeForEnrichment(session.id, result.transcript).catch(err => {
+            this.analyzeForEnrichment(session.id, result.transcript).catch((err) => {
               console.error('Error in incremental enrichment:', err);
             });
           } else {
@@ -751,13 +750,15 @@ export class VoiceNoteService extends EventEmitter {
             enrichmentAnalysisTimeout = setTimeout(() => {
               console.log(`[VoiceNoteService] Analyzing enrichment after debounce`);
               lastEnrichmentAnalysisTime = Date.now();
-              this.analyzeForEnrichment(session.id, session.finalTranscript).catch(err => {
+              this.analyzeForEnrichment(session.id, session.finalTranscript).catch((err) => {
                 console.error('Error in incremental enrichment:', err);
               });
             }, delayMs);
           }
         } else {
-          console.log(`[VoiceNoteService] Skipping enrichment analysis - no user contacts set for session ${session.id}`);
+          console.log(
+            `[VoiceNoteService] Skipping enrichment analysis - no user contacts set for session ${session.id}`
+          );
         }
       }
     });
@@ -784,7 +785,7 @@ export class VoiceNoteService extends EventEmitter {
           if (timeSinceLastAnalysis >= 1000) {
             // Only analyze if it's been at least 1 second since last analysis
             lastEnrichmentAnalysisTime = Date.now();
-            this.analyzeForEnrichment(session.id, result.transcript).catch(err => {
+            this.analyzeForEnrichment(session.id, result.transcript).catch((err) => {
               console.error('Error in incremental enrichment:', err);
             });
           }
@@ -852,7 +853,6 @@ export class VoiceNoteService extends EventEmitter {
 
       const userContacts = session.userContacts || [];
 
-
       // Process the new text with user contacts for context (Proposal A & B)
       const triggered = await this.enrichmentAnalyzer.processTranscript(
         sessionId,
@@ -871,10 +871,14 @@ export class VoiceNoteService extends EventEmitter {
         }
 
         // Filter to only NEW suggestions that haven't been emitted yet
-        const newSuggestions = allSuggestions.filter(s => !session.emittedSuggestionIds!.has(s.id));
+        const newSuggestions = allSuggestions.filter(
+          (s) => !session.emittedSuggestionIds!.has(s.id)
+        );
 
         if (newSuggestions && newSuggestions.length > 0) {
-          console.log(`[VoiceNoteService] Emitting ${newSuggestions.length} NEW enrichment suggestions for session ${sessionId}`);
+          console.log(
+            `[VoiceNoteService] Emitting ${newSuggestions.length} NEW enrichment suggestions for session ${sessionId}`
+          );
 
           // Mark these suggestions as emitted BEFORE emitting them
           // This prevents race conditions if multiple analysis runs happen concurrently
@@ -884,7 +888,11 @@ export class VoiceNoteService extends EventEmitter {
 
           // Create pending edits on backend for persistence
           // This ensures suggestions are saved even if frontend doesn't receive them
-          await this.createPendingEditsFromSuggestions(session.userId, newSuggestions, userContacts);
+          await this.createPendingEditsFromSuggestions(
+            session.userId,
+            newSuggestions,
+            userContacts
+          );
 
           // Group suggestions by contact hint
           const groupedByContact = this.groupSuggestionsByContact(newSuggestions);
@@ -908,9 +916,9 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Create pending edits from enrichment suggestions on the backend
-   * 
+   *
    * This ensures suggestions are persisted even if the frontend doesn't receive them
-   * 
+   *
    * @param userId - User ID
    * @param suggestions - Array of enrichment suggestions
    * @param userContacts - User's contacts for matching
@@ -924,52 +932,52 @@ export class VoiceNoteService extends EventEmitter {
     try {
       const { EditService } = await import('../edits/edit-service.js');
       const { SessionManager } = await import('../edits/session-manager.js');
-      
+
       const editService = new EditService();
       const sessionManager = new SessionManager();
-      
+
       // Get or create an active chat session for pending edits
       let chatSession = await sessionManager.getActiveSession(userId);
       if (!chatSession) {
         chatSession = await sessionManager.startSession(userId);
-        console.log(`[VoiceNoteService] Created new chat session ${chatSession.id} for pending edits`);
+        console.log(
+          `[VoiceNoteService] Created new chat session ${chatSession.id} for pending edits`
+        );
       }
-      
+
       // Group suggestions by contact
       const groupedByContact = this.groupSuggestionsByContact(suggestions);
-      
+
       // Create edits for each contact's suggestions
       for (const [contactName, contactSuggestions] of groupedByContact) {
         // Find the contact by name (exact or fuzzy match)
-        let contact = userContacts.find(c => c.name.toLowerCase() === contactName.toLowerCase());
-        
+        let contact = userContacts.find((c) => c.name.toLowerCase() === contactName.toLowerCase());
+
         if (!contact) {
           // Try fuzzy matching
           const nameLower = contactName.toLowerCase();
           const nameParts = nameLower.split(/\s+/);
-          contact = userContacts.find(c => {
+          contact = userContacts.find((c) => {
             const contactNameLower = c.name.toLowerCase();
             const contactParts = contactNameLower.split(/\s+/);
-            return nameParts.some(part =>
-              contactParts.some(cPart =>
-                cPart.includes(part) || part.includes(cPart)
-              )
+            return nameParts.some((part) =>
+              contactParts.some((cPart) => cPart.includes(part) || part.includes(cPart))
             );
           });
         }
-        
+
         if (!contact) {
           console.warn(`[VoiceNoteService] Could not find contact for: ${contactName}`);
           continue;
         }
-        
+
         // Create an edit for each suggestion
         for (const suggestion of contactSuggestions) {
           try {
             // Map suggestion type to edit type and field
             let editType: string;
             let field: string | undefined;
-            
+
             switch (suggestion.type) {
               case 'location':
               case 'phone':
@@ -991,7 +999,7 @@ export class VoiceNoteService extends EventEmitter {
                 console.warn(`[VoiceNoteService] Unknown suggestion type: ${suggestion.type}`);
                 continue;
             }
-            
+
             // Create pending edit
             await editService.createPendingEdit({
               userId,
@@ -1008,8 +1016,10 @@ export class VoiceNoteService extends EventEmitter {
                 timestamp: new Date(),
               },
             });
-            
-            console.log(`[VoiceNoteService] ✓ Created pending edit: ${editType} ${field || ''} = ${suggestion.value} for ${contact.name}`);
+
+            console.log(
+              `[VoiceNoteService] ✓ Created pending edit: ${editType} ${field || ''} = ${suggestion.value} for ${contact.name}`
+            );
           } catch (err) {
             console.error(`[VoiceNoteService] ✗ Failed to create pending edit:`, err);
           }
@@ -1022,41 +1032,46 @@ export class VoiceNoteService extends EventEmitter {
 
   /**
    * Group suggestions by contact hint
-   * 
+   *
    * Requirements: 6.1, 6.3, 6.4
-   * 
+   *
    * @param suggestions - Array of suggestions
    * @returns Map of contact name to suggestions
    * @private
    */
-  private groupSuggestionsByContact(suggestions: EnrichmentSuggestion[]): Map<string, EnrichmentSuggestion[]> {
+  private groupSuggestionsByContact(
+    suggestions: EnrichmentSuggestion[]
+  ): Map<string, EnrichmentSuggestion[]> {
     const grouped = new Map<string, EnrichmentSuggestion[]>();
-    
+
     for (const suggestion of suggestions) {
       const contactName = suggestion.contactHint || 'Unknown Contact';
-      
+
       if (!grouped.has(contactName)) {
         grouped.set(contactName, []);
       }
-      
+
       grouped.get(contactName)!.push(suggestion);
     }
-    
+
     return grouped;
   }
 
   /**
    * Generate a consistent contact ID from contact name
-   * 
+   *
    * Requirements: 6.2
-   * 
+   *
    * @param contactName - Contact name
    * @returns Contact ID
    * @private
    */
   private generateContactId(contactName: string): string {
     // Use a simple hash-like approach: lowercase and replace spaces with hyphens
-    return contactName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    return contactName
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
   }
 
   /**

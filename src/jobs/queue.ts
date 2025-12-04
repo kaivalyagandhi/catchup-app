@@ -155,7 +155,7 @@ googleContactsSyncQueue.on('error', (error) => {
 
 googleContactsSyncQueue.on('failed', async (job, error) => {
   console.error(`Google Contacts sync job ${job.id} failed:`, error.message);
-  
+
   // Clean up sync state on failure
   try {
     const { markSyncFailed } = await import('../integrations/sync-state-repository');

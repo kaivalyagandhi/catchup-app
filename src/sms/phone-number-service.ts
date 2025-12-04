@@ -163,7 +163,7 @@ export class PhoneNumberServiceImpl implements PhoneNumberService {
    */
   async getUserByPhoneNumber(phoneNumber: string): Promise<string | null> {
     const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
-    
+
     // Use cached lookup for better performance
     const { getCachedUserByPhoneNumber } = await import('./performance-optimizer');
     return getCachedUserByPhoneNumber(normalizedPhone);
@@ -175,7 +175,7 @@ export class PhoneNumberServiceImpl implements PhoneNumberService {
    */
   async isPhoneNumberVerified(phoneNumber: string): Promise<boolean> {
     const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
-    
+
     // Use cached lookup for better performance
     const { getCachedVerificationStatus } = await import('./performance-optimizer');
     return getCachedVerificationStatus(normalizedPhone);

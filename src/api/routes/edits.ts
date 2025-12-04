@@ -50,11 +50,11 @@ router.get('/pending/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const edit = await editService.getPendingEdit(req.params.id, userId);
-    
+
     if (!edit) {
       return res.status(404).json({ error: 'Pending edit not found' });
     }
-    
+
     res.json({ edit });
   } catch (error: any) {
     console.error('Error fetching pending edit:', error);
@@ -84,7 +84,9 @@ router.post('/pending', async (req: AuthenticatedRequest, res: Response) => {
       source,
     } = req.body;
 
-    console.log(`[EditsAPI] POST /edits/pending - received: editType=${editType}, field=${field}, proposedValue=${proposedValue}`);
+    console.log(
+      `[EditsAPI] POST /edits/pending - received: editType=${editType}, field=${field}, proposedValue=${proposedValue}`
+    );
 
     if (!editType || proposedValue === undefined || confidenceScore === undefined || !source) {
       return res.status(400).json({
@@ -94,7 +96,7 @@ router.post('/pending', async (req: AuthenticatedRequest, res: Response) => {
 
     // If sessionId is provided, verify it exists; otherwise get or create an active session
     let finalSessionId = sessionId;
-    
+
     if (sessionId) {
       // Verify the session exists
       const session = await sessionManager.getSession(sessionId, userId);
@@ -103,7 +105,7 @@ router.post('/pending', async (req: AuthenticatedRequest, res: Response) => {
         finalSessionId = null;
       }
     }
-    
+
     // If no valid sessionId, get or create an active session
     if (!finalSessionId) {
       let activeSession = await sessionManager.getActiveSession(userId);
@@ -130,16 +132,15 @@ router.post('/pending', async (req: AuthenticatedRequest, res: Response) => {
     // Determine if this is a new edit or a duplicate
     // If the edit was created very recently (within 1 second), it's new (201)
     // Otherwise it's a duplicate that was returned from the database (200)
-    const isNewEdit = edit.createdAt && 
-      (Date.now() - edit.createdAt.getTime()) < 1000;
-    
+    const isNewEdit = edit.createdAt && Date.now() - edit.createdAt.getTime() < 1000;
+
     const statusCode = isNewEdit ? 201 : 200;
     const isDuplicate = !isNewEdit;
 
-    res.status(statusCode).json({ 
+    res.status(statusCode).json({
       edit,
       isDuplicate,
-      message: isDuplicate ? 'Duplicate edit already exists' : 'Edit created successfully'
+      message: isDuplicate ? 'Duplicate edit already exists' : 'Edit created successfully',
     });
   } catch (error: any) {
     console.error('Error creating pending edit:', error);
@@ -156,7 +157,8 @@ router.post('/pending', async (req: AuthenticatedRequest, res: Response) => {
 router.patch('/pending/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { targetContactId, targetContactName, targetGroupId, targetGroupName, proposedValue } = req.body;
+    const { targetContactId, targetContactName, targetGroupId, targetGroupName, proposedValue } =
+      req.body;
 
     const edit = await editService.updatePendingEdit(req.params.id, userId, {
       targetContactId,
@@ -222,27 +224,30 @@ router.post('/pending/:id/submit', async (req: AuthenticatedRequest, res: Respon
  * POST /api/edits/pending/:id/resolve-disambiguation
  * Resolve disambiguation by selecting a contact
  */
-router.post('/pending/:id/resolve-disambiguation', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.userId!;
-    const { contactId } = req.body;
+router.post(
+  '/pending/:id/resolve-disambiguation',
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const { contactId } = req.body;
 
-    if (!contactId) {
-      return res.status(400).json({ error: 'Missing required field: contactId' });
-    }
+      if (!contactId) {
+        return res.status(400).json({ error: 'Missing required field: contactId' });
+      }
 
-    const edit = await editService.resolveDisambiguation(req.params.id, userId, contactId);
-    res.json({ edit });
-  } catch (error: any) {
-    console.error('Error resolving disambiguation:', error);
-    if (error.message === 'Pending edit not found' || error.message === 'Contact not found') {
-      return res.status(404).json({ error: error.message });
+      const edit = await editService.resolveDisambiguation(req.params.id, userId, contactId);
+      res.json({ edit });
+    } catch (error: any) {
+      console.error('Error resolving disambiguation:', error);
+      if (error.message === 'Pending edit not found' || error.message === 'Contact not found') {
+        return res.status(404).json({ error: error.message });
+      }
+      res.status(500).json({
+        error: error.message || 'Failed to resolve disambiguation',
+      });
     }
-    res.status(500).json({
-      error: error.message || 'Failed to resolve disambiguation',
-    });
   }
-});
+);
 
 // ============================================
 // Edit History Routes
@@ -322,11 +327,11 @@ router.get('/sessions/:id', async (req: AuthenticatedRequest, res: Response) => 
   try {
     const userId = req.userId!;
     const session = await sessionManager.getSession(req.params.id, userId);
-    
+
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
-    
+
     res.json({ session });
   } catch (error: any) {
     console.error('Error fetching session:', error);
