@@ -278,200 +278,80 @@ A property is a characteristic or behavior that should hold true across all vali
 **Validates: Requirements 1.4**
 
 ### Property 4: Graceful Shutdown Completion
-*For any* running application, when it receives a SIGTERM signal, all in-flight requests should complete before the process exits, and all database connections should be closed.
+*For any* running application, when it receives a SIGTERM signal, the Express server should close gracefully. Cloud Run will force-kill after 60 seconds if needed.
 **Validates: Requirements 1.5**
 
 ### Property 5: Database Migration Execution
-*For any* deployment, all pending database migrations should be executed before the application starts serving requests.
+*For any* deployment, all pending database migrations should be executed during initial setup. Migrations are run manually once before first deployment.
 **Validates: Requirements 2.2**
 
-### Property 6: Connection Retry with Backoff
-*For any* failed database connection attempt, the application should retry with exponential backoff (1s, 2s, 4s, 8s, 16s) before giving up.
-**Validates: Requirements 2.4**
-
-### Property 7: Database Connection Cleanup
+### Property 6: Database Connection Cleanup
 *For any* application shutdown, all database connections should be closed and the connection pool should be empty.
 **Validates: Requirements 2.5**
 
-### Property 8: Secret Retrieval from Secret Manager
+### Property 7: Secret Retrieval from Secret Manager
 *For any* application startup, all required secrets should be successfully retrieved from Google Secret Manager and available as environment variables.
 **Validates: Requirements 3.1, 3.2**
 
-### Property 9: No Secrets in Logs
-*For any* log entry, no OAuth tokens, API keys, passwords, or other sensitive values should appear in the log output.
+### Property 8: No Secrets in Logs
+*For any* log entry, no API keys, passwords, or other sensitive values should appear in the log output.
 **Validates: Requirements 3.3**
 
-### Property 10: Secret Rotation Without Redeployment
-*For any* secret updated in Secret Manager, the application should use the new value on the next request without requiring redeployment.
-**Validates: Requirements 3.4**
-
-### Property 11: Secret Access Audit Logging
-*For any* secret accessed by the application, an audit log entry should be created in Cloud Logging with timestamp and service account information.
-**Validates: Requirements 3.5**
-
-### Property 12: CI/CD Pipeline Trigger
+### Property 9: CI/CD Pipeline Trigger
 *For any* code push to the main branch, the Cloud Build pipeline should be automatically triggered within 30 seconds.
 **Validates: Requirements 4.1**
 
-### Property 13: Pipeline Test Execution
+### Property 10: Pipeline Test Execution
 *For any* deployment pipeline run, all tests should be executed and must pass before the image is pushed to Artifact Registry.
 **Validates: Requirements 4.2**
 
-### Property 14: Conditional Deployment on Test Success
+### Property 11: Conditional Deployment on Test Success
 *For any* deployment pipeline, the image should only be deployed to Cloud Run if all tests pass.
 **Validates: Requirements 4.3**
 
-### Property 15: Health Check Verification Before Success
+### Property 12: Health Check Verification Before Success
 *For any* deployment, the deployment should not be marked as successful until the health check endpoint returns a 200 status code.
 **Validates: Requirements 4.4**
 
-### Property 16: Automatic Rollback on Deployment Failure
-*For any* failed deployment, the system should automatically roll back to the previous version and the previous version should be serving traffic within 5 minutes.
-**Validates: Requirements 4.5**
-
-### Property 17: Auto-Scaling on Increased Traffic
+### Property 13: Auto-Scaling on Increased Traffic
 *For any* sustained increase in request rate above the target threshold, Cloud Run should create additional instances within 2 minutes.
 **Validates: Requirements 5.1**
 
-### Property 18: Auto-Scaling Down on Decreased Traffic
+### Property 14: Auto-Scaling Down on Decreased Traffic
 *For any* sustained decrease in request rate below the target threshold, Cloud Run should remove excess instances within 10 minutes.
 **Validates: Requirements 5.2**
 
-### Property 19: Unhealthy Instance Replacement
+### Property 15: Unhealthy Instance Replacement
 *For any* instance that fails health checks, Cloud Run should remove it and create a replacement instance within 5 minutes.
 **Validates: Requirements 5.3**
 
-### Property 20: Response Latency Under Load
+### Property 16: Response Latency Under Load
 *For any* request to the application under normal load, the 95th percentile response time should be less than 2 seconds.
 **Validates: Requirements 5.4**
 
-### Property 21: Connection Pool Health Under Load
-*For any* sustained high load, the database connection pool should maintain at least 1 available connection and not exceed the maximum pool size.
-**Validates: Requirements 5.5**
-
-### Property 22: Error Logging
+### Property 17: Error Logging
 *For any* error that occurs in the application, it should be logged to Cloud Logging with the error message and stack trace.
 **Validates: Requirements 6.1, 6.2**
 
-### Property 23: Health Check Endpoint Availability
-*For any* request to the `/health` endpoint, it should return a 200 status code with a JSON response indicating the application status.
+### Property 18: Health Check Endpoint Availability
+*For any* request to the `/health` endpoint, it should return a 200 status code with a JSON response indicating the application status. Cloud Run uses default health check settings (10s timeout, 30s interval, 3 failures).
 **Validates: Requirements 6.3**
 
-### Property 24: Startup and Shutdown Logging
+### Property 19: Startup and Shutdown Logging
 *For any* application startup, a log entry should be created. *For any* application shutdown, a log entry should be created.
 **Validates: Requirements 6.5**
 
-### Property 25: Environment-Specific Configuration
+### Property 20: Environment-Specific Configuration
 *For any* deployment, the application should use environment-specific configuration values (secrets, database host, etc.) based on the deployment environment.
 **Validates: Requirements 7.1, 7.2**
 
-### Property 26: Configuration Validation
+### Property 21: Configuration Validation
 *For any* deployment, if required configuration values are missing, the deployment should fail with a clear error message.
 **Validates: Requirements 7.4**
 
-### Property 27: Local Docker Development
+### Property 22: Local Docker Development
 *For any* developer running the application locally with Docker, the application should start successfully and be accessible at `http://localhost:3000`.
 **Validates: Requirements 7.5**
-
-### Property 28: Background Job Processing
-*For any* background job queued in the system, it should be processed by a worker within 5 minutes.
-**Validates: Requirements 8.2**
-
-### Property 29: Job Failure Logging
-*For any* background job that fails, the failure should be logged with the job ID, error message, and retry count.
-**Validates: Requirements 8.3**
-
-### Property 30: Graceful Job Completion on Shutdown
-*For any* Cloud Run instance receiving a SIGTERM signal, all in-flight background jobs should complete before the instance terminates.
-**Validates: Requirements 8.4**
-
-### Property 31: Job Distribution Across Instances
-*For any* background jobs queued when multiple Cloud Run instances are running, the jobs should be distributed across instances.
-**Validates: Requirements 8.5**
-
-### Property 32: Traffic Shifting on Deployment
-*For any* new deployment to Cloud Run, traffic should gradually shift from old instances to new instances over 5 minutes.
-**Validates: Requirements 9.1**
-
-### Property 33: Health Check Gating
-*For any* new instance starting, it should not receive traffic until it passes health checks.
-**Validates: Requirements 9.2**
-
-### Property 34: Connection Draining on Replacement
-*For any* instance being replaced, existing connections should be allowed to complete before the instance terminates.
-**Validates: Requirements 9.3**
-
-### Property 35: Automatic Rollback on Deployment Failure
-*For any* deployment that fails, the system should automatically roll back to the previous version.
-**Validates: Requirements 9.4**
-
-### Property 36: Post-Deployment Health Verification
-*For any* completed deployment, all instances should be healthy and serving traffic.
-**Validates: Requirements 9.5**
-
-### Property 37: Automated Backup Configuration
-*For any* Cloud SQL instance, automated daily backups should be configured and running.
-**Validates: Requirements 10.1**
-
-### Property 38: Backup Retention Policy
-*For any* backup created, it should be retained for at least 7 days.
-**Validates: Requirements 10.2**
-
-### Property 39: Restore Capability
-*For any* backup within the retention period, the database should be restorable to that point in time.
-**Validates: Requirements 10.3**
-
-### Property 40: Restored Data Accessibility
-*For any* restored database, all data should be accessible and queries should return correct results.
-**Validates: Requirements 10.4**
-
-### Property 41: Backup Encryption
-*For any* backup stored, it should be encrypted at rest using Cloud SQL's default encryption.
-**Validates: Requirements 10.5**
-
-### Property 42: Auto-Scaling Under Load
-*For any* sustained traffic increase, Cloud Run should create additional instances up to the configured maximum.
-**Validates: Requirements 11.1**
-
-### Property 43: Connection Pool Queuing
-*For any* request when the connection pool is at capacity, the request should be queued and processed when a connection becomes available.
-**Validates: Requirements 11.2**
-
-### Property 44: Operation Prioritization
-*For any* system under heavy load, authentication and data retrieval operations should be prioritized over background jobs.
-**Validates: Requirements 11.3**
-
-### Property 45: Graceful Degradation
-*For any* request when the system is overloaded, a 503 Service Unavailable response should be returned with retry information.
-**Validates: Requirements 11.4**
-
-### Property 46: Scale-Down on Reduced Traffic
-*For any* sustained traffic decrease, Cloud Run should remove excess instances to reduce costs.
-**Validates: Requirements 11.5**
-
-### Property 47: OAuth Credentials in Secret Manager
-*For any* deployment, Google OAuth credentials should be stored in Secret Manager and not in code or environment files.
-**Validates: Requirements 12.1**
-
-### Property 48: Service Account Minimal Permissions
-*For any* Cloud Run service account, it should have only the minimum required permissions to access Secret Manager.
-**Validates: Requirements 12.2**
-
-### Property 49: OAuth Token Signature Validation
-*For any* user authentication via Google OAuth, the ID token signature should be validated using Google's public keys.
-**Validates: Requirements 12.3**
-
-### Property 50: OAuth Token Encryption
-*For any* OAuth token stored in the database, it should be encrypted at rest using a key managed by Google Cloud KMS.
-**Validates: Requirements 12.4**
-
-### Property 51: No Secrets in Application Logs
-*For any* log entry, OAuth tokens, user credentials, and other sensitive authentication data should never appear.
-**Validates: Requirements 12.5**
-
-### Property 52: OAuth Token Cleanup on Disconnect
-*For any* user who disconnects their Google account, the stored OAuth token should be deleted from the database.
-**Validates: Requirements 12.6**
 
 ## Error Handling
 
@@ -479,26 +359,21 @@ A property is a characteristic or behavior that should hold true across all vali
 
 **Docker Build Failure:**
 - Log the build error with details
-- Notify the team via Cloud Build notifications
 - Prevent deployment to Cloud Run
 
 **Test Failure:**
 - Log test failures with details
 - Prevent image push to Artifact Registry
-- Prevent deployment to Cloud Run
 
 **Deployment Failure:**
 - Log deployment error
-- Automatically roll back to previous version
-- Notify the team
-- Keep previous version running
+- Manual rollback via Cloud Run console
 
 ### Runtime Errors
 
 **Database Connection Failure:**
-- Retry with exponential backoff
 - Log connection errors
-- Return 503 if unable to connect after retries
+- Return 503 if unable to connect
 
 **Secret Retrieval Failure:**
 - Fail fast on startup
@@ -508,66 +383,43 @@ A property is a characteristic or behavior that should hold true across all vali
 **Health Check Failure:**
 - Log the failure
 - Cloud Run will automatically restart the instance
-- If persistent, instance will be removed and replaced
-
-### Graceful Degradation
-
-**Under Heavy Load:**
-- Queue requests if connection pool is full
-- Return 503 if unable to queue
-- Prioritize critical operations
-
-**During Deployment:**
-- Gradually shift traffic to new instances
-- Keep old instances running until new instances are healthy
-- Automatically roll back if new instances fail health checks
 
 ## Testing Strategy
 
-### Unit Testing
+### Manual Verification (Hackathon-Focused)
 
-Unit tests verify specific examples and edge cases:
+For a hackathon deployment, focus on critical path verification:
 
-- **Docker image tests:** Verify image contains required files and dependencies
-- **Configuration validation tests:** Verify environment variables are validated
-- **Graceful shutdown tests:** Verify connections are closed on shutdown
-- **Secret retrieval tests:** Verify secrets are retrieved from Secret Manager
-- **Health check tests:** Verify health check endpoint returns correct status
+- **Docker image verification:** Build locally and verify it runs
+- **Configuration validation:** Test with missing environment variables
+- **Health check verification:** Test the `/health` endpoint manually
+- **Deployment verification:** Verify the app is accessible after deployment
+- **Database connectivity:** Verify migrations ran and data is accessible
 
-### Property-Based Testing
+### CI/CD Pipeline Testing
 
-Property-based tests verify universal properties across all inputs:
+The Cloud Build pipeline includes:
 
-- **Auto-scaling properties:** Verify instances are created/removed based on load
-- **Connection pool properties:** Verify connection pool maintains health under load
-- **Deployment properties:** Verify traffic shifting and rollback work correctly
-- **Backup properties:** Verify backups are created and can be restored
-- **Security properties:** Verify secrets are not logged and tokens are encrypted
+- **Unit tests:** Run `npm test` to verify application logic
+- **Linting:** Run `npm run lint` to check code quality
+- **Type checking:** Run `npm run typecheck` to verify TypeScript types
 
-### Integration Testing
+### Deployment Verification
 
-Integration tests verify components work together:
+After deployment to Cloud Run:
 
-- **End-to-end deployment:** Deploy to Cloud Run and verify application is accessible
-- **Database migration:** Verify migrations run on deployment
-- **CI/CD pipeline:** Verify pipeline builds, tests, and deploys correctly
-- **Backup and restore:** Verify backups can be created and restored
+- Verify the health check endpoint responds with 200 status
+- Verify the application is accessible at the Cloud Run URL
+- Verify database connectivity by checking Cloud Logging
+- Verify secrets are loaded correctly by checking startup logs
 
-### Testing Framework
+### Optional Verification (Post-Hackathon)
 
-- **Unit tests:** Vitest with fast-check for property-based testing
-- **Integration tests:** Supertest for HTTP testing
-- **Deployment tests:** Cloud Build with custom test scripts
-- **Load testing:** Custom scripts to simulate traffic spikes
+- Verify secrets are not logged (skip if time-constrained)
+- Test graceful shutdown behavior
+- Verify configuration validation failure scenarios
 
-### Test Configuration
-
-- **Minimum iterations:** 100 iterations per property-based test
-- **Test timeout:** 30 seconds per test
-- **Coverage target:** >80% for core deployment logic
-- **CI/CD integration:** All tests must pass before deployment
-
-## Deployment Checklist
+## Deployment Checklist (Hackathon Edition)
 
 Before deploying to production:
 
@@ -575,24 +427,30 @@ Before deploying to production:
 - [ ] Docker image builds successfully
 - [ ] Environment variables are configured
 - [ ] Secrets are stored in Secret Manager
-- [ ] Cloud SQL instance is created and migrations are run
+- [ ] Cloud SQL instance is created and migrations are run manually
 - [ ] Cloud Build pipeline is configured
 - [ ] Cloud Run service is configured with correct scaling parameters
 - [ ] Health check endpoint is working
-- [ ] Monitoring and logging are configured
-- [ ] Backup configuration is verified
-- [ ] Team is notified of deployment
+- [ ] App is accessible and serving traffic
+- [ ] Database connectivity verified via logs
 
-## Future Enhancements
+**Post-Hackathon Enhancements:**
+- [ ] Monitoring and logging dashboards
+- [ ] Backup configuration and restore procedures
+- [ ] Advanced security policies
+- [ ] Load testing and scaling verification
+
+## Future Enhancements (Post-Hackathon)
 
 Post-hackathon improvements:
 
+- **Automated migrations:** Automate database migrations in application startup
+- **Graceful shutdown:** Add database connection cleanup and job worker shutdown
+- **Automated rollback:** Implement automatic rollback on deployment failure
+- **Advanced monitoring:** Add metrics and alerting dashboards
+- **Database backups:** Configure automated backups and restore procedures
 - **Multi-region deployment:** Deploy to multiple regions for high availability
-- **Advanced monitoring:** Add metrics and alerting for performance and errors
-- **Load testing:** Implement automated load testing in CI/CD pipeline
-- **Canary deployments:** Implement traffic splitting for safer deployments
-- **Database replication:** Add read replicas for scaling read-heavy workloads
-- **CDN integration:** Add Cloud CDN for caching static assets
+- **Load testing:** Implement load testing in CI/CD pipeline
 - **Custom domain:** Map custom domain to Cloud Run service
 - **API rate limiting:** Implement rate limiting middleware
-- **Request tracing:** Add distributed tracing with Cloud Trace
+- **Secret rotation:** Implement automated secret rotation policies

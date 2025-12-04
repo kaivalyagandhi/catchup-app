@@ -96,8 +96,6 @@ These tradeoffs keep costs minimal while maintaining production-readiness. They 
 1. WHEN the CatchUp System is deployed THEN the system SHALL retrieve all sensitive credentials from Google Secret Manager
 2. WHEN credentials are retrieved from Secret Manager THEN the system SHALL inject them as environment variables into the running container
 3. WHEN the application logs output THEN the system SHALL never log sensitive values (API keys, tokens, passwords)
-4. WHEN credentials need to be rotated THEN the system SHALL support updating secrets in Secret Manager without redeploying the application
-5. WHEN a secret is accessed THEN the system SHALL log the access event for audit purposes
 
 ### Requirement 4
 
@@ -147,63 +145,4 @@ These tradeoffs keep costs minimal while maintaining production-readiness. They 
 4. WHEN an environment is configured THEN the system SHALL validate that all required configuration values are present
 5. WHEN testing locally THEN developers SHALL be able to run the application with Docker to match production environment
 
-### Requirement 8
 
-**User Story:** As a developer, I want background jobs to run reliably, so that notifications and suggestions are processed consistently.
-
-#### Acceptance Criteria
-
-1. WHEN the CatchUp System is deployed THEN the system SHALL run background job workers in the same Cloud Run instance as the API server
-2. WHEN a background job is queued THEN the system SHALL process it with automatic retries on failure
-3. WHEN a job fails THEN the system SHALL log the failure for investigation
-4. WHEN a Cloud Run instance shuts down THEN the system SHALL gracefully complete in-flight jobs before stopping
-5. WHEN the application scales THEN the system SHALL distribute background jobs across multiple instances automatically
-
-### Requirement 9
-
-**User Story:** As an operator, I want to perform zero-downtime deployments, so that users experience no service interruption during updates.
-
-#### Acceptance Criteria
-
-1. WHEN a new version is deployed to Cloud Run THEN the system SHALL gradually shift traffic from old instances to new instances
-2. WHEN a new instance starts THEN the system SHALL wait for it to pass health checks before receiving traffic
-3. WHEN an old instance is being replaced THEN the system SHALL allow existing connections to complete before terminating
-4. WHEN a deployment fails THEN the system SHALL automatically roll back to the previous version
-5. WHEN a deployment completes THEN the system SHALL verify that all instances are healthy and serving traffic
-
-### Requirement 10
-
-**User Story:** As a DevOps engineer, I want basic data protection, so that I can recover from accidental data loss.
-
-#### Acceptance Criteria
-
-1. WHEN the CatchUp System is deployed THEN the system SHALL configure automated daily backups of the Cloud SQL database
-2. WHEN a backup is created THEN the system SHALL store it securely with a 7-day retention period
-3. WHEN data needs to be restored THEN the system SHALL support restoring from any backup within the retention period
-4. WHEN a backup is restored THEN the system SHALL verify the restored data is accessible
-5. WHEN backups are stored THEN the system SHALL use Cloud SQL's default encryption at rest
-
-### Requirement 11
-
-**User Story:** As an operator, I want the application to handle traffic spikes gracefully, so that high-traffic events don't cause service degradation.
-
-#### Acceptance Criteria
-
-1. WHEN traffic to the CatchUp System increases THEN Cloud Run SHALL automatically create additional instances up to the configured maximum
-2. WHEN the database connection pool reaches capacity THEN the system SHALL queue requests and process them as connections become available
-3. WHEN the system is under heavy load THEN the system SHALL prioritize critical operations (authentication, data retrieval) over non-critical operations (background jobs)
-4. WHEN a request cannot be processed due to resource constraints THEN the system SHALL return a 503 Service Unavailable response with retry information
-5. WHEN traffic returns to normal THEN Cloud Run SHALL automatically scale down instances to reduce costs
-
-### Requirement 12
-
-**User Story:** As a security officer, I want Google OAuth credentials to be handled securely, so that user accounts and data are protected.
-
-#### Acceptance Criteria
-
-1. WHEN the CatchUp System is deployed THEN the system SHALL store Google OAuth credentials (client ID, client secret) in Google Secret Manager, never in code or environment files
-2. WHEN the application retrieves OAuth credentials THEN the system SHALL use Cloud Run's service account to access Secret Manager with minimal required permissions
-3. WHEN a user authenticates via Google OAuth THEN the system SHALL validate the ID token signature using Google's public keys
-4. WHEN OAuth tokens are stored in the database THEN the system SHALL encrypt them at rest using a key managed by Google Cloud KMS
-5. WHEN the application logs events THEN the system SHALL never log OAuth tokens, user credentials, or sensitive authentication data
-6. WHEN a user disconnects their Google account THEN the system SHALL revoke the stored OAuth token and delete it from the database

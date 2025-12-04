@@ -8,7 +8,7 @@ Simplified deployment plan focused on getting CatchUp running on Google Cloud in
 
 ## Phase 1: GCP Setup and Infrastructure
 
-- [-] 1. Set up GCP project and enable required APIs
+- [x] 1. Set up GCP project and enable required APIs
   - I'll walk you through creating/selecting a GCP project
   - I'll guide you through enabling each required API
   - You'll provide screenshots or confirmation of each step
@@ -41,7 +41,7 @@ Simplified deployment plan focused on getting CatchUp running on Google Cloud in
 
 - [ ] 5. Initialize database schema
   - I'll guide you through connecting to Cloud SQL
-  - I'll walk you through running database migrations
+  - I'll walk you through running database migrations manually (one-time setup)
   - You'll confirm migrations completed successfully
   - I'll verify all tables are created with correct schema
   - _Requirements: 2.2, 2.3_
@@ -62,10 +62,10 @@ Simplified deployment plan focused on getting CatchUp running on Google Cloud in
   - Call from src/index.ts on startup
   - _Requirements: 1.4_
 
-- [ ] 8. Implement graceful shutdown
+- [ ] 8. Implement graceful shutdown (simplified)
   - Add SIGTERM handler to src/index.ts
-  - Gracefully close Express server, database connections, job workers
-  - 30-second shutdown timeout
+  - Close Express server on SIGTERM signal
+  - Cloud Run will force-kill after 60s if needed
   - _Requirements: 1.5, 8.4_
 
 - [ ] 9. Create health check endpoint
@@ -151,10 +151,10 @@ Simplified deployment plan focused on getting CatchUp running on Google Cloud in
   - _Requirements: 3.1, 3.2, 7.1, 7.2_
 
 - [ ] 19. Configure health check
-  - I'll guide you through setting health check path to /health
-  - I'll walk you through setting timeout (10s), interval (30s), failure threshold (3)
-  - You'll confirm health check is configured
-  - I'll verify the health check settings are correct
+  - I'll guide you through enabling health check on /health endpoint
+  - Use Cloud Run defaults (10s timeout, 30s interval, 3 failures)
+  - You'll confirm health check is enabled
+  - I'll verify the health check is responding
   - _Requirements: 6.3, 9.2_
 
 - [ ] 20. Deploy to Cloud Run
@@ -177,7 +177,7 @@ Simplified deployment plan focused on getting CatchUp running on Google Cloud in
   - I'll verify all secrets are accessible and app starts correctly
   - _Requirements: 3.1, 3.2, 12.1_
 
-- [ ] 22. Verify secrets are not logged
+- [ ] 22. Verify secrets are not logged (optional - defer if time-constrained)
   - I'll guide you through making test API requests
   - I'll walk you through checking Cloud Logging for exposed secrets
   - I'll show you what to look for (OAuth tokens, API keys, passwords)
@@ -185,12 +185,10 @@ Simplified deployment plan focused on getting CatchUp running on Google Cloud in
   - I'll verify logs are clean and safe
   - _Requirements: 3.3, 12.5_
 
-- [ ] 23. Verify database connectivity
-  - I'll guide you through checking app connects to Cloud SQL
-  - I'll walk you through verifying migrations ran successfully
-  - I'll show you how to check the database schema
-  - You'll confirm database is accessible and schema is correct
-  - I'll verify database connectivity is working
+- [ ] 23. Verify database connectivity (combined with Task 5)
+  - Verify app connects to Cloud SQL on startup
+  - Check Cloud Logging to confirm migrations ran successfully
+  - Spot-check database schema is correct
   - _Requirements: 2.2, 2.3, 2.4_
 
 - [ ] 24. Test end-to-end deployment
