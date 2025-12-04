@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group Member Management Test - CatchUp</title>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/groups-table.css">
+  
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f9fafb;
+    }
+
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin: 0 0 10px 0;
+      color: #111827;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #6b7280;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .test-info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .test-info h3 {
+      margin: 0 0 8px 0;
+      color: #1e40af;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .test-info ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #1e40af;
+      font-size: 13px;
+    }
+
+    .test-info li {
+      margin: 4px 0;
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      z-index: 2000;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.success {
+      background: #10b981;
+      color: white;
+    }
+
+    .toast.error {
+      background: #ef4444;
+      color: white;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    [data-theme="dark"] {
+      background: #111827;
+    }
+
+    [data-theme="dark"] .test-container {
+      background: #1f2937;
+    }
+
+    [data-theme="dark"] h1 {
+      color: #f3f4f6;
+    }
+
+    [data-theme="dark"] .subtitle {
+      color: #9ca3af;
+    }
+
+    [data-theme="dark"] .test-info {
+      background: #1e3a8a;
+      border-color: #1e40af;
+    }
+
+    [data-theme="dark"] .test-info h3,
+    [data-theme="dark"] .test-info ul,
+    [data-theme="dark"] .test-info li {
+      color: #93c5fd;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Group Member Management Test</h1>
+    <p class="subtitle">Testing add/remove contacts functionality in groups</p>
+
+    <div class="test-info">
+      <h3>Test Instructions:</h3>
+      <ul>
+        <li>Click the expand icon (▶) next to a group's contact count to expand it</li>
+        <li>Click "➕ Add Contact" to open the contact search modal</li>
+        <li>Search for contacts by name, email, or phone</li>
+        <li>Click "Add" to add a contact to the group</li>
+        <li>Click the "✕" button next to a member to remove them (with confirmation)</li>
+        <li>Test on mobile by resizing your browser window</li>
+      </ul>
+    </div>
+
+    <div id="groups-list"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/inline-edit-cell.js"></script>
+  <script src="/js/groups-table.js"></script>
+
+  <script>
+    // Mock authentication
+    window.userId = 'test-user-123';
+    window.authToken = 'mock-token';
+    localStorage.setItem('userId', window.userId);
+    localStorage.setItem('authToken', window.authToken);
+
+    // Toast notification function
+    window.showToast = function(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    };
+
+    // Mock contacts data
+    const mockContacts = [
+      { id: 'c1', name: 'Alice Johnson', email: 'alice@example.com', phone: '+1-555-0101' },
+      { id: 'c2', name: 'Bob Smith', email: 'bob@example.com', phone: '+1-555-0102' },
+      { id: 'c3', name: 'Carol Williams', email: 'carol@example.com', phone: '+1-555-0103' },
+      { id: 'c4', name: 'David Brown', email: 'david@example.com', phone: '+1-555-0104' },
+      { id: 'c5', name: 'Emma Davis', email: 'emma@example.com', phone: '+1-555-0105' },
+      { id: 'c6', name: 'Frank Miller', email: 'frank@example.com', phone: '+1-555-0106' },
+      { id: 'c7', name: 'Grace Wilson', email: 'grace@example.com', phone: '+1-555-0107' },
+      { id: 'c8', name: 'Henry Moore', email: 'henry@example.com', phone: '+1-555-0108' },
+      { id: 'c9', name: 'Ivy Taylor', email: 'ivy@example.com', phone: '+1-555-0109' },
+      { id: 'c10', name: 'Jack Anderson', email: 'jack@example.com', phone: '+1-555-0110' }
+    ];
+
+    // Mock groups data
+    const mockGroups = [
+      {
+        id: 'g1',
+        name: 'Close Friends',
+        description: 'My closest friends',
+        contactIds: ['c1', 'c2', 'c3']
+      },
+      {
+        id: 'g2',
+        name: 'Work Colleagues',
+        description: 'People I work with',
+        contactIds: ['c4', 'c5']
+      },
+      {
+        id: 'g3',
+        name: 'Family',
+        description: 'Family members',
+        contactIds: []
+      },
+      {
+        id: 'g4',
+        name: 'Book Club',
+        description: 'Monthly book club members',
+        contactIds: ['c6', 'c7', 'c8', 'c9']
+      }
+    ];
+
+    // Mock API responses
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+      console.log('Mock API call:', options.method || 'GET', url);
+
+      // Add contact to group
+      if (url.includes('/api/groups-tags/groups/') && url.includes('/contacts') && options.method === 'POST') {
+        const groupId = url.split('/groups/')[1].split('/contacts')[0];
+        const body = JSON.parse(options.body);
+        const contactIds = body.contactIds;
+
+        const group = mockGroups.find(g => g.id === groupId);
+        if (group) {
+          contactIds.forEach(contactId => {
+            if (!group.contactIds.includes(contactId)) {
+              group.contactIds.push(contactId);
+            }
+          });
+        }
+
+        return Promise.resolve({
+          ok: true,
+          status: 204,
+          json: () => Promise.resolve({})
+        });
+      }
+
+      // Remove contact from group
+      if (url.includes('/api/groups-tags/groups/') && url.includes('/contacts/') && options.method === 'DELETE') {
+        const parts = url.split('/');
+        const groupId = parts[parts.indexOf('groups') + 1];
+        const contactId = parts[parts.indexOf('contacts') + 1];
+
+        const group = mockGroups.find(g => g.id === groupId);
+        if (group) {
+          group.contactIds = group.contactIds.filter(id => id !== contactId);
+        }
+
+        return Promise.resolve({
+          ok: true,
+          status: 204,
+          json: () => Promise.resolve({})
+        });
+      }
+
+      // Fallback to original fetch for other requests
+      return originalFetch(url, options);
+    };
+
+    // Render the groups table
+    window.contacts = mockContacts;
+    const groupsTable = new GroupsTable('groups-list', mockGroups, mockContacts);
+    groupsTable.render();
+
+    console.log('Groups table rendered with member management functionality');
+    console.log('Groups:', mockGroups);
+    console.log('Contacts:', mockContacts);
+  </script>
+</body>
+</html>

@@ -87,6 +87,10 @@ class ContactsTable {
 
     this.container.innerHTML = tableHTML;
     
+    // Clear references to old DOM elements since we just recreated everything
+    this.searchFilterBar = null;
+    this.azScrollbar = null;
+    
     // Initialize SearchFilterBar
     const searchContainer = this.container.querySelector('#search-filter-bar-container');
     if (searchContainer && typeof SearchFilterBar !== 'undefined') {
@@ -99,18 +103,23 @@ class ContactsTable {
       this.searchFilterBar.render();
     }
     
-    // Initialize AZScrollbar (only if 20+ contacts)
-    if (this.data.length >= 20) {
-      const azContainer = this.container.querySelector('#az-scrollbar-container');
-      const tableWrapper = this.container.querySelector('.contacts-table-wrapper');
-      if (azContainer && tableWrapper && typeof AZScrollbar !== 'undefined') {
-        if (this.azScrollbar) {
-          this.azScrollbar.data = this.data;
-          this.azScrollbar.render();
-        } else {
-          this.azScrollbar = new AZScrollbar(azContainer, tableWrapper, this.data);
+    // Initialize AZScrollbar (only in alphabetical sort mode)
+    const azContainer = this.container.querySelector('#az-scrollbar-container');
+    if (azContainer) {
+      // Show/hide based on sort order
+      const shouldShowAZ = this.options.sortBy === 'name';
+      
+      if (shouldShowAZ) {
+        azContainer.style.display = 'flex';
+        const tableWrapper = this.container.querySelector('.contacts-table-wrapper');
+        if (tableWrapper && typeof AZScrollbar !== 'undefined') {
+          // Always create a new instance since we just recreated the DOM
+          this.azScrollbar = new AZScrollbar(azContainer, tableWrapper, this.filteredData);
           this.azScrollbar.render();
         }
+      } else {
+        // Hide the scrollbar when not in alphabetical mode
+        azContainer.style.display = 'none';
       }
     }
     
@@ -142,32 +151,33 @@ class ContactsTable {
    */
   renderRow(contact) {
     try {
-      const circleBadge = this.renderCircleBadge(contact) || '<span class="badge badge-uncategorized">Uncategorized</span>';
-      const tagsBadges = this.renderTagsBadges(contact) || '';
-      const groupsBadges = this.renderGroupsBadges(contact) || '';
-      const sourceBadge = this.renderSourceBadge(contact) || '';
+      // Render badges for circle, tags, groups, and source
+      const circleBadge = this.renderCircleBadge(contact);
+      const tagsBadges = this.renderTagsBadges(contact);
+      const groupsBadges = this.renderGroupsBadges(contact);
+      const sourceBadge = this.renderSourceBadge(contact);
       
-      // Ensure all values are strings
-      const name = String(this.escapeHtml(contact.name));
-      const phone = String(this.escapeHtml(contact.phone || ''));
-      const email = String(this.escapeHtml(contact.email || ''));
-      const location = String(this.escapeHtml(contact.location || ''));
-      const timezone = String(this.escapeHtml(contact.timezone || ''));
-      const frequency = String(this.escapeHtml(contact.frequencyPreference || ''));
+      // Ensure all text values are properly escaped strings
+      const name = this.escapeHtml(contact.name || '');
+      const phone = this.escapeHtml(contact.phone || '');
+      const email = this.escapeHtml(contact.email || '');
+      const location = this.escapeHtml(contact.location || '');
+      const timezone = this.escapeHtml(contact.timezone || '');
+      const frequency = this.escapeHtml(contact.frequencyPreference || '');
       
       return `
         <tr data-contact-id="${contact.id}">
-          <td class="contact-name editable" data-field="name" data-type="text" data-label="Name">${name}</td>
-          <td class="contact-phone editable" data-field="phone" data-type="phone" data-label="Phone">${phone}</td>
-          <td class="contact-email editable" data-field="email" data-type="email" data-label="Email">${email}</td>
-          <td class="contact-location editable" data-field="location" data-type="text" data-label="Location">${location}</td>
-          <td class="contact-timezone editable" data-field="timezone" data-type="dropdown" data-label="Timezone">${timezone}</td>
-          <td class="contact-frequency editable" data-field="frequencyPreference" data-type="dropdown" data-label="Frequency">${frequency}</td>
+          <td class="contact-name editable" data-field="name" data-type="text" data-label="Name">${name || '<span class="empty-cell">—</span>'}</td>
+          <td class="contact-phone editable" data-field="phone" data-type="phone" data-label="Phone">${phone || '<span class="empty-cell">—</span>'}</td>
+          <td class="contact-email editable" data-field="email" data-type="email" data-label="Email">${email || '<span class="empty-cell">—</span>'}</td>
+          <td class="contact-location editable" data-field="location" data-type="text" data-label="Location">${location || '<span class="empty-cell">—</span>'}</td>
+          <td class="contact-timezone editable" data-field="timezone" data-type="dropdown" data-label="Timezone">${timezone || '<span class="empty-cell">—</span>'}</td>
+          <td class="contact-frequency editable" data-field="frequencyPreference" data-type="dropdown" data-label="Frequency">${frequency || '<span class="empty-cell">—</span>'}</td>
           <td class="contact-circle" data-label="Circle">${circleBadge}</td>
           <td class="contact-tags editable" data-field="tags" data-type="multiselect" data-label="Tags">${tagsBadges}</td>
           <td class="contact-groups editable" data-field="groups" data-type="multiselect" data-label="Groups">${groupsBadges}</td>
           <td class="contact-source" data-label="Source">${sourceBadge}</td>
-          <td class="contact-actions">
+          <td class="contact-actions" data-label="Actions">
             <button class="btn-delete" data-contact-id="${contact.id}" title="Delete contact">🗑️</button>
           </td>
         </tr>
@@ -216,19 +226,19 @@ class ContactsTable {
    */
   renderSourceBadge(contact) {
     if (contact.source === 'google') {
-      return `
-        <span class="badge badge-google" title="Synced from Google Contacts">
-          <svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 4px;">
-            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-          Google
-        </span>
-      `;
+      return `<span class="badge badge-google" title="Synced from Google Contacts">
+  <svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 4px;">
+    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+  </svg>
+  Google
+</span>`;
+    } else if (contact.source === 'manual') {
+      return `<span class="badge badge-manual" title="Manually added">Manual</span>`;
     }
-    return '';
+    return '<span class="empty-cell">—</span>';
   }
 
   /**
@@ -237,12 +247,17 @@ class ContactsTable {
    */
   renderTagsBadges(contact) {
     if (!contact.tags || contact.tags.length === 0) {
-      return '';
+      return '<span class="empty-cell">—</span>';
     }
 
-    return contact.tags
-      .map(tag => `<span class="badge badge-tag">${this.escapeHtml(tag.text)}</span>`)
+    const badges = contact.tags
+      .map(tag => {
+        const tagText = typeof tag === 'string' ? tag : (tag.text || '');
+        return `<span class="badge badge-tag">${this.escapeHtml(tagText)}</span>`;
+      })
       .join(' ');
+    
+    return badges || '<span class="empty-cell">—</span>';
   }
 
   /**
@@ -251,17 +266,20 @@ class ContactsTable {
    */
   renderGroupsBadges(contact) {
     if (!contact.groups || contact.groups.length === 0) {
-      return '';
+      return '<span class="empty-cell">—</span>';
     }
 
     // Resolve group IDs to names using global groups array
-    return contact.groups
+    const badges = contact.groups
       .map(groupId => {
         const group = this.getGroupById(groupId);
         const groupName = group ? group.name : groupId;
         return `<span class="badge badge-group">${this.escapeHtml(groupName)}</span>`;
       })
+      .filter(badge => badge) // Remove any null/undefined badges
       .join(' ');
+    
+    return badges || '<span class="empty-cell">—</span>';
   }
 
   /**
@@ -577,19 +595,25 @@ class ContactsTable {
       }
 
       // Make API call to create contact (Requirement 5.2)
+      const userId = window.userId || localStorage.getItem('userId');
+      if (!userId) {
+        throw new Error('User ID not found. Please log in again.');
+      }
+
       const response = await fetch('/api/contacts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: window.userId, // Assumes userId is available globally
+          userId: userId,
           ...contactData
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create contact: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to create contact: ${response.statusText}`);
       }
 
       const newContact = await response.json();
@@ -680,16 +704,6 @@ class ContactsTable {
       });
     }
 
-    // Delete button handlers
-    this.container.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const contactId = e.target.dataset.contactId;
-        if (this.options.onDelete) {
-          this.options.onDelete(contactId);
-        }
-      });
-    });
-
     // Sortable column headers (Requirement 6.4)
     this.container.querySelectorAll('th.sortable').forEach(th => {
       th.addEventListener('click', (e) => {
@@ -705,23 +719,15 @@ class ContactsTable {
       });
     });
 
-    // Editable cell handlers
-    this.container.querySelectorAll('td.editable').forEach(cell => {
-      cell.addEventListener('click', (e) => {
-        // Don't start edit if clicking on a badge or already editing
-        if (e.target.classList.contains('badge') || this.editingCell) {
-          return;
-        }
-        this.startEdit(cell);
-      });
-    });
+    // Attach row-specific event listeners
+    this.attachRowEventListeners();
   }
 
   /**
    * Start editing a cell
    * Requirements: 2.1
    */
-  startEdit(cell) {
+  async startEdit(cell) {
     if (this.editingCell) {
       return; // Already editing another cell
     }
@@ -752,7 +758,7 @@ class ContactsTable {
       }
     });
 
-    this.editingCell.startEdit();
+    await this.editingCell.startEdit();
   }
 
   /**
@@ -766,25 +772,64 @@ class ContactsTable {
     }
 
     const originalValue = contact[field];
+    const userId = window.userId || localStorage.getItem('userId');
 
     try {
-      // Optimistic update
-      contact[field] = value;
-      this.render();
-
-      // Handle tags and groups separately (they require special API calls)
-      if (field === 'tags' || field === 'groups') {
-        // For now, just update the local data
-        // TODO: Implement proper tag/group API calls
-        // Tags need to be added/removed via /api/contacts/tags
-        // Groups need to be added/removed via /api/contacts/bulk/groups
-        console.log(`Note: ${field} update requires special handling. Value:`, value);
+      // Handle tags separately (they require special API calls)
+      if (field === 'tags') {
+        await this.saveTags(contactId, userId, originalValue, value);
+        
+        // Fetch updated contact from server to get proper tag IDs
+        const response = await fetch(`/api/contacts/${contactId}?userId=${userId}`);
+        if (response.ok) {
+          const updatedContact = await response.json();
+          const index = this.data.findIndex(c => c.id === contactId);
+          if (index !== -1) {
+            this.data[index] = updatedContact;
+            const filteredIndex = this.filteredData.findIndex(c => c.id === contactId);
+            if (filteredIndex !== -1) {
+              this.filteredData[filteredIndex] = updatedContact;
+            }
+          }
+        }
+        
+        this.updateTableBody();
         
         if (this.options.onEdit) {
           this.options.onEdit(contactId, field, value);
         }
         return;
       }
+
+      // Handle groups separately (they require special API calls)
+      if (field === 'groups') {
+        await this.saveGroups(contactId, userId, originalValue, value);
+        
+        // Fetch updated contact from server to get proper group associations
+        const response = await fetch(`/api/contacts/${contactId}?userId=${userId}`);
+        if (response.ok) {
+          const updatedContact = await response.json();
+          const index = this.data.findIndex(c => c.id === contactId);
+          if (index !== -1) {
+            this.data[index] = updatedContact;
+            const filteredIndex = this.filteredData.findIndex(c => c.id === contactId);
+            if (filteredIndex !== -1) {
+              this.filteredData[filteredIndex] = updatedContact;
+            }
+          }
+        }
+        
+        this.updateTableBody();
+        
+        if (this.options.onEdit) {
+          this.options.onEdit(contactId, field, value);
+        }
+        return;
+      }
+
+      // Optimistic update for regular fields
+      contact[field] = value;
+      this.updateTableBody();
 
       // Make API call for regular fields
       const response = await fetch(`/api/contacts/${contactId}`, {
@@ -793,13 +838,14 @@ class ContactsTable {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: window.userId, // Assumes userId is available globally
+          userId: window.userId || localStorage.getItem('userId'),
           [field]: value
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to update contact: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to update contact: ${response.statusText}`);
       }
 
       const updatedContact = await response.json();
@@ -808,10 +854,15 @@ class ContactsTable {
       const index = this.data.findIndex(c => c.id === contactId);
       if (index !== -1) {
         this.data[index] = updatedContact;
-        this.filteredData = this.data.filter(c => 
-          this.filteredData.some(fc => fc.id === c.id)
-        );
-        this.render();
+        
+        // Update filtered data to maintain the same filtered set
+        const filteredIndex = this.filteredData.findIndex(c => c.id === contactId);
+        if (filteredIndex !== -1) {
+          this.filteredData[filteredIndex] = updatedContact;
+        }
+        
+        // Update only the table body, not the entire table
+        this.updateTableBody();
       }
 
       if (this.options.onEdit) {
@@ -821,7 +872,11 @@ class ContactsTable {
     } catch (error) {
       // Revert on error
       contact[field] = originalValue;
-      this.render();
+      
+      // Update only the table body to avoid double-rendering issues
+      this.updateTableBody();
+      
+      // Show error once
       this.showError(`Failed to update ${field}: ${error.message}`);
     }
   }
@@ -868,6 +923,124 @@ class ContactsTable {
     } catch (error) {
       console.error('Error fetching groups:', error);
       return [];
+    }
+  }
+
+  /**
+   * Save tags for a contact
+   * Requirements: 2.2, 2.3
+   */
+  async saveTags(contactId, userId, originalTags, newTags) {
+    // Convert original tags to array of text strings
+    const originalTagTexts = originalTags ? originalTags.map(t => t.text || t) : [];
+    const newTagTexts = Array.isArray(newTags) ? newTags : [];
+
+    // Find tags to add and remove
+    const tagsToAdd = newTagTexts.filter(tag => !originalTagTexts.includes(tag));
+    const tagsToRemove = originalTagTexts.filter(tag => !newTagTexts.includes(tag));
+
+    // Add new tags
+    for (const tagText of tagsToAdd) {
+      const response = await fetch('/api/contacts/tags', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          contactId,
+          text: tagText,
+          source: 'manual'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to add tag: ${tagText}`);
+      }
+    }
+
+    // Remove old tags
+    const contact = this.data.find(c => c.id === contactId);
+    if (contact && contact.tags) {
+      for (const tagText of tagsToRemove) {
+        const tag = contact.tags.find(t => t.text === tagText);
+        if (tag && tag.id) {
+          const response = await fetch(`/api/contacts/tags/${tag.id}?userId=${userId}&contactId=${contactId}`, {
+            method: 'DELETE'
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: response.statusText }));
+            throw new Error(errorData.error || `Failed to remove tag: ${tagText}`);
+          }
+        }
+      }
+    }
+
+    // Show success message
+    if (typeof showToast === 'function') {
+      showToast('Tags updated successfully', 'success');
+    }
+  }
+
+  /**
+   * Save groups for a contact
+   * Requirements: 2.2, 2.3
+   */
+  async saveGroups(contactId, userId, originalGroups, newGroups) {
+    const originalGroupIds = Array.isArray(originalGroups) ? originalGroups : [];
+    const newGroupIds = Array.isArray(newGroups) ? newGroups : [];
+
+    // Find groups to add and remove
+    const groupsToAdd = newGroupIds.filter(id => !originalGroupIds.includes(id));
+    const groupsToRemove = originalGroupIds.filter(id => !newGroupIds.includes(id));
+
+    // Add to new groups
+    for (const groupId of groupsToAdd) {
+      const response = await fetch('/api/contacts/bulk/groups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          contactIds: [contactId],
+          groupId,
+          action: 'add'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to add to group: ${groupId}`);
+      }
+    }
+
+    // Remove from old groups
+    for (const groupId of groupsToRemove) {
+      const response = await fetch('/api/contacts/bulk/groups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          contactIds: [contactId],
+          groupId,
+          action: 'remove'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to remove from group: ${groupId}`);
+      }
+    }
+
+    // Show success message
+    if (typeof showToast === 'function') {
+      showToast('Groups updated successfully', 'success');
     }
   }
 
@@ -946,43 +1119,107 @@ class ContactsTable {
     // Apply filters
     if (this.activeFilters) {
       if (this.activeFilters.tag) {
+        const tagFilters = Array.isArray(this.activeFilters.tag) ? this.activeFilters.tag : [this.activeFilters.tag];
         filtered = filtered.filter(contact => 
-          contact.tags && contact.tags.some(tag => 
-            tag.text.toLowerCase().includes(this.activeFilters.tag.toLowerCase())
+          contact.tags && tagFilters.some(filterTag =>
+            contact.tags.some(tag => 
+              tag.text.toLowerCase().includes(filterTag.toLowerCase())
+            )
           )
         );
       }
 
       if (this.activeFilters.group) {
+        const groupFilters = Array.isArray(this.activeFilters.group) ? this.activeFilters.group : [this.activeFilters.group];
         filtered = filtered.filter(contact => 
-          contact.groups && contact.groups.some(groupId => {
-            const group = this.getGroupById(groupId);
-            return group && group.name.toLowerCase().includes(this.activeFilters.group.toLowerCase());
-          })
+          contact.groups && groupFilters.some(filterGroup =>
+            contact.groups.some(groupId => {
+              const group = this.getGroupById(groupId);
+              return group && group.name.toLowerCase().includes(filterGroup.toLowerCase());
+            })
+          )
         );
       }
 
       if (this.activeFilters.source) {
+        const sourceFilters = Array.isArray(this.activeFilters.source) ? this.activeFilters.source : [this.activeFilters.source];
         filtered = filtered.filter(contact => 
-          contact.source === this.activeFilters.source
+          sourceFilters.includes(contact.source)
         );
       }
 
       if (this.activeFilters.circle) {
+        const circleFilters = Array.isArray(this.activeFilters.circle) ? this.activeFilters.circle : [this.activeFilters.circle];
         filtered = filtered.filter(contact => 
-          contact.dunbarCircle === this.activeFilters.circle
+          circleFilters.includes(contact.dunbarCircle)
         );
       }
 
       if (this.activeFilters.location) {
+        const locationFilters = Array.isArray(this.activeFilters.location) ? this.activeFilters.location : [this.activeFilters.location];
         filtered = filtered.filter(contact => 
-          contact.location && contact.location.toLowerCase().includes(this.activeFilters.location.toLowerCase())
+          contact.location && locationFilters.some(filterLoc =>
+            contact.location.toLowerCase().includes(filterLoc.toLowerCase())
+          )
         );
       }
     }
 
     this.filteredData = filtered;
-    this.render();
+    
+    // Only update the table body, not the entire table (to preserve search input)
+    this.updateTableBody();
+  }
+
+  /**
+   * Update only the table body without re-rendering the entire table
+   * This preserves the search input and other controls
+   */
+  updateTableBody() {
+    const tbody = this.container.querySelector('.contacts-table tbody');
+    if (!tbody) {
+      // If tbody doesn't exist, do a full render
+      this.render();
+      return;
+    }
+
+    // Update the table body content
+    tbody.innerHTML = this.renderRows();
+
+    // Re-attach event listeners for the new rows
+    this.attachRowEventListeners();
+
+    // Update A-Z scrollbar if it exists
+    if (this.azScrollbar) {
+      this.azScrollbar.update(this.filteredData);
+    }
+  }
+
+  /**
+   * Attach event listeners to table rows
+   * (Extracted from attachEventListeners for reuse)
+   */
+  attachRowEventListeners() {
+    // Delete button handlers
+    this.container.querySelectorAll('.btn-delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const contactId = e.target.dataset.contactId;
+        if (this.options.onDelete) {
+          this.options.onDelete(contactId);
+        }
+      });
+    });
+
+    // Editable cell handlers
+    this.container.querySelectorAll('td.editable').forEach(cell => {
+      cell.addEventListener('click', (e) => {
+        // Don't start edit if clicking on a badge or already editing
+        if (e.target.classList.contains('badge') || this.editingCell) {
+          return;
+        }
+        this.startEdit(cell);
+      });
+    });
   }
 
   /**
@@ -1100,7 +1337,7 @@ class InlineEditCell {
    * Start edit mode
    * Requirements: 2.1
    */
-  startEdit() {
+  async startEdit() {
     this.cell.classList.add('editing');
     
     switch (this.type) {
@@ -1113,7 +1350,7 @@ class InlineEditCell {
         this.createDropdown();
         break;
       case 'multiselect':
-        this.createMultiSelect();
+        await this.createMultiSelect();
         break;
     }
 
@@ -1193,7 +1430,11 @@ class InlineEditCell {
    * Create multi-select input with autocomplete
    * Requirements: 2.4
    */
-  createMultiSelect() {
+  async createMultiSelect() {
+    console.log('🎨 Creating multiselect for field:', this.field);
+    console.log('📦 Original value:', this.originalValue);
+    console.log('⚙️ Options:', this.options);
+    
     const container = document.createElement('div');
     container.className = 'inline-edit-multiselect';
     
@@ -1202,10 +1443,37 @@ class InlineEditCell {
     chipsContainer.className = 'multiselect-chips';
     
     const selectedValues = Array.isArray(this.originalValue) ? this.originalValue : [];
-    selectedValues.forEach(value => {
-      const chip = this.createChip(value);
-      chipsContainer.appendChild(chip);
-    });
+    
+    // For groups, we need to resolve IDs to names for display
+    if (this.field === 'groups' && this.options.onFetchGroups) {
+      const allGroups = await this.options.onFetchGroups();
+      console.log('👥 Fetched groups for display:', allGroups);
+      this.selectedValues = [];
+      
+      selectedValues.forEach(value => {
+        // value could be an ID or a name
+        const group = allGroups.find(g => g.id === value || g.name === value);
+        if (group) {
+          const chip = this.createChip(group.name, group.id);
+          chipsContainer.appendChild(chip);
+          this.selectedValues.push(group.id);
+        } else {
+          // Fallback if group not found
+          const chip = this.createChip(value);
+          chipsContainer.appendChild(chip);
+          this.selectedValues.push(value);
+        }
+      });
+    } else {
+      // For tags, just use the values directly
+      selectedValues.forEach(value => {
+        const chip = this.createChip(value);
+        chipsContainer.appendChild(chip);
+      });
+      this.selectedValues = [...selectedValues];
+    }
+    
+    console.log('✅ Selected values initialized:', this.selectedValues);
     
     // Input for adding new items
     this.input = document.createElement('input');
@@ -1215,6 +1483,11 @@ class InlineEditCell {
     
     this.input.addEventListener('keydown', (e) => this.handleMultiSelectKeyDown(e));
     this.input.addEventListener('input', (e) => this.handleAutocomplete(e));
+    this.input.addEventListener('focus', (e) => {
+      console.log('🎯 Input focused, triggering autocomplete');
+      // Show all available options when focusing
+      this.handleAutocomplete(e);
+    });
     this.input.addEventListener('blur', (e) => {
       // Delay to allow clicking on autocomplete items
       setTimeout(() => {
@@ -1230,22 +1503,24 @@ class InlineEditCell {
     this.cell.innerHTML = '';
     this.cell.appendChild(container);
     
-    this.selectedValues = [...selectedValues];
+    console.log('✅ Multiselect created successfully');
   }
 
   /**
    * Create a chip element for multi-select
    */
-  createChip(value) {
+  createChip(displayValue, actualValue = null) {
     const chip = document.createElement('span');
     chip.className = 'multiselect-chip';
-    chip.textContent = value;
+    chip.textContent = displayValue;
+    
+    const valueToRemove = actualValue || displayValue;
     
     const removeBtn = document.createElement('span');
     removeBtn.className = 'chip-remove';
     removeBtn.textContent = '×';
     removeBtn.addEventListener('click', () => {
-      this.selectedValues = this.selectedValues.filter(v => v !== value);
+      this.selectedValues = this.selectedValues.filter(v => v !== valueToRemove);
       chip.remove();
     });
     
@@ -1260,8 +1535,25 @@ class InlineEditCell {
   async handleAutocomplete(e) {
     const query = e.target.value.toLowerCase();
     
-    if (query.length < 1) {
-      this.hideAutocomplete();
+    console.log('🔍 Autocomplete triggered:', { field: this.field, query, selectedValues: this.selectedValues });
+    
+    // Show all suggestions when input is empty or has minimal text
+    if (query.length === 0) {
+      // Show all available options when clicking into empty field
+      let suggestions = [];
+      if (this.field === 'tags' && this.options.onFetchTags) {
+        const allTags = await this.options.onFetchTags();
+        console.log('📋 Available tags:', allTags);
+        suggestions = allTags.filter(tag => !this.selectedValues.includes(tag));
+      } else if (this.field === 'groups' && this.options.onFetchGroups) {
+        const allGroups = await this.options.onFetchGroups();
+        console.log('👥 Available groups:', allGroups);
+        suggestions = allGroups
+          .filter(group => !this.selectedValues.some(v => v === group.id || v === group.name))
+          .map(g => ({ id: g.id, name: g.name }));
+      }
+      console.log('💡 Showing suggestions:', suggestions);
+      this.showAutocomplete(suggestions);
       return;
     }
     
@@ -1277,11 +1569,12 @@ class InlineEditCell {
       suggestions = allGroups
         .filter(group => 
           group.name.toLowerCase().includes(query) && 
-          !this.selectedValues.includes(group.id)
+          !this.selectedValues.some(v => v === group.id || v === group.name)
         )
         .map(g => ({ id: g.id, name: g.name }));
     }
     
+    console.log('💡 Filtered suggestions:', suggestions);
     this.showAutocomplete(suggestions);
   }
 
@@ -1311,9 +1604,10 @@ class InlineEditCell {
           this.input.focus();
         });
       } else {
+        // For groups, show the name but store the ID
         item.textContent = suggestion.name;
         item.addEventListener('click', () => {
-          this.addValue(suggestion.id);
+          this.addValue(suggestion.id, suggestion.name);
           this.input.value = '';
           this.hideAutocomplete();
           this.input.focus();
@@ -1339,11 +1633,11 @@ class InlineEditCell {
   /**
    * Add a value to multi-select
    */
-  addValue(value) {
+  addValue(value, displayValue = null) {
     if (!this.selectedValues.includes(value)) {
       this.selectedValues.push(value);
       const chipsContainer = this.cell.querySelector('.multiselect-chips');
-      const chip = this.createChip(value);
+      const chip = this.createChip(displayValue || value, value);
       chipsContainer.appendChild(chip);
     }
   }
@@ -1359,12 +1653,18 @@ class InlineEditCell {
       e.preventDefault();
       const value = this.input.value.trim();
       if (value) {
+        // For new values typed in (not from autocomplete)
         this.addValue(value);
         this.input.value = '';
         this.hideAutocomplete();
       } else {
+        // If input is empty, save and exit edit mode
         this.saveEdit();
       }
+    } else if (e.key === 'Tab') {
+      // Tab key should save and move to next field
+      e.preventDefault();
+      this.saveEdit();
     }
   }
 
@@ -1784,6 +2084,12 @@ class SearchFilterBar {
 
     this.container.innerHTML = html;
     this.searchInput = this.container.querySelector('.search-input');
+    
+    if (!this.searchInput) {
+      console.error('SearchFilterBar: search input not found after render');
+      return;
+    }
+    
     this.attachEventListeners();
     
     // Load available tags and groups for autocomplete
@@ -1794,16 +2100,16 @@ class SearchFilterBar {
    * Attach event listeners
    */
   attachEventListeners() {
-    if (!this.searchInput) return;
+    if (!this.searchInput) {
+      console.error('SearchFilterBar.attachEventListeners: searchInput is null');
+      return;
+    }
 
     // Real-time search as user types (Requirement 4.1)
     this.searchInput.addEventListener('input', (e) => {
-      this.handleInput(e.target.value);
-    });
-
-    // Show autocomplete suggestions
-    this.searchInput.addEventListener('input', (e) => {
-      this.handleAutocomplete(e.target.value);
+      const query = e.target.value;
+      this.handleInput(query);
+      this.handleAutocomplete(query);
     });
 
     // Hide autocomplete on blur
@@ -1837,9 +2143,14 @@ class SearchFilterBar {
     // Update active filters display
     this.renderActiveFilters(parsed.filters);
 
-    // Trigger search callback
+    // Trigger search callback with text query
     if (this.options.onSearch) {
-      this.options.onSearch(parsed.text, parsed.filters);
+      this.options.onSearch(parsed.text);
+    }
+
+    // Trigger filter callback with parsed filters
+    if (this.options.onFilter) {
+      this.options.onFilter(parsed.filters);
     }
   }
 
@@ -2486,11 +2797,15 @@ function renderContactsTable(contacts) {
         return true;
       }
     });
+    // Expose globally for access from other parts of the app
+    window.contactsTable = globalContactsTable;
   } else {
+    // Update data and refresh the table
     globalContactsTable.data = contacts;
     globalContactsTable.filteredData = contacts;
   }
   
+  // Render the table (this will show/hide A-Z scrollbar based on sort order)
   globalContactsTable.render();
 }
 

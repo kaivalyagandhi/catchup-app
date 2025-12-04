@@ -2328,29 +2328,12 @@
                 
                 <!-- Groups Tab Content -->
                 <div id="directory-groups-tab" class="directory-tab-content hidden">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-                        <h3 style="margin: 0;">Groups</h3>
-                        <button onclick="showCreateGroupModal()">Create Group</button>
-                    </div>
-                    
-                    <div class="search-bar">
-                        <input type="text" id="group-search" placeholder="Search groups..." onkeyup="searchGroups()">
-                    </div>
-                    
-                    <div id="groups-list" class="items-list"></div>
+                    <!-- Groups Table (with integrated Google Mappings Review) will be rendered here by groups-table.js -->
+                    <div id="groups-list"></div>
                 </div>
                 
                 <!-- Tags Tab Content -->
                 <div id="directory-tags-tab" class="directory-tab-content hidden">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-                        <h3 style="margin: 0;">Tags</h3>
-                        <button onclick="showCreateTagModal()">Create Tag</button>
-                    </div>
-                    
-                    <div class="search-bar">
-                        <input type="text" id="tag-search" placeholder="Search tags..." onkeyup="searchTags()">
-                    </div>
-                    
                     <div id="tags-list" class="items-list"></div>
                 </div>
             </div>

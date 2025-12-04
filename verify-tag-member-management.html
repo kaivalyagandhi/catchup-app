@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tag Member Management Test - CatchUp</title>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/tags-table.css">
+  
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f9fafb;
+    }
+
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin: 0 0 10px 0;
+      color: #111827;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #6b7280;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .test-info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .test-info h3 {
+      margin: 0 0 8px 0;
+      color: #1e40af;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .test-info ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #1e40af;
+      font-size: 13px;
+    }
+
+    .test-info li {
+      margin: 4px 0;
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      z-index: 2000;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.success {
+      background: #10b981;
+      color: white;
+    }
+
+    .toast.error {
+      background: #ef4444;
+      color: white;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    [data-theme="dark"] {
+      background: #111827;
+    }
+
+    [data-theme="dark"] .test-container {
+      background: #1f2937;
+    }
+
+    [data-theme="dark"] h1 {
+      color: #f3f4f6;
+    }
+
+    [data-theme="dark"] .subtitle {
+      color: #9ca3af;
+    }
+
+    [data-theme="dark"] .test-info {
+      background: #1e3a8a;
+      border-color: #1e40af;
+    }
+
+    [data-theme="dark"] .test-info h3,
+    [data-theme="dark"] .test-info ul,
+    [data-theme="dark"] .test-info li {
+      color: #93c5fd;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Tag Member Management Test</h1>
+    <p class="subtitle">Testing add/remove contacts functionality in tags</p>
+
+    <div class="test-info">
+      <h3>Test Instructions:</h3>
+      <ul>
+        <li>Click the expand icon (▶) next to a tag's contact count to expand it</li>
+        <li>Click "➕ Add Contact" to open the contact search modal</li>
+        <li>Search for contacts by name, email, or phone</li>
+        <li>Click "Add" to add a tag to a contact</li>
+        <li>Click the "✕" button next to a member to remove the tag (with confirmation)</li>
+        <li>Test on mobile by resizing your browser window</li>
+      </ul>
+    </div>
+
+    <div id="tags-list"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/inline-edit-cell.js"></script>
+  <script src="/js/tags-table.js"></script>
+
+  <script>
+    // Mock authentication
+    window.userId = 'test-user-123';
+    window.authToken = 'mock-token';
+    localStorage.setItem('userId', window.userId);
+    localStorage.setItem('authToken', window.authToken);
+
+    // Toast notification function
+    window.showToast = function(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    };
+
+    // Mock contacts data
+    const mockContacts = [
+      { 
+        id: 'c1', 
+        name: 'Alice Johnson', 
+        email: 'alice@example.com', 
+        phone: '+1-555-0101',
+        tags: [{ id: 't1', text: 'Friend' }, { id: 't2', text: 'Tech' }]
+      },
+      { 
+        id: 'c2', 
+        name: 'Bob Smith', 
+        email: 'bob@example.com', 
+        phone: '+1-555-0102',
+        tags: [{ id: 't1', text: 'Friend' }]
+      },
+      { 
+        id: 'c3', 
+        name: 'Carol Williams', 
+        email: 'carol@example.com', 
+        phone: '+1-555-0103',
+        tags: [{ id: 't2', text: 'Tech' }, { id: 't3', text: 'Hiking' }]
+      },
+      { 
+        id: 'c4', 
+        name: 'David Brown', 
+        email: 'david@example.com', 
+        phone: '+1-555-0104',
+        tags: [{ id: 't4', text: 'Work' }]
+      },
+      { 
+        id: 'c5', 
+        name: 'Emma Davis', 
+        email: 'emma@example.com', 
+        phone: '+1-555-0105',
+        tags: []
+      },
+      { 
+        id: 'c6', 
+        name: 'Frank Miller', 
+        email: 'frank@example.com', 
+        phone: '+1-555-0106',
+        tags: [{ id: 't3', text: 'Hiking' }]
+      },
+      { 
+        id: 'c7', 
+        name: 'Grace Wilson', 
+        email: 'grace@example.com', 
+        phone: '+1-555-0107',
+        tags: [{ id: 't1', text: 'Friend' }, { id: 't5', text: 'Music' }]
+      },
+      { 
+        id: 'c8', 
+        name: 'Henry Moore', 
+        email: 'henry@example.com', 
+        phone: '+1-555-0108',
+        tags: [{ id: 't2', text: 'Tech' }]
+      },
+      { 
+        id: 'c9', 
+        name: 'Ivy Taylor', 
+        email: 'ivy@example.com', 
+        phone: '+1-555-0109',
+        tags: [{ id: 't5', text: 'Music' }]
+      },
+      { 
+        id: 'c10', 
+        name: 'Jack Anderson', 
+        email: 'jack@example.com', 
+        phone: '+1-555-0110',
+        tags: []
+      }
+    ];
+
+    // Mock tags data
+    const mockTags = [
+      { id: 't1', text: 'Friend', source: 'manual' },
+      { id: 't2', text: 'Tech', source: 'ai' },
+      { id: 't3', text: 'Hiking', source: 'voice' },
+      { id: 't4', text: 'Work', source: 'manual' },
+      { id: 't5', text: 'Music', source: 'ai' }
+    ];
+
+    // Mock API responses
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+      console.log('Mock API call:', options.method || 'GET', url);
+
+      // Add tag to contact
+      if (url.includes('/api/groups-tags/tags/') && url.includes('/contacts') && options.method === 'POST') {
+        const tagId = url.split('/tags/')[1].split('/contacts')[0];
+        const body = JSON.parse(options.body);
+        const contactIds = body.contactIds;
+
+        const tag = mockTags.find(t => t.id === tagId);
+        if (tag) {
+          contactIds.forEach(contactId => {
+            const contact = mockContacts.find(c => c.id === contactId);
+            if (contact) {
+              if (!contact.tags) {
+                contact.tags = [];
+              }
+              if (!contact.tags.some(t => t.id === tagId)) {
+                contact.tags.push({ id: tagId, text: tag.text });
+              }
+            }
+          });
+        }
+
+        return Promise.resolve({
+          ok: true,
+          status: 204,
+          json: () => Promise.resolve({})
+        });
+      }
+
+      // Remove tag from contact
+      if (url.includes('/api/groups-tags/tags/') && url.includes('/contacts/') && options.method === 'DELETE') {
+        const parts = url.split('/');
+        const tagId = parts[parts.indexOf('tags') + 1];
+        const contactId = parts[parts.indexOf('contacts') + 1];
+
+        const contact = mockContacts.find(c => c.id === contactId);
+        if (contact && contact.tags) {
+          contact.tags = contact.tags.filter(t => t.id !== tagId);
+        }
+
+        return Promise.resolve({
+          ok: true,
+          status: 204,
+          json: () => Promise.resolve({})
+        });
+      }
+
+      // Fallback to original fetch for other requests
+      return originalFetch(url, options);
+    };
+
+    // Render the tags table
+    window.contacts = mockContacts;
+    const tagsTable = new TagsTable('tags-list', mockTags, mockContacts);
+    tagsTable.render();
+
+    console.log('Tags table rendered with member management functionality');
+    console.log('Tags:', mockTags);
+    console.log('Contacts:', mockContacts);
+  </script>
+</body>
+</html>

@@ -25,6 +25,7 @@ class TagsTable {
     this.editingCell = null;
     this.addingTag = false;
     this.newTagRow = null;
+    this.expandedTags = new Set(); // Track which tags are expanded
   }
 
   /**
@@ -89,11 +90,18 @@ class TagsTable {
    */
   renderRow(tag) {
     const contactCount = this.getContactCount(tag);
+    const isExpanded = this.expandedTags.has(tag.id);
+    const expandIcon = isExpanded ? '▼' : '▶';
 
-    return `
-      <tr data-tag-id="${tag.id}">
+    let html = `
+      <tr data-tag-id="${tag.id}" class="tag-row">
         <td class="tag-name editable" data-field="text" data-type="text" data-label="Name">${this.escapeHtml(tag.text)}</td>
-        <td class="tag-contact-count" data-label="Contacts">${contactCount}</td>
+        <td class="tag-contact-count" data-label="Contacts">
+          <span class="expand-toggle" data-tag-id="${tag.id}" style="cursor: pointer; user-select: none;">
+            <span class="expand-icon">${expandIcon}</span>
+            <span class="count-badge">${contactCount}</span>
+          </span>
+        </td>
         <td class="tag-source" data-label="Source">${this.renderSourceBadge(tag)}</td>
         <td class="tag-actions">
           <button class="btn-delete" data-tag-id="${tag.id}" title="Delete tag">
@@ -102,6 +110,13 @@ class TagsTable {
         </td>
       </tr>
     `;
+
+    // Add expanded member rows if tag is expanded
+    if (isExpanded && contactCount > 0) {
+      html += this.renderMemberRows(tag);
+    }
+
+    return html;
   }
 
   /**
@@ -112,6 +127,66 @@ class TagsTable {
     return this.contacts.filter(contact => 
       contact.tags && contact.tags.some(t => t.id === tag.id || t.text === tag.text)
     ).length;
+  }
+
+  /**
+   * Get contacts that have this tag
+   */
+  getTagContacts(tag) {
+    return this.contacts.filter(contact => 
+      contact.tags && contact.tags.some(t => t.id === tag.id || t.text === tag.text)
+    );
+  }
+
+  /**
+   * Toggle tag expansion
+   */
+  toggleExpand(tagId) {
+    if (this.expandedTags.has(tagId)) {
+      this.expandedTags.delete(tagId);
+    } else {
+      this.expandedTags.add(tagId);
+    }
+    this.render();
+  }
+
+  /**
+   * Render member contact rows for an expanded tag
+   */
+  renderMemberRows(tag) {
+    const members = this.getTagContacts(tag);
+
+    let html = `
+      <tr class="member-row add-contact-row" data-tag-id="${tag.id}">
+        <td colspan="4" style="padding-left: 40px;">
+          <button class="btn-add-contact" data-tag-id="${tag.id}" title="Add contact to tag">
+            ➕ Add Contact
+          </button>
+        </td>
+      </tr>
+    `;
+
+    if (members.length === 0) {
+      return html;
+    }
+
+    html += members.map(contact => `
+      <tr class="member-row" data-tag-id="${tag.id}">
+        <td style="padding-left: 40px;">
+          <span class="member-icon">👤</span>
+          ${this.escapeHtml(contact.name)}
+        </td>
+        <td>${this.escapeHtml(contact.email || '')}</td>
+        <td>${this.escapeHtml(contact.phone || '')}</td>
+        <td style="text-align: center;">
+          <button class="btn-remove-contact" data-tag-id="${tag.id}" data-contact-id="${contact.id}" data-contact-name="${this.escapeHtml(contact.name)}" title="Remove tag from contact">
+            ✕
+          </button>
+        </td>
+      </tr>
+    `).join('');
+
+    return html;
   }
 
   /**
@@ -336,10 +411,12 @@ class TagsTable {
       }
 
       // Make API call to create tag
+      const authToken = localStorage.getItem('authToken');
       const response = await fetch('/api/groups-tags/tags', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
           text: tagData.text,
@@ -348,7 +425,8 @@ class TagsTable {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create tag: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to create tag: ${response.statusText}`);
       }
 
       const newTag = await response.json();
@@ -420,12 +498,17 @@ class TagsTable {
 
     try {
       // Make API call to delete tag
+      const authToken = localStorage.getItem('authToken');
       const response = await fetch(`/api/groups-tags/tags/${tagId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to delete tag: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to delete tag: ${response.statusText}`);
       }
 
       // Remove from data arrays
@@ -485,6 +568,38 @@ class TagsTable {
         }
         
         this.sort(column, newOrder);
+      });
+    });
+
+    // Expand/collapse toggle handlers
+    this.container.querySelectorAll('.expand-toggle').forEach(toggle => {
+      toggle.addEventListener('click', (e) => {
+        const tagId = e.currentTarget.dataset.tagId;
+        if (tagId) {
+          this.toggleExpand(tagId);
+        }
+      });
+    });
+
+    // Add contact button handlers
+    this.container.querySelectorAll('.btn-add-contact').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tagId = e.target.dataset.tagId;
+        if (tagId) {
+          this.showAddContactModal(tagId);
+        }
+      });
+    });
+
+    // Remove contact button handlers
+    this.container.querySelectorAll('.btn-remove-contact').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tagId = e.target.dataset.tagId;
+        const contactId = e.target.dataset.contactId;
+        const contactName = e.target.dataset.contactName;
+        if (tagId && contactId) {
+          this.removeContactFromTag(tagId, contactId, contactName);
+        }
       });
     });
 
@@ -550,10 +665,12 @@ class TagsTable {
       this.render();
 
       // Make API call to update tag name for all associated contacts
+      const authToken = localStorage.getItem('authToken');
       const response = await fetch(`/api/groups-tags/tags/${tagId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
           text: value
@@ -561,7 +678,8 @@ class TagsTable {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to update tag: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to update tag: ${response.statusText}`);
       }
 
       const updatedTag = await response.json();
@@ -590,6 +708,209 @@ class TagsTable {
       tag[field] = originalValue;
       this.render();
       this.showError(`Failed to update ${field}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Show add contact modal
+   */
+  showAddContactModal(tagId) {
+    const tag = this.data.find(t => t.id === tagId);
+    if (!tag) {
+      return;
+    }
+
+    // Get contacts that don't have this tag
+    const taggedContacts = this.getTagContacts(tag);
+    const taggedContactIds = new Set(taggedContacts.map(c => c.id));
+    const availableContacts = this.contacts.filter(c => !taggedContactIds.has(c.id));
+
+    if (availableContacts.length === 0) {
+      this.showError('All contacts already have this tag');
+      return;
+    }
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'contact-search-modal';
+    modal.innerHTML = `
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add Contact to "${this.escapeHtml(tag.text)}" Tag</h3>
+          <button class="modal-close" title="Close">✕</button>
+        </div>
+        <div class="modal-body">
+          <input type="text" class="contact-search-input" placeholder="Search contacts..." autofocus />
+          <div class="contact-search-results"></div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const searchInput = modal.querySelector('.contact-search-input');
+    const resultsContainer = modal.querySelector('.contact-search-results');
+    const closeBtn = modal.querySelector('.modal-close');
+    const overlay = modal.querySelector('.modal-overlay');
+
+    // Render initial results
+    const renderResults = (query = '') => {
+      const filtered = query
+        ? availableContacts.filter(c => 
+            c.name.toLowerCase().includes(query.toLowerCase()) ||
+            (c.email && c.email.toLowerCase().includes(query.toLowerCase())) ||
+            (c.phone && c.phone.includes(query))
+          )
+        : availableContacts;
+
+      if (filtered.length === 0) {
+        resultsContainer.innerHTML = '<div class="no-results">No contacts found</div>';
+        return;
+      }
+
+      resultsContainer.innerHTML = filtered.map(contact => `
+        <div class="contact-result-item" data-contact-id="${contact.id}">
+          <div class="contact-result-info">
+            <div class="contact-result-name">${this.escapeHtml(contact.name)}</div>
+            <div class="contact-result-details">
+              ${contact.email ? this.escapeHtml(contact.email) : ''}
+              ${contact.email && contact.phone ? ' • ' : ''}
+              ${contact.phone ? this.escapeHtml(contact.phone) : ''}
+            </div>
+          </div>
+          <button class="btn-select-contact" data-contact-id="${contact.id}">Add</button>
+        </div>
+      `).join('');
+
+      // Attach click handlers
+      resultsContainer.querySelectorAll('.btn-select-contact').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const contactId = e.target.dataset.contactId;
+          await this.addContactToTag(tagId, contactId);
+          modal.remove();
+        });
+      });
+    };
+
+    renderResults();
+
+    // Search input handler
+    searchInput.addEventListener('input', (e) => {
+      renderResults(e.target.value);
+    });
+
+    // Close handlers
+    const closeModal = () => modal.remove();
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', closeModal);
+
+    // ESC key to close
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+        document.removeEventListener('keydown', handleEsc);
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+  }
+
+  /**
+   * Add a contact to a tag
+   */
+  async addContactToTag(tagId, contactId) {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await fetch(`/api/groups-tags/tags/${tagId}/contacts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          contactIds: [contactId]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to add tag to contact: ${response.statusText}`);
+      }
+
+      // Update local contact data
+      const contact = this.contacts.find(c => c.id === contactId);
+      const tag = this.data.find(t => t.id === tagId);
+      if (contact && tag) {
+        if (!contact.tags) {
+          contact.tags = [];
+        }
+        if (!contact.tags.some(t => t.id === tagId)) {
+          contact.tags.push({ id: tagId, text: tag.text });
+        }
+      }
+
+      // Re-render
+      this.render();
+
+      // Show success message
+      if (typeof showToast === 'function') {
+        showToast('Tag added to contact', 'success');
+      }
+
+    } catch (error) {
+      console.error('Error adding tag to contact:', error);
+      this.showError(`Failed to add tag: ${error.message}`);
+    }
+  }
+
+  /**
+   * Remove a tag from a contact
+   */
+  async removeContactFromTag(tagId, contactId, contactName) {
+    const tag = this.data.find(t => t.id === tagId);
+    if (!tag) {
+      return;
+    }
+
+    // Confirm removal
+    const confirmed = confirm(`Remove "${tag.text}" tag from ${contactName}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await fetch(`/api/groups-tags/tags/${tagId}/contacts/${contactId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to remove tag: ${response.statusText}`);
+      }
+
+      // Update local contact data
+      const contact = this.contacts.find(c => c.id === contactId);
+      if (contact && contact.tags) {
+        contact.tags = contact.tags.filter(t => t.id !== tagId);
+      }
+
+      // Re-render
+      this.render();
+
+      // Show success message
+      if (typeof showToast === 'function') {
+        showToast('Tag removed from contact', 'success');
+      }
+
+    } catch (error) {
+      console.error('Error removing tag from contact:', error);
+      this.showError(`Failed to remove tag: ${error.message}`);
     }
   }
 
@@ -623,19 +944,23 @@ let globalTagsTable = null;
  * Global function to render tags table
  * Called by app.js after loading tags
  */
-function renderTagsTable(tags) {
+function renderTagsTable(tags, contacts = []) {
   const container = document.getElementById('tags-list');
   if (!container) {
     console.error('tags-list container not found');
     return;
   }
   
+  // Get contacts from global scope if not passed
+  const contactsData = contacts.length > 0 ? contacts : (window.contacts || []);
+  
   // Create or update the table instance
   if (!globalTagsTable) {
-    globalTagsTable = new TagsTable(container, tags);
+    globalTagsTable = new TagsTable(container, tags, contactsData);
   } else {
     globalTagsTable.data = tags;
     globalTagsTable.filteredData = tags;
+    globalTagsTable.contacts = contactsData;
   }
   
   globalTagsTable.render();

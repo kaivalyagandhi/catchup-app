@@ -107,55 +107,63 @@ export class GroupSyncService {
       const contactGroups = response.data.contactGroups || [];
       console.log(`Fetched ${contactGroups.length} contact groups`);
 
-      // Process each group
-      for (const group of contactGroups) {
-        // Skip system groups
-        if (group.groupType !== 'USER_CONTACT_GROUP') {
-          continue;
+      // Process groups in batches to avoid memory issues
+      const userGroups = contactGroups.filter(g => g.groupType === 'USER_CONTACT_GROUP');
+      const batchSize = 20;
+      
+      for (let i = 0; i < userGroups.length; i += batchSize) {
+        const batch = userGroups.slice(i, i + batchSize);
+        console.log(`Processing group batch ${i / batchSize + 1} of ${Math.ceil(userGroups.length / batchSize)}`);
+        
+        for (const group of batch) {
+          const googleGroup: GoogleContactGroup = {
+            resourceName: group.resourceName!,
+            etag: group.etag || undefined,
+            name: group.name!,
+            groupType: group.groupType!,
+            memberCount: group.memberCount || 0,
+          };
+
+          // Check if mapping already exists
+          const existingMapping = await this.groupMappingRepository.findByGoogleResourceName(
+            userId,
+            googleGroup.resourceName
+          );
+
+          if (existingMapping) {
+            // Update existing mapping
+            await this.groupMappingRepository.update(existingMapping.id, userId, {
+              googleName: googleGroup.name,
+              googleEtag: googleGroup.etag,
+              memberCount: googleGroup.memberCount,
+            });
+            groupsUpdated++;
+          } else {
+            // Generate mapping suggestion
+            const suggestion = await this.generateMappingSuggestion(userId, googleGroup);
+
+            // Create new mapping with suggestion
+            await this.groupMappingRepository.create(userId, {
+              googleResourceName: googleGroup.resourceName,
+              googleName: googleGroup.name,
+              googleEtag: googleGroup.etag,
+              memberCount: googleGroup.memberCount,
+              mappingStatus: 'pending',
+              suggestedAction: suggestion.suggestedAction,
+              suggestedGroupId: suggestion.suggestedGroupId,
+              suggestedGroupName: suggestion.suggestedGroupName,
+              confidenceScore: suggestion.confidenceScore,
+              suggestionReason: suggestion.reason,
+            });
+
+            groupsImported++;
+            suggestionsGenerated++;
+          }
         }
-
-        const googleGroup: GoogleContactGroup = {
-          resourceName: group.resourceName!,
-          etag: group.etag || undefined,
-          name: group.name!,
-          groupType: group.groupType!,
-          memberCount: group.memberCount || 0,
-        };
-
-        // Check if mapping already exists
-        const existingMapping = await this.groupMappingRepository.findByGoogleResourceName(
-          userId,
-          googleGroup.resourceName
-        );
-
-        if (existingMapping) {
-          // Update existing mapping
-          await this.groupMappingRepository.update(existingMapping.id, userId, {
-            googleName: googleGroup.name,
-            googleEtag: googleGroup.etag,
-            memberCount: googleGroup.memberCount,
-          });
-          groupsUpdated++;
-        } else {
-          // Generate mapping suggestion
-          const suggestion = await this.generateMappingSuggestion(userId, googleGroup);
-
-          // Create new mapping with suggestion
-          await this.groupMappingRepository.create(userId, {
-            googleResourceName: googleGroup.resourceName,
-            googleName: googleGroup.name,
-            googleEtag: googleGroup.etag,
-            memberCount: googleGroup.memberCount,
-            mappingStatus: 'pending',
-            suggestedAction: suggestion.suggestedAction,
-            suggestedGroupId: suggestion.suggestedGroupId,
-            suggestedGroupName: suggestion.suggestedGroupName,
-            confidenceScore: suggestion.confidenceScore,
-            suggestionReason: suggestion.reason,
-          });
-
-          groupsImported++;
-          suggestionsGenerated++;
+        
+        // Allow garbage collection between batches
+        if (global.gc) {
+          global.gc();
         }
       }
 
@@ -223,19 +231,27 @@ export class GroupSyncService {
     }
 
     // Calculate similarity scores for each existing group
-    const similarities = await Promise.all(
-      existingGroups.map(async (group) => {
-        const nameScore = this.calculateStringSimilarity(googleGroup.name, group.name);
-        const memberOverlap = await this.calculateMemberOverlap(userId, googleGroup, group.id);
+    // Process in batches to avoid memory issues
+    const batchSize = 10;
+    const similarities = [];
+    
+    for (let i = 0; i < existingGroups.length; i += batchSize) {
+      const batch = existingGroups.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+        batch.map(async (group) => {
+          const nameScore = this.calculateStringSimilarity(googleGroup.name, group.name);
+          const memberOverlap = await this.calculateMemberOverlap(userId, googleGroup, group.id);
 
-        return {
-          group,
-          nameScore,
-          memberOverlap,
-          combinedScore: (nameScore + memberOverlap) / 2,
-        };
-      })
-    );
+          return {
+            group,
+            nameScore,
+            memberOverlap,
+            combinedScore: (nameScore + memberOverlap) / 2,
+          };
+        })
+      );
+      similarities.push(...batchResults);
+    }
 
     // Find best match
     const bestMatch = similarities
@@ -294,40 +310,44 @@ export class GroupSyncService {
 
   /**
    * Calculate Levenshtein distance between two strings
+   * Uses space-optimized algorithm with only 2 rows instead of full matrix
    */
   private levenshteinDistance(str1: string, str2: string): number {
     const m = str1.length;
     const n = str2.length;
 
-    // Create a 2D array for dynamic programming
-    const dp: number[][] = Array(m + 1)
-      .fill(null)
-      .map(() => Array(n + 1).fill(0));
+    // Early exit for identical strings
+    if (str1 === str2) return 0;
+    
+    // Limit string length to prevent excessive memory usage
+    const maxLength = 100;
+    const s1 = str1.slice(0, maxLength);
+    const s2 = str2.slice(0, maxLength);
+    
+    // Use space-optimized algorithm with only 2 rows
+    let prevRow = Array(n + 1).fill(0).map((_, i) => i);
+    let currRow = Array(n + 1).fill(0);
 
-    // Initialize first row and column
-    for (let i = 0; i <= m; i++) {
-      dp[i][0] = i;
-    }
-    for (let j = 0; j <= n; j++) {
-      dp[0][j] = j;
-    }
-
-    // Fill the dp table
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        if (str1[i - 1] === str2[j - 1]) {
-          dp[i][j] = dp[i - 1][j - 1];
+    for (let i = 1; i <= s1.length; i++) {
+      currRow[0] = i;
+      
+      for (let j = 1; j <= s2.length; j++) {
+        if (s1[i - 1] === s2[j - 1]) {
+          currRow[j] = prevRow[j - 1];
         } else {
-          dp[i][j] = Math.min(
-            dp[i - 1][j] + 1, // deletion
-            dp[i][j - 1] + 1, // insertion
-            dp[i - 1][j - 1] + 1 // substitution
+          currRow[j] = Math.min(
+            prevRow[j] + 1,     // deletion
+            currRow[j - 1] + 1, // insertion
+            prevRow[j - 1] + 1  // substitution
           );
         }
       }
+      
+      // Swap rows
+      [prevRow, currRow] = [currRow, prevRow];
     }
 
-    return dp[m][n];
+    return prevRow[s2.length];
   }
 
   /**
@@ -393,11 +413,19 @@ export class GroupSyncService {
    * Approve a mapping suggestion
    *
    * Creates or links CatchUp group and updates mapping status to "approved".
+   * Stores excluded members to prevent future sync conflicts.
    *
-   * Requirements: 6.6
+   * Requirements: 6.6, 15.7, 15.8
    */
-  async approveMappingSuggestion(userId: string, mappingId: string): Promise<void> {
+  async approveMappingSuggestion(
+    userId: string, 
+    mappingId: string, 
+    excludedMembers: string[] = []
+  ): Promise<void> {
     console.log(`Approving mapping suggestion ${mappingId} for user ${userId}`);
+    if (excludedMembers.length > 0) {
+      console.log(`Storing ${excludedMembers.length} excluded members`);
+    }
 
     // Get the mapping by ID (not by resource name)
     const allMappings = await this.groupMappingRepository.findAll(userId, false);
@@ -428,10 +456,11 @@ export class GroupSyncService {
       console.log(`Created new CatchUp group ${catchupGroupId} with name "${groupName}"`);
     }
 
-    // Update mapping with CatchUp group ID and status
+    // Update mapping with CatchUp group ID, status, and excluded members
     await this.groupMappingRepository.update(mapping.id, userId, {
       catchupGroupId,
       mappingStatus: 'approved',
+      excludedMembers, // Store excluded members for future sync conflict prevention
     });
 
     console.log(`Approved mapping ${mappingId}`);
@@ -598,10 +627,16 @@ export class GroupSyncService {
                      WHERE user_id = $1 AND google_group_resource_name = $2`;
         const params: any[] = [userId, mapping.googleResourceName];
         
-        // Exclude specific contacts if provided
-        if (excludedContactIds.length > 0) {
-          query += ` AND contact_id NOT IN (${excludedContactIds.map((_, i) => `$${i + 3}`).join(', ')})`;
-          params.push(...excludedContactIds);
+        // Combine excluded members from mapping with any additional exclusions
+        const allExcludedIds = [
+          ...(mapping.excludedMembers || []),
+          ...excludedContactIds
+        ];
+        
+        // Exclude contacts (both from mapping and additional exclusions)
+        if (allExcludedIds.length > 0) {
+          query += ` AND contact_id NOT IN (${allExcludedIds.map((_, i) => `$${i + 3}`).join(', ')})`;
+          params.push(...allExcludedIds);
         }
 
         const result = await pool.query(query, params);

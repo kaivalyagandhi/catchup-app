@@ -206,6 +206,9 @@ The Directory page redesign consolidates the existing Contacts and Groups & Tags
 3. WHEN a user completes all mapping reviews THEN the system SHALL remove the red dot indicator from the Groups tab
 4. WHEN no mappings need review THEN the system SHALL hide the Google Contacts Mappings Review UI
 5. WHEN a user approves or rejects a mapping THEN the system SHALL update the groups table immediately to reflect changes
+6. WHEN a user expands the members list for a mapping THEN the system SHALL display all members with checkboxes allowing deselection
+7. WHEN a user deselects members before approving THEN the system SHALL exclude those members from the created group
+8. WHEN a user deselects members and approves THEN the system SHALL persist the exclusion list to prevent future sync conflicts
 
 ### Requirement 16
 

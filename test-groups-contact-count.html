@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Groups Contact Count</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .group-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+        .contact-list {
+            margin-left: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Groups Contact Count Test</h1>
+    
+    <div class="test-section">
+        <h2>Authentication</h2>
+        <input type="email" id="email" placeholder="Email" value="test@example.com">
+        <input type="password" id="password" placeholder="Password" value="password123">
+        <button onclick="login()">Login</button>
+        <div id="auth-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Groups Data</h2>
+        <button onclick="fetchGroups()">Fetch Groups</button>
+        <button onclick="fetchContacts()">Fetch Contacts</button>
+        <div id="groups-result"></div>
+    </div>
+
+    <script>
+        let authToken = null;
+        let userId = null;
+        let contacts = [];
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    userId = data.user.id;
+                    document.getElementById('auth-status').innerHTML = 
+                        `<span class="success">✓ Logged in as ${data.user.email}</span>`;
+                } else {
+                    document.getElementById('auth-status').innerHTML = 
+                        `<span class="error">✗ ${data.message}</span>`;
+                }
+            } catch (error) {
+                document.getElementById('auth-status').innerHTML = 
+                    `<span class="error">✗ ${error.message}</span>`;
+            }
+        }
+
+        async function fetchContacts() {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/contacts?userId=${userId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                contacts = await response.json();
+                document.getElementById('groups-result').innerHTML += 
+                    `<p class="success">✓ Loaded ${contacts.length} contacts</p>`;
+            } catch (error) {
+                document.getElementById('groups-result').innerHTML = 
+                    `<p class="error">✗ Error: ${error.message}</p>`;
+            }
+        }
+
+        async function fetchGroups() {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/groups-tags/groups`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const groups = await response.json();
+                
+                let html = '<h3>Groups Response:</h3>';
+                html += `<p>Total groups: ${groups.length}</p>`;
+                
+                groups.forEach(group => {
+                    const hasContactIds = Array.isArray(group.contactIds);
+                    const contactCount = group.contactCount || 0;
+                    const actualIds = hasContactIds ? group.contactIds.length : 0;
+                    
+                    html += `<div class="group-item">`;
+                    html += `<strong>${group.name}</strong><br>`;
+                    html += `contactCount: ${contactCount} `;
+                    html += `<span class="${contactCount > 0 ? 'success' : ''}">${contactCount > 0 ? '✓' : ''}</span><br>`;
+                    html += `contactIds: ${hasContactIds ? '✓ Array' : '✗ Missing'} `;
+                    html += `(${actualIds} items)<br>`;
+                    
+                    if (hasContactIds && group.contactIds.length > 0) {
+                        html += `<div class="contact-list">`;
+                        html += `IDs: ${group.contactIds.slice(0, 5).join(', ')}`;
+                        if (group.contactIds.length > 5) {
+                            html += ` ... (${group.contactIds.length - 5} more)`;
+                        }
+                        html += `</div>`;
+                        
+                        // Show contact names if we have them
+                        if (contacts.length > 0) {
+                            const memberNames = group.contactIds
+                                .map(id => contacts.find(c => c.id === id)?.name)
+                                .filter(name => name)
+                                .slice(0, 5);
+                            if (memberNames.length > 0) {
+                                html += `<div class="contact-list">`;
+                                html += `Members: ${memberNames.join(', ')}`;
+                                if (group.contactIds.length > 5) {
+                                    html += ` ... (${group.contactIds.length - 5} more)`;
+                                }
+                                html += `</div>`;
+                            }
+                        }
+                    }
+                    
+                    html += `</div>`;
+                });
+                
+                // Show raw JSON for debugging
+                html += '<h4>Raw JSON (first group):</h4>';
+                html += `<pre>${JSON.stringify(groups[0], null, 2)}</pre>`;
+                
+                document.getElementById('groups-result').innerHTML = html;
+            } catch (error) {
+                document.getElementById('groups-result').innerHTML = 
+                    `<p class="error">✗ Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

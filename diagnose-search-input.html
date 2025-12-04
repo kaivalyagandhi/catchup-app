@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Input Diagnostic</title>
+  <link rel="stylesheet" href="public/css/contacts-table.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 40px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .diagnostic {
+      margin: 20px 0;
+      padding: 20px;
+      border: 2px solid #3b82f6;
+      border-radius: 8px;
+      background: #f9fafb;
+    }
+    .diagnostic h3 {
+      margin-top: 0;
+      color: #1f2937;
+    }
+    .test-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #3b82f6;
+      border-radius: 6px;
+      font-size: 14px;
+      margin: 10px 0;
+    }
+    .info {
+      background: #dbeafe;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-size: 13px;
+    }
+    .success {
+      background: #d1fae5;
+      color: #065f46;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .error {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Search Input Diagnostic</h1>
+  
+  <div class="diagnostic">
+    <h3>Test 1: Plain HTML Input (Control)</h3>
+    <input type="text" class="test-input" placeholder="Type here - this should work" id="control-input">
+    <div id="control-result" class="info">Waiting for input...</div>
+  </div>
+
+  <div class="diagnostic">
+    <h3>Test 2: SearchFilterBar Component</h3>
+    <div id="search-container"></div>
+    <div id="search-result" class="info">Initializing...</div>
+  </div>
+
+  <div class="diagnostic">
+    <h3>Test 3: Direct HTML Injection</h3>
+    <div id="direct-container"></div>
+    <div id="direct-result" class="info">Waiting for input...</div>
+  </div>
+
+  <script src="public/js/contacts-table.js"></script>
+  <script>
+    // Test 1: Control input
+    const controlInput = document.getElementById('control-input');
+    controlInput.addEventListener('input', (e) => {
+      document.getElementById('control-result').textContent = `✓ Control input value: "${e.target.value}"`;
+      document.getElementById('control-result').className = 'success';
+    });
+
+    // Test 2: SearchFilterBar component
+    const searchContainer = document.getElementById('search-container');
+    let searchCallbackCalled = false;
+    let filterCallbackCalled = false;
+
+    const searchBar = new SearchFilterBar(searchContainer, {
+      onSearch: (query) => {
+        searchCallbackCalled = true;
+        const result = document.getElementById('search-result');
+        result.textContent = `✓ onSearch called with: "${query}"`;
+        result.className = 'success';
+        console.log('onSearch callback:', query);
+      },
+      onFilter: (filters) => {
+        filterCallbackCalled = true;
+        const result = document.getElementById('search-result');
+        result.textContent += `\n✓ onFilter called with: ${JSON.stringify(filters)}`;
+        console.log('onFilter callback:', filters);
+      },
+      onFetchTags: () => ['work', 'personal', 'urgent'],
+      onFetchGroups: () => ['team', 'family', 'friends']
+    });
+
+    console.log('Rendering SearchFilterBar...');
+    searchBar.render();
+
+    // Check if input was created
+    setTimeout(() => {
+      const input = searchContainer.querySelector('.search-input');
+      const result = document.getElementById('search-result');
+      
+      if (!input) {
+        result.textContent = '✗ ERROR: Search input element not found!';
+        result.className = 'error';
+        console.error('Search input not found in DOM');
+      } else {
+        result.textContent = `✓ Search input found\n`;
+        result.textContent += `Placeholder: "${input.placeholder}"\n`;
+        result.textContent += `Value: "${input.value}"\n`;
+        result.textContent += `Type: ${input.type}\n`;
+        result.className = 'info';
+        
+        // Check computed styles
+        const styles = window.getComputedStyle(input);
+        result.textContent += `Color: ${styles.color}\n`;
+        result.textContent += `Background: ${styles.background}\n`;
+        result.textContent += `Display: ${styles.display}\n`;
+        result.textContent += `Visibility: ${styles.visibility}\n`;
+        result.textContent += `Opacity: ${styles.opacity}\n`;
+        
+        console.log('Search input element:', input);
+        console.log('Computed styles:', {
+          color: styles.color,
+          background: styles.background,
+          display: styles.display,
+          visibility: styles.visibility,
+          opacity: styles.opacity
+        });
+
+        // Try typing programmatically
+        setTimeout(() => {
+          console.log('Simulating input event...');
+          input.value = 'test';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          
+          setTimeout(() => {
+            if (!searchCallbackCalled) {
+              result.textContent += '\n✗ WARNING: onSearch callback was NOT called after simulated input';
+              result.className = 'error';
+            }
+          }, 100);
+        }, 500);
+      }
+    }, 100);
+
+    // Test 3: Direct HTML injection
+    const directContainer = document.getElementById('direct-container');
+    directContainer.innerHTML = `
+      <div class="search-filter-bar">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="text" 
+            class="search-input" 
+            placeholder="Direct HTML injection test"
+            id="direct-input"
+          />
+        </div>
+      </div>
+    `;
+
+    const directInput = document.getElementById('direct-input');
+    directInput.addEventListener('input', (e) => {
+      document.getElementById('direct-result').textContent = `✓ Direct input value: "${e.target.value}"`;
+      document.getElementById('direct-result').className = 'success';
+    });
+
+    console.log('All tests initialized');
+  </script>
+</body>
+</html>

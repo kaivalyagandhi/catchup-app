@@ -327,9 +327,12 @@ router.post(
       const { excludedMembers = [] } = req.body;
 
       const { groupSyncService } = await import('../../integrations/group-sync-service');
-      const approvedMapping = await groupSyncService.approveMappingSuggestion(
+      
+      // Approve mapping and store excluded members
+      await groupSyncService.approveMappingSuggestion(
         req.userId,
-        mappingId
+        mappingId,
+        excludedMembers
       );
 
       // Sync members for this specific mapping only, excluding the ones user removed
@@ -341,7 +344,6 @@ router.post(
 
       res.json({
         message: 'Group mapping approved successfully',
-        mapping: approvedMapping,
         membershipsUpdated,
       });
     } catch (error) {

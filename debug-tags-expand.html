@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Tags Expand</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #00ff00;
+    }
+    .debug-section {
+      background: #000;
+      border: 1px solid #00ff00;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    h2 {
+      color: #00ffff;
+      margin-top: 0;
+    }
+    pre {
+      background: #111;
+      padding: 10px;
+      overflow-x: auto;
+      border-left: 3px solid #00ff00;
+    }
+    .error {
+      color: #ff0000;
+    }
+    .success {
+      color: #00ff00;
+    }
+    .warning {
+      color: #ffff00;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Tags Expand Debug Tool</h1>
+  
+  <div class="debug-section">
+    <h2>Instructions</h2>
+    <p>1. Open your main app in another tab</p>
+    <p>2. Open browser console (F12)</p>
+    <p>3. Copy and paste the debug script below into the console</p>
+    <p>4. Click on a tag's contact count badge</p>
+    <p>5. Check the console output</p>
+  </div>
+
+  <div class="debug-section">
+    <h2>Debug Script (Copy to Console)</h2>
+    <pre>
+// Debug Tags Table Expand Functionality
+console.log('%c=== TAGS TABLE DEBUG ===', 'color: cyan; font-size: 16px; font-weight: bold');
+
+// Check if TagsTable exists
+if (typeof TagsTable !== 'undefined') {
+  console.log('%c✓ TagsTable class exists', 'color: green');
+} else {
+  console.log('%c✗ TagsTable class NOT found', 'color: red');
+}
+
+// Check if globalTagsTable exists
+if (typeof globalTagsTable !== 'undefined' && globalTagsTable) {
+  console.log('%c✓ globalTagsTable instance exists', 'color: green');
+  console.log('  - Data:', globalTagsTable.data);
+  console.log('  - Contacts:', globalTagsTable.contacts);
+  console.log('  - Expanded tags:', globalTagsTable.expandedTags);
+  
+  // Check if contacts have tags
+  if (globalTagsTable.contacts && globalTagsTable.contacts.length > 0) {
+    const contactsWithTags = globalTagsTable.contacts.filter(c => c.tags && c.tags.length > 0);
+    console.log(`  - Contacts with tags: ${contactsWithTags.length}/${globalTagsTable.contacts.length}`);
+    if (contactsWithTags.length > 0) {
+      console.log('  - Sample contact with tags:', contactsWithTags[0]);
+    }
+  } else {
+    console.log('%c  ⚠ No contacts in globalTagsTable', 'color: orange');
+  }
+} else {
+  console.log('%c✗ globalTagsTable instance NOT found', 'color: red');
+}
+
+// Check if window.contacts exists
+if (typeof window.contacts !== 'undefined' && window.contacts) {
+  console.log('%c✓ window.contacts exists', 'color: green');
+  console.log('  - Count:', window.contacts.length);
+  const contactsWithTags = window.contacts.filter(c => c.tags && c.tags.length > 0);
+  console.log(`  - Contacts with tags: ${contactsWithTags.length}/${window.contacts.length}`);
+  if (contactsWithTags.length > 0) {
+    console.log('  - Sample contact with tags:', contactsWithTags[0]);
+  }
+} else {
+  console.log('%c✗ window.contacts NOT found', 'color: red');
+}
+
+// Check expand toggles
+const expandToggles = document.querySelectorAll('.expand-toggle');
+console.log(`\n%cExpand toggles found: ${expandToggles.length}`, 'color: yellow');
+
+if (expandToggles.length > 0) {
+  expandToggles.forEach((toggle, index) => {
+    const tagId = toggle.dataset.tagId;
+    console.log(`  Toggle ${index + 1}: tagId="${tagId}"`);
+    
+    // Check if it has click listener
+    const hasListener = toggle.onclick !== null || 
+                       (toggle._events && toggle._events.click) ||
+                       getEventListeners(toggle).click?.length > 0;
+    console.log(`    - Has click listener: ${hasListener}`);
+  });
+  
+  // Add test listener to first toggle
+  console.log('\n%cAdding test listener to first toggle...', 'color: cyan');
+  const firstToggle = expandToggles[0];
+  firstToggle.addEventListener('click', function(e) {
+    console.log('%c🖱️ TOGGLE CLICKED!', 'color: lime; font-size: 14px');
+    console.log('  - Target:', e.target);
+    console.log('  - CurrentTarget:', e.currentTarget);
+    console.log('  - Tag ID:', e.currentTarget.dataset.tagId);
+    
+    if (globalTagsTable) {
+      console.log('  - Calling toggleExpand...');
+      const tagId = e.currentTarget.dataset.tagId;
+      globalTagsTable.toggleExpand(tagId);
+    }
+  });
+  console.log('%c✓ Test listener added. Try clicking the first tag badge now.', 'color: green');
+} else {
+  console.log('%c✗ No expand toggles found in DOM', 'color: red');
+}
+
+console.log('\n%c=== END DEBUG ===', 'color: cyan; font-size: 16px; font-weight: bold');
+    </pre>
+  </div>
+
+  <div class="debug-section">
+    <h2>Common Issues & Solutions</h2>
+    <pre>
+<span class="error">Issue: "globalTagsTable instance NOT found"</span>
+<span class="success">Solution: Tags table hasn't been initialized. Make sure you're on the Tags tab.</span>
+
+<span class="error">Issue: "No contacts in globalTagsTable"</span>
+<span class="success">Solution: Contacts array not passed. Check if window.contacts exists.</span>
+
+<span class="error">Issue: "Contacts with tags: 0/X"</span>
+<span class="success">Solution: Contacts don't have tags property. Check API response format.</span>
+
+<span class="error">Issue: "No expand toggles found in DOM"</span>
+<span class="success">Solution: Tags table not rendered. Check if renderTagsTable was called.</span>
+
+<span class="error">Issue: Toggle clicked but nothing happens</span>
+<span class="success">Solution: Event listener not attached or toggleExpand method failing.</span>
+    </pre>
+  </div>
+
+  <div class="debug-section">
+    <h2>Manual Test</h2>
+    <pre>
+// Test toggleExpand directly
+if (globalTagsTable && globalTagsTable.data.length > 0) {
+  const firstTagId = globalTagsTable.data[0].id;
+  console.log('Testing toggleExpand with tag:', firstTagId);
+  globalTagsTable.toggleExpand(firstTagId);
+  console.log('Expanded tags:', globalTagsTable.expandedTags);
+}
+    </pre>
+  </div>
+
+  <div class="debug-section">
+    <h2>Check Contact Tags Structure</h2>
+    <pre>
+// Check if contacts have the right tag structure
+if (window.contacts && window.contacts.length > 0) {
+  const sampleContact = window.contacts[0];
+  console.log('Sample contact structure:', {
+    id: sampleContact.id,
+    name: sampleContact.name,
+    tags: sampleContact.tags,
+    hasTags: Array.isArray(sampleContact.tags),
+    tagCount: sampleContact.tags?.length || 0
+  });
+  
+  // Check tag structure
+  if (sampleContact.tags && sampleContact.tags.length > 0) {
+    console.log('Sample tag structure:', sampleContact.tags[0]);
+  }
+}
+    </pre>
+  </div>
+</body>
+</html>
