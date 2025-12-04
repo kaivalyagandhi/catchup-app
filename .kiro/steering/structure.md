@@ -56,3 +56,11 @@
 - Database queries isolated in repository pattern
 - External API calls wrapped in service layer with error handling
 - Pure functions for matching algorithms (testable without I/O)
+
+## Development Workflow
+
+- **Direct Integration**: Always implement changes directly into existing app files
+- **No Isolated Components**: Don't create standalone test files or isolated component demos
+- **In-App Testing**: Changes should be testable immediately in the running application
+- **Testing Guidance**: Provide clear manual testing steps in chat responses or .md docs
+- **Iterative Development**: Make changes, guide user to test, iterate based on feedback

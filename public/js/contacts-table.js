@@ -98,7 +98,8 @@ class ContactsTable {
         onSearch: (query) => this.handleSearch(query),
         onFilter: (filters) => this.handleFilter(filters),
         onFetchTags: () => this.getAvailableTags(),
-        onFetchGroups: () => this.getAvailableGroups()
+        onFetchGroups: () => this.getAvailableGroups(),
+        onGetLocations: () => this.getUniqueLocations()
       });
       this.searchFilterBar.render();
     }
@@ -178,7 +179,7 @@ class ContactsTable {
           <td class="contact-groups editable" data-field="groups" data-type="multiselect" data-label="Groups">${groupsBadges}</td>
           <td class="contact-source" data-label="Source">${sourceBadge}</td>
           <td class="contact-actions" data-label="Actions">
-            <button class="btn-delete" data-contact-id="${contact.id}" title="Delete contact">🗑️</button>
+            <button class="btn-delete" data-contact-id="${contact.id}" title="Delete contact">×</button>
           </td>
         </tr>
       `;
@@ -498,10 +499,14 @@ class ContactsTable {
       <td class="contact-frequency" data-label="Frequency">
         <select class="new-contact-input" data-field="frequencyPreference">
           <option value="">Select frequency...</option>
+          <option value="na">N/A</option>
+          <option value="flexible">Flexible</option>
+          <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
           <option value="biweekly">Bi-weekly</option>
           <option value="monthly">Monthly</option>
           <option value="quarterly">Quarterly</option>
+          <option value="yearly">Yearly</option>
         </select>
       </td>
       <td class="contact-circle" data-label="Circle"></td>
@@ -509,8 +514,8 @@ class ContactsTable {
       <td class="contact-groups" data-label="Groups"></td>
       <td class="contact-source" data-label="Source"></td>
       <td class="contact-actions">
-        <button class="btn-save-new" title="Save contact">💾</button>
-        <button class="btn-cancel-new" title="Cancel">✕</button>
+        <button class="btn-save-new" title="Save contact">✓</button>
+        <button class="btn-cancel-new" title="Cancel">×</button>
       </td>
     `;
 
@@ -803,12 +808,16 @@ class ContactsTable {
 
       // Handle groups separately (they require special API calls)
       if (field === 'groups') {
+        console.log('💾 Saving groups:', { contactId, originalValue, newValue: value });
         await this.saveGroups(contactId, userId, originalValue, value);
         
         // Fetch updated contact from server to get proper group associations
         const response = await fetch(`/api/contacts/${contactId}?userId=${userId}`);
         if (response.ok) {
           const updatedContact = await response.json();
+          console.log('✅ Fetched updated contact from server:', updatedContact);
+          console.log('📋 Updated contact groups:', updatedContact.groups);
+          
           const index = this.data.findIndex(c => c.id === contactId);
           if (index !== -1) {
             this.data[index] = updatedContact;
@@ -816,10 +825,16 @@ class ContactsTable {
             if (filteredIndex !== -1) {
               this.filteredData[filteredIndex] = updatedContact;
             }
+            console.log('✅ Updated contact in data arrays');
           }
         }
         
         this.updateTableBody();
+        
+        // Show success message
+        if (typeof showToast === 'function') {
+          showToast('Groups updated successfully', 'success');
+        }
         
         if (this.options.onEdit) {
           this.options.onEdit(contactId, field, value);
@@ -887,7 +902,16 @@ class ContactsTable {
    */
   async fetchTags() {
     try {
-      const response = await fetch(`/api/contacts?userId=${window.userId}`);
+      // Get userId from multiple possible sources
+      const userId = window.userId || localStorage.getItem('userId');
+      
+      if (!userId) {
+        console.error('❌ No userId found for fetching tags');
+        // Fallback to extracting from current data
+        return this.getAvailableTags();
+      }
+      
+      const response = await fetch(`/api/contacts?userId=${userId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch contacts');
       }
@@ -904,7 +928,8 @@ class ContactsTable {
       return Array.from(tagsSet);
     } catch (error) {
       console.error('Error fetching tags:', error);
-      return [];
+      // Fallback to extracting from current data
+      return this.getAvailableTags();
     }
   }
 
@@ -914,14 +939,32 @@ class ContactsTable {
    */
   async fetchGroups() {
     try {
-      const response = await fetch(`/api/contacts/groups?userId=${window.userId}`);
+      // Get userId from multiple possible sources
+      const userId = window.userId || localStorage.getItem('userId');
+      
+      if (!userId) {
+        console.error('❌ No userId found for fetching groups');
+        // Fallback to global groups array if available
+        if (typeof groups !== 'undefined' && groups) {
+          console.log('✅ Using global groups array:', groups);
+          return groups.map(g => ({ id: g.id, name: g.name }));
+        }
+        return [];
+      }
+      
+      const response = await fetch(`/api/contacts/groups?userId=${userId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch groups');
       }
-      const groups = await response.json();
-      return groups.map(g => ({ id: g.id, name: g.name }));
+      const fetchedGroups = await response.json();
+      return fetchedGroups.map(g => ({ id: g.id, name: g.name }));
     } catch (error) {
       console.error('Error fetching groups:', error);
+      // Fallback to global groups array if available
+      if (typeof groups !== 'undefined' && groups) {
+        console.log('✅ Fallback to global groups array:', groups);
+        return groups.map(g => ({ id: g.id, name: g.name }));
+      }
       return [];
     }
   }
@@ -996,6 +1039,11 @@ class ContactsTable {
     const groupsToAdd = newGroupIds.filter(id => !originalGroupIds.includes(id));
     const groupsToRemove = originalGroupIds.filter(id => !newGroupIds.includes(id));
 
+    // Only proceed if there are changes
+    if (groupsToAdd.length === 0 && groupsToRemove.length === 0) {
+      return;
+    }
+
     // Add to new groups
     for (const groupId of groupsToAdd) {
       const response = await fetch('/api/contacts/bulk/groups', {
@@ -1038,10 +1086,9 @@ class ContactsTable {
       }
     }
 
-    // Show success message
-    if (typeof showToast === 'function') {
-      showToast('Groups updated successfully', 'success');
-    }
+    // Show success message only once after all operations complete
+    // Note: Don't show toast here - let the caller handle success feedback
+    // This prevents duplicate toasts when multiple fields are updated
   }
 
   /**
@@ -1284,9 +1331,22 @@ class ContactsTable {
    */
   getAvailableGroups() {
     if (typeof groups !== 'undefined' && groups) {
-      return groups.map(g => g.name);
+      return groups.map(g => ({ id: g.id, name: g.name }));
     }
     return [];
+  }
+
+  /**
+   * Get unique locations from contacts
+   */
+  getUniqueLocations() {
+    const locations = new Set();
+    this.data.forEach(contact => {
+      if (contact.location && contact.location.trim()) {
+        locations.add(contact.location.trim());
+      }
+    });
+    return Array.from(locations).sort();
   }
 }
 
@@ -1401,10 +1461,14 @@ class InlineEditCell {
     } else if (this.field === 'frequencyPreference') {
       options = [
         { value: '', label: 'Select frequency...' },
+        { value: 'na', label: 'N/A' },
+        { value: 'flexible', label: 'Flexible' },
+        { value: 'daily', label: 'Daily' },
         { value: 'weekly', label: 'Weekly' },
         { value: 'biweekly', label: 'Bi-weekly' },
         { value: 'monthly', label: 'Monthly' },
-        { value: 'quarterly', label: 'Quarterly' }
+        { value: 'quarterly', label: 'Quarterly' },
+        { value: 'yearly', label: 'Yearly' }
       ];
     }
     
@@ -1491,10 +1555,14 @@ class InlineEditCell {
     this.input.addEventListener('blur', (e) => {
       // Delay to allow clicking on autocomplete items
       setTimeout(() => {
-        if (!this.cell.contains(document.activeElement)) {
+        // Check if the click was on an autocomplete item
+        const clickedElement = document.activeElement;
+        const clickedAutocomplete = this.autocompleteList && this.autocompleteList.contains(clickedElement);
+        
+        if (!this.cell.contains(clickedElement) && !clickedAutocomplete) {
           this.saveEdit();
         }
-      }, 200);
+      }, 250);
     });
     
     container.appendChild(chipsContainer);
@@ -1537,6 +1605,11 @@ class InlineEditCell {
     
     console.log('🔍 Autocomplete triggered:', { field: this.field, query, selectedValues: this.selectedValues });
     
+    // Initialize selectedValues if undefined
+    if (!this.selectedValues) {
+      this.selectedValues = [];
+    }
+    
     // Show all suggestions when input is empty or has minimal text
     if (query.length === 0) {
       // Show all available options when clicking into empty field
@@ -1548,6 +1621,7 @@ class InlineEditCell {
       } else if (this.field === 'groups' && this.options.onFetchGroups) {
         const allGroups = await this.options.onFetchGroups();
         console.log('👥 Available groups:', allGroups);
+        console.log('👥 All groups structure:', JSON.stringify(allGroups, null, 2));
         suggestions = allGroups
           .filter(group => !this.selectedValues.some(v => v === group.id || v === group.name))
           .map(g => ({ id: g.id, name: g.name }));
@@ -1584,7 +1658,10 @@ class InlineEditCell {
   showAutocomplete(suggestions) {
     this.hideAutocomplete();
     
-    if (suggestions.length === 0) {
+    console.log('📝 showAutocomplete called with:', suggestions);
+    
+    if (!suggestions || suggestions.length === 0) {
+      console.log('⚠️ No suggestions to show');
       return;
     }
     
@@ -1597,7 +1674,10 @@ class InlineEditCell {
       
       if (typeof suggestion === 'string') {
         item.textContent = suggestion;
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('✅ Tag selected:', suggestion);
           this.addValue(suggestion);
           this.input.value = '';
           this.hideAutocomplete();
@@ -1606,7 +1686,10 @@ class InlineEditCell {
       } else {
         // For groups, show the name but store the ID
         item.textContent = suggestion.name;
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('✅ Group selected:', suggestion);
           this.addValue(suggestion.id, suggestion.name);
           this.input.value = '';
           this.hideAutocomplete();
@@ -1617,7 +1700,15 @@ class InlineEditCell {
       this.autocompleteList.appendChild(item);
     });
     
-    this.cell.appendChild(this.autocompleteList);
+    // Position the dropdown relative to the cell but append to body to avoid overflow clipping
+    const cellRect = this.cell.getBoundingClientRect();
+    this.autocompleteList.style.position = 'fixed';
+    this.autocompleteList.style.top = `${cellRect.bottom}px`;
+    this.autocompleteList.style.left = `${cellRect.left}px`;
+    this.autocompleteList.style.width = `${Math.max(cellRect.width, 200)}px`;
+    
+    document.body.appendChild(this.autocompleteList);
+    console.log('✅ Autocomplete list appended to body, items:', this.autocompleteList.children.length);
   }
 
   /**
@@ -1625,7 +1716,10 @@ class InlineEditCell {
    */
   hideAutocomplete() {
     if (this.autocompleteList) {
-      this.autocompleteList.remove();
+      // Remove from wherever it was appended (body or cell)
+      if (this.autocompleteList.parentNode) {
+        this.autocompleteList.parentNode.removeChild(this.autocompleteList);
+      }
       this.autocompleteList = null;
     }
   }
@@ -1634,11 +1728,25 @@ class InlineEditCell {
    * Add a value to multi-select
    */
   addValue(value, displayValue = null) {
+    console.log('➕ addValue called:', { value, displayValue, currentValues: this.selectedValues });
+    
+    // Initialize selectedValues if undefined
+    if (!this.selectedValues) {
+      this.selectedValues = [];
+    }
+    
     if (!this.selectedValues.includes(value)) {
       this.selectedValues.push(value);
       const chipsContainer = this.cell.querySelector('.multiselect-chips');
-      const chip = this.createChip(displayValue || value, value);
-      chipsContainer.appendChild(chip);
+      if (chipsContainer) {
+        const chip = this.createChip(displayValue || value, value);
+        chipsContainer.appendChild(chip);
+        console.log('✅ Chip added successfully');
+      } else {
+        console.error('❌ Chips container not found!');
+      }
+    } else {
+      console.log('⚠️ Value already exists in selectedValues');
     }
   }
 
@@ -2074,9 +2182,44 @@ class SearchFilterBar {
             placeholder="${this.options.placeholder}"
             value="${this.currentQuery}"
           />
+          <button class="filter-toggle-btn" title="Show filters">
+            ☰
+          </button>
           <button class="clear-filters-btn" title="Clear all filters" style="display: none;">
             ✕
           </button>
+        </div>
+        <div class="filter-chips-panel">
+          <div class="filter-chip-selector" data-filter-type="tag">
+            <span class="filter-chip-icon">🏷️</span>
+            <span class="filter-chip-text">Tag</span>
+            <span class="filter-chip-arrow">▼</span>
+          </div>
+          <div class="filter-chip-selector" data-filter-type="group">
+            <span class="filter-chip-icon">👥</span>
+            <span class="filter-chip-text">Group</span>
+            <span class="filter-chip-arrow">▼</span>
+          </div>
+          <div class="filter-chip-selector" data-filter-type="circle">
+            <span class="filter-chip-icon">⭕</span>
+            <span class="filter-chip-text">Circle</span>
+            <span class="filter-chip-arrow">▼</span>
+          </div>
+          <div class="filter-chip-selector" data-filter-type="frequency">
+            <span class="filter-chip-icon">📅</span>
+            <span class="filter-chip-text">Frequency</span>
+            <span class="filter-chip-arrow">▼</span>
+          </div>
+          <div class="filter-chip-selector" data-filter-type="location">
+            <span class="filter-chip-icon">📍</span>
+            <span class="filter-chip-text">Location</span>
+            <span class="filter-chip-arrow">▼</span>
+          </div>
+          <div class="filter-chip-selector" data-filter-type="source">
+            <span class="filter-chip-icon">🔗</span>
+            <span class="filter-chip-text">Source</span>
+            <span class="filter-chip-arrow">▼</span>
+          </div>
         </div>
         <div class="active-filters"></div>
       </div>
@@ -2124,6 +2267,23 @@ class SearchFilterBar {
         this.clearFilters();
       });
     }
+
+    // Filter toggle button
+    const filterToggleBtn = this.container.querySelector('.filter-toggle-btn');
+    if (filterToggleBtn) {
+      filterToggleBtn.addEventListener('click', () => {
+        this.toggleFilterPanel();
+      });
+    }
+
+    // Filter chip selectors
+    const chipSelectors = this.container.querySelectorAll('.filter-chip-selector');
+    chipSelectors.forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        const filterType = chip.dataset.filterType;
+        this.showFilterDropdown(filterType, chip);
+      });
+    });
   }
 
   /**
@@ -2169,20 +2329,23 @@ class SearchFilterBar {
     const filters = {};
     let text = query;
 
-    // Extract filter patterns
+    // Extract filter patterns - support both quoted and unquoted values
+    // Quoted: tag:"Dog Owner" or unquoted: tag:fitness
     const filterPatterns = [
-      { key: 'tag', regex: /tag:(\S+)/gi },
-      { key: 'group', regex: /group:(\S+)/gi },
-      { key: 'source', regex: /source:(\S+)/gi },
-      { key: 'circle', regex: /circle:(\S+)/gi },
-      { key: 'location', regex: /location:(\S+)/gi }
+      { key: 'tag', regex: /tag:(?:"([^"]+)"|(\S+))/gi },
+      { key: 'group', regex: /group:(?:"([^"]+)"|(\S+))/gi },
+      { key: 'source', regex: /source:(?:"([^"]+)"|(\S+))/gi },
+      { key: 'circle', regex: /circle:(?:"([^"]+)"|(\S+))/gi },
+      { key: 'location', regex: /location:(?:"([^"]+)"|(\S+))/gi },
+      { key: 'frequency', regex: /frequency:(?:"([^"]+)"|(\S+))/gi }
     ];
 
     filterPatterns.forEach(({ key, regex }) => {
       const matches = [...query.matchAll(regex)];
       if (matches.length > 0) {
         // Support multiple values for the same filter (AND logic)
-        filters[key] = matches.map(m => m[1].toLowerCase());
+        // matches[1] is quoted value, matches[2] is unquoted value
+        filters[key] = matches.map(m => (m[1] || m[2]).toLowerCase());
         
         // Remove filter syntax from text search
         matches.forEach(match => {
@@ -2226,10 +2389,12 @@ class SearchFilterBar {
       // Group filter (Requirement 4.3)
       if (filters.group && filters.group.length > 0) {
         const contactGroups = contact.groups || [];
-        // For now, we're comparing group IDs
-        // In a real implementation, we'd need to resolve group names to IDs
+        // Match by group name (groups can be objects with name property or strings)
         const hasAllGroups = filters.group.every(filterGroup => 
-          contactGroups.some(groupId => groupId.toLowerCase().includes(filterGroup))
+          contactGroups.some(group => {
+            const groupName = typeof group === 'object' ? (group.name || '').toLowerCase() : String(group).toLowerCase();
+            return groupName.includes(filterGroup);
+          })
         );
         if (!hasAllGroups) return false;
       }
@@ -2253,6 +2418,12 @@ class SearchFilterBar {
           contactLocation.includes(filterLoc)
         );
         if (!hasLocation) return false;
+      }
+
+      // Frequency filter
+      if (filters.frequency && filters.frequency.length > 0) {
+        const contactFrequency = (contact.frequency || '').toLowerCase();
+        if (!filters.frequency.includes(contactFrequency)) return false;
       }
 
       return true;
@@ -2467,7 +2638,7 @@ class SearchFilterBar {
           <span class="filter-chip" data-filter-key="${key}" data-filter-value="${value}">
             <span class="filter-chip-label">${key}:</span>
             <span class="filter-chip-value">${value}</span>
-            <span class="filter-chip-remove" onclick="searchFilterBar.removeFilter('${key}', '${value}')">✕</span>
+            <span class="filter-chip-remove">✕</span>
           </span>
         `);
       });
@@ -2475,16 +2646,44 @@ class SearchFilterBar {
 
     container.innerHTML = chips.join('');
     container.style.display = chips.length > 0 ? 'flex' : 'none';
+    
+    // Attach event listeners to remove buttons
+    container.querySelectorAll('.filter-chip-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const chip = e.target.closest('.filter-chip');
+        const key = chip.dataset.filterKey;
+        const value = chip.dataset.filterValue;
+        this.removeFilter(key, value);
+      });
+    });
   }
 
   /**
    * Remove a specific filter
    */
   removeFilter(key, value) {
-    // Remove the filter from the query
-    const regex = new RegExp(`${key}:${value}\\s*`, 'gi');
-    this.searchInput.value = this.searchInput.value.replace(regex, '').trim();
-    this.handleInput(this.searchInput.value);
+    // Escape special regex characters in the value
+    const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Try to match both quoted and unquoted versions
+    // Pattern: key:"value" or key:value
+    const quotedPattern = `${key}:"${escapedValue}"\\s*`;
+    const unquotedPattern = `${key}:${escapedValue}\\s*`;
+    
+    let newValue = this.searchInput.value;
+    
+    // Try quoted version first
+    const quotedRegex = new RegExp(quotedPattern, 'gi');
+    if (quotedRegex.test(newValue)) {
+      newValue = newValue.replace(quotedRegex, '').trim();
+    } else {
+      // Try unquoted version
+      const unquotedRegex = new RegExp(unquotedPattern, 'gi');
+      newValue = newValue.replace(unquotedRegex, '').trim();
+    }
+    
+    this.searchInput.value = newValue;
+    this.handleInput(newValue);
   }
 
   /**
@@ -2511,6 +2710,122 @@ class SearchFilterBar {
    */
   getFilters() {
     return this.parseQuery(this.currentQuery).filters;
+  }
+
+  /**
+   * Toggle filter panel visibility
+   */
+  toggleFilterPanel() {
+    const panel = this.container.querySelector('.filter-chips-panel');
+    if (!panel) return;
+    
+    const isVisible = panel.style.display !== 'none';
+    panel.style.display = isVisible ? 'none' : 'flex';
+  }
+
+  /**
+   * Show filter dropdown for a specific filter type
+   */
+  async showFilterDropdown(filterType, chipElement) {
+    // Remove any existing dropdown
+    const existingDropdown = document.querySelector('.filter-dropdown');
+    if (existingDropdown) {
+      existingDropdown.remove();
+    }
+
+    // Get available values for this filter type
+    const values = await this.getFilterValues(filterType);
+    
+    if (!values || values.length === 0) {
+      return;
+    }
+
+    // Create dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'filter-dropdown';
+    
+    // Create dropdown items
+    values.forEach(value => {
+      const item = document.createElement('div');
+      item.className = 'filter-dropdown-item';
+      item.textContent = value;
+      item.dataset.value = value;
+      
+      item.addEventListener('click', () => {
+        this.addFilter(filterType, value);
+        dropdown.remove();
+      });
+      
+      dropdown.appendChild(item);
+    });
+    
+    // Position dropdown below the chip
+    const rect = chipElement.getBoundingClientRect();
+    dropdown.style.position = 'absolute';
+    dropdown.style.top = `${rect.bottom + 4}px`;
+    dropdown.style.left = `${rect.left}px`;
+    dropdown.style.minWidth = `${rect.width}px`;
+    
+    document.body.appendChild(dropdown);
+    
+    // Close dropdown when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', function closeDropdown(e) {
+        if (!dropdown.contains(e.target) && !chipElement.contains(e.target)) {
+          dropdown.remove();
+          document.removeEventListener('click', closeDropdown);
+        }
+      });
+    }, 0);
+  }
+
+  /**
+   * Get available values for a filter type
+   */
+  async getFilterValues(filterType) {
+    switch (filterType) {
+      case 'tag':
+        return this.availableTags || [];
+      case 'group':
+        // Extract group names from objects
+        const groups = this.availableGroups || [];
+        return groups.map(g => typeof g === 'object' ? g.name : g);
+      case 'circle':
+        return ['Close Friends', 'Good Friends', 'Acquaintances', 'Uncategorized'];
+      case 'frequency':
+        return ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'flexible'];
+      case 'location':
+        // Get unique locations from contacts
+        if (this.options.onGetLocations) {
+          return await this.options.onGetLocations();
+        }
+        return [];
+      case 'source':
+        return ['google', 'manual'];
+      default:
+        return [];
+    }
+  }
+
+  /**
+   * Add a filter to the search
+   */
+  addFilter(filterType, value) {
+    // Add filter to search input
+    const currentValue = this.searchInput.value.trim();
+    
+    // Wrap value in quotes if it contains spaces
+    const formattedValue = value.includes(' ') ? `"${value}"` : value;
+    const filterString = `${filterType}:${formattedValue}`;
+    
+    // Check if filter already exists
+    if (currentValue.includes(filterString)) {
+      return;
+    }
+    
+    const newValue = currentValue ? `${currentValue} ${filterString}` : filterString;
+    this.searchInput.value = newValue;
+    this.handleInput(newValue);
   }
 
   /**

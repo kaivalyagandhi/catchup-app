@@ -1,3 +1,8 @@
+---
+inclusion: manual
+---
+
+
 # Google Calendar OAuth Integration
 
 ## Overview

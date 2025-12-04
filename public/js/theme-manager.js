@@ -54,11 +54,11 @@ class ThemeManager {
     
     if (savedTheme) {
       this.currentTheme = savedTheme;
-      this.applyTheme(savedTheme);
+      this.applyTheme(savedTheme, false); // Don't animate on initial load
     } else {
       // Default to light mode
       this.currentTheme = THEMES.LIGHT;
-      this.applyTheme(THEMES.LIGHT);
+      this.applyTheme(THEMES.LIGHT, false); // Don't animate on initial load
     }
   }
 
@@ -104,14 +104,31 @@ class ThemeManager {
   /**
    * Apply theme by updating data-theme attribute on document root
    * @param {string} theme - Theme to apply
+   * @param {boolean} animate - Whether to animate the transition (default: true)
    */
-  applyTheme(theme) {
+  applyTheme(theme, animate = true) {
     try {
-      if (theme === THEMES.DARK) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      } else {
-        document.documentElement.removeAttribute('data-theme');
+      if (animate) {
+        // Add transition class for smooth theme switching
+        document.documentElement.classList.add('theme-transitioning');
       }
+      
+      // Use requestAnimationFrame to ensure the transition class is applied before theme changes
+      requestAnimationFrame(() => {
+        // Apply the theme
+        if (theme === THEMES.DARK) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+        }
+        
+        if (animate) {
+          // Remove transition class after animation completes
+          setTimeout(() => {
+            document.documentElement.classList.remove('theme-transitioning');
+          }, 300); // Match CSS transition duration
+        }
+      });
     } catch (error) {
       console.error('Failed to apply theme:', error);
     }

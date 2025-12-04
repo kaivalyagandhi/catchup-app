@@ -11,7 +11,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create enum types
-CREATE TYPE frequency_option AS ENUM ('daily', 'weekly', 'monthly', 'yearly', 'flexible');
+CREATE TYPE frequency_option AS ENUM ('daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly', 'flexible', 'na');
 CREATE TYPE interaction_type AS ENUM ('hangout', 'call', 'text', 'calendar_event');
 CREATE TYPE tag_source AS ENUM ('voice_memo', 'manual', 'notification_reply');
 CREATE TYPE suggestion_status AS ENUM ('pending', 'accepted', 'dismissed', 'snoozed');

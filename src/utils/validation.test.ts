@@ -116,7 +116,7 @@ describe('validateCalendarEvent', () => {
 
 describe('validateFrequencyPreference', () => {
   it('should accept valid frequency options', () => {
-    const validOptions = ['daily', 'weekly', 'monthly', 'yearly', 'flexible'];
+    const validOptions = ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly', 'flexible', 'na'];
     validOptions.forEach((option) => {
       const result = validateFrequencyPreference(option);
       expect(result.valid).toBe(true);

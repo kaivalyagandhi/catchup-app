@@ -153,6 +153,9 @@ function checkAuth() {
     userId = localStorage.getItem('userId');
     userEmail = localStorage.getItem('userEmail');
     
+    // Expose userId globally for components that need it
+    window.userId = userId;
+    
     if (authToken && userId) {
         showMainApp();
     } else {
@@ -183,13 +186,21 @@ function showMainApp() {
     document.getElementById('main-app').classList.remove('hidden');
     document.getElementById('user-email').textContent = userEmail;
     updateThemeIcon();
-    loadContacts();
     
     // Load pending edits count for nav badge
     loadPendingEditsCount();
     
     // Initialize floating chat icon and chat window
     initializeChatComponents();
+    
+    // Restore last visited page from localStorage
+    const savedPage = localStorage.getItem('currentPage');
+    if (savedPage && ['directory', 'suggestions', 'edits', 'preferences'].includes(savedPage)) {
+        navigateTo(savedPage);
+    } else {
+        // Default to directory page
+        navigateTo('directory');
+    }
 }
 
 /**
@@ -332,6 +343,9 @@ async function handleAuth(event) {
         localStorage.setItem('userId', userId);
         localStorage.setItem('userEmail', userEmail);
         
+        // Expose userId globally for components that need it
+        window.userId = userId;
+        
         if (!isLoginMode) {
             // Show success message for registration
             document.getElementById('auth-success').textContent = 'Account created successfully! Logging you in...';
@@ -360,6 +374,9 @@ function logout() {
     authToken = null;
     userId = null;
     userEmail = null;
+    
+    // Clear global userId
+    window.userId = null;
     
     // Clean up chat components
     if (chatWindow) {
@@ -431,6 +448,9 @@ function navigateTo(page) {
     // Show selected page
     document.getElementById(`${page}-page`).classList.remove('hidden');
     currentPage = page;
+    
+    // Save current page to localStorage for persistence across page refreshes
+    localStorage.setItem('currentPage', page);
     
     // Load page data
     switch(page) {
@@ -540,6 +560,8 @@ async function loadContacts() {
         
         if (groupsResponse.ok) {
             groups = await groupsResponse.json();
+            // Expose groups globally for components that need it
+            window.groups = groups;
         }
         
         // Load contacts

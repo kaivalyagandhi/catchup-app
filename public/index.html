@@ -39,7 +39,11 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        /* Only apply transitions when theme is actively being toggled */
+        html.theme-transitioning * {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
         }
         
         /* ============================================
@@ -2770,11 +2774,14 @@
                     <label for="contact-frequency">Frequency Preference</label>
                     <select id="contact-frequency">
                         <option value="">Not set</option>
+                        <option value="na">N/A</option>
+                        <option value="flexible">Flexible</option>
                         <option value="daily">Daily</option>
                         <option value="weekly">Weekly</option>
                         <option value="biweekly">Biweekly</option>
                         <option value="monthly" selected>Monthly</option>
                         <option value="quarterly">Quarterly</option>
+                        <option value="yearly">Yearly</option>
                     </select>
                 </div>
                 

@@ -34,7 +34,7 @@ Comprehensive validation for all onboarding inputs:
 - Valid circles: inner, close, active, casual, acquaintance
 - Valid steps: welcome, import_contacts, circle_assignment, preference_setting, group_overlay, completion
 - Valid triggers: new_user, post_import, manage
-- Valid frequencies: daily, weekly, biweekly, monthly, quarterly, yearly
+- Valid frequencies: daily, weekly, biweekly, monthly, quarterly, yearly, flexible, na
 - Valid achievement types: first_contact_categorized, inner_circle_complete, etc.
 
 **Validation Functions:**
@@ -220,7 +220,7 @@ const { successful, failed } = await executeBatchOperation(
 - Contact count must be between 0 and 10,000 (optional)
 
 ### Preference Settings
-- Frequency must be valid (daily, weekly, biweekly, monthly, quarterly, yearly)
+- Frequency must be valid (daily, weekly, biweekly, monthly, quarterly, yearly, flexible, na)
 - Custom days must be between 1 and 365
 
 ## Timeout Configuration
