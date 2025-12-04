@@ -3697,11 +3697,13 @@ async function submitEdit(editId) {
         
         showToast('Edit applied successfully!', 'success');
         
-        // Reload edits after a short delay to ensure backend has processed
+        // Reload edits after a delay to ensure backend has processed
+        // Use a longer delay to ensure database transaction is committed
         setTimeout(() => {
+            console.log('Reloading contacts after edit submission');
             loadPendingEditsCompact();
             loadContacts();
-        }, 500);
+        }, 1000);
         
         // Update pending count
         if (chatWindow) {

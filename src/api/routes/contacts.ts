@@ -225,6 +225,13 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     if (search) filters.search = search as string;
 
     const contacts = await contactService.listContacts(userId as string, filters);
+    
+    // Log Emma Brown's location for debugging
+    const emmaContact = contacts.find((c: any) => c.name === 'Emma Brown');
+    if (emmaContact) {
+      console.log(`[ContactsAPI] Emma Brown location: ${emmaContact.location}`);
+    }
+    
     res.json(contacts);
   } catch (error) {
     console.error('Error listing contacts:', error);

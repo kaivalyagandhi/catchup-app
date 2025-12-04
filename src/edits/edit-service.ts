@@ -14,7 +14,6 @@ import {
   EditSource,
   DisambiguationCandidate,
   EditHistoryOptions,
-  Contact,
   TagSource,
 } from '../types';
 import { EditRepository, CreatePendingEditData, UpdatePendingEditData } from './edit-repository';
@@ -22,6 +21,7 @@ import { EditHistoryRepository, CreateEditHistoryData } from './edit-history-rep
 import { PostgresContactRepository } from '../contacts/repository';
 import { PostgresGroupRepository } from '../contacts/group-repository';
 import { PostgresTagRepository } from '../contacts/tag-repository';
+import { invalidateContactCache } from '../utils/cache';
 
 /**
  * Parameters for creating a pending edit
@@ -169,13 +169,20 @@ export class EditService implements EditServiceInterface {
    * Requirements: 7.6, 10.1
    */
   async submitEdit(editId: string, userId: string): Promise<EditHistoryEntry> {
+    console.log(`[EditService] submitEdit called: editId=${editId}, userId=${userId}`);
+    
     const edit = await this.editRepository.findById(editId, userId);
     if (!edit) {
+      console.error(`[EditService] Edit not found: ${editId}`);
       throw new Error('Pending edit not found');
     }
 
+    console.log(`[EditService] Found edit: ${JSON.stringify(edit)}`);
+
     // Apply the edit and capture previous value
+    console.log(`[EditService] Applying edit...`);
     const previousValue = await this.applyEdit(edit);
+    console.log(`[EditService] Edit applied successfully`);
 
     // Create history entry
     const historyData: CreateEditHistoryData = {
@@ -192,10 +199,14 @@ export class EditService implements EditServiceInterface {
       source: edit.source,
     };
 
+    console.log(`[EditService] Creating history entry...`);
     const historyEntry = await this.historyRepository.create(historyData);
+    console.log(`[EditService] History entry created: ${historyEntry.id}`);
 
     // Delete the pending edit
+    console.log(`[EditService] Deleting pending edit...`);
     await this.editRepository.delete(editId, userId);
+    console.log(`[EditService] ✓ submitEdit completed successfully`);
 
     return historyEntry;
   }
@@ -267,6 +278,8 @@ export class EditService implements EditServiceInterface {
   private async applyEdit(edit: PendingEdit): Promise<any> {
     let previousValue: any = undefined;
 
+    console.log(`[EditService] Applying edit: type=${edit.editType}, contactId=${edit.targetContactId}, field=${edit.field}, value=${JSON.stringify(edit.proposedValue)}`);
+
     switch (edit.editType) {
       case 'create_contact':
         await this.contactRepository.create(edit.userId, {
@@ -277,29 +290,75 @@ export class EditService implements EditServiceInterface {
 
       case 'update_contact_field':
         if (edit.targetContactId && edit.field) {
+          console.log(`[EditService] Updating contact field: contactId=${edit.targetContactId}, field=${edit.field}, newValue=${JSON.stringify(edit.proposedValue)}`);
           const contact = await this.contactRepository.findById(edit.targetContactId, edit.userId);
           if (contact) {
             previousValue = (contact as any)[edit.field];
-            await this.contactRepository.update(edit.targetContactId, edit.userId, {
-              [edit.field]: edit.proposedValue,
-            });
+            console.log(`[EditService] Previous value: ${JSON.stringify(previousValue)}, New value: ${JSON.stringify(edit.proposedValue)}`);
+            
+            // Check if the value is already the same
+            if (previousValue === edit.proposedValue) {
+              console.log(`[EditService] ⚠️  Value is already set to ${JSON.stringify(edit.proposedValue)}, skipping update`);
+              return previousValue;
+            }
+            
+            // Build update data with proper type casting
+            const updateData: Partial<any> = {};
+            
+            // Map field names to the repository's expected format
+            // All fields are camelCase in the repository interface
+            const validFields = [
+              'name', 'phone', 'email', 'linkedIn', 'instagram', 'xHandle',
+              'otherSocialMedia', 'location', 'timezone', 'customNotes',
+              'lastContactDate', 'frequencyPreference', 'source',
+              'googleResourceName', 'googleEtag', 'lastSyncedAt'
+            ];
+            
+            if (!validFields.includes(edit.field)) {
+              console.warn(`[EditService] Unknown field: ${edit.field}, skipping update`);
+              return previousValue;
+            }
+            
+            // Set the field value
+            (updateData as any)[edit.field] = edit.proposedValue;
+            console.log(`[EditService] Applying update: ${JSON.stringify(updateData)}`);
+            
+            // Apply the update
+            await this.contactRepository.update(edit.targetContactId, edit.userId, updateData as any);
+            console.log(`[EditService] ✓ Contact field updated successfully`);
+            
+            // Invalidate contact cache so the updated value is fetched fresh
+            await invalidateContactCache(edit.userId, edit.targetContactId);
+            console.log(`[EditService] ✓ Contact cache invalidated`);
+          } else {
+            console.warn(`[EditService] Contact not found: ${edit.targetContactId}`);
           }
+        } else {
+          console.warn(`[EditService] Missing targetContactId or field for update_contact_field edit`);
         }
         break;
 
       case 'add_tag':
         if (edit.targetContactId) {
+          console.log(`[EditService] Adding tag to contact: ${edit.targetContactId}`);
           const tagText = typeof edit.proposedValue === 'string' 
             ? edit.proposedValue 
             : edit.proposedValue.text;
           // Create or find the tag, then add to contact
           const tag = await this.tagRepository.create(tagText, TagSource.VOICE_MEMO, edit.userId);
           await this.tagRepository.addToContact(edit.targetContactId, tag.id, edit.userId);
+          console.log(`[EditService] ✓ Tag added successfully: ${tagText}`);
+          
+          // Invalidate contact cache
+          await invalidateContactCache(edit.userId, edit.targetContactId);
+        } else {
+          console.warn(`[EditService] Missing targetContactId for add_tag edit`);
         }
         break;
 
       case 'remove_tag':
         if (edit.targetContactId) {
+          console.log(`[EditService] Removing tag from contact: ${edit.targetContactId}`);
           const tagText = typeof edit.proposedValue === 'string'
             ? edit.proposedValue
             : edit.proposedValue.text;
@@ -310,35 +369,61 @@ export class EditService implements EditServiceInterface {
             if (existingTag) {
               previousValue = existingTag;
               await this.tagRepository.removeFromContact(edit.targetContactId, existingTag.id, edit.userId);
+              console.log(`[EditService] ✓ Tag removed successfully: ${tagText}`);
+              
+              // Invalidate contact cache
+              await invalidateContactCache(edit.userId, edit.targetContactId);
+            } else {
+              console.warn(`[EditService] Tag not found on contact: ${tagText}`);
             }
+          } else {
+            console.warn(`[EditService] Contact not found: ${edit.targetContactId}`);
           }
+        } else {
+          console.warn(`[EditService] Missing targetContactId for remove_tag edit`);
         }
         break;
 
       case 'add_to_group':
         if (edit.targetContactId && edit.targetGroupId) {
+          console.log(`[EditService] Adding contact to group: contactId=${edit.targetContactId}, groupId=${edit.targetGroupId}`);
           await this.groupRepository.assignContact(
             edit.targetContactId,
             edit.targetGroupId,
             edit.userId
           );
+          console.log(`[EditService] ✓ Contact added to group successfully`);
+          
+          // Invalidate contact cache
+          await invalidateContactCache(edit.userId, edit.targetContactId);
+        } else {
+          console.warn(`[EditService] Missing targetContactId or targetGroupId for add_to_group edit`);
         }
         break;
 
       case 'remove_from_group':
         if (edit.targetContactId && edit.targetGroupId) {
+          console.log(`[EditService] Removing contact from group: contactId=${edit.targetContactId}, groupId=${edit.targetGroupId}`);
           previousValue = { groupId: edit.targetGroupId };
           await this.groupRepository.removeContact(
             edit.targetContactId,
             edit.targetGroupId,
             edit.userId
           );
+          console.log(`[EditService] ✓ Contact removed from group successfully`);
+          
+          // Invalidate contact cache
+          await invalidateContactCache(edit.userId, edit.targetContactId);
+        } else {
+          console.warn(`[EditService] Missing targetContactId or targetGroupId for remove_from_group edit`);
         }
         break;
 
       case 'create_group':
+        console.log(`[EditService] Creating group`);
         const groupName = edit.proposedValue?.name || edit.targetGroupName || 'New Group';
         await this.groupRepository.create(edit.userId, groupName);
+        console.log(`[EditService] ✓ Group created successfully: ${groupName}`);
         break;
     }
 

@@ -533,8 +533,14 @@ class EnrichmentReview {
         }
       }
       
-      // Refresh edits list
+      // Wait a bit to ensure database transaction is committed
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Refresh edits list and reload contacts to show updated values
       window.dispatchEvent(new CustomEvent('edits-updated'));
+      
+      // Also dispatch a contacts-updated event to refresh the contacts list
+      window.dispatchEvent(new CustomEvent('contacts-updated'));
     } catch (error) {
       console.error('[EnrichmentReview] Error submitting accepted edits:', error);
     }

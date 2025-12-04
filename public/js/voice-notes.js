@@ -738,27 +738,39 @@ class VoiceNoteRecorder {
             let editType = 'add_tag';
             let field = undefined;
             
-            if (suggestion.type === 'location') {
+            if (suggestion.type === 'field') {
+              // For field updates, use the field property directly
               editType = 'update_contact_field';
-              field = 'location';
-            } else if (suggestion.type === 'phone') {
-              editType = 'update_contact_field';
-              field = 'phone';
-            } else if (suggestion.type === 'email') {
-              editType = 'update_contact_field';
-              field = 'email';
-            } else if (suggestion.type === 'note') {
-              editType = 'update_contact_field';
-              field = 'customNotes';
+              field = suggestion.field;
             } else if (suggestion.type === 'tag') {
               editType = 'add_tag';
-            } else if (suggestion.type === 'interest') {
+            } else if (suggestion.type === 'group') {
               editType = 'add_to_group';
+            } else if (suggestion.type === 'lastContactDate') {
+              editType = 'update_contact_field';
+              field = 'lastContactDate';
             }
             
             console.log('[VoiceNotes] Creating edit:', editType, field ? `(${field})` : '', '=', suggestion.value, 'sessionId:', this.chatSessionId);
             
             // Create pending edit via API
+            const editPayload = {
+              sessionId: this.chatSessionId,
+              editType,
+              field,
+              proposedValue: suggestion.value,
+              targetContactId: contact.id,
+              targetContactName: contact.name,
+              confidenceScore: suggestion.confidence || 0.85,
+              source: {
+                type: 'voice_transcript',
+                transcriptExcerpt: suggestion.sourceText?.substring(0, 200),
+                timestamp: new Date().toISOString()
+              }
+            };
+            
+            console.log('[VoiceNotes] Edit payload:', JSON.stringify(editPayload));
+            
             const editResponse = await fetch('/api/edits/pending', {
               method: 'POST',
               headers: {
@@ -766,20 +778,7 @@ class VoiceNoteRecorder {
                 'x-user-id': userId,
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({
-                sessionId: this.chatSessionId,
-                editType,
-                field,
-                proposedValue: suggestion.value,
-                targetContactId: contact.id,
-                targetContactName: contact.name,
-                confidenceScore: suggestion.confidence || 0.85,
-                source: {
-                  type: 'voice_transcript',
-                  transcriptExcerpt: suggestion.sourceText?.substring(0, 200),
-                  timestamp: new Date().toISOString()
-                }
-              })
+              body: JSON.stringify(editPayload)
             });
             
             if (editResponse.ok) {

@@ -84,6 +84,8 @@ router.post('/pending', async (req: AuthenticatedRequest, res: Response) => {
       source,
     } = req.body;
 
+    console.log(`[EditsAPI] POST /edits/pending - received: editType=${editType}, field=${field}, proposedValue=${proposedValue}`);
+
     if (!editType || proposedValue === undefined || confidenceScore === undefined || !source) {
       return res.status(400).json({
         error: 'Missing required fields: editType, proposedValue, confidenceScore, source',

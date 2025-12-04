@@ -306,6 +306,7 @@ router.post('/:id/enrichment/apply', async (req: Request, res: Response): Promis
           // Map enrichment item types to edit types
           let editType: string;
           let proposedValue: string;
+          let field: string | undefined;
           
           if (item.type === 'tag') {
             editType = 'add_tag';
@@ -316,6 +317,11 @@ router.post('/:id/enrichment/apply', async (req: Request, res: Response): Promis
           } else if (item.type === 'field') {
             editType = 'update_contact_field';
             proposedValue = item.value;
+            field = item.field; // Include the field name for field updates
+          } else if (item.type === 'lastContactDate') {
+            editType = 'update_contact_field';
+            proposedValue = item.value;
+            field = 'lastContactDate';
           } else {
             console.warn(`Unknown enrichment item type: ${item.type}`);
             totalFailed++;
@@ -327,6 +333,7 @@ router.post('/:id/enrichment/apply', async (req: Request, res: Response): Promis
             userId,
             sessionId: id, // Use voice note ID as session ID
             editType: editType as any,
+            field, // Include field for field updates
             proposedValue: proposedValue,
             targetContactId: contactProposal.contactId,
             targetContactName: contactProposal.contactName,
@@ -522,6 +529,7 @@ router.post('/text', async (req: Request, res: Response): Promise<void> => {
           // Map enrichment item types to edit types
           let editType: string;
           let proposedValue: string;
+          let field: string | undefined;
           
           if (item.type === 'tag') {
             editType = 'add_tag';
@@ -532,6 +540,11 @@ router.post('/text', async (req: Request, res: Response): Promise<void> => {
           } else if (item.type === 'field') {
             editType = 'update_contact_field';
             proposedValue = item.value;
+            field = item.field; // Include the field name for field updates
+          } else if (item.type === 'lastContactDate') {
+            editType = 'update_contact_field';
+            proposedValue = item.value;
+            field = 'lastContactDate';
           } else {
             console.warn(`Unknown enrichment item type: ${item.type}`);
             totalFailed++;
@@ -543,6 +556,7 @@ router.post('/text', async (req: Request, res: Response): Promise<void> => {
             userId,
             sessionId: chatSession.id, // Use chat session ID
             editType: editType as any,
+            field, // Include field for field updates
             proposedValue: proposedValue,
             targetContactId: contactProposal.contactId,
             targetContactName: contactProposal.contactName,
