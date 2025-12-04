@@ -31,7 +31,7 @@ const CACHE_CONFIG = {
 /**
  * LRU Cache for phone number to user ID lookups
  */
-export const phoneNumberCache = new LRUCache<string, string | null>({
+export const phoneNumberCache = new LRUCache<string, string>({
   max: CACHE_CONFIG.phoneNumberLookup.max,
   ttl: CACHE_CONFIG.phoneNumberLookup.ttl,
   updateAgeOnGet: true,

@@ -4,16 +4,24 @@
  * Main entry point for the application
  */
 
+import { Server } from 'http';
 import { testConnection } from './db/connection';
 import { startServer } from './api/server';
-import { validateAndFailFast } from './api/google-sso-config-validator';
+import { validateAndFailFast as validateGoogleSSO } from './api/google-sso-config-validator';
+import { validateAndFailFast as validateEnvVars } from './utils/env-validator';
+
+let httpServer: Server | null = null;
 
 async function main() {
   console.log('CatchUp Application Starting...');
 
+  // Validate environment variables (fail fast if invalid)
+  console.log('Validating environment variables...');
+  validateEnvVars();
+
   // Validate Google SSO configuration (fail fast if invalid)
   console.log('Validating Google SSO configuration...');
-  validateAndFailFast();
+  validateGoogleSSO();
 
   // Test database connection
   const dbConnected = await testConnection();
@@ -31,23 +39,30 @@ async function main() {
 
   // Start API server
   const port = parseInt(process.env.PORT || '3000', 10);
-  startServer(port);
+  httpServer = startServer(port);
 }
 
 // Handle graceful shutdown
-process.on('SIGINT', async () => {
+const gracefulShutdown = async () => {
   console.log('\nShutting down gracefully...');
-  const { closePool } = await import('./db/connection');
-  await closePool();
-  process.exit(0);
-});
 
-process.on('SIGTERM', async () => {
-  console.log('\nShutting down gracefully...');
+  // Close HTTP server to stop accepting new connections
+  if (httpServer) {
+    httpServer.close(() => {
+      console.log('HTTP server closed');
+    });
+  }
+
+  // Close database connections
   const { closePool } = await import('./db/connection');
   await closePool();
+
+  console.log('Graceful shutdown complete');
   process.exit(0);
-});
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
 
 // Start the application
 main().catch((error) => {

@@ -35,6 +35,7 @@ import { apiRateLimiter } from '../utils/rate-limiter';
 import { enforceHttps, securityHeaders } from './middleware/security';
 import { VoiceNoteWebSocketHandler } from '../voice/websocket-handler';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
+import pool from '../db/connection';
 
 export function createServer(): Express {
   const app = express();
@@ -69,8 +70,25 @@ export function createServer(): Express {
   });
 
   // Health check endpoint (no rate limiting)
-  app.get('/health', (_req: Request, res: Response) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  app.get('/health', async (_req: Request, res: Response) => {
+    try {
+      // Check database connectivity
+      const client = await pool.connect();
+      await client.query('SELECT NOW()');
+      client.release();
+
+      res.json({
+        status: 'healthy',
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error('Health check failed:', error);
+      res.status(503).json({
+        status: 'unhealthy',
+        timestamp: new Date(),
+        error: 'Database connection failed',
+      });
+    }
   });
 
   // Debug endpoint to check environment variables (development only)
