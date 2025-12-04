@@ -3552,11 +3552,24 @@ function loadEditsPage() {
     if (!editsMenuCompact) {
         editsMenuCompact = new EditsMenuCompact({
             onOpenChat: () => {
-                // Switch to contacts page and open chat
-                currentPage = 'contacts';
-                showPage('contacts');
-                if (floatingChatIcon) {
-                    floatingChatIcon.click();
+                // Open the chat window
+                if (chatWindow) {
+                    if (!chatWindow.isOpen) {
+                        chatWindow.open('session-' + Date.now());
+                        // Add welcome message
+                        chatWindow.addMessage({
+                            id: 'welcome',
+                            type: 'system',
+                            content: 'Hi! You can record voice notes or type messages to update your contacts. What would you like to do?',
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                    // Always focus the input, whether opening or already open
+                    setTimeout(() => {
+                        if (chatWindow.inputElement) {
+                            chatWindow.inputElement.focus();
+                        }
+                    }, 100);
                 }
             },
             onEditSubmit: (editId) => {

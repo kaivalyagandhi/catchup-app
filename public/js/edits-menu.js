@@ -103,18 +103,40 @@ class EditsMenu {
     if (this.pendingEdits.length === 0) {
       this.contentElement.innerHTML = `
         <div class="edits-menu__empty">
-          <p>No pending edits</p>
-          <button class="edits-menu__open-chat-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-            Start Recording
-          </button>
+          <div style="text-align: center; padding: 24px 16px;">
+            <div style="font-size: 48px; margin-bottom: 12px;">✨</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">You've cleared your inbox!</h3>
+            <p style="margin: 0 0 20px 0; font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+              Great job staying on top of your contacts. Try adding more by chatting with the voice recorder.
+            </p>
+            <button class="edits-menu__open-chat-btn" style="background: #007AFF; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              Open Chat
+            </button>
+          </div>
         </div>
       `;
 
-      this.contentElement.querySelector('.edits-menu__open-chat-btn')
-        .addEventListener('click', () => this.onOpenChat());
+      const btn = this.contentElement.querySelector('.edits-menu__open-chat-btn');
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Chat button clicked');
+          this.onOpenChat();
+        });
+        // Add hover effect
+        btn.addEventListener('mouseenter', () => {
+          btn.style.background = '#0051D5';
+          btn.style.boxShadow = '0 4px 12px rgba(0, 122, 255, 0.4)';
+        });
+        btn.addEventListener('mouseleave', () => {
+          btn.style.background = '#007AFF';
+          btn.style.boxShadow = '0 2px 8px rgba(0, 122, 255, 0.3)';
+        });
+      }
       return;
     }
 
