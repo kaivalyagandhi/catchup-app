@@ -1,9 +1,9 @@
 /**
  * Performance Optimizer for SMS/MMS Enrichment
- * 
+ *
  * Provides caching, connection pooling, and performance monitoring
  * for the SMS/MMS enrichment feature.
- * 
+ *
  * Requirements: All (Performance optimization across all components)
  */
 
@@ -69,13 +69,11 @@ const metrics: PerformanceMetrics = {
 
 /**
  * Get user ID by phone number with caching
- * 
+ *
  * @param phoneNumber - Phone number to lookup
  * @returns User ID or null if not found
  */
-export async function getCachedUserByPhoneNumber(
-  phoneNumber: string
-): Promise<string | null> {
+export async function getCachedUserByPhoneNumber(phoneNumber: string): Promise<string | null> {
   // Check cache first
   const cached = phoneNumberCache.get(phoneNumber);
   if (cached !== undefined) {
@@ -108,13 +106,11 @@ export async function getCachedUserByPhoneNumber(
 
 /**
  * Check if phone number is verified with caching
- * 
+ *
  * @param phoneNumber - Phone number to check
  * @returns true if verified, false otherwise
  */
-export async function getCachedVerificationStatus(
-  phoneNumber: string
-): Promise<boolean> {
+export async function getCachedVerificationStatus(phoneNumber: string): Promise<boolean> {
   // Check cache first
   const cached = verificationCache.get(phoneNumber);
   if (cached !== undefined) {
@@ -148,7 +144,7 @@ export async function getCachedVerificationStatus(
 /**
  * Invalidate cache for a phone number
  * Call this when phone number verification status changes
- * 
+ *
  * @param phoneNumber - Phone number to invalidate
  */
 export function invalidatePhoneNumberCache(phoneNumber: string): void {
@@ -204,7 +200,7 @@ export function resetMetrics(): void {
 
 /**
  * Batch insert enrichment items for better performance
- * 
+ *
  * @param enrichments - Array of enrichment items to insert
  * @returns Array of inserted enrichment IDs
  */
@@ -260,9 +256,7 @@ export async function batchInsertEnrichments(
   metrics.totalQueryTime += queryTime;
   metrics.avgQueryTime = metrics.totalQueryTime / metrics.dbQueries;
 
-  console.log(
-    `Batch inserted ${enrichments.length} enrichments in ${queryTime}ms`
-  );
+  console.log(`Batch inserted ${enrichments.length} enrichments in ${queryTime}ms`);
 
   return result.rows.map((row) => row.id);
 }
@@ -274,7 +268,7 @@ const preparedStatements = new Map<string, string>();
 
 /**
  * Get or create a prepared statement
- * 
+ *
  * @param name - Statement name
  * @param query - SQL query
  * @returns Statement name
@@ -311,11 +305,11 @@ export async function ensureOptimalIndexes(): Promise<void> {
   const indexes = [
     // Phone number lookups
     'CREATE INDEX IF NOT EXISTS idx_user_phone_numbers_phone_verified ON user_phone_numbers(phone_number, verified)',
-    
+
     // Enrichment queries
     'CREATE INDEX IF NOT EXISTS idx_enrichment_items_user_status ON enrichment_items(user_id, status)',
     'CREATE INDEX IF NOT EXISTS idx_enrichment_items_created_at ON enrichment_items(created_at DESC)',
-    
+
     // Composite index for common query patterns
     'CREATE INDEX IF NOT EXISTS idx_enrichment_items_user_source_status ON enrichment_items(user_id, source, status)',
   ];
@@ -333,13 +327,13 @@ export async function ensureOptimalIndexes(): Promise<void> {
 
 /**
  * Analyze query performance and suggest optimizations
- * 
+ *
  * @param query - SQL query to analyze
  * @returns Query plan and suggestions
  */
 export async function analyzeQuery(query: string, params: any[] = []): Promise<any> {
   const explainQuery = `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${query}`;
-  
+
   try {
     const result = await pool.query(explainQuery, params);
     return result.rows[0]['QUERY PLAN'];

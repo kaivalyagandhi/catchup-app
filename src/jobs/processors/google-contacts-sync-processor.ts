@@ -80,8 +80,7 @@ export async function processGoogleContactsSync(
           `suggestions: ${groupSyncResult.suggestionsGenerated}`
       );
     } catch (groupError) {
-      const groupErrorMsg =
-        groupError instanceof Error ? groupError.message : String(groupError);
+      const groupErrorMsg = groupError instanceof Error ? groupError.message : String(groupError);
       console.error(`Group sync failed: ${groupErrorMsg}`);
       result.errors.push(`Group sync error: ${groupErrorMsg}`);
       // Don't fail the entire sync if group sync fails

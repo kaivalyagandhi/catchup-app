@@ -271,10 +271,7 @@ export async function authenticateWithGoogle(
   const googleId = googleUserInfo.sub;
 
   // First, try to find user by google_id
-  let result = await pool.query<UserRow>(
-    'SELECT * FROM users WHERE google_id = $1',
-    [googleId]
-  );
+  let result = await pool.query<UserRow>('SELECT * FROM users WHERE google_id = $1', [googleId]);
 
   if (result.rows.length > 0) {
     // Existing Google SSO user - log them in
@@ -304,15 +301,12 @@ export async function authenticateWithGoogle(
   }
 
   // Check if user exists with this email (account linking scenario)
-  result = await pool.query<UserRow>(
-    'SELECT * FROM users WHERE email = $1',
-    [email]
-  );
+  result = await pool.query<UserRow>('SELECT * FROM users WHERE email = $1', [email]);
 
   if (result.rows.length > 0) {
     // User exists with this email - link Google account
     const userRow = result.rows[0];
-    
+
     // Update user with Google information
     const updateResult = await pool.query<UserRow>(
       `UPDATE users 
@@ -347,11 +341,11 @@ export async function authenticateWithGoogle(
     // Log account linking
     await logAuditEvent(AuditAction.USER_LOGIN, {
       userId: user.id,
-      metadata: { 
-        email: user.email, 
+      metadata: {
+        email: user.email,
         authProvider: user.authProvider,
         method: 'google_sso',
-        accountLinked: true 
+        accountLinked: true,
       },
       success: true,
     });
@@ -385,11 +379,11 @@ export async function authenticateWithGoogle(
   // Log new user registration
   await logAuditEvent(AuditAction.USER_REGISTERED, {
     userId: newUser.id,
-    metadata: { 
-      email: newUser.email, 
+    metadata: {
+      email: newUser.email,
       role: newUser.role,
       authProvider: 'google',
-      method: 'google_sso'
+      method: 'google_sso',
     },
     success: true,
   });
@@ -407,10 +401,7 @@ export async function linkGoogleAccount(
   email: string
 ): Promise<void> {
   // Verify the email matches
-  const userResult = await pool.query<UserRow>(
-    'SELECT email FROM users WHERE id = $1',
-    [userId]
-  );
+  const userResult = await pool.query<UserRow>('SELECT email FROM users WHERE id = $1', [userId]);
 
   if (userResult.rows.length === 0) {
     throw new Error('User not found');

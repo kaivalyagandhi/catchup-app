@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for CatchUp Application
 # Stage 1: Build stage - compile TypeScript and run tests
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -21,7 +21,7 @@ COPY vitest.config.ts ./
 RUN npm run build
 
 # Stage 2: Runtime stage - minimal production image
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 

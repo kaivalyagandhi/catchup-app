@@ -310,10 +310,7 @@ export class MessageProcessor {
    * @param contentType - MIME type of the media
    * @returns Processing result
    */
-  private async processMedia(
-    mediaUrl: string,
-    contentType: string
-  ): Promise<ProcessingResult> {
+  private async processMedia(mediaUrl: string, contentType: string): Promise<ProcessingResult> {
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     if (!authToken) {
       throw new Error('TWILIO_AUTH_TOKEN not configured');
@@ -502,8 +499,6 @@ export class MessageProcessor {
       client.release();
     }
   }
-
-
 }
 
 // Export singleton instance

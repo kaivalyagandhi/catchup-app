@@ -27,11 +27,7 @@ export function validateGoogleSSOConfig(): ConfigValidationResult {
   const warnings: string[] = [];
 
   // Check required environment variables
-  const requiredVars = [
-    'GOOGLE_CLIENT_ID',
-    'GOOGLE_CLIENT_SECRET',
-    'GOOGLE_REDIRECT_URI',
-  ];
+  const requiredVars = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI'];
 
   for (const varName of requiredVars) {
     if (!process.env[varName]) {
@@ -71,9 +67,7 @@ export function validateGoogleSSOConfig(): ConfigValidationResult {
 
     // Check protocol
     if (!['http:', 'https:'].includes(url.protocol)) {
-      errors.push(
-        `GOOGLE_REDIRECT_URI must use http or https protocol, got: ${url.protocol}`
-      );
+      errors.push(`GOOGLE_REDIRECT_URI must use http or https protocol, got: ${url.protocol}`);
     }
 
     // Warn if using http in production
@@ -157,9 +151,7 @@ export function getGoogleSSOConfig(): GoogleSSOConfig {
   const validation = validateGoogleSSOConfig();
 
   if (!validation.valid) {
-    throw new Error(
-      `Invalid Google SSO configuration:\n${validation.errors.join('\n')}`
-    );
+    throw new Error(`Invalid Google SSO configuration:\n${validation.errors.join('\n')}`);
   }
 
   return {
@@ -179,19 +171,13 @@ export function logConfigurationStatus(validation: ConfigValidationResult): void
 
   // Log environment variables status (without values)
   console.log('\nEnvironment Variables:');
-  console.log(
-    `  GOOGLE_CLIENT_ID: ${process.env.GOOGLE_CLIENT_ID ? '✓ Set' : '✗ Not set'}`
-  );
+  console.log(`  GOOGLE_CLIENT_ID: ${process.env.GOOGLE_CLIENT_ID ? '✓ Set' : '✗ Not set'}`);
   console.log(
     `  GOOGLE_CLIENT_SECRET: ${process.env.GOOGLE_CLIENT_SECRET ? '✓ Set' : '✗ Not set'}`
   );
-  console.log(
-    `  GOOGLE_REDIRECT_URI: ${process.env.GOOGLE_REDIRECT_URI || '✗ Not set'}`
-  );
+  console.log(`  GOOGLE_REDIRECT_URI: ${process.env.GOOGLE_REDIRECT_URI || '✗ Not set'}`);
   console.log(`  JWT_SECRET: ${process.env.JWT_SECRET ? '✓ Set' : '✗ Not set'}`);
-  console.log(
-    `  ENCRYPTION_KEY: ${process.env.ENCRYPTION_KEY ? '✓ Set' : '✗ Not set'}`
-  );
+  console.log(`  ENCRYPTION_KEY: ${process.env.ENCRYPTION_KEY ? '✓ Set' : '✗ Not set'}`);
   console.log(`  TEST_MODE: ${process.env.TEST_MODE || 'false'}`);
   console.log(`  NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
 
@@ -239,8 +225,6 @@ export function validateAndFailFast(): void {
   if (validation.warnings.length === 0) {
     console.log('✓ Google SSO configuration is valid and ready to use.\n');
   } else {
-    console.log(
-      '✓ Google SSO configuration is valid but has warnings. Review warnings above.\n'
-    );
+    console.log('✓ Google SSO configuration is valid but has warnings. Review warnings above.\n');
   }
 }

@@ -86,10 +86,7 @@ export function validateTwilioSignature(
   const expectedSignature = hmac.digest('base64');
 
   // Compare signatures using timing-safe comparison
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
 }
 
 // TwiML generation is now handled by the twiml-generator module
@@ -112,9 +109,9 @@ router.post(
     // Check if Twilio is configured
     if (!authToken) {
       console.error('TWILIO_AUTH_TOKEN not configured');
-      res.status(500).send(
-        generateErrorMessage('Service temporarily unavailable. Please try again later.')
-      );
+      res
+        .status(500)
+        .send(generateErrorMessage('Service temporarily unavailable. Please try again later.'));
       return;
     }
 
@@ -136,12 +133,7 @@ router.post(
     const url = `${protocol}://${host}${req.originalUrl}`;
 
     // Requirement 7.2: Validate signature
-    const isValid = validateTwilioSignature(
-      authToken,
-      twilioSignature,
-      url,
-      req.body
-    );
+    const isValid = validateTwilioSignature(authToken, twilioSignature, url, req.body);
 
     if (!isValid) {
       console.error('Invalid Twilio signature');
@@ -169,10 +161,7 @@ router.post(
 
     if (!userId) {
       console.log('Phone number not verified:', payload.From);
-      res
-        .status(200)
-        .type('text/xml')
-        .send(generateUnverifiedMessage());
+      res.status(200).type('text/xml').send(generateUnverifiedMessage());
       return;
     }
 
@@ -201,10 +190,7 @@ router.post(
       // Track rate limit event
       smsMonitoringService.trackRateLimit(payload.From);
 
-      res
-        .status(200)
-        .type('text/xml')
-        .send(generateRateLimitMessage(rateLimitResult.resetAt));
+      res.status(200).type('text/xml').send(generateRateLimitMessage(rateLimitResult.resetAt));
       return;
     }
 
@@ -242,10 +228,7 @@ router.post(
 
     // Return TwiML response immediately (within 5 seconds)
     // Requirement 2.5: Send confirmation message
-    res
-      .status(200)
-      .type('text/xml')
-      .send(generateSuccessConfirmation());
+    res.status(200).type('text/xml').send(generateSuccessConfirmation());
   })
 );
 

@@ -158,18 +158,12 @@ export class ImportServiceImpl implements ImportService {
 
     if (groupResourceNames.length === 0) {
       // No memberships, clear any existing ones
-      await pool.query(
-        'DELETE FROM contact_google_memberships WHERE contact_id = $1',
-        [contactId]
-      );
+      await pool.query('DELETE FROM contact_google_memberships WHERE contact_id = $1', [contactId]);
       return;
     }
 
     // Delete old memberships
-    await pool.query(
-      'DELETE FROM contact_google_memberships WHERE contact_id = $1',
-      [contactId]
-    );
+    await pool.query('DELETE FROM contact_google_memberships WHERE contact_id = $1', [contactId]);
 
     // Insert new memberships
     for (const groupResourceName of groupResourceNames) {

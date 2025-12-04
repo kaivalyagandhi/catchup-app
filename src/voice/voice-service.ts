@@ -260,7 +260,7 @@ JSON response:`;
     if (extracted.lastContactDate) {
       try {
         entities.lastContactDate = new Date(extracted.lastContactDate);
-      } catch (e) {
+      } catch {
         // Invalid date, skip it
       }
     }

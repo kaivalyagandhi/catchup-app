@@ -72,10 +72,10 @@ export class FuzzyMatcherService implements FuzzyMatcherServiceInterface {
    */
   calculateSimilarity(str1: string, str2: string): number {
     if (!str1 || !str2) return 0;
-    
+
     const s1 = str1.toLowerCase().trim();
     const s2 = str2.toLowerCase().trim();
-    
+
     if (s1 === s2) return 1;
     if (s1.length === 0 || s2.length === 0) return 0;
 
@@ -103,7 +103,8 @@ export class FuzzyMatcherService implements FuzzyMatcherServiceInterface {
 
     for (const contact of contacts) {
       const similarity = this.calculateSimilarity(query, contact.name);
-      if (similarity > 0.3) { // Include partial matches
+      if (similarity > 0.3) {
+        // Include partial matches
         results.push({
           id: contact.id,
           name: contact.name,
@@ -158,18 +159,15 @@ export class FuzzyMatcherService implements FuzzyMatcherServiceInterface {
    * Returns null if no match above threshold
    * Requirements: 8.1
    */
-  async findBestMatch(
-    userId: string,
-    extractedName: string
-  ): Promise<FuzzyMatchResult | null> {
+  async findBestMatch(userId: string, extractedName: string): Promise<FuzzyMatchResult | null> {
     const results = await this.searchContacts(userId, extractedName, 1);
-    
+
     if (results.length === 0) {
       return null;
     }
 
     const bestMatch = results[0];
-    
+
     // Only return if above threshold
     if (bestMatch.similarityScore >= MATCH_THRESHOLD) {
       return bestMatch;

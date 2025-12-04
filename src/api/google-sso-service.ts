@@ -223,13 +223,13 @@ export class GoogleSSOService {
     if (!isValid) {
       // Import audit logger dynamically to avoid circular dependencies
       const { logAuditEvent, AuditAction } = await import('../utils/audit-logger');
-      
+
       // Log token validation failure
       await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
-        metadata: { 
+        metadata: {
           provider: 'google',
           error: 'signature_verification_failed',
-          method: 'token_validation'
+          method: 'token_validation',
         },
         success: false,
         errorMessage: 'Token signature verification failed',
@@ -262,11 +262,11 @@ export class GoogleSSOService {
     const validIssuers = ['https://accounts.google.com', 'accounts.google.com'];
     if (!validIssuers.includes(decoded.iss)) {
       await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
-        metadata: { 
+        metadata: {
           provider: 'google',
           error: 'invalid_issuer',
           issuer: decoded.iss,
-          method: 'token_validation'
+          method: 'token_validation',
         },
         success: false,
         errorMessage: `Invalid token issuer: ${decoded.iss}`,
@@ -283,10 +283,10 @@ export class GoogleSSOService {
     // Verify audience (client ID)
     if (decoded.aud !== this.clientId) {
       await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
-        metadata: { 
+        metadata: {
           provider: 'google',
           error: 'invalid_audience',
-          method: 'token_validation'
+          method: 'token_validation',
         },
         success: false,
         errorMessage: 'Token audience does not match client ID',
@@ -304,11 +304,11 @@ export class GoogleSSOService {
     const now = Math.floor(Date.now() / 1000);
     if (decoded.exp && decoded.exp < now) {
       await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
-        metadata: { 
+        metadata: {
           provider: 'google',
           error: 'token_expired',
           expiredAt: new Date(decoded.exp * 1000).toISOString(),
-          method: 'token_validation'
+          method: 'token_validation',
         },
         success: false,
         errorMessage: 'Token has expired',
@@ -325,11 +325,11 @@ export class GoogleSSOService {
     // Verify email is verified
     if (!decoded.email_verified) {
       await logAuditEvent(AuditAction.FAILED_LOGIN_ATTEMPT, {
-        metadata: { 
+        metadata: {
           provider: 'google',
           error: 'email_not_verified',
           email: decoded.email,
-          method: 'token_validation'
+          method: 'token_validation',
         },
         success: false,
         errorMessage: 'Email is not verified',
@@ -488,4 +488,3 @@ export const googleSSOService = {
     return getGoogleSSOService();
   },
 };
-

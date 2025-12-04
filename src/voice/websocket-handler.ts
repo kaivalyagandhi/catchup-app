@@ -123,7 +123,7 @@ export class VoiceNoteWebSocketHandler {
    */
   private setupServiceEventHandlers(): void {
     console.log('[WebSocketHandler] Setting up service event handlers');
-    
+
     // Interim transcript events
     this.voiceNoteService.on(SessionEvent.INTERIM_TRANSCRIPT, (event: any) => {
       const ws = this.sessionClients.get(event.sessionId);
@@ -205,17 +205,21 @@ export class VoiceNoteWebSocketHandler {
 
     // Enrichment update events
     this.voiceNoteService.on('enrichment_update', (event: any) => {
-      console.log(`[WebSocketHandler] Received enrichment_update for session ${event.sessionId}, contact: ${event.contactName}, ${event.suggestions?.length || 0} suggestions`);
-      
+      console.log(
+        `[WebSocketHandler] Received enrichment_update for session ${event.sessionId}, contact: ${event.contactName}, ${event.suggestions?.length || 0} suggestions`
+      );
+
       // Validate message structure
       if (!event.contactId || !event.contactName || !event.suggestions) {
         console.error('[WebSocketHandler] Invalid enrichment_update event structure:', event);
         return;
       }
-      
+
       const ws = this.sessionClients.get(event.sessionId);
       if (ws) {
-        console.log(`[WebSocketHandler] Sending enrichment_update to client for session ${event.sessionId}, contact: ${event.contactName}`);
+        console.log(
+          `[WebSocketHandler] Sending enrichment_update to client for session ${event.sessionId}, contact: ${event.contactName}`
+        );
         this.sendMessage(ws, {
           type: WSMessageType.ENRICHMENT_UPDATE,
           data: {
@@ -226,10 +230,12 @@ export class VoiceNoteWebSocketHandler {
           },
         });
       } else {
-        console.warn(`[WebSocketHandler] No WebSocket found for session ${event.sessionId}. Active sessions: ${Array.from(this.sessionClients.keys()).join(', ')}`);
+        console.warn(
+          `[WebSocketHandler] No WebSocket found for session ${event.sessionId}. Active sessions: ${Array.from(this.sessionClients.keys()).join(', ')}`
+        );
       }
     });
-    
+
     console.log('[WebSocketHandler] Service event handlers setup complete');
   }
 
@@ -336,7 +342,9 @@ export class VoiceNoteWebSocketHandler {
       // Associate session with client
       client.sessionId = session.id;
       this.sessionClients.set(session.id, ws);
-      console.log(`[WebSocketHandler] Associated session ${session.id} with WebSocket. Total active sessions: ${this.sessionClients.size}`);
+      console.log(
+        `[WebSocketHandler] Associated session ${session.id} with WebSocket. Total active sessions: ${this.sessionClients.size}`
+      );
 
       // Send session started confirmation
       console.log('Sending session_started message');

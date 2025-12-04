@@ -279,10 +279,9 @@ router.post('/apply', async (req: Request, res: Response): Promise<void> => {
           }
 
           // Mark as applied
-          await client.query(
-            `UPDATE enrichment_items SET applied = true WHERE id = $1`,
-            [enrichmentId]
-          );
+          await client.query(`UPDATE enrichment_items SET applied = true WHERE id = $1`, [
+            enrichmentId,
+          ]);
 
           appliedCount++;
         } catch (itemError) {

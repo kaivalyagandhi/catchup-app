@@ -8,12 +8,7 @@
  */
 
 import pool from '../db/connection';
-import {
-  EditHistoryEntry,
-  EditType,
-  EditSource,
-  EditHistoryOptions,
-} from '../types';
+import { EditHistoryEntry, EditType, EditSource, EditHistoryOptions } from '../types';
 
 /**
  * Create edit history entry data
@@ -79,10 +74,10 @@ export class EditHistoryRepository implements EditHistoryRepositoryInterface {
    * Find an edit history entry by ID
    */
   async findById(id: string, userId: string): Promise<EditHistoryEntry | null> {
-    const result = await pool.query(
-      'SELECT * FROM edit_history WHERE id = $1 AND user_id = $2',
-      [id, userId]
-    );
+    const result = await pool.query('SELECT * FROM edit_history WHERE id = $1 AND user_id = $2', [
+      id,
+      userId,
+    ]);
 
     if (result.rows.length === 0) {
       return null;

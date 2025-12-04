@@ -16,7 +16,11 @@ import { EditRepository } from './edit-repository';
  */
 export interface ChatSessionRepositoryInterface {
   create(userId: string): Promise<ChatSession>;
-  update(id: string, userId: string, data: { status?: ChatSessionStatus; endedAt?: Date }): Promise<ChatSession>;
+  update(
+    id: string,
+    userId: string,
+    data: { status?: ChatSessionStatus; endedAt?: Date }
+  ): Promise<ChatSession>;
   findById(id: string, userId: string): Promise<ChatSession | null>;
   findActiveByUserId(userId: string): Promise<ChatSession | null>;
 }
@@ -88,10 +92,10 @@ export class ChatSessionRepository implements ChatSessionRepositoryInterface {
    * Find a chat session by ID
    */
   async findById(id: string, userId: string): Promise<ChatSession | null> {
-    const result = await pool.query(
-      'SELECT * FROM chat_sessions WHERE id = $1 AND user_id = $2',
-      [id, userId]
-    );
+    const result = await pool.query('SELECT * FROM chat_sessions WHERE id = $1 AND user_id = $2', [
+      id,
+      userId,
+    ]);
 
     if (result.rows.length === 0) {
       return null;
@@ -152,10 +156,7 @@ export class SessionManager implements SessionManagerInterface {
   private sessionRepository: ChatSessionRepository;
   private editRepository: EditRepository;
 
-  constructor(
-    sessionRepository?: ChatSessionRepository,
-    editRepository?: EditRepository
-  ) {
+  constructor(sessionRepository?: ChatSessionRepository, editRepository?: EditRepository) {
     this.sessionRepository = sessionRepository || new ChatSessionRepository();
     this.editRepository = editRepository || new EditRepository();
   }

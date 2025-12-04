@@ -388,10 +388,7 @@ If no information is found for a category, return an empty array or empty string
    * @param contentType - MIME type of the content
    * @returns Processing result
    */
-  async processContent(
-    content: Buffer | string,
-    contentType: string
-  ): Promise<ProcessingResult> {
+  async processContent(content: Buffer | string, contentType: string): Promise<ProcessingResult> {
     const startTime = Date.now();
 
     try {

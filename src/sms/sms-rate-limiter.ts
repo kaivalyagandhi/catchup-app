@@ -44,17 +44,15 @@ export interface SMSRateLimitResult {
 
 /**
  * Check if a phone number has exceeded the SMS rate limit
- * 
+ *
  * Uses Redis sorted sets to track messages within a sliding time window.
  * Requirements: 8.1 - Limit processing to 20 messages per hour per phone number
  * Requirements: 8.2 - Reject additional messages until time window resets
- * 
+ *
  * @param phoneNumber - The phone number to check (e.g., "+15555551234")
  * @returns Rate limit result with allowed status and remaining quota
  */
-export async function checkSMSRateLimit(
-  phoneNumber: string
-): Promise<SMSRateLimitResult> {
+export async function checkSMSRateLimit(phoneNumber: string): Promise<SMSRateLimitResult> {
   const key = `${SMS_RATE_LIMIT_CONFIG.keyPrefix}:${phoneNumber}`;
   const now = Date.now();
   const windowStart = now - SMS_RATE_LIMIT_CONFIG.windowMs;
@@ -70,8 +68,7 @@ export async function checkSMSRateLimit(
     if (messageCount >= SMS_RATE_LIMIT_CONFIG.maxMessages) {
       // Get oldest message timestamp to calculate when the window resets
       const oldestMessage = await redis.zrange(key, 0, 0, 'WITHSCORES');
-      const oldestTimestamp =
-        oldestMessage.length > 1 ? parseInt(oldestMessage[1]) : now;
+      const oldestTimestamp = oldestMessage.length > 1 ? parseInt(oldestMessage[1]) : now;
 
       const resetAt = new Date(oldestTimestamp + SMS_RATE_LIMIT_CONFIG.windowMs);
       const retryAfter = Math.ceil((resetAt.getTime() - now) / 1000);
@@ -88,8 +85,7 @@ export async function checkSMSRateLimit(
 
     // Calculate reset time (when the oldest message will expire)
     const oldestMessage = await redis.zrange(key, 0, 0, 'WITHSCORES');
-    const oldestTimestamp =
-      oldestMessage.length > 1 ? parseInt(oldestMessage[1]) : now;
+    const oldestTimestamp = oldestMessage.length > 1 ? parseInt(oldestMessage[1]) : now;
     const resetAt = new Date(oldestTimestamp + SMS_RATE_LIMIT_CONFIG.windowMs);
 
     return {
@@ -114,10 +110,10 @@ export async function checkSMSRateLimit(
 
 /**
  * Increment the message counter for a phone number
- * 
+ *
  * Should be called after successfully processing a message.
  * Requirements: 8.1 - Track message count per phone number
- * 
+ *
  * @param phoneNumber - The phone number to increment
  */
 export async function incrementSMSCounter(phoneNumber: string): Promise<void> {
@@ -140,9 +136,9 @@ export async function incrementSMSCounter(phoneNumber: string): Promise<void> {
 
 /**
  * Get the remaining quota for a phone number
- * 
+ *
  * Requirements: 8.1 - Provide quota information
- * 
+ *
  * @param phoneNumber - The phone number to check
  * @returns Number of messages remaining in current window
  */
@@ -153,7 +149,7 @@ export async function getRemainingQuota(phoneNumber: string): Promise<number> {
 
 /**
  * Get the current message count for a phone number
- * 
+ *
  * @param phoneNumber - The phone number to check
  * @returns Current number of messages in the time window
  */
@@ -177,9 +173,9 @@ export async function getCurrentMessageCount(phoneNumber: string): Promise<numbe
 
 /**
  * Reset the rate limit for a phone number (admin function)
- * 
+ *
  * Requirements: 8.4 - Time window reset functionality
- * 
+ *
  * @param phoneNumber - The phone number to reset
  */
 export async function resetSMSRateLimit(phoneNumber: string): Promise<void> {
@@ -195,7 +191,7 @@ export async function resetSMSRateLimit(phoneNumber: string): Promise<void> {
 
 /**
  * Get rate limit status for a phone number (for monitoring/debugging)
- * 
+ *
  * @param phoneNumber - The phone number to check
  * @returns Detailed rate limit status
  */
@@ -228,16 +224,13 @@ export async function closeSMSRateLimiter(): Promise<void> {
 
 /**
  * In-memory fallback rate limiter (used when Redis is unavailable)
- * 
+ *
  * This is a simple in-memory implementation that provides basic rate limiting
  * when Redis is not available. It's not suitable for production with multiple
  * server instances, but provides a fallback for development and testing.
  */
 class InMemoryRateLimiter {
-  private counters: Map<
-    string,
-    Array<{ timestamp: number; id: string }>
-  > = new Map();
+  private counters: Map<string, Array<{ timestamp: number; id: string }>> = new Map();
 
   async check(phoneNumber: string): Promise<SMSRateLimitResult> {
     const now = Date.now();

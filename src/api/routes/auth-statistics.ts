@@ -1,6 +1,6 @@
 /**
  * Authentication Statistics API Routes
- * 
+ *
  * Provides statistics on authentication methods usage
  * Requirements: 7.3
  */
@@ -39,12 +39,12 @@ export interface AuthStatistics {
 /**
  * GET /api/auth/statistics
  * Get authentication statistics
- * 
+ *
  * Query parameters:
  * - startDate: ISO 8601 date string (optional, defaults to 30 days ago)
  * - endDate: ISO 8601 date string (optional, defaults to now)
  * - userId: Filter by specific user (admin only)
- * 
+ *
  * Requires authentication
  */
 router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response) => {
@@ -55,13 +55,11 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response) =
     }
 
     // Parse query parameters
-    const startDate = req.query.startDate 
+    const startDate = req.query.startDate
       ? new Date(req.query.startDate as string)
       : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
-    
-    const endDate = req.query.endDate
-      ? new Date(req.query.endDate as string)
-      : new Date();
+
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
 
     const filterUserId = req.query.userId as string | undefined;
 
@@ -93,11 +91,11 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response) =
 /**
  * GET /api/auth/statistics/global
  * Get global authentication statistics (admin only)
- * 
+ *
  * Query parameters:
  * - startDate: ISO 8601 date string (optional, defaults to 30 days ago)
  * - endDate: ISO 8601 date string (optional, defaults to now)
- * 
+ *
  * Requires admin authentication
  */
 router.get('/global', authenticate, async (req: AuthenticatedRequest, res: Response) => {
@@ -114,13 +112,11 @@ router.get('/global', authenticate, async (req: AuthenticatedRequest, res: Respo
     }
 
     // Parse query parameters
-    const startDate = req.query.startDate 
+    const startDate = req.query.startDate
       ? new Date(req.query.startDate as string)
       : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
-    
-    const endDate = req.query.endDate
-      ? new Date(req.query.endDate as string)
-      : new Date();
+
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
 
     // Query global authentication statistics (all users)
     const statistics = await getAuthenticationStatistics(null, startDate, endDate);
@@ -140,7 +136,7 @@ router.get('/global', authenticate, async (req: AuthenticatedRequest, res: Respo
 
 /**
  * Get authentication statistics from audit logs
- * 
+ *
  * @param userId - User ID to filter by (null for global statistics)
  * @param startDate - Start of time range
  * @param endDate - End of time range
@@ -221,12 +217,10 @@ async function getAuthenticationStatistics(
   const totalAuthentications = totalGoogleSSO + totalEmailPassword;
 
   // Calculate percentages
-  const googleSSOPercentage = totalAuthentications > 0
-    ? (totalGoogleSSO / totalAuthentications) * 100
-    : 0;
-  const emailPasswordPercentage = totalAuthentications > 0
-    ? (totalEmailPassword / totalAuthentications) * 100
-    : 0;
+  const googleSSOPercentage =
+    totalAuthentications > 0 ? (totalGoogleSSO / totalAuthentications) * 100 : 0;
+  const emailPasswordPercentage =
+    totalAuthentications > 0 ? (totalEmailPassword / totalAuthentications) * 100 : 0;
 
   return {
     totalAuthentications,
