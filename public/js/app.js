@@ -131,6 +131,9 @@ function showMainApp() {
     updateThemeIcon();
     loadContacts();
     
+    // Load pending edits count for nav badge
+    loadPendingEditsCount();
+    
     // Initialize floating chat icon and chat window
     initializeChatComponents();
 }
@@ -3924,7 +3927,30 @@ function renderVoiceNoteEnrichment(edit) {
 }
 
 /**
- * Update pending edit counts in chat components
+ * Load pending edits count on app initialization
+ */
+async function loadPendingEditsCount() {
+    try {
+        const response = await fetch(`${API_BASE}/edits/pending`, {
+            headers: { 
+                'Authorization': `Bearer ${authToken}`,
+                'x-user-id': userId
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const count = (data.edits || []).length;
+            console.log('Loaded pending edits count on init:', count);
+            updatePendingEditCounts(count);
+        }
+    } catch (error) {
+        console.error('Error loading pending edits count:', error);
+    }
+}
+
+/**
+ * Update pending edit counts in chat components and nav badge
  */
 function updatePendingEditCounts(count) {
     if (chatWindow) {
@@ -3932,6 +3958,17 @@ function updatePendingEditCounts(count) {
     }
     if (floatingChatIcon) {
         floatingChatIcon.setPendingEditCount(count);
+    }
+    
+    // Update nav badge
+    const badge = document.getElementById('edits-badge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
     }
 }
 

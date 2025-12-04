@@ -254,6 +254,25 @@
             color: var(--nav-link-hover-color);
         }
         
+        .nav-badge {
+            display: inline-block;
+            background: var(--color-danger);
+            color: var(--text-inverse);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+        
+        .nav-badge.hidden {
+            display: none;
+        }
+        
         .user-info {
             display: flex;
             justify-content: space-between;
@@ -2389,7 +2408,7 @@
                 <a href="#contacts" class="nav-link active" data-page="contacts">👥 Contacts</a>
                 <a href="#groups-tags" class="nav-link" data-page="groups-tags">🏷️ Groups & Tags</a>
                 <a href="#suggestions" class="nav-link" data-page="suggestions">💡 Suggestions</a>
-                <a href="#edits" class="nav-link" data-page="edits">✏️ Edits</a>
+                <a href="#edits" class="nav-link" data-page="edits">✏️ Edits <span id="edits-badge" class="nav-badge hidden">#</span></a>
             </nav>
             <div class="user-info">
                 <span class="user-email" id="user-email"></span>
