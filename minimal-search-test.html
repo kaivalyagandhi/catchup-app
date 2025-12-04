@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal Search Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .search-input-wrapper {
+      display: flex;
+      align-items: center;
+      border: 2px solid #3b82f6;
+      border-radius: 8px;
+      padding: 8px 12px;
+      background: white;
+      margin: 20px 0;
+    }
+    .search-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 8px;
+      font-size: 16px;
+      color: #1f2937;
+      background: transparent;
+    }
+    .search-input::placeholder {
+      color: #9ca3af;
+    }
+    .result {
+      padding: 15px;
+      background: #f3f4f6;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .success { background: #d1fae5; color: #065f46; }
+    .error { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Minimal Search Test</h1>
+  
+  <h2>Test 1: Plain Input (No JavaScript)</h2>
+  <div class="search-input-wrapper">
+    <span>🔍</span>
+    <input 
+      type="text" 
+      class="search-input" 
+      placeholder="Type here - should work immediately"
+      id="plain-input"
+    >
+  </div>
+  <div id="plain-result" class="result">Type in the input above...</div>
+
+  <h2>Test 2: JavaScript-Created Input</h2>
+  <div id="js-container"></div>
+  <div id="js-result" class="result">Initializing...</div>
+
+  <h2>Test 3: Check Browser Info</h2>
+  <div id="browser-info" class="result"></div>
+
+  <script>
+    console.log('=== MINIMAL SEARCH TEST ===');
+
+    // Test 1: Plain input
+    const plainInput = document.getElementById('plain-input');
+    plainInput.addEventListener('input', (e) => {
+      const result = document.getElementById('plain-result');
+      result.textContent = `✓ Plain input works!\nValue: "${e.target.value}"\nLength: ${e.target.value.length}`;
+      result.className = 'result success';
+      console.log('Plain input:', e.target.value);
+    });
+
+    // Test 2: JavaScript-created input
+    const jsContainer = document.getElementById('js-container');
+    jsContainer.innerHTML = `
+      <div class="search-input-wrapper">
+        <span>🔍</span>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="JavaScript-created input"
+          id="js-input"
+        >
+      </div>
+    `;
+
+    const jsInput = document.getElementById('js-input');
+    const jsResult = document.getElementById('js-result');
+
+    if (!jsInput) {
+      jsResult.textContent = '✗ ERROR: JavaScript input not found!';
+      jsResult.className = 'result error';
+      console.error('JavaScript input not found');
+    } else {
+      jsResult.textContent = '✓ JavaScript input created successfully\nWaiting for input...';
+      jsResult.className = 'result';
+      console.log('JavaScript input found:', jsInput);
+
+      jsInput.addEventListener('input', (e) => {
+        jsResult.textContent = `✓ JavaScript input works!\nValue: "${e.target.value}"\nLength: ${e.target.value.length}`;
+        jsResult.className = 'result success';
+        console.log('JavaScript input:', e.target.value);
+      });
+
+      // Check computed styles
+      const styles = window.getComputedStyle(jsInput);
+      console.log('Input styles:', {
+        color: styles.color,
+        backgroundColor: styles.backgroundColor,
+        display: styles.display,
+        visibility: styles.visibility,
+        opacity: styles.opacity,
+        fontSize: styles.fontSize,
+        padding: styles.padding
+      });
+    }
+
+    // Test 3: Browser info
+    const browserInfo = document.getElementById('browser-info');
+    browserInfo.textContent = `Browser: ${navigator.userAgent}\n`;
+    browserInfo.textContent += `Platform: ${navigator.platform}\n`;
+    browserInfo.textContent += `Language: ${navigator.language}\n`;
+    browserInfo.textContent += `Screen: ${window.screen.width}x${window.screen.height}\n`;
+    browserInfo.textContent += `Viewport: ${window.innerWidth}x${window.innerHeight}`;
+
+    console.log('All tests initialized');
+  </script>
+</body>
+</html>

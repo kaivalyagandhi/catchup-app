@@ -19,6 +19,8 @@ class GoogleMappingsReview {
     
     this.pendingMappings = [];
     this.isVisible = false;
+    this.excludedMembers = {}; // Track excluded members per mapping: { mappingId: [memberId1, memberId2] }
+    this.membersCache = {}; // Cache loaded members: { mappingId: [members] }
   }
 
   /**
@@ -217,15 +219,8 @@ class GoogleMappingsReview {
         card.style.pointerEvents = 'none';
       }
 
-      // Get excluded members if any
-      const container = document.getElementById(`mapping-members-${mappingId}`);
-      const excludedMembers = [];
-      if (container) {
-        const removedCards = container.querySelectorAll('.member-card[data-removed="true"]');
-        removedCards.forEach(card => {
-          excludedMembers.push(card.dataset.memberId);
-        });
-      }
+      // Get excluded members (unchecked checkboxes)
+      const excludedMembers = getExcludedMembers(mappingId);
 
       const response = await fetch(`${API_BASE}/contacts/sync/groups/mappings/${mappingId}/approve`, {
         method: 'POST',
@@ -426,16 +421,16 @@ async function toggleMappingMembers(mappingId) {
 }
 
 /**
- * Render mapping members list
+ * Render mapping members list with selection checkboxes
  */
 function renderMappingMembers(mappingId, members) {
   if (members.length === 0) {
     return `
-      <div style="padding: 12px; background: #f9fafb; border-radius: 4px; text-align: center; margin-top: 12px;">
-        <div style="color: #6b7280; margin-bottom: 8px;">
+      <div style="padding: 12px; text-align: center;">
+        <div style="color: var(--text-secondary, #6b7280); margin-bottom: 8px;">
           No membership data available yet
         </div>
-        <div style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">
+        <div style="font-size: 12px; color: var(--text-secondary, #6b7280);">
           Click "Sync Now" in Preferences to populate member data
         </div>
       </div>
@@ -443,29 +438,35 @@ function renderMappingMembers(mappingId, members) {
   }
   
   return `
-    <div style="padding: 12px; background: #f9fafb; border-radius: 4px; max-height: 300px; overflow-y: auto; margin-top: 12px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <div style="font-size: 11px; color: #6b7280; font-weight: 600;">
-          MEMBERS (${members.length})
-        </div>
+    <div class="members-header">
+      <div class="members-title">MEMBERS (${members.length})</div>
+      <div class="members-actions">
+        <button class="btn-select-all" onclick="selectAllMembers('${mappingId}')">Select All</button>
+        <button class="btn-deselect-all" onclick="deselectAllMembers('${mappingId}')">Deselect All</button>
       </div>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        ${members.map(member => `
-          <div class="member-card" data-member-id="${member.id}" style="display: flex; align-items: center; gap: 10px; padding: 8px; background: white; border-radius: 4px; border: 1px solid #e5e7eb;">
-            <div style="width: 32px; height: 32px; border-radius: 50%; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px;">
-              ${member.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
-            </div>
-            <div style="flex: 1; min-width: 0;">
-              <div style="font-weight: 500; font-size: 13px; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                ${escapeHtml(member.name)}
-              </div>
-              <div style="font-size: 11px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                ${member.email || member.phone || member.location || 'No contact info'}
-              </div>
+    </div>
+    <div class="members-list">
+      ${members.map(member => `
+        <div class="member-card" data-member-id="${member.id}" data-mapping-id="${mappingId}">
+          <input 
+            type="checkbox" 
+            class="member-checkbox" 
+            data-member-id="${member.id}"
+            data-mapping-id="${mappingId}"
+            checked
+            onchange="toggleMemberSelection('${mappingId}', '${member.id}')"
+          />
+          <div class="member-avatar">
+            ${member.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+          </div>
+          <div class="member-info">
+            <div class="member-name">${escapeHtml(member.name)}</div>
+            <div class="member-contact">
+              ${member.email || member.phone || member.location || 'No contact info'}
             </div>
           </div>
-        `).join('')}
-      </div>
+        </div>
+      `).join('')}
     </div>
   `;
 }
@@ -480,7 +481,91 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+/**
+ * Toggle member selection
+ */
+function toggleMemberSelection(mappingId, memberId) {
+  const checkbox = document.querySelector(
+    `.member-checkbox[data-mapping-id="${mappingId}"][data-member-id="${memberId}"]`
+  );
+  const memberCard = document.querySelector(
+    `.member-card[data-mapping-id="${mappingId}"][data-member-id="${memberId}"]`
+  );
+  
+  if (checkbox && memberCard) {
+    if (checkbox.checked) {
+      memberCard.classList.remove('deselected');
+    } else {
+      memberCard.classList.add('deselected');
+    }
+  }
+}
+
+/**
+ * Select all members for a mapping
+ */
+function selectAllMembers(mappingId) {
+  const checkboxes = document.querySelectorAll(
+    `.member-checkbox[data-mapping-id="${mappingId}"]`
+  );
+  const cards = document.querySelectorAll(
+    `.member-card[data-mapping-id="${mappingId}"]`
+  );
+  
+  checkboxes.forEach(checkbox => {
+    checkbox.checked = true;
+  });
+  
+  cards.forEach(card => {
+    card.classList.remove('deselected');
+  });
+}
+
+/**
+ * Deselect all members for a mapping
+ */
+function deselectAllMembers(mappingId) {
+  const checkboxes = document.querySelectorAll(
+    `.member-checkbox[data-mapping-id="${mappingId}"]`
+  );
+  const cards = document.querySelectorAll(
+    `.member-card[data-mapping-id="${mappingId}"]`
+  );
+  
+  checkboxes.forEach(checkbox => {
+    checkbox.checked = false;
+  });
+  
+  cards.forEach(card => {
+    card.classList.add('deselected');
+  });
+}
+
+/**
+ * Get excluded members for a mapping
+ */
+function getExcludedMembers(mappingId) {
+  const checkboxes = document.querySelectorAll(
+    `.member-checkbox[data-mapping-id="${mappingId}"]`
+  );
+  const excluded = [];
+  
+  checkboxes.forEach(checkbox => {
+    if (!checkbox.checked) {
+      excluded.push(checkbox.dataset.memberId);
+    }
+  });
+  
+  return excluded;
+}
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { GoogleMappingsReview };
+  module.exports = { 
+    GoogleMappingsReview,
+    toggleMemberSelection,
+    selectAllMembers,
+    deselectAllMembers,
+    getExcludedMembers
+  };
 }

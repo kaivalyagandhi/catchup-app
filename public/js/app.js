@@ -453,12 +453,18 @@ function navigateTo(page) {
 let currentDirectoryTab = 'contacts';
 
 function loadDirectory() {
-    // Check URL hash for tab
+    // Check URL hash for tab first
     const hash = window.location.hash;
     const tabMatch = hash.match(/#directory\/(contacts|circles|groups|tags)/);
     
     if (tabMatch) {
         currentDirectoryTab = tabMatch[1];
+    } else {
+        // If no hash, check localStorage for saved tab
+        const savedTab = localStorage.getItem('currentDirectoryTab');
+        if (savedTab && ['contacts', 'circles', 'groups', 'tags'].includes(savedTab)) {
+            currentDirectoryTab = savedTab;
+        }
     }
     
     // Switch to the appropriate tab
@@ -467,6 +473,9 @@ function loadDirectory() {
 
 function switchDirectoryTab(tab) {
     currentDirectoryTab = tab;
+    
+    // Save tab state to localStorage for persistence across page refreshes
+    localStorage.setItem('currentDirectoryTab', tab);
     
     // Update URL hash without page reload
     window.history.replaceState(null, '', `#directory/${tab}`);
@@ -546,6 +555,9 @@ async function loadContacts() {
         if (!response.ok) throw new Error('Failed to load contacts');
         
         contacts = await response.json();
+        
+        // Make contacts available globally for tags/groups tables
+        window.contacts = contacts;
         
         // Use the new contacts table renderer if available
         if (typeof renderContactsTable === 'function') {
@@ -1195,11 +1207,19 @@ async function loadGroupsTagsManagement() {
 
 // New functions for directory tabs
 async function loadGroupsManagement() {
+    // Ensure contacts are loaded first (needed for group member lists)
+    if (!contacts || contacts.length === 0) {
+        await loadContacts();
+    }
     await loadGroupsList();
     await loadGroupMappingsSection();
 }
 
 async function loadTagsManagement() {
+    // Ensure contacts are loaded first (needed for tag member lists)
+    if (!contacts || contacts.length === 0) {
+        await loadContacts();
+    }
     await loadTags();
 }
 
@@ -1332,41 +1352,12 @@ async function loadGroupMappingsSection() {
         
         // Load and render group mappings
         const allMappings = await loadAllGroupMappings();
-        const pendingMappings = allMappings.filter(m => m.mappingStatus === 'pending');
-        const approvedMappings = allMappings.filter(m => m.mappingStatus === 'approved');
-        const rejectedMappings = allMappings.filter(m => m.mappingStatus === 'rejected');
+        // NOTE: Old Google mappings UI rendering removed
+        // The new GoogleMappingsReview component (integrated in GroupsTable) handles this now
+        // See: public/js/google-mappings-review.js and public/js/groups-table.js
         
-        if (allMappings.length > 0 && typeof renderGroupMappingReview === 'function') {
-            // Find the directory groups tab container
-            const groupsTab = document.getElementById('directory-groups-tab');
-            if (!groupsTab) return;
-            
-            // Remove existing mapping section if present
-            const existingSection = groupsTab.querySelector('#google-group-mappings-section');
-            if (existingSection) {
-                existingSection.remove();
-            }
-            
-            // Create and append new section at the top of the groups tab
-            const groupMappingSection = document.createElement('div');
-            groupMappingSection.id = 'google-group-mappings-section';
-            groupMappingSection.style.marginBottom = '25px';
-            groupMappingSection.innerHTML = renderGroupMappingReview(pendingMappings, approvedMappings, rejectedMappings);
-            
-            // Insert before the groups list
-            const groupsList = groupsTab.querySelector('#groups-list');
-            if (groupsList && groupsList.parentNode) {
-                groupsList.parentNode.insertBefore(groupMappingSection, groupsList.parentNode.firstChild);
-            } else {
-                groupsTab.appendChild(groupMappingSection);
-            }
-            
-            // Add red dot indicator to Groups tab if there are pending mappings
-            updateGroupsTabIndicator(pendingMappings.length > 0);
-        } else {
-            // Remove red dot if no pending mappings
-            updateGroupsTabIndicator(false);
-        }
+        // The GroupsTable component will handle showing the red dot indicator
+        // when there are pending mappings
     } catch (error) {
         console.error('Error loading group mappings section:', error);
     }
@@ -1396,7 +1387,7 @@ async function loadGroupsList() {
         
         // Use the new groups table renderer if available
         if (typeof renderGroupsTable === 'function') {
-            renderGroupsTable(allGroups);
+            renderGroupsTable(allGroups, contacts);
         } else {
             renderGroupsList(allGroups);
         }
@@ -1437,7 +1428,7 @@ async function loadTags() {
         
         // Use the new tags table renderer if available
         if (typeof renderTagsTable === 'function') {
-            renderTagsTable(allTags);
+            renderTagsTable(allTags, contacts);
         } else {
             renderTags(allTags);
         }
@@ -1528,14 +1519,6 @@ function searchGroups() {
         g.name.toLowerCase().includes(query)
     );
     renderGroupsList(filtered);
-}
-
-function searchTags() {
-    const query = document.getElementById('tag-search').value.toLowerCase();
-    const filtered = allTags.filter(t => 
-        t.text.toLowerCase().includes(query)
-    );
-    renderTags(filtered);
 }
 
 // Group Management Modal Functions
@@ -2123,15 +2106,6 @@ async function removeContactFromGroup(contactId) {
 }
 
 // Tag Management Modal Functions
-function showCreateTagModal() {
-    document.getElementById('tag-modal-title').textContent = 'Create Tag';
-    document.getElementById('tag-form').reset();
-    document.getElementById('tag-id').value = '';
-    document.getElementById('tag-modal-error').classList.add('hidden');
-    document.getElementById('tag-modal-success').classList.add('hidden');
-    document.getElementById('tag-modal').classList.remove('hidden');
-}
-
 function showEditTagModal(tagId) {
     const tag = allTags.find(t => t.id === tagId);
     if (!tag) {

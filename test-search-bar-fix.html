@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Bar Fix Test</title>
+  <link rel="stylesheet" href="public/css/contacts-table.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 20px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+    }
+    .test-result {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f3f4f6;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .success { background: #d1fae5; color: #065f46; }
+    .error { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+  <h1>Search Bar Fix Test</h1>
+  
+  <div class="test-section">
+    <h2>Test 1: Search Input Visibility</h2>
+    <div id="search-container-1"></div>
+    <div id="result-1" class="test-result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 2: Typing in Search Bar</h2>
+    <div id="search-container-2"></div>
+    <div id="result-2" class="test-result"></div>
+    <p><strong>Instructions:</strong> Type "test" in the search bar above. You should see the text appear and the result below update.</p>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 3: Filter Syntax</h2>
+    <div id="search-container-3"></div>
+    <div id="result-3" class="test-result"></div>
+    <p><strong>Instructions:</strong> Type "tag:work" in the search bar above. You should see autocomplete suggestions.</p>
+  </div>
+
+  <script src="public/js/contacts-table.js"></script>
+  <script>
+    // Test data
+    const testContacts = [
+      { id: '1', name: 'Alice Johnson', email: 'alice@example.com', tags: [{ text: 'work' }] },
+      { id: '2', name: 'Bob Smith', email: 'bob@example.com', tags: [{ text: 'friend' }] },
+      { id: '3', name: 'Charlie Brown', email: 'charlie@example.com', tags: [{ text: 'work' }, { text: 'friend' }] }
+    ];
+
+    // Test 1: Basic rendering
+    const container1 = document.getElementById('search-container-1');
+    const searchBar1 = new SearchFilterBar(container1, {
+      onSearch: (query) => {
+        document.getElementById('result-1').textContent = `✓ Search bar rendered successfully`;
+        document.getElementById('result-1').className = 'test-result success';
+      }
+    });
+    searchBar1.render();
+    
+    setTimeout(() => {
+      const input1 = container1.querySelector('.search-input');
+      if (input1) {
+        document.getElementById('result-1').textContent = `✓ Search input found: ${input1.placeholder}`;
+        document.getElementById('result-1').className = 'test-result success';
+      } else {
+        document.getElementById('result-1').textContent = `✗ Search input not found`;
+        document.getElementById('result-1').className = 'test-result error';
+      }
+    }, 100);
+
+    // Test 2: Typing test
+    const container2 = document.getElementById('search-container-2');
+    const searchBar2 = new SearchFilterBar(container2, {
+      onSearch: (query) => {
+        document.getElementById('result-2').textContent = `Search query: "${query}"`;
+        document.getElementById('result-2').className = 'test-result success';
+      },
+      onFilter: (filters) => {
+        const filterText = JSON.stringify(filters, null, 2);
+        const currentText = document.getElementById('result-2').textContent;
+        document.getElementById('result-2').textContent = currentText + `\nFilters: ${filterText}`;
+      }
+    });
+    searchBar2.render();
+
+    // Test 3: Filter syntax with autocomplete
+    const container3 = document.getElementById('search-container-3');
+    const searchBar3 = new SearchFilterBar(container3, {
+      onSearch: (query) => {
+        document.getElementById('result-3').textContent = `Search query: "${query}"`;
+      },
+      onFilter: (filters) => {
+        const filterText = JSON.stringify(filters, null, 2);
+        document.getElementById('result-3').textContent = `Filters parsed: ${filterText}`;
+        document.getElementById('result-3').className = 'test-result success';
+      },
+      onFetchTags: () => ['work', 'friend', 'family'],
+      onFetchGroups: () => ['colleagues', 'close-friends']
+    });
+    searchBar3.render();
+
+    // Monitor for autocomplete
+    const input3 = container3.querySelector('.search-input');
+    if (input3) {
+      const observer = new MutationObserver((mutations) => {
+        const autocomplete = container3.querySelector('.search-autocomplete-list');
+        if (autocomplete) {
+          const items = autocomplete.querySelectorAll('.search-autocomplete-item');
+          document.getElementById('result-3').textContent += `\n✓ Autocomplete shown with ${items.length} suggestions`;
+          document.getElementById('result-3').className = 'test-result success';
+        }
+      });
+      observer.observe(container3, { childList: true, subtree: true });
+    }
+
+    console.log('Search bar tests initialized');
+  </script>
+</body>
+</html>

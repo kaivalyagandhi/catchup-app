@@ -326,15 +326,17 @@ class TagsTable {
 
 ### 8. GoogleMappingsReview Component
 
-**Purpose**: Display Google Contacts group mapping review UI
+**Purpose**: Display Google Contacts group mapping review UI with member selection
 
 **Interface**:
 ```javascript
 class GoogleMappingsReview {
   constructor(container, mappings, onApprove, onReject)
   render()
-  approveMapping(mappingId)
+  approveMapping(mappingId, excludedMembers)
   rejectMapping(mappingId)
+  toggleMemberSelection(mappingId, memberId)
+  getExcludedMembers(mappingId)
   hide()
 }
 ```
@@ -342,9 +344,13 @@ class GoogleMappingsReview {
 **Behavior**:
 - Displays above groups table when mappings pending
 - Shows Google group name → CatchUp group suggestion
+- Expandable member list with checkboxes for selection/deselection
+- Tracks excluded members per mapping
 - Approve/Reject buttons for each mapping
+- Sends excluded member list when approving
 - Hides automatically when all mappings processed
 - Updates red dot indicator on tab
+- Uses minimalist design matching groups table aesthetic
 
 ## Data Models
 
@@ -409,7 +415,9 @@ interface GoogleMapping {
   suggestedGroupId: string
   suggestedGroupName: string
   status: 'pending' | 'approved' | 'rejected'
+  excludedMembers: string[] // Google contact IDs excluded by user
   createdAt: Date
+  updatedAt: Date
 }
 ```
 

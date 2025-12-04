@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Groups Member List</title>
+    <link rel="stylesheet" href="/css/groups-table.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-info {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .test-info h3 {
+            margin-top: 0;
+            color: #0369a1;
+        }
+        .auth-section {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .auth-section input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        .auth-section button {
+            padding: 8px 16px;
+            margin: 5px;
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .auth-section button:hover {
+            background: #0284c7;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        #groups-list {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Groups Member List Verification</h1>
+    
+    <div class="test-info">
+        <h3>Test Instructions:</h3>
+        <ol>
+            <li>Login with your credentials</li>
+            <li>Click "Load Groups & Contacts" to fetch data</li>
+            <li>Look for groups with contact counts > 0</li>
+            <li>Click the ▶ arrow next to a group to expand it</li>
+            <li>Verify that member names, emails, and phone numbers are displayed</li>
+        </ol>
+    </div>
+
+    <div class="auth-section">
+        <h3>Authentication</h3>
+        <input type="email" id="email" placeholder="Email" value="test@example.com">
+        <input type="password" id="password" placeholder="Password" value="password123">
+        <button onclick="login()">Login</button>
+        <button onclick="loadData()">Load Groups & Contacts</button>
+        <div id="auth-status"></div>
+    </div>
+
+    <div id="groups-list"></div>
+
+    <script src="/js/groups-table.js"></script>
+    <script>
+        let authToken = null;
+        let userId = null;
+        let contacts = [];
+        let groups = [];
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    userId = data.user.id;
+                    window.authToken = authToken;
+                    window.userId = userId;
+                    
+                    document.getElementById('auth-status').innerHTML = 
+                        `<div class="status success">✓ Logged in as ${data.user.email}</div>`;
+                } else {
+                    document.getElementById('auth-status').innerHTML = 
+                        `<div class="status error">✗ ${data.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('auth-status').innerHTML = 
+                    `<div class="status error">✗ ${error.message}</div>`;
+            }
+        }
+
+        async function loadData() {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+
+            try {
+                // Load contacts first
+                document.getElementById('auth-status').innerHTML = 
+                    '<div class="status">Loading contacts...</div>';
+                
+                const contactsResponse = await fetch(`/api/contacts?userId=${userId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!contactsResponse.ok) {
+                    throw new Error('Failed to load contacts');
+                }
+                
+                contacts = await contactsResponse.json();
+                window.contacts = contacts; // Make available globally
+                
+                document.getElementById('auth-status').innerHTML = 
+                    `<div class="status success">✓ Loaded ${contacts.length} contacts</div>`;
+
+                // Load groups
+                document.getElementById('auth-status').innerHTML += 
+                    '<div class="status">Loading groups...</div>';
+                
+                const groupsResponse = await fetch(`/api/groups-tags/groups`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!groupsResponse.ok) {
+                    throw new Error('Failed to load groups');
+                }
+                
+                groups = await groupsResponse.json();
+                
+                document.getElementById('auth-status').innerHTML += 
+                    `<div class="status success">✓ Loaded ${groups.length} groups</div>`;
+
+                // Log first group for debugging
+                if (groups.length > 0) {
+                    console.log('First group:', groups[0]);
+                    console.log('Has contactIds?', Array.isArray(groups[0].contactIds));
+                    console.log('Contact count:', groups[0].contactCount);
+                    if (groups[0].contactIds && groups[0].contactIds.length > 0) {
+                        console.log('First contact ID:', groups[0].contactIds[0]);
+                        const firstContact = contacts.find(c => c.id === groups[0].contactIds[0]);
+                        console.log('First contact found?', firstContact);
+                    }
+                }
+
+                // Render groups table with contacts
+                renderGroupsTable(groups, contacts);
+                
+                document.getElementById('auth-status').innerHTML += 
+                    '<div class="status success">✓ Groups table rendered. Try expanding a group with contacts!</div>';
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('auth-status').innerHTML += 
+                    `<div class="status error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-login if credentials are stored
+        window.addEventListener('DOMContentLoaded', () => {
+            const storedToken = localStorage.getItem('authToken');
+            const storedUserId = localStorage.getItem('userId');
+            
+            if (storedToken && storedUserId) {
+                authToken = storedToken;
+                userId = storedUserId;
+                window.authToken = authToken;
+                window.userId = userId;
+                
+                document.getElementById('auth-status').innerHTML = 
+                    '<div class="status success">✓ Using stored credentials</div>';
+            }
+        });
+    </script>
+</body>
+</html>

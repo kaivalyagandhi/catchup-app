@@ -22,6 +22,7 @@ export interface GroupMapping {
   suggestedGroupName: string | null;
   confidenceScore: number | null;
   suggestionReason: string | null;
+  excludedMembers: string[]; // Google contact resource names excluded by user
   lastSyncedAt: Date | null;
   syncEnabled: boolean;
   createdAt: Date;
@@ -41,6 +42,7 @@ export interface GroupMappingData {
   suggestedGroupName?: string;
   confidenceScore?: number;
   suggestionReason?: string;
+  excludedMembers?: string[];
   syncEnabled?: boolean;
 }
 
@@ -59,6 +61,7 @@ interface GroupMappingRow {
   suggested_group_name: string | null;
   confidence_score: number | null;
   suggestion_reason: string | null;
+  excluded_members: string[];
   last_synced_at: Date | null;
   sync_enabled: boolean;
   created_at: Date;
@@ -216,6 +219,10 @@ export class PostgresGroupMappingRepository implements GroupMappingRepository {
       fields.push(`mapping_status = $${paramCount++}`);
       values.push(data.mappingStatus);
     }
+    if (data.excludedMembers !== undefined) {
+      fields.push(`excluded_members = $${paramCount++}`);
+      values.push(data.excludedMembers);
+    }
 
     if (fields.length === 0) {
       // No updates, just return current mapping
@@ -312,6 +319,7 @@ export class PostgresGroupMappingRepository implements GroupMappingRepository {
       suggestedGroupName: row.suggested_group_name,
       confidenceScore: row.confidence_score,
       suggestionReason: row.suggestion_reason,
+      excludedMembers: row.excluded_members || [],
       lastSyncedAt: row.last_synced_at,
       syncEnabled: row.sync_enabled,
       createdAt: row.created_at,

@@ -12,6 +12,7 @@ import { Group } from '../types';
  */
 export interface GroupWithCount extends Group {
   contactCount: number;
+  contactIds?: string[];
 }
 
 /**
@@ -311,7 +312,10 @@ export class PostgresGroupRepository implements GroupRepository {
 
   async getGroupWithContactCount(id: string, userId: string): Promise<GroupWithCount | null> {
     const result = await pool.query(
-      `SELECT g.*, COUNT(cg.contact_id) as contact_count
+      `SELECT 
+         g.*,
+         COUNT(cg.contact_id) as contact_count,
+         ARRAY_AGG(cg.contact_id) FILTER (WHERE cg.contact_id IS NOT NULL) as contact_ids
        FROM groups g
        LEFT JOIN contact_groups cg ON g.id = cg.group_id
        WHERE g.id = $1 AND g.user_id = $2
@@ -328,7 +332,10 @@ export class PostgresGroupRepository implements GroupRepository {
 
   async listGroupsWithContactCounts(userId: string): Promise<GroupWithCount[]> {
     const result = await pool.query(
-      `SELECT g.*, COUNT(cg.contact_id) as contact_count
+      `SELECT 
+         g.*,
+         COUNT(cg.contact_id) as contact_count,
+         ARRAY_AGG(cg.contact_id) FILTER (WHERE cg.contact_id IS NOT NULL) as contact_ids
        FROM groups g
        LEFT JOIN contact_groups cg ON g.id = cg.group_id
        WHERE g.user_id = $1 AND g.archived = false
@@ -375,6 +382,7 @@ export class PostgresGroupRepository implements GroupRepository {
     return {
       ...this.mapRowToGroup(row),
       contactCount: parseInt(row.contact_count, 10) || 0,
+      contactIds: row.contact_ids || [],
     };
   }
 }

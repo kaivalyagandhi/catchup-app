@@ -132,25 +132,27 @@ class GroupsTable {
    * Requirements: 13.2
    */
   renderMemberRows(group) {
-    if (!group.contactIds || group.contactIds.length === 0) {
-      return '';
-    }
-
     const members = group.contactIds
-      .map(contactId => this.contacts.find(c => c.id === contactId))
-      .filter(contact => contact); // Filter out any null/undefined
+      ? group.contactIds
+          .map(contactId => this.contacts.find(c => c.id === contactId))
+          .filter(contact => contact)
+      : [];
+
+    let html = `
+      <tr class="member-row add-contact-row" data-group-id="${group.id}">
+        <td colspan="4" style="padding-left: 40px;">
+          <button class="btn-add-contact" data-group-id="${group.id}" title="Add contact to group">
+            ➕ Add Contact
+          </button>
+        </td>
+      </tr>
+    `;
 
     if (members.length === 0) {
-      return `
-        <tr class="member-row" data-group-id="${group.id}">
-          <td colspan="4" style="padding-left: 40px; color: #6b7280; font-style: italic;">
-            No contacts in this group
-          </td>
-        </tr>
-      `;
+      return html;
     }
 
-    return members.map(contact => `
+    html += members.map(contact => `
       <tr class="member-row" data-group-id="${group.id}">
         <td style="padding-left: 40px;">
           <span class="member-icon">👤</span>
@@ -158,9 +160,15 @@ class GroupsTable {
         </td>
         <td>${this.escapeHtml(contact.email || '')}</td>
         <td>${this.escapeHtml(contact.phone || '')}</td>
-        <td></td>
+        <td style="text-align: center;">
+          <button class="btn-remove-contact" data-group-id="${group.id}" data-contact-id="${contact.id}" data-contact-name="${this.escapeHtml(contact.name)}" title="Remove from group">
+            ✕
+          </button>
+        </td>
       </tr>
     `).join('');
+
+    return html;
   }
 
   /**
@@ -385,20 +393,25 @@ class GroupsTable {
       }
 
       // Make API call to create group
+      const userId = window.userId || localStorage.getItem('userId');
+      const authToken = localStorage.getItem('authToken');
+      
       const response = await fetch('/api/contacts/groups', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
-          userId: window.userId, // Assumes userId is available globally
+          userId: userId,
           ...groupData,
           contactIds: [] // New group starts with no contacts
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create group: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to create group: ${response.statusText}`);
       }
 
       const newGroup = await response.json();
@@ -465,12 +478,19 @@ class GroupsTable {
 
     try {
       // Make API call to delete group
-      const response = await fetch(`/api/contacts/groups/${groupId}?userId=${window.userId}`, {
-        method: 'DELETE'
+      const userId = window.userId || localStorage.getItem('userId');
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await fetch(`/api/contacts/groups/${groupId}?userId=${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to delete group: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to delete group: ${response.statusText}`);
       }
 
       // Remove from data arrays
@@ -546,6 +566,28 @@ class GroupsTable {
       });
     });
 
+    // Add contact button handlers
+    this.container.querySelectorAll('.btn-add-contact').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const groupId = e.target.dataset.groupId;
+        if (groupId) {
+          this.showAddContactModal(groupId);
+        }
+      });
+    });
+
+    // Remove contact button handlers
+    this.container.querySelectorAll('.btn-remove-contact').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const groupId = e.target.dataset.groupId;
+        const contactId = e.target.dataset.contactId;
+        const contactName = e.target.dataset.contactName;
+        if (groupId && contactId) {
+          this.removeContactFromGroup(groupId, contactId, contactName);
+        }
+      });
+    });
+
     // Editable cell handlers (Requirement 13.3)
     this.container.querySelectorAll('td.editable').forEach(cell => {
       cell.addEventListener('click', (e) => {
@@ -608,19 +650,24 @@ class GroupsTable {
       this.render();
 
       // Make API call
+      const userId = window.userId || localStorage.getItem('userId');
+      const authToken = localStorage.getItem('authToken');
+      
       const response = await fetch(`/api/contacts/groups/${groupId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
-          userId: window.userId,
+          userId: userId,
           [field]: value
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to update group: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to update group: ${response.statusText}`);
       }
 
       const updatedGroup = await response.json();
@@ -644,6 +691,200 @@ class GroupsTable {
       group[field] = originalValue;
       this.render();
       this.showError(`Failed to update ${field}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Show add contact modal
+   */
+  showAddContactModal(groupId) {
+    const group = this.data.find(g => g.id === groupId);
+    if (!group) {
+      return;
+    }
+
+    // Get contacts not already in the group
+    const existingContactIds = new Set(group.contactIds || []);
+    const availableContacts = this.contacts.filter(c => !existingContactIds.has(c.id));
+
+    if (availableContacts.length === 0) {
+      this.showError('All contacts are already in this group');
+      return;
+    }
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'contact-search-modal';
+    modal.innerHTML = `
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add Contact to ${this.escapeHtml(group.name)}</h3>
+          <button class="modal-close" title="Close">✕</button>
+        </div>
+        <div class="modal-body">
+          <input type="text" class="contact-search-input" placeholder="Search contacts..." autofocus />
+          <div class="contact-search-results"></div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const searchInput = modal.querySelector('.contact-search-input');
+    const resultsContainer = modal.querySelector('.contact-search-results');
+    const closeBtn = modal.querySelector('.modal-close');
+    const overlay = modal.querySelector('.modal-overlay');
+
+    // Render initial results
+    const renderResults = (query = '') => {
+      const filtered = query
+        ? availableContacts.filter(c => 
+            c.name.toLowerCase().includes(query.toLowerCase()) ||
+            (c.email && c.email.toLowerCase().includes(query.toLowerCase())) ||
+            (c.phone && c.phone.includes(query))
+          )
+        : availableContacts;
+
+      if (filtered.length === 0) {
+        resultsContainer.innerHTML = '<div class="no-results">No contacts found</div>';
+        return;
+      }
+
+      resultsContainer.innerHTML = filtered.map(contact => `
+        <div class="contact-result-item" data-contact-id="${contact.id}">
+          <div class="contact-result-info">
+            <div class="contact-result-name">${this.escapeHtml(contact.name)}</div>
+            <div class="contact-result-details">
+              ${contact.email ? this.escapeHtml(contact.email) : ''}
+              ${contact.email && contact.phone ? ' • ' : ''}
+              ${contact.phone ? this.escapeHtml(contact.phone) : ''}
+            </div>
+          </div>
+          <button class="btn-select-contact" data-contact-id="${contact.id}">Add</button>
+        </div>
+      `).join('');
+
+      // Attach click handlers
+      resultsContainer.querySelectorAll('.btn-select-contact').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const contactId = e.target.dataset.contactId;
+          await this.addContactToGroup(groupId, contactId);
+          modal.remove();
+        });
+      });
+    };
+
+    renderResults();
+
+    // Search input handler
+    searchInput.addEventListener('input', (e) => {
+      renderResults(e.target.value);
+    });
+
+    // Close handlers
+    const closeModal = () => modal.remove();
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', closeModal);
+
+    // ESC key to close
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+        document.removeEventListener('keydown', handleEsc);
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+  }
+
+  /**
+   * Add a contact to a group
+   */
+  async addContactToGroup(groupId, contactId) {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await fetch(`/api/groups-tags/groups/${groupId}/contacts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          contactIds: [contactId]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to add contact: ${response.statusText}`);
+      }
+
+      // Update local data
+      const group = this.data.find(g => g.id === groupId);
+      if (group) {
+        if (!group.contactIds) {
+          group.contactIds = [];
+        }
+        group.contactIds.push(contactId);
+      }
+
+      // Re-render
+      this.render();
+
+      // Show success message
+      if (typeof showToast === 'function') {
+        showToast('Contact added to group', 'success');
+      }
+
+    } catch (error) {
+      console.error('Error adding contact to group:', error);
+      this.showError(`Failed to add contact: ${error.message}`);
+    }
+  }
+
+  /**
+   * Remove a contact from a group
+   */
+  async removeContactFromGroup(groupId, contactId, contactName) {
+    // Confirm removal
+    const confirmed = confirm(`Remove ${contactName} from this group?`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await fetch(`/api/groups-tags/groups/${groupId}/contacts/${contactId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to remove contact: ${response.statusText}`);
+      }
+
+      // Update local data
+      const group = this.data.find(g => g.id === groupId);
+      if (group && group.contactIds) {
+        group.contactIds = group.contactIds.filter(id => id !== contactId);
+      }
+
+      // Re-render
+      this.render();
+
+      // Show success message
+      if (typeof showToast === 'function') {
+        showToast('Contact removed from group', 'success');
+      }
+
+    } catch (error) {
+      console.error('Error removing contact from group:', error);
+      this.showError(`Failed to remove contact: ${error.message}`);
     }
   }
 
@@ -704,7 +945,7 @@ class GroupsTable {
    */
   async refreshAfterMappingAction() {
     try {
-      // Fetch updated groups data
+      // Fetch updated groups data with contact counts and IDs
       const authToken = window.authToken || localStorage.getItem('authToken');
       const API_BASE = window.API_BASE || '/api';
       const userId = window.userId || localStorage.getItem('userId');
@@ -713,7 +954,8 @@ class GroupsTable {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/contacts/groups?userId=${userId}`, {
+      // Use the groups-tags endpoint that returns contactIds
+      const response = await fetch(`${API_BASE}/groups-tags/groups`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       
@@ -723,8 +965,23 @@ class GroupsTable {
       
       const groups = await response.json();
       
-      // Update data and re-render
-      this.refresh(groups, this.contacts);
+      // Also refresh contacts to ensure we have the latest data
+      const contactsResponse = await fetch(`${API_BASE}/contacts?userId=${userId}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      
+      if (contactsResponse.ok) {
+        const contacts = await contactsResponse.json();
+        // Update global contacts if available
+        if (window.contacts) {
+          window.contacts = contacts;
+        }
+        // Update data and re-render with fresh contacts
+        this.refresh(groups, contacts);
+      } else {
+        // If contacts fetch fails, just update groups with existing contacts
+        this.refresh(groups, this.contacts);
+      }
       
     } catch (error) {
       console.error('Error refreshing groups after mapping action:', error);
@@ -760,19 +1017,23 @@ let globalGroupsTable = null;
  * Global function to render groups table
  * Called by app.js after loading groups
  */
-function renderGroupsTable(groups) {
+function renderGroupsTable(groups, contacts = []) {
   const container = document.getElementById('groups-list');
   if (!container) {
     console.error('groups-list container not found');
     return;
   }
   
+  // Get contacts from global scope if not passed
+  const contactsData = contacts.length > 0 ? contacts : (window.contacts || []);
+  
   // Create or update the table instance
   if (!globalGroupsTable) {
-    globalGroupsTable = new GroupsTable(container, groups);
+    globalGroupsTable = new GroupsTable(container, groups, contactsData);
   } else {
     globalGroupsTable.data = groups;
     globalGroupsTable.filteredData = groups;
+    globalGroupsTable.contacts = contactsData;
   }
   
   globalGroupsTable.render();
