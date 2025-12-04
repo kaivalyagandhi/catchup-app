@@ -332,27 +332,31 @@ class VoiceNoteRecorder {
       }
       
       // Create a chat session for this recording (needed for pending edits)
-      try {
-        const sessionResponse = await fetch('/api/edits/sessions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'x-user-id': userId,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (sessionResponse.ok) {
-          const sessionData = await sessionResponse.json();
-          this.chatSessionId = sessionData.session?.id || sessionData.id;
-          console.log('[VoiceNotes] Created chat session:', this.chatSessionId);
-        } else {
-          const errorData = await sessionResponse.json();
-          console.error('[VoiceNotes] Failed to create chat session:', sessionResponse.status, errorData);
+      // This is critical - without it, enrichment suggestions won't create pending edits
+      const sessionResponse = await fetch('/api/edits/sessions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-user-id': userId,
+          'Content-Type': 'application/json'
         }
-      } catch (err) {
-        console.error('[VoiceNotes] Error creating chat session:', err);
+      });
+      
+      if (!sessionResponse.ok) {
+        const errorData = await sessionResponse.json().catch(() => ({}));
+        console.error('[VoiceNotes] Failed to create chat session:', sessionResponse.status, errorData);
+        throw new Error(`Failed to create chat session: ${errorData.error || sessionResponse.statusText}`);
       }
+      
+      const sessionData = await sessionResponse.json();
+      this.chatSessionId = sessionData.session?.id || sessionData.id;
+      
+      if (!this.chatSessionId) {
+        console.error('[VoiceNotes] Chat session created but no ID returned:', sessionData);
+        throw new Error('Chat session created but no ID returned');
+      }
+      
+      console.log('[VoiceNotes] ✓ Created chat session:', this.chatSessionId);
       
       const response = await fetch('/api/voice-notes/sessions', {
         method: 'POST',

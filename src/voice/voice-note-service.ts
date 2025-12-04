@@ -874,7 +874,7 @@ export class VoiceNoteService extends EventEmitter {
         const newSuggestions = allSuggestions.filter(s => !session.emittedSuggestionIds!.has(s.id));
 
         if (newSuggestions && newSuggestions.length > 0) {
-          console.log(`Emitting ${newSuggestions.length} NEW enrichment suggestions for session ${sessionId}`);
+          console.log(`[VoiceNoteService] Emitting ${newSuggestions.length} NEW enrichment suggestions for session ${sessionId}`);
 
           // Mark these suggestions as emitted BEFORE emitting them
           // This prevents race conditions if multiple analysis runs happen concurrently
@@ -882,10 +882,14 @@ export class VoiceNoteService extends EventEmitter {
             session.emittedSuggestionIds.add(suggestion.id);
           }
 
+          // Create pending edits on backend for persistence
+          // This ensures suggestions are saved even if frontend doesn't receive them
+          await this.createPendingEditsFromSuggestions(session.userId, newSuggestions, userContacts);
+
           // Group suggestions by contact hint
           const groupedByContact = this.groupSuggestionsByContact(newSuggestions);
 
-          // Emit one event per contact
+          // Emit one event per contact (for real-time UI updates)
           for (const [contactName, suggestions] of groupedByContact) {
             this.emit('enrichment_update', {
               sessionId,
@@ -899,6 +903,120 @@ export class VoiceNoteService extends EventEmitter {
     } catch (error) {
       console.error('Error analyzing for enrichment:', error);
       console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    }
+  }
+
+  /**
+   * Create pending edits from enrichment suggestions on the backend
+   * 
+   * This ensures suggestions are persisted even if the frontend doesn't receive them
+   * 
+   * @param userId - User ID
+   * @param suggestions - Array of enrichment suggestions
+   * @param userContacts - User's contacts for matching
+   * @private
+   */
+  private async createPendingEditsFromSuggestions(
+    userId: string,
+    suggestions: EnrichmentSuggestion[],
+    userContacts: Contact[]
+  ): Promise<void> {
+    try {
+      const { EditService } = await import('../edits/edit-service.js');
+      const { SessionManager } = await import('../edits/session-manager.js');
+      
+      const editService = new EditService();
+      const sessionManager = new SessionManager();
+      
+      // Get or create an active chat session for pending edits
+      let chatSession = await sessionManager.getActiveSession(userId);
+      if (!chatSession) {
+        chatSession = await sessionManager.startSession(userId);
+        console.log(`[VoiceNoteService] Created new chat session ${chatSession.id} for pending edits`);
+      }
+      
+      // Group suggestions by contact
+      const groupedByContact = this.groupSuggestionsByContact(suggestions);
+      
+      // Create edits for each contact's suggestions
+      for (const [contactName, contactSuggestions] of groupedByContact) {
+        // Find the contact by name (exact or fuzzy match)
+        let contact = userContacts.find(c => c.name.toLowerCase() === contactName.toLowerCase());
+        
+        if (!contact) {
+          // Try fuzzy matching
+          const nameLower = contactName.toLowerCase();
+          const nameParts = nameLower.split(/\s+/);
+          contact = userContacts.find(c => {
+            const contactNameLower = c.name.toLowerCase();
+            const contactParts = contactNameLower.split(/\s+/);
+            return nameParts.some(part =>
+              contactParts.some(cPart =>
+                cPart.includes(part) || part.includes(cPart)
+              )
+            );
+          });
+        }
+        
+        if (!contact) {
+          console.warn(`[VoiceNoteService] Could not find contact for: ${contactName}`);
+          continue;
+        }
+        
+        // Create an edit for each suggestion
+        for (const suggestion of contactSuggestions) {
+          try {
+            // Map suggestion type to edit type and field
+            let editType: string;
+            let field: string | undefined;
+            
+            switch (suggestion.type) {
+              case 'location':
+              case 'phone':
+              case 'email':
+                editType = 'update_contact_field';
+                field = suggestion.type;
+                break;
+              case 'note':
+                editType = 'update_contact_field';
+                field = 'customNotes';
+                break;
+              case 'tag':
+                editType = 'add_tag';
+                break;
+              case 'interest':
+                editType = 'add_to_group';
+                break;
+              default:
+                console.warn(`[VoiceNoteService] Unknown suggestion type: ${suggestion.type}`);
+                continue;
+            }
+            
+            // Create pending edit
+            await editService.createPendingEdit({
+              userId,
+              sessionId: chatSession.id,
+              editType: editType as any,
+              targetContactId: contact.id,
+              targetContactName: contact.name,
+              field,
+              proposedValue: suggestion.value,
+              confidenceScore: suggestion.confidence,
+              source: {
+                type: 'voice_transcript',
+                transcriptExcerpt: suggestion.sourceText?.substring(0, 200),
+                timestamp: new Date(),
+              },
+            });
+            
+            console.log(`[VoiceNoteService] ✓ Created pending edit: ${editType} ${field || ''} = ${suggestion.value} for ${contact.name}`);
+          } catch (err) {
+            console.error(`[VoiceNoteService] ✗ Failed to create pending edit:`, err);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[VoiceNoteService] Error creating pending edits from suggestions:', error);
     }
   }
 
