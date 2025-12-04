@@ -22,7 +22,7 @@ function groupEditsByContact(edits) {
         contactId,
         contactName,
         edits: [],
-        isExpanded: true,
+        isExpanded: false,
         acceptedCount: 0,
         rejectedCount: 0,
         totalCount: 0
