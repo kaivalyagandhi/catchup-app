@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding Controller Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 4px solid #2196F3;
+            background: #f9f9f9;
+        }
+        .test-case h3 {
+            margin-top: 0;
+            color: #2196F3;
+        }
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .state-display {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background: #e0e0e0;
+            margin: 0 5px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .step.active {
+            background: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        .step.completed {
+            background: #8BC34A;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Onboarding Controller Tests</h1>
+    
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <div class="controls">
+            <button onclick="runAllTests()">Run All Tests</button>
+            <button onclick="clearResults()">Clear Results</button>
+            <button onclick="resetController()">Reset Controller</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Current State</h2>
+        <div id="current-state" class="state-display">No state loaded</div>
+        
+        <h3>Progress</h3>
+        <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill" style="width: 0%">0%</div>
+        </div>
+        <div id="progress-info" class="info">
+            <strong>Milestone:</strong> <span id="current-milestone">Not started</span><br>
+            <strong>Next:</strong> <span id="next-milestone">Start onboarding</span>
+        </div>
+
+        <h3>Step Navigation</h3>
+        <div class="step-indicator" id="step-indicator"></div>
+        <div class="controls">
+            <button onclick="testPreviousStep()" id="prev-btn">← Previous</button>
+            <button onclick="testNextStep()" id="next-btn">Next →</button>
+            <button onclick="testSkipStep()">Skip Step</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Unit Tests</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <script src="onboarding-controller.js"></script>
+    <script>
+        // Mock auth credentials for testing
+        const mockAuthToken = 'test-token-123';
+        const mockUserId = 'test-user-456';
+
+        // Initialize controller
+        onboardingController.initialize(mockAuthToken, mockUserId);
+
+        // Listen to events
+        onboardingController.on('stateChange', (state) => {
+            console.log('State changed:', state);
+            updateStateDisplay();
+        });
+
+        onboardingController.on('progressUpdate', (progress) => {
+            console.log('Progress updated:', progress);
+            updateProgressDisplay();
+        });
+
+        onboardingController.on('stepChange', (change) => {
+            console.log('Step changed:', change);
+            updateStepIndicator();
+        });
+
+        onboardingController.on('error', (error) => {
+            console.error('Controller error:', error);
+            addResult('Error', error.message, false);
+        });
+
+        function updateStateDisplay() {
+            const state = onboardingController.getState();
+            const display = document.getElementById('current-state');
+            
+            if (state) {
+                display.textContent = JSON.stringify(state, null, 2);
+            } else {
+                display.textContent = 'No state loaded';
+            }
+            
+            updateProgressDisplay();
+            updateStepIndicator();
+        }
+
+        function updateProgressDisplay() {
+            const progress = onboardingController.getProgress();
+            
+            // Update progress bar
+            const progressFill = document.getElementById('progress-fill');
+            progressFill.style.width = `${progress.percentComplete}%`;
+            progressFill.textContent = `${progress.percentComplete}%`;
+            
+            // Update milestone info
+            document.getElementById('current-milestone').textContent = progress.currentMilestone;
+            document.getElementById('next-milestone').textContent = progress.nextMilestone;
+            
+            // Update navigation buttons
+            document.getElementById('prev-btn').disabled = !onboardingController.canGoPrevious();
+            document.getElementById('next-btn').disabled = !onboardingController.canGoNext();
+        }
+
+        function updateStepIndicator() {
+            const indicator = document.getElementById('step-indicator');
+            const currentStep = onboardingController.getCurrentStep();
+            
+            indicator.innerHTML = STEP_ORDER.map(step => {
+                const isActive = step === currentStep;
+                const isCompleted = onboardingController.isStepCompleted(step);
+                const className = isActive ? 'step active' : (isCompleted ? 'step completed' : 'step');
+                const displayName = step.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                return `<div class="${className}">${displayName}</div>`;
+            }).join('');
+        }
+
+        function addResult(testName, message, success) {
+            const resultsDiv = document.getElementById('test-results');
+            const testCase = document.createElement('div');
+            testCase.className = 'test-case';
+            
+            const title = document.createElement('h3');
+            title.textContent = testName;
+            testCase.appendChild(title);
+            
+            const result = document.createElement('div');
+            result.className = `result ${success ? 'success' : 'error'}`;
+            result.textContent = message;
+            testCase.appendChild(result);
+            
+            resultsDiv.appendChild(testCase);
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        function resetController() {
+            onboardingController.state = null;
+            onboardingController.clearLocalStorage();
+            updateStateDisplay();
+            addResult('Reset', 'Controller reset successfully', true);
+        }
+
+        // Test functions
+        async function testInitialization() {
+            try {
+                // Test with mock state (since we can't actually call the API)
+                onboardingController.state = {
+                    userId: mockUserId,
+                    currentStep: ONBOARDING_STEPS.WELCOME,
+                    completedSteps: [],
+                    uncategorizedContacts: [],
+                    categorizedContacts: [],
+                    startedAt: new Date().toISOString(),
+                    lastUpdatedAt: new Date().toISOString(),
+                    progressData: {
+                        categorizedCount: 0,
+                        totalCount: 10,
+                        milestonesReached: [],
+                        timeSpent: 0
+                    }
+                };
+                
+                onboardingController.saveStateToLocalStorage();
+                updateStateDisplay();
+                
+                addResult('Initialization', 'Controller initialized with mock state', true);
+            } catch (error) {
+                addResult('Initialization', error.message, false);
+            }
+        }
+
+        async function testStateTransitions() {
+            try {
+                if (!onboardingController.getState()) {
+                    await testInitialization();
+                }
+                
+                const initialStep = onboardingController.getCurrentStep();
+                
+                // Test marking step as complete
+                await onboardingController.markStepComplete(initialStep);
+                
+                if (onboardingController.isStepCompleted(initialStep)) {
+                    addResult('State Transitions', `Step "${initialStep}" marked as complete`, true);
+                } else {
+                    throw new Error('Step not marked as complete');
+                }
+            } catch (error) {
+                addResult('State Transitions', error.message, false);
+            }
+        }
+
+        async function testNavigation() {
+            try {
+                if (!onboardingController.getState()) {
+                    await testInitialization();
+                }
+                
+                const initialStep = onboardingController.getCurrentStep();
+                const canGoNext = onboardingController.canGoNext();
+                const canGoPrev = onboardingController.canGoPrevious();
+                
+                let message = `Initial step: ${initialStep}\n`;
+                message += `Can go next: ${canGoNext}\n`;
+                message += `Can go previous: ${canGoPrev}`;
+                
+                addResult('Navigation', message, true);
+            } catch (error) {
+                addResult('Navigation', error.message, false);
+            }
+        }
+
+        async function testProgressCalculation() {
+            try {
+                if (!onboardingController.getState()) {
+                    await testInitialization();
+                }
+                
+                const progress = onboardingController.getProgress();
+                
+                let message = `Total contacts: ${progress.totalContacts}\n`;
+                message += `Categorized: ${progress.categorizedContacts}\n`;
+                message += `Percent complete: ${progress.percentComplete}%\n`;
+                message += `Current milestone: ${progress.currentMilestone}\n`;
+                message += `Next milestone: ${progress.nextMilestone}`;
+                
+                addResult('Progress Calculation', message, true);
+            } catch (error) {
+                addResult('Progress Calculation', error.message, false);
+            }
+        }
+
+        async function testContactCategorization() {
+            try {
+                if (!onboardingController.getState()) {
+                    await testInitialization();
+                }
+                
+                // Add some contacts
+                onboardingController.addCategorizedContact('contact-1');
+                onboardingController.addCategorizedContact('contact-2');
+                onboardingController.addCategorizedContact('contact-3');
+                
+                const categorized = onboardingController.getCategorizedContacts();
+                
+                if (categorized.length === 3) {
+                    addResult('Contact Categorization', `Successfully added 3 contacts: ${categorized.join(', ')}`, true);
+                } else {
+                    throw new Error(`Expected 3 contacts, got ${categorized.length}`);
+                }
+                
+                // Test removal
+                onboardingController.removeCategorizedContact('contact-2');
+                const afterRemoval = onboardingController.getCategorizedContacts();
+                
+                if (afterRemoval.length === 2 && !afterRemoval.includes('contact-2')) {
+                    addResult('Contact Removal', 'Successfully removed contact', true);
+                } else {
+                    throw new Error('Contact removal failed');
+                }
+            } catch (error) {
+                addResult('Contact Categorization', error.message, false);
+            }
+        }
+
+        async function testLocalStorage() {
+            try {
+                if (!onboardingController.getState()) {
+                    await testInitialization();
+                }
+                
+                // Save to localStorage
+                onboardingController.saveStateToLocalStorage();
+                
+                // Load from localStorage
+                const loaded = onboardingController.loadStateFromLocalStorage();
+                
+                if (loaded && loaded.userId === mockUserId) {
+                    addResult('LocalStorage', 'State saved and loaded successfully', true);
+                } else {
+                    throw new Error('Failed to load state from localStorage');
+                }
+            } catch (error) {
+                addResult('LocalStorage', error.message, false);
+            }
+        }
+
+        async function testEventListeners() {
+            try {
+                let eventFired = false;
+                
+                const testCallback = (data) => {
+                    eventFired = true;
+                };
+                
+                // Register listener
+                onboardingController.on('progressUpdate', testCallback);
+                
+                // Trigger event
+                onboardingController.updateProgressData({ test: true });
+                
+                // Unregister listener
+                onboardingController.off('progressUpdate', testCallback);
+                
+                if (eventFired) {
+                    addResult('Event Listeners', 'Event listener registered and fired successfully', true);
+                } else {
+                    throw new Error('Event listener did not fire');
+                }
+            } catch (error) {
+                addResult('Event Listeners', error.message, false);
+            }
+        }
+
+        async function testStepValidation() {
+            try {
+                // Test valid steps
+                const validSteps = Object.values(ONBOARDING_STEPS);
+                const allValid = validSteps.every(step => STEP_ORDER.includes(step));
+                
+                if (allValid) {
+                    addResult('Step Validation', `All ${validSteps.length} steps are valid`, true);
+                } else {
+                    throw new Error('Some steps are invalid');
+                }
+                
+                // Test step index
+                const welcomeIndex = onboardingController.getStepIndex(ONBOARDING_STEPS.WELCOME);
+                const completionIndex = onboardingController.getStepIndex(ONBOARDING_STEPS.COMPLETION);
+                
+                if (welcomeIndex === 0 && completionIndex === STEP_ORDER.length - 1) {
+                    addResult('Step Indexing', 'Step indices are correct', true);
+                } else {
+                    throw new Error('Step indices are incorrect');
+                }
+            } catch (error) {
+                addResult('Step Validation', error.message, false);
+            }
+        }
+
+        // Interactive test functions
+        async function testNextStep() {
+            try {
+                if (!onboardingController.getState()) {
+                    await testInitialization();
+                }
+                
+                const currentStep = onboardingController.getCurrentStep();
+                await onboardingController.nextStep();
+                const newStep = onboardingController.getCurrentStep();
+                
+                addResult('Next Step', `Moved from "${currentStep}" to "${newStep}"`, true);
+            } catch (error) {
+                addResult('Next Step', error.message, false);
+            }
+        }
+
+        async function testPreviousStep() {
+            try {
+                if (!onboardingController.getState()) {
+                    await testInitialization();
+                }
+                
+                const currentStep = onboardingController.getCurrentStep();
+                await onboardingController.previousStep();
+                const newStep = onboardingController.getCurrentStep();
+                
+                addResult('Previous Step', `Moved from "${currentStep}" to "${newStep}"`, true);
+            } catch (error) {
+                addResult('Previous Step', error.message, false);
+            }
+        }
+
+        async function testSkipStep() {
+            try {
+                if (!onboardingController.getState()) {
+                    await testInitialization();
+                }
+                
+                const currentStep = onboardingController.getCurrentStep();
+                await onboardingController.skipStep();
+                const newStep = onboardingController.getCurrentStep();
+                
+                if (onboardingController.isStepCompleted(currentStep)) {
+                    addResult('Skip Step', `Skipped "${currentStep}", moved to "${newStep}"`, true);
+                } else {
+                    throw new Error('Step not marked as completed after skip');
+                }
+            } catch (error) {
+                addResult('Skip Step', error.message, false);
+            }
+        }
+
+        async function runAllTests() {
+            clearResults();
+            
+            addResult('Test Suite', 'Starting all tests...', true);
+            
+            await testInitialization();
+            await testStateTransitions();
+            await testNavigation();
+            await testProgressCalculation();
+            await testContactCategorization();
+            await testLocalStorage();
+            await testEventListeners();
+            await testStepValidation();
+            
+            addResult('Test Suite', 'All tests completed!', true);
+        }
+
+        // Initialize display
+        updateStateDisplay();
+    </script>
+</body>
+</html>

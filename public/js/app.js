@@ -10,7 +10,7 @@ let userEmail = null;
 let contacts = [];
 let suggestions = [];
 let groups = []; // Store groups for lookup
-let currentPage = 'contacts';
+let currentPage = 'directory';
 let isLoginMode = true;
 let currentContactTags = []; // Tags being edited in the modal
 let originalContactTags = []; // Original tags before editing (for comparison on save)
@@ -25,25 +25,74 @@ let rejectQueue = Promise.resolve();
 let isRejectingInProgress = false;
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Initialize theme before anything else to ensure proper styling
     if (typeof themeManager !== 'undefined') {
         themeManager.initializeTheme();
         updateThemeIcon();
     }
     
+    // Check if we're handling a Google SSO redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth_success') === 'true' && urlParams.get('token')) {
+        // Keep loading screen visible while Google SSO processes the redirect
+        // Initialize Google SSO to handle the redirect, then it will reload
+        if (typeof initGoogleSSO === 'function') {
+            initGoogleSSO();
+        }
+        return;
+    }
+    
+    // Check auth first and wait for it to complete
     checkAuth();
     setupNavigation();
     
-    // Handle OAuth callback if present in URL
-    if (window.location.search.includes('code=')) {
-        // Check if this is a Google Contacts callback
-        if (window.location.search.includes('state=google_contacts') || 
-            (!window.location.search.includes('state=') && typeof handleGoogleContactsOAuthCallback === 'function')) {
-            handleGoogleContactsOAuthCallback();
-        } else {
-            handleCalendarOAuthCallback();
-        }
+    // Handle calendar success redirect
+    if (urlParams.get('calendar_success') === 'true') {
+        // Clear URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Show success message
+        setTimeout(() => {
+            showToast('Google Calendar connected successfully!', 'success');
+            // Refresh preferences if on that page
+            if (currentPage === 'preferences') {
+                loadPreferences();
+            }
+        }, 500);
+    }
+    
+    // Handle calendar error redirect
+    if (urlParams.get('calendar_error')) {
+        const error = urlParams.get('calendar_error');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => {
+            showToast(`Failed to connect calendar: ${error}`, 'error');
+        }, 500);
+    }
+    
+    // Handle contacts success redirect
+    if (urlParams.get('contacts_success') === 'true') {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => {
+            showToast('Google Contacts connected successfully! Syncing contacts...', 'success');
+            // Refresh preferences if on that page
+            if (currentPage === 'preferences') {
+                loadPreferences();
+            }
+            // Refresh contacts if on that page
+            if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
+                loadContacts();
+            }
+        }, 500);
+    }
+    
+    // Handle contacts error redirect
+    if (urlParams.get('contacts_error')) {
+        const error = urlParams.get('contacts_error');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => {
+            showToast(`Failed to connect contacts: ${error}`, 'error');
+        }, 500);
     }
     
     // Listen for contacts updates from voice notes enrichment
@@ -54,10 +103,14 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Refreshing contacts list');
         loadContacts();
         
-        // Also refresh groups/tags view if visible
-        if (currentPage === 'groups-tags') {
-            console.log('Refreshing groups and tags');
-            loadGroupsAndTags();
+        // Also refresh groups/tags view if visible in directory
+        if (currentPage === 'directory') {
+            console.log('Refreshing directory tabs');
+            if (currentDirectoryTab === 'groups') {
+                loadGroupsManagement();
+            } else if (currentDirectoryTab === 'tags') {
+                loadTagsManagement();
+            }
         }
     });
     
@@ -94,21 +147,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Authentication
 function checkAuth() {
-    // Show loading screen immediately
-    showLoadingScreen();
+    // Loading screen is already visible by default
     
-    // Small delay to ensure smooth transition
-    setTimeout(() => {
-        authToken = localStorage.getItem('authToken');
-        userId = localStorage.getItem('userId');
-        userEmail = localStorage.getItem('userEmail');
-        
-        if (authToken && userId) {
-            showMainApp();
-        } else {
-            showAuthScreen();
-        }
-    }, 300);
+    authToken = localStorage.getItem('authToken');
+    userId = localStorage.getItem('userId');
+    userEmail = localStorage.getItem('userEmail');
+    
+    if (authToken && userId) {
+        showMainApp();
+    } else {
+        showAuthScreen();
+    }
 }
 
 function showLoadingScreen() {
@@ -121,6 +170,11 @@ function showAuthScreen() {
     document.getElementById('loading-screen').classList.add('hidden');
     document.getElementById('auth-screen').classList.remove('hidden');
     document.getElementById('main-app').classList.add('hidden');
+    
+    // Initialize Google SSO when showing auth screen
+    if (typeof initGoogleSSO === 'function') {
+        initGoogleSSO();
+    }
 }
 
 function showMainApp() {
@@ -350,6 +404,17 @@ function setupNavigation() {
             navigateTo(page);
         });
     });
+    
+    // Handle hash changes for directory tabs
+    window.addEventListener('hashchange', () => {
+        const hash = window.location.hash;
+        if (hash.startsWith('#directory/')) {
+            const tab = hash.split('/')[1];
+            if (tab && ['contacts', 'circles', 'groups', 'tags'].includes(tab)) {
+                switchDirectoryTab(tab);
+            }
+        }
+    });
 }
 
 function navigateTo(page) {
@@ -369,11 +434,8 @@ function navigateTo(page) {
     
     // Load page data
     switch(page) {
-        case 'contacts':
-            loadContacts();
-            break;
-        case 'groups-tags':
-            loadGroupsTagsManagement();
+        case 'directory':
+            loadDirectory();
             break;
         case 'suggestions':
             loadSuggestions();
@@ -383,6 +445,58 @@ function navigateTo(page) {
             break;
         case 'preferences':
             loadPreferences();
+            break;
+    }
+}
+
+// Directory page management
+let currentDirectoryTab = 'contacts';
+
+function loadDirectory() {
+    // Check URL hash for tab
+    const hash = window.location.hash;
+    const tabMatch = hash.match(/#directory\/(contacts|circles|groups|tags)/);
+    
+    if (tabMatch) {
+        currentDirectoryTab = tabMatch[1];
+    }
+    
+    // Switch to the appropriate tab
+    switchDirectoryTab(currentDirectoryTab);
+}
+
+function switchDirectoryTab(tab) {
+    currentDirectoryTab = tab;
+    
+    // Update URL hash without page reload
+    window.history.replaceState(null, '', `#directory/${tab}`);
+    
+    // Update active tab button
+    document.querySelectorAll('.directory-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    
+    // Hide all tab contents
+    document.querySelectorAll('.directory-tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // Show selected tab content
+    document.getElementById(`directory-${tab}-tab`).classList.remove('hidden');
+    
+    // Load tab data
+    switch(tab) {
+        case 'contacts':
+            loadContacts();
+            break;
+        case 'circles':
+            loadCirclesVisualization();
+            break;
+        case 'groups':
+            loadGroupsManagement();
+            break;
+        case 'tags':
+            loadTagsManagement();
             break;
     }
 }
@@ -432,7 +546,19 @@ async function loadContacts() {
         if (!response.ok) throw new Error('Failed to load contacts');
         
         contacts = await response.json();
-        renderContacts(contacts);
+        
+        // Use the new contacts table renderer if available
+        if (typeof renderContactsTable === 'function') {
+            renderContactsTable(contacts);
+        } else {
+            renderContacts(contacts);
+        }
+        
+        // Check onboarding status after contacts are loaded
+        // Use setTimeout to avoid blocking the UI
+        setTimeout(() => {
+            checkOnboardingStatus();
+        }, 500);
     } catch (error) {
         console.error('Error loading contacts:', error);
         showError('contacts-list', 'Failed to load contacts');
@@ -517,6 +643,20 @@ function renderContacts(contactsList) {
             `;
         }
         
+        // Render circle assignment
+        let circleHtml = '';
+        if (contact.dunbarCircle) {
+            const circleInfo = getCircleInfo(contact.dunbarCircle);
+            circleHtml = `
+                <div style="margin-top: 12px; padding: 8px; background: ${circleInfo.color}15; border-left: 3px solid ${circleInfo.color}; border-radius: 4px;">
+                    <p style="font-size: 12px; font-weight: 600; color: ${circleInfo.color}; margin: 0;">
+                        <span style="margin-right: 6px;">${circleInfo.emoji}</span>${circleInfo.name}
+                    </p>
+                    ${contact.circleConfidence ? `<p style="font-size: 11px; color: var(--text-secondary); margin: 4px 0 0 0;">Confidence: ${Math.round(contact.circleConfidence * 100)}%</p>` : ''}
+                </div>
+            `;
+        }
+        
         return `
             <div class="card">
                 ${sourceBadge}
@@ -528,6 +668,7 @@ function renderContacts(contactsList) {
                 ${contact.frequencyPreference ? `<p><span style="font-size: 16px; margin-right: 8px;">📅</span><strong>Frequency:</strong> ${contact.frequencyPreference}</p>` : ''}
                 ${contact.customNotes ? `<p><span style="font-size: 16px; margin-right: 8px;">📝</span><strong>Notes:</strong> ${escapeHtml(contact.customNotes)}</p>` : ''}
                 ${lastSyncInfo}
+                ${circleHtml}
                 ${tagsHtml}
                 ${groupsHtml}
                 <div class="card-actions">
@@ -691,7 +832,7 @@ async function saveContact(event) {
         
         // Refresh groups and tags management view if it's currently visible
         // This ensures contact counts are updated in the management view
-        if (currentPage === 'groups-tags') {
+        if (currentPage === 'directory' && (currentDirectoryTab === 'groups' || currentDirectoryTab === 'tags')) {
             await loadGroupsTagsManagement();
         }
     } catch (error) {
@@ -828,7 +969,7 @@ async function deleteContact(id) {
         
         // Refresh groups and tags management view if it's currently visible
         // This ensures contact counts are updated in the management view
-        if (currentPage === 'groups-tags') {
+        if (currentPage === 'directory' && (currentDirectoryTab === 'groups' || currentDirectoryTab === 'tags')) {
             await loadGroupsTagsManagement();
         }
     } catch (error) {
@@ -875,9 +1016,9 @@ async function seedTestData() {
         showToast(`Test data loaded! Created ${result.contactsCreated} contacts, ${result.groupsCreated || 0} groups, ${result.tagsCreated || 0} tags, ${result.suggestionsCreated || 0} suggestions`, 'success');
         
         // Reload current page data
-        if (currentPage === 'contacts') {
+        if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
             loadContacts();
-        } else if (currentPage === 'groups-tags') {
+        } else if (currentPage === 'directory' && (currentDirectoryTab === 'groups' || currentDirectoryTab === 'tags')) {
             loadGroupsTagsManagement();
         } else if (currentPage === 'suggestions') {
             loadSuggestions();
@@ -921,9 +1062,9 @@ async function clearTestData() {
         showToast(`All data cleared! Deleted ${result.contactsDeleted} contacts, ${result.groupsDeleted || 0} groups, ${result.tagsDeleted || 0} tags, ${result.suggestionsDeleted || 0} suggestions`, 'success');
         
         // Reload current page data
-        if (currentPage === 'contacts') {
+        if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
             loadContacts();
-        } else if (currentPage === 'groups-tags') {
+        } else if (currentPage === 'directory' && (currentDirectoryTab === 'groups' || currentDirectoryTab === 'tags')) {
             loadGroupsTagsManagement();
         } else if (currentPage === 'suggestions') {
             loadSuggestions();
@@ -1049,6 +1190,186 @@ let allTags = [];
 async function loadGroupsTagsManagement() {
     await loadGroupsList();
     await loadTags();
+    await loadGroupMappingsSection();
+}
+
+// New functions for directory tabs
+async function loadGroupsManagement() {
+    await loadGroupsList();
+    await loadGroupMappingsSection();
+}
+
+async function loadTagsManagement() {
+    await loadTags();
+}
+
+// Store visualizer instance globally
+let circlesVisualizer = null;
+
+// Handle contact click in Circles visualization
+function handleCircleContactClick(data) {
+    const { contactId, contact } = data;
+    
+    // Open the edit contact modal with the clicked contact
+    if (contactId) {
+        editContact(contactId);
+    }
+}
+
+// Load Circles visualization
+async function loadCirclesVisualization() {
+    const container = document.getElementById('circles-visualizer-container');
+    if (!container) return;
+    
+    // Show loading state
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading circles visualization...</p>
+        </div>
+    `;
+    
+    try {
+        // Load contacts if not already loaded
+        if (contacts.length === 0) {
+            await loadContacts();
+        }
+        
+        // Load groups if not already loaded
+        if (groups.length === 0) {
+            const groupsResponse = await fetch(`${API_BASE}/contacts/groups?userId=${userId}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            
+            if (groupsResponse.ok) {
+                groups = await groupsResponse.json();
+            }
+        }
+        
+        // Check if CircularVisualizer is available
+        if (typeof CircularVisualizer !== 'undefined') {
+            // Clear container
+            container.innerHTML = '';
+            
+            // Create visualizer container
+            const visualizerDiv = document.createElement('div');
+            visualizerDiv.id = 'circles-visualizer';
+            visualizerDiv.style.width = '100%';
+            visualizerDiv.style.minHeight = '600px';
+            container.appendChild(visualizerDiv);
+            
+            // Initialize CircularVisualizer
+            circlesVisualizer = new CircularVisualizer('circles-visualizer');
+            
+            // Render with contacts and groups
+            circlesVisualizer.render(contacts, groups);
+            
+            // Add contact click handler
+            circlesVisualizer.on('contactClick', (data) => {
+                handleCircleContactClick(data);
+            });
+        } else {
+            // Fallback if CircularVisualizer is not loaded
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3>Circles Visualization</h3>
+                    <p>The circles visualization shows your contacts organized by relationship tier.</p>
+                    <p>Use the "Manage Circles" button to assign contacts to circles.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading circles visualization:', error);
+        container.innerHTML = `
+            <div class="error-state">
+                <h3>Failed to load circles</h3>
+                <p>${escapeHtml(error.message)}</p>
+                <button onclick="loadCirclesVisualization()" class="retry-btn">Retry</button>
+            </div>
+        `;
+    }
+}
+
+// Update red dot indicator on Groups tab
+function updateGroupsTabIndicator(show) {
+    const groupsTab = document.querySelector('.directory-tab[data-tab="groups"]');
+    if (!groupsTab) return;
+    
+    // Remove existing dot if present
+    const existingDot = groupsTab.querySelector('.notification-dot');
+    if (existingDot) {
+        existingDot.remove();
+    }
+    
+    // Add dot if needed
+    if (show) {
+        const dot = document.createElement('span');
+        dot.className = 'notification-dot';
+        groupsTab.appendChild(dot);
+    }
+}
+
+async function loadGroupMappingsSection() {
+    // Only show if Google Contacts is connected
+    if (typeof loadAllGroupMappings !== 'function') {
+        return;
+    }
+    
+    try {
+        // Check if user has Google Contacts connected
+        const statusResponse = await fetch(`${API_BASE}/contacts/oauth/status`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (!statusResponse.ok) {
+            return;
+        }
+        
+        const status = await statusResponse.json();
+        if (!status.connected) {
+            return;
+        }
+        
+        // Load and render group mappings
+        const allMappings = await loadAllGroupMappings();
+        const pendingMappings = allMappings.filter(m => m.mappingStatus === 'pending');
+        const approvedMappings = allMappings.filter(m => m.mappingStatus === 'approved');
+        const rejectedMappings = allMappings.filter(m => m.mappingStatus === 'rejected');
+        
+        if (allMappings.length > 0 && typeof renderGroupMappingReview === 'function') {
+            // Find the directory groups tab container
+            const groupsTab = document.getElementById('directory-groups-tab');
+            if (!groupsTab) return;
+            
+            // Remove existing mapping section if present
+            const existingSection = groupsTab.querySelector('#google-group-mappings-section');
+            if (existingSection) {
+                existingSection.remove();
+            }
+            
+            // Create and append new section at the top of the groups tab
+            const groupMappingSection = document.createElement('div');
+            groupMappingSection.id = 'google-group-mappings-section';
+            groupMappingSection.style.marginBottom = '25px';
+            groupMappingSection.innerHTML = renderGroupMappingReview(pendingMappings, approvedMappings, rejectedMappings);
+            
+            // Insert before the groups list
+            const groupsList = groupsTab.querySelector('#groups-list');
+            if (groupsList && groupsList.parentNode) {
+                groupsList.parentNode.insertBefore(groupMappingSection, groupsList.parentNode.firstChild);
+            } else {
+                groupsTab.appendChild(groupMappingSection);
+            }
+            
+            // Add red dot indicator to Groups tab if there are pending mappings
+            updateGroupsTabIndicator(pendingMappings.length > 0);
+        } else {
+            // Remove red dot if no pending mappings
+            updateGroupsTabIndicator(false);
+        }
+    } catch (error) {
+        console.error('Error loading group mappings section:', error);
+    }
 }
 
 async function loadGroupsList() {
@@ -1072,7 +1393,13 @@ async function loadGroupsList() {
         }
         
         allGroups = await response.json();
-        renderGroupsList(allGroups);
+        
+        // Use the new groups table renderer if available
+        if (typeof renderGroupsTable === 'function') {
+            renderGroupsTable(allGroups);
+        } else {
+            renderGroupsList(allGroups);
+        }
     } catch (error) {
         console.error('Error loading groups:', error);
         container.innerHTML = `
@@ -1107,7 +1434,13 @@ async function loadTags() {
         }
         
         allTags = await response.json();
-        renderTags(allTags);
+        
+        // Use the new tags table renderer if available
+        if (typeof renderTagsTable === 'function') {
+            renderTagsTable(allTags);
+        } else {
+            renderTags(allTags);
+        }
     } catch (error) {
         console.error('Error loading tags:', error);
         container.innerHTML = `
@@ -1309,7 +1642,7 @@ async function saveGroup(event) {
             
             // Refresh contacts view if it's currently visible
             // This ensures group badges are updated in the contacts list
-            if (currentPage === 'contacts') {
+            if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
                 await loadContacts();
             }
             
@@ -1373,7 +1706,7 @@ async function deleteGroup(groupId) {
             
             // Refresh contacts view if it's currently visible
             // This ensures group badges are removed from contacts
-            if (currentPage === 'contacts') {
+            if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
                 await loadContacts();
             }
         });
@@ -1661,7 +1994,7 @@ async function addSelectedContactsToGroup() {
         
         // Refresh contacts view if it's currently visible
         // This ensures group badges are updated in the contacts list
-        if (currentPage === 'contacts') {
+        if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
             await loadContacts();
         }
         
@@ -1770,7 +2103,7 @@ async function removeContactFromGroup(contactId) {
             
             // Refresh contacts view if it's currently visible
             // This ensures group badges are updated in the contacts list
-            if (currentPage === 'contacts') {
+            if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
                 await loadContacts();
             }
             
@@ -1900,7 +2233,7 @@ async function saveTag(event) {
             
             // Refresh contacts view if it's currently visible
             // This ensures tag badges are updated in the contacts list
-            if (currentPage === 'contacts') {
+            if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
                 await loadContacts();
             }
             
@@ -1964,7 +2297,7 @@ async function deleteTag(tagId) {
             
             // Refresh contacts view if it's currently visible
             // This ensures tag badges are removed from contacts
-            if (currentPage === 'contacts') {
+            if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
                 await loadContacts();
             }
         });
@@ -2252,7 +2585,7 @@ async function addSelectedContactsToTag() {
         
         // Refresh contacts view if it's currently visible
         // This ensures tag badges are updated in the contacts list
-        if (currentPage === 'contacts') {
+        if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
             await loadContacts();
         }
         
@@ -2361,7 +2694,7 @@ async function removeContactFromTag(contactId) {
             
             // Refresh contacts view if it's currently visible
             // This ensures tag badges are updated in the contacts list
-            if (currentPage === 'contacts') {
+            if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
                 await loadContacts();
             }
             
@@ -3042,8 +3375,18 @@ async function loadCalendar() {
 
 async function connectCalendar() {
     try {
+        // Ensure we have userId
+        if (!userId) {
+            userId = localStorage.getItem('userId');
+        }
+        
+        if (!userId) {
+            alert('You must be logged in to connect Google Calendar');
+            return;
+        }
+        
         // Get the authorization URL from the backend
-        const response = await fetch('/api/calendar/oauth/authorize');
+        const response = await fetch(`/api/calendar/oauth/authorize?userId=${userId}`);
         const data = await response.json();
         
         if (!data.authUrl) {
@@ -4418,6 +4761,21 @@ async function loadPreferences() {
             </div>
         </div>
         
+        <!-- Account Section -->
+        <div style="margin-top: 30px;">
+            <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--border-primary); padding-bottom: 10px;">Account</h3>
+            
+            <div class="card">
+                <div id="account-info-loading" style="text-align: center; padding: 20px;">
+                    <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
+                    <p style="color: var(--text-secondary); font-size: 14px;">Loading account information...</p>
+                </div>
+                <div id="account-info-content" style="display: none;">
+                    <!-- Account info will be populated here -->
+                </div>
+            </div>
+        </div>
+        
         <!-- Developer Section -->
         ${testDataStatus ? `
         <div style="margin-top: 30px;">
@@ -4567,27 +4925,148 @@ async function loadPreferences() {
         googleContactsCard.innerHTML = renderGoogleContactsCard(googleContactsStatus);
     }
     
-    // Load and render group mappings if connected
-    if (googleContactsStatus.connected && typeof loadAllGroupMappings === 'function') {
-        try {
-            const allMappings = await loadAllGroupMappings();
-            const pendingMappings = allMappings.filter(m => m.mappingStatus === 'pending');
-            const approvedMappings = allMappings.filter(m => m.mappingStatus === 'approved');
-            const rejectedMappings = allMappings.filter(m => m.mappingStatus === 'rejected');
-            
-            if (allMappings.length > 0 && typeof renderGroupMappingReview === 'function') {
-                const groupMappingSection = document.createElement('div');
-                groupMappingSection.innerHTML = renderGroupMappingReview(pendingMappings, approvedMappings, rejectedMappings);
-                container.appendChild(groupMappingSection);
-            }
-        } catch (error) {
-            console.error('Error loading group mappings:', error);
-        }
-    }
+    // Group mappings moved to Directory page (Groups tab)
+    
+    // Load account information
+    loadAccountInfo();
 }
 
 function savePreferences() {
     alert('Preferences saved!');
+}
+
+/**
+ * Load and display account information
+ * Requirements: 8.1, 8.2, 8.3, 8.4, 8.5
+ */
+async function loadAccountInfo() {
+    const loadingDiv = document.getElementById('account-info-loading');
+    const contentDiv = document.getElementById('account-info-content');
+    
+    if (!loadingDiv || !contentDiv) {
+        return;
+    }
+    
+    try {
+        // Fetch user info
+        const userResponse = await fetch(`${API_BASE}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (!userResponse.ok) {
+            throw new Error('Failed to load user info');
+        }
+        
+        const user = await userResponse.json();
+        
+        // Fetch last login
+        let lastLogin = null;
+        try {
+            const lastLoginResponse = await fetch(`${API_BASE}/auth/last-login`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            
+            if (lastLoginResponse.ok) {
+                const data = await lastLoginResponse.json();
+                lastLogin = data.lastLogin;
+            }
+        } catch (error) {
+            console.error('Error loading last login:', error);
+        }
+        
+        // Determine authentication method display
+        let authMethodDisplay = 'Email/Password';
+        let connectionStatus = 'Connected';
+        let connectionStatusColor = 'var(--status-success-text)';
+        
+        if (user.authProvider === 'google') {
+            authMethodDisplay = 'Google SSO';
+        } else if (user.authProvider === 'both') {
+            authMethodDisplay = 'Google SSO + Email/Password';
+        }
+        
+        // Format dates
+        const createdDate = new Date(user.createdAt);
+        const createdDateStr = createdDate.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        let lastLoginStr = 'This is your first login';
+        if (lastLogin) {
+            const lastLoginDate = new Date(lastLogin);
+            lastLoginStr = formatRelativeTime(lastLoginDate);
+        }
+        
+        // Build the account info HTML
+        contentDiv.innerHTML = `
+            <div style="display: grid; gap: 15px;">
+                <!-- Email -->
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">EMAIL</div>
+                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${escapeHtml(user.email)}</div>
+                    </div>
+                </div>
+                
+                <!-- Authentication Method -->
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                    <div style="flex: 1;">
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">AUTHENTICATION METHOD</div>
+                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${authMethodDisplay}</div>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; background: var(--status-success-bg); color: ${connectionStatusColor}; font-weight: 600;">
+                            ${connectionStatus}
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Account Created -->
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">MEMBER SINCE</div>
+                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${createdDateStr}</div>
+                    </div>
+                </div>
+                
+                <!-- Last Login -->
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">LAST LOGIN</div>
+                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${lastLoginStr}</div>
+                    </div>
+                </div>
+                
+                <!-- Sign Out Button -->
+                <div style="margin-top: 10px;">
+                    <button onclick="logout()" style="width: 100%; padding: 12px; background: var(--color-danger); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Hide loading, show content
+        loadingDiv.style.display = 'none';
+        contentDiv.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error loading account info:', error);
+        
+        // Show error state
+        loadingDiv.style.display = 'none';
+        contentDiv.style.display = 'block';
+        contentDiv.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: var(--status-error-text);">
+                <p style="margin-bottom: 10px;">Failed to load account information</p>
+                <button onclick="loadAccountInfo()" class="secondary" style="padding: 8px 16px; font-size: 13px;">
+                    Retry
+                </button>
+            </div>
+        `;
+    }
 }
 
 // Test Data Management Functions
@@ -4858,11 +5337,11 @@ async function clearAllTestData() {
         );
         
         // Refresh current view immediately
-        if (currentPage === 'contacts') {
+        if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
             await loadContacts();
         } else if (currentPage === 'suggestions') {
             await loadSuggestions();
-        } else if (currentPage === 'groups-tags') {
+        } else if (currentPage === 'directory' && (currentDirectoryTab === 'groups' || currentDirectoryTab === 'tags')) {
             await loadGroupsTagsManagement();
         } else if (currentPage === 'edits') {
             await loadEditsPage();
@@ -5015,11 +5494,11 @@ async function deleteAllUserData() {
         allTags = [];
         
         // Refresh current view
-        if (currentPage === 'contacts') {
+        if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
             await loadContacts();
         } else if (currentPage === 'suggestions') {
             await loadSuggestions();
-        } else if (currentPage === 'groups-tags') {
+        } else if (currentPage === 'directory' && (currentDirectoryTab === 'groups' || currentDirectoryTab === 'tags')) {
             await loadGroupsTagsManagement();
         } else if (currentPage === 'edits') {
             await loadEditsPage();
@@ -5091,7 +5570,7 @@ async function seedTestData() {
         showTestDataSuccess(successMessage);
         
         // Auto-refresh relevant UI sections
-        if (currentPage === 'contacts') {
+        if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
             loadContacts();
         } else if (currentPage === 'suggestions') {
             loadSuggestions();
@@ -5191,7 +5670,7 @@ async function clearTestData() {
         showTestDataSuccess(successMessage);
         
         // Auto-refresh relevant UI sections
-        if (currentPage === 'contacts') {
+        if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
             loadContacts();
         } else if (currentPage === 'suggestions') {
             loadSuggestions();
@@ -5471,5 +5950,552 @@ function hideToast(toastId) {
             }
             activeToasts.delete(toastId);
         }, 300);
+    }
+}
+
+// Circle Management Integration
+// Helper function to get circle information
+function getCircleInfo(circleId) {
+    const circles = {
+        'inner': {
+            name: 'Inner Circle',
+            emoji: '💎',
+            color: '#8b5cf6',
+            description: 'Your closest relationships (up to 5 people)'
+        },
+        'close': {
+            name: 'Close Friends',
+            emoji: '🌟',
+            color: '#3b82f6',
+            description: 'Close friends you see regularly (up to 15 people)'
+        },
+        'active': {
+            name: 'Active Friends',
+            emoji: '🤝',
+            color: '#10b981',
+            description: 'Friends you actively maintain (up to 50 people)'
+        },
+        'casual': {
+            name: 'Casual Network',
+            emoji: '👋',
+            color: '#f59e0b',
+            description: 'Casual acquaintances (up to 150 people)'
+        },
+        'acquaintance': {
+            name: 'Acquaintances',
+            emoji: '👤',
+            color: '#6b7280',
+            description: 'People you know but don\'t interact with often'
+        }
+    };
+    
+    return circles[circleId] || {
+        name: 'Uncategorized',
+        emoji: '❓',
+        color: '#9ca3af',
+        description: 'Not yet assigned to a circle'
+    };
+}
+
+// Open onboarding in management mode
+async function openOnboardingManagement() {
+    try {
+        // Initialize onboarding controller if not already done
+        if (!window.onboardingController) {
+            window.onboardingController = new OnboardingController();
+            window.onboardingController.initialize(authToken, userId);
+        }
+        
+        // Check if user has any contacts
+        if (contacts.length === 0) {
+            const shouldImport = confirm(
+                'You don\'t have any contacts yet. Would you like to import contacts from Google first?'
+            );
+            
+            if (shouldImport) {
+                // Navigate to preferences page where Google Contacts integration is
+                navigateTo('preferences');
+                showToast('Connect Google Contacts to import your contacts', 'info');
+                return;
+            } else {
+                showToast('Add some contacts first to organize them into circles', 'info');
+                return;
+            }
+        }
+        
+        // Preserve current Directory page state
+        const currentState = {
+            tab: 'circles',
+            scrollPosition: window.scrollY,
+            filterState: window.contactsTable ? window.contactsTable.getFilterState() : null
+        };
+        sessionStorage.setItem('directory-return-state', JSON.stringify(currentState));
+        
+        // Start onboarding in management mode
+        const loadingToastId = showToast('Opening circle management...', 'loading');
+        
+        try {
+            // Initialize onboarding in 'manage' mode
+            await window.onboardingController.initializeOnboarding('manage');
+            
+            hideToast(loadingToastId);
+            
+            // Show onboarding modal
+            showOnboardingModal();
+            
+        } catch (error) {
+            hideToast(loadingToastId);
+            console.error('Error opening onboarding:', error);
+            showToast('Failed to open circle management: ' + error.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error in openOnboardingManagement:', error);
+        showToast('An error occurred: ' + error.message, 'error');
+    }
+}
+
+// Show onboarding modal
+function showOnboardingModal() {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'onboarding-modal-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    `;
+    
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.id = 'onboarding-modal';
+    modal.style.cssText = `
+        background: var(--bg-primary);
+        border-radius: 12px;
+        width: 100%;
+        max-width: 1200px;
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    `;
+    
+    // Create modal header
+    const header = document.createElement('div');
+    header.style.cssText = `
+        padding: 24px;
+        border-bottom: 1px solid var(--border-primary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    `;
+    header.innerHTML = `
+        <div>
+            <h2 style="margin: 0; color: var(--text-primary); font-size: 24px;">Manage Circles</h2>
+            <p style="margin: 8px 0 0 0; color: var(--text-secondary); font-size: 14px;">
+                Organize your contacts into relationship circles based on closeness
+            </p>
+        </div>
+        <button onclick="closeOnboardingModal()" style="
+            background: transparent;
+            border: none;
+            font-size: 28px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        " onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='transparent'">
+            ×
+        </button>
+    `;
+    
+    // Create modal body
+    const body = document.createElement('div');
+    body.style.cssText = `
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+    `;
+    
+    // Create instructions
+    const instructions = document.createElement('div');
+    instructions.style.cssText = `
+        background: var(--status-info-bg);
+        color: var(--status-info-text);
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        font-size: 14px;
+        line-height: 1.6;
+    `;
+    instructions.innerHTML = `
+        <strong>How to organize your circles:</strong><br>
+        • Review the contacts below and their current circle assignments<br>
+        • Click on a contact to edit their circle assignment<br>
+        • Inner Circle: Your closest relationships (5 people)<br>
+        • Close Friends: Regular contact (15 people)<br>
+        • Active Friends: Frequent interaction (50 people)<br>
+        • Casual Network: Occasional contact (150 people)<br>
+        • Acquaintances: Infrequent contact (500 people)
+    `;
+    body.appendChild(instructions);
+    
+    // Create contacts list for circle assignment
+    const contactsList = document.createElement('div');
+    contactsList.id = 'onboarding-contacts-list';
+    contactsList.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+    `;
+    
+    // Populate contacts
+    contacts.forEach(contact => {
+        const contactCard = createOnboardingContactCard(contact);
+        contactsList.appendChild(contactCard);
+    });
+    
+    body.appendChild(contactsList);
+    
+    // Create modal footer
+    const footer = document.createElement('div');
+    footer.style.cssText = `
+        padding: 24px;
+        border-top: 1px solid var(--border-primary);
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    `;
+    footer.innerHTML = `
+        <button onclick="closeOnboardingModal()" style="
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        ">
+            Cancel
+        </button>
+        <button onclick="completeOnboarding()" style="
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        ">
+            Save Changes
+        </button>
+    `;
+    
+    // Assemble modal
+    modal.appendChild(header);
+    modal.appendChild(body);
+    modal.appendChild(footer);
+    overlay.appendChild(modal);
+    
+    // Add to page
+    document.body.appendChild(overlay);
+    
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+}
+
+// Create contact card for onboarding
+function createOnboardingContactCard(contact) {
+    const card = document.createElement('div');
+    card.style.cssText = `
+        background: var(--card-bg);
+        border: 1px solid var(--border-primary);
+        border-radius: 8px;
+        padding: 16px;
+        transition: all 0.2s;
+    `;
+    card.onmouseover = () => card.style.borderColor = 'var(--color-primary)';
+    card.onmouseout = () => card.style.borderColor = 'var(--border-primary)';
+    
+    const circleOptions = [
+        { value: 'inner', label: 'Inner Circle', color: '#8b5cf6' },
+        { value: 'close', label: 'Close Friends', color: '#3b82f6' },
+        { value: 'active', label: 'Active Friends', color: '#10b981' },
+        { value: 'casual', label: 'Casual Network', color: '#f59e0b' },
+        { value: 'acquaintance', label: 'Acquaintances', color: '#6b7280' }
+    ];
+    
+    const currentCircle = contact.circle || contact.dunbarCircle ? 
+        ['inner', 'close', 'active', 'casual', 'acquaintance'][contact.dunbarCircle - 1] || 'acquaintance' : 
+        'acquaintance';
+    
+    card.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: var(--color-primary);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                font-size: 16px;
+            ">
+                ${contact.name.charAt(0).toUpperCase()}
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${contact.name}
+                </div>
+                <div style="font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${contact.email || contact.phone || 'No contact info'}
+                </div>
+            </div>
+        </div>
+        <select 
+            id="circle-select-${contact.id}" 
+            onchange="updateContactCircle('${contact.id}', this.value)"
+            style="
+                width: 100%;
+                padding: 8px;
+                border: 1px solid var(--border-primary);
+                border-radius: 6px;
+                background: var(--input-bg);
+                color: var(--text-primary);
+                font-size: 14px;
+                cursor: pointer;
+            "
+        >
+            ${circleOptions.map(opt => `
+                <option value="${opt.value}" ${currentCircle === opt.value ? 'selected' : ''}>
+                    ${opt.label}
+                </option>
+            `).join('')}
+        </select>
+    `;
+    
+    return card;
+}
+
+// Update contact circle assignment
+async function updateContactCircle(contactId, circle) {
+    try {
+        const response = await fetch(`${API_BASE}/contacts/${contactId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ circle })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to update contact circle');
+        }
+        
+        // Update local contact data
+        const contact = contacts.find(c => c.id === contactId);
+        if (contact) {
+            contact.circle = circle;
+            // Map to dunbarCircle for backward compatibility
+            const circleMap = { inner: 1, close: 2, active: 3, casual: 4, acquaintance: 5 };
+            contact.dunbarCircle = circleMap[circle];
+        }
+        
+        console.log(`Updated contact ${contactId} to circle: ${circle}`);
+    } catch (error) {
+        console.error('Error updating contact circle:', error);
+        showToast('Failed to update contact circle', 'error');
+    }
+}
+
+// Close onboarding modal
+function closeOnboardingModal() {
+    const overlay = document.getElementById('onboarding-modal-overlay');
+    if (overlay) {
+        overlay.remove();
+    }
+    
+    // Restore body scroll
+    document.body.style.overflow = '';
+    
+    // Restore Directory page state
+    restoreDirectoryState();
+}
+
+// Complete onboarding and return to Circles tab
+async function completeOnboarding() {
+    try {
+        // Complete onboarding via controller
+        if (window.onboardingController) {
+            await window.onboardingController.completeOnboarding();
+        }
+        
+        showToast('Circle assignments saved successfully!', 'success');
+        
+        // Close modal
+        closeOnboardingModal();
+        
+        // Refresh the Circles visualizer
+        if (window.circularVisualizer) {
+            await loadContacts(); // Reload contacts with updated circles
+            window.circularVisualizer.render(contacts, groups);
+        }
+        
+    } catch (error) {
+        console.error('Error completing onboarding:', error);
+        showToast('Failed to save changes: ' + error.message, 'error');
+    }
+}
+
+// Restore Directory page state after onboarding
+function restoreDirectoryState() {
+    try {
+        const savedState = sessionStorage.getItem('directory-return-state');
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            
+            // Ensure we're on the Directory page
+            if (currentPage !== 'directory') {
+                navigateTo('directory');
+            }
+            
+            // Switch to the saved tab (should be circles)
+            if (state.tab) {
+                switchDirectoryTab(state.tab);
+            }
+            
+            // Restore scroll position
+            if (state.scrollPosition) {
+                setTimeout(() => {
+                    window.scrollTo(0, state.scrollPosition);
+                }, 100);
+            }
+            
+            // Clear saved state
+            sessionStorage.removeItem('directory-return-state');
+        }
+    } catch (error) {
+        console.error('Error restoring directory state:', error);
+    }
+}
+
+// Check if user should be prompted for onboarding
+async function checkOnboardingStatus() {
+    try {
+        // Only check if user is authenticated
+        if (!authToken || !userId) {
+            return;
+        }
+        
+        // Check if onboarding controller is available
+        if (typeof OnboardingController === 'undefined') {
+            return;
+        }
+        
+        // Initialize onboarding controller if not already done
+        if (!window.onboardingController) {
+            window.onboardingController = new OnboardingController();
+            window.onboardingController.initialize(authToken, userId);
+        }
+        
+        // Get onboarding state
+        const state = await window.onboardingController.resumeOnboarding();
+        
+        // Onboarding popups disabled - users can manually access onboarding via the UI
+    } catch (error) {
+        console.error('Error checking onboarding status:', error);
+        // Silently fail - don't interrupt user experience
+    }
+}
+
+// Trigger onboarding after Google Contacts sync
+async function triggerPostImportOnboarding(contactCount) {
+    try {
+        // Check if onboarding controller is available
+        if (typeof OnboardingController === 'undefined') {
+            console.log('Onboarding controller not available');
+            return;
+        }
+        
+        // Initialize onboarding controller if not already done
+        if (!window.onboardingController) {
+            window.onboardingController = new OnboardingController();
+            window.onboardingController.initialize(authToken, userId);
+        }
+        
+        // Show prompt to organize imported contacts
+        const shouldOrganize = confirm(
+            `Successfully imported ${contactCount} contact${contactCount > 1 ? 's' : ''} from Google!\n\nWould you like to organize them into social circles now?`
+        );
+        
+        if (shouldOrganize) {
+            const loadingToastId = showToast('Starting contact organization...', 'loading');
+            
+            try {
+                await window.onboardingController.initializeOnboarding('post_import');
+                hideToast(loadingToastId);
+                showToast('Contact organization started', 'success');
+                
+                // Open onboarding UI
+                alert('Contact Organization\n\nYou can now organize your imported contacts into social circles.\n\nThe full interactive UI with drag-and-drop visualization will guide you through the process.');
+                
+            } catch (error) {
+                hideToast(loadingToastId);
+                console.error('Error starting post-import onboarding:', error);
+                showToast('Failed to start contact organization', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Error in triggerPostImportOnboarding:', error);
+    }
+}
+
+// Check for new user onboarding
+async function checkNewUserOnboarding() {
+    try {
+        // Only check if user is authenticated
+        if (!authToken || !userId) {
+            return;
+        }
+        
+        // Check if onboarding controller is available
+        if (typeof OnboardingController === 'undefined') {
+            return;
+        }
+        
+        // Wait a bit for contacts to load
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // If user has zero contacts, offer onboarding
+        if (contacts.length === 0) {
+            const shouldStart = confirm(
+                'Welcome to CatchUp!\n\nWould you like to import and organize your contacts to get started?'
+            );
+            
+            if (shouldStart) {
+                // Navigate to preferences to connect Google Contacts
+                navigateTo('preferences');
+                showToast('Connect Google Contacts to import your contacts', 'info');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking new user onboarding:', error);
+        // Silently fail
     }
 }

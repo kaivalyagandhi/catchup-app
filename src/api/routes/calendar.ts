@@ -8,11 +8,11 @@ const router = Router();
 router.post('/connect', async (req: Request, res: Response) => {
   try {
     const { authCode, userId } = req.body;
-    
+
     if (!authCode || !userId) {
       return res.status(400).json({ error: 'authCode and userId are required' });
     }
-    
+
     const connection = await calendarService.connectGoogleCalendar(userId, authCode);
     res.status(201).json(connection);
   } catch (error) {
@@ -25,11 +25,11 @@ router.post('/connect', async (req: Request, res: Response) => {
 router.get('/calendars', async (req: Request, res: Response) => {
   try {
     const { userId } = req.query;
-    
+
     if (!userId) {
       return res.status(400).json({ error: 'userId query parameter is required' });
     }
-    
+
     const calendars = await calendarService.listUserCalendars(userId as string);
     res.json(calendars);
   } catch (error) {
@@ -42,11 +42,11 @@ router.get('/calendars', async (req: Request, res: Response) => {
 router.put('/calendars/selection', async (req: Request, res: Response) => {
   try {
     const { userId, calendarIds } = req.body;
-    
+
     if (!userId || !calendarIds || !Array.isArray(calendarIds)) {
       return res.status(400).json({ error: 'userId and calendarIds (array) are required' });
     }
-    
+
     await calendarService.setSelectedCalendars(userId, calendarIds);
     res.status(204).send();
   } catch (error) {
@@ -59,11 +59,11 @@ router.put('/calendars/selection', async (req: Request, res: Response) => {
 router.get('/feed', async (req: Request, res: Response) => {
   try {
     const { userId } = req.query;
-    
+
     if (!userId) {
       return res.status(400).json({ error: 'userId query parameter is required' });
     }
-    
+
     const feedUrl = await feedService.publishSuggestionFeed(userId as string);
     res.json({ feedUrl });
   } catch (error) {
@@ -77,7 +77,7 @@ router.get('/feed/:userId.ics', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     const icalContent = await feedService.generateICalFeed(userId);
-    
+
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${userId}-suggestions.ics"`);
     res.send(icalContent);

@@ -84,11 +84,7 @@ export function applyAvailabilityParameters(
 
   // Apply nighttime filter (remove slots that overlap with nighttime)
   if (params.nighttimeStart && params.nighttimeEnd) {
-    filteredSlots = filterByNighttime(
-      filteredSlots,
-      params.nighttimeStart,
-      params.nighttimeEnd
-    );
+    filteredSlots = filterByNighttime(filteredSlots, params.nighttimeStart, params.nighttimeEnd);
   }
 
   return filteredSlots;
@@ -96,13 +92,10 @@ export function applyAvailabilityParameters(
 
 /**
  * Filter out time slots that overlap with calendar events (busy times)
- * 
+ *
  * This ensures suggestions are only made during truly free time.
  */
-export function filterByCalendarEvents(
-  slots: TimeSlot[],
-  busySlots: TimeSlot[]
-): TimeSlot[] {
+export function filterByCalendarEvents(slots: TimeSlot[], busySlots: TimeSlot[]): TimeSlot[] {
   const result: TimeSlot[] = [];
 
   for (const slot of slots) {
@@ -134,7 +127,7 @@ function slotsOverlap(slot1: TimeSlot, slot2: TimeSlot): boolean {
 
 /**
  * Get truly available time slots by filtering out calendar busy times
- * 
+ *
  * This is the main function to use when generating suggestions to ensure
  * they don't overlap with existing calendar events.
  */
@@ -152,8 +145,8 @@ export async function getAvailableSlots(
 
   // Convert busy events to time slots
   const busySlots: TimeSlot[] = calendarEvents
-    .filter(event => event.isBusy && !event.isAllDay)
-    .map(event => ({
+    .filter((event) => event.isBusy && !event.isAllDay)
+    .map((event) => ({
       start: new Date(event.startTime),
       end: new Date(event.endTime),
       timezone: event.timezone,
@@ -233,12 +226,7 @@ function filterByManualTimeBlocks(slots: TimeSlot[], timeBlocks: TimeBlock[]): T
     for (const block of timeBlocks) {
       if (block.dayOfWeek === slotDayOfWeek) {
         // Check if there's any overlap
-        const overlap = getTimeOverlap(
-          slotStartTime,
-          slotEndTime,
-          block.startTime,
-          block.endTime
-        );
+        const overlap = getTimeOverlap(slotStartTime, slotEndTime, block.startTime, block.endTime);
 
         if (overlap) {
           // Create a new slot for the overlapping portion

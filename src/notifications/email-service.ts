@@ -33,10 +33,16 @@ export class SendGridEmailService implements EmailService {
   private maxRetries: number;
   private retryDelayMs: number;
 
-  constructor(apiKey?: string, fromEmail?: string, maxRetries: number = 3, retryDelayMs: number = 1000) {
+  constructor(
+    apiKey?: string,
+    fromEmail?: string,
+    maxRetries: number = 3,
+    retryDelayMs: number = 1000
+  ) {
     // Use nullish coalescing to properly handle empty strings
     const key = apiKey !== undefined && apiKey !== '' ? apiKey : process.env.SENDGRID_API_KEY;
-    const email = fromEmail !== undefined && fromEmail !== '' ? fromEmail : process.env.SENDGRID_FROM_EMAIL;
+    const email =
+      fromEmail !== undefined && fromEmail !== '' ? fromEmail : process.env.SENDGRID_FROM_EMAIL;
 
     if (!key) {
       throw new Error('SendGrid API key not configured');
@@ -90,7 +96,9 @@ export class SendGridEmailService implements EmailService {
         const messageId = response[0]?.headers?.['x-message-id'] || 'unknown';
 
         // Log successful delivery
-        console.log(`Email sent successfully to ${message.to}, ID: ${messageId}, attempts: ${attempts}`);
+        console.log(
+          `Email sent successfully to ${message.to}, ID: ${messageId}, attempts: ${attempts}`
+        );
 
         return {
           success: true,
@@ -116,7 +124,9 @@ export class SendGridEmailService implements EmailService {
 
     // All retries failed
     const errorMessage = lastError?.message || 'Unknown error';
-    console.error(`Email delivery failed after ${attempts} attempts to ${message.to}: ${errorMessage}`);
+    console.error(
+      `Email delivery failed after ${attempts} attempts to ${message.to}: ${errorMessage}`
+    );
 
     return {
       success: false,

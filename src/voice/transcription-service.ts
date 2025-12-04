@@ -1,6 +1,6 @@
 /**
  * Transcription Service
- * 
+ *
  * Handles real-time audio transcription using Google Cloud Speech-to-Text API.
  * Supports streaming recognition with interim and final results.
  */
@@ -67,14 +67,14 @@ export interface ReconnectionConfig {
 
 /**
  * TranscriptionService class
- * 
+ *
  * Manages streaming audio transcription with Google Cloud Speech-to-Text API
  */
 export class TranscriptionService {
   private activeStreams: Map<string, TranscriptionStream> = new Map();
   private eventHandlers: TranscriptionEventHandlers = {};
   private streamConfigs: Map<string, StreamingConfig> = new Map();
-  
+
   // Default reconnection configuration
   private reconnectionConfig: ReconnectionConfig = {
     maxRetries: 3,
@@ -85,16 +85,16 @@ export class TranscriptionService {
 
   /**
    * Start a new streaming recognition session
-   * 
+   *
    * @param config - Streaming configuration options
    * @returns TranscriptionStream instance
    */
   async startStream(config?: StreamingConfig): Promise<TranscriptionStream> {
     const client = getSpeechClient();
-    
+
     // Generate unique stream ID
     const streamId = `stream-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-    
+
     // Prepare recognition config
     const recognitionConfig = getStreamingRecognitionConfig({
       encoding: config?.encoding || google.cloud.speech.v1.RecognitionConfig.AudioEncoding.LINEAR16,
@@ -143,7 +143,7 @@ export class TranscriptionService {
 
   /**
    * Send audio chunk to the stream
-   * 
+   *
    * @param transcriptionStream - The transcription stream
    * @param audioChunk - Audio data buffer
    */
@@ -162,7 +162,7 @@ export class TranscriptionService {
 
     // Buffer audio chunk for potential reconnection
     stream.audioBuffer.push(audioChunk);
-    
+
     // Keep buffer size manageable (last 10 seconds worth of audio at 16kHz)
     const maxBufferSize = 50; // ~10 seconds at typical chunk sizes
     if (stream.audioBuffer.length > maxBufferSize) {
@@ -181,7 +181,7 @@ export class TranscriptionService {
 
   /**
    * Close the stream and get final transcript
-   * 
+   *
    * @param transcriptionStream - The transcription stream to close
    * @returns Promise that resolves when stream is closed
    */
@@ -203,7 +203,7 @@ export class TranscriptionService {
 
   /**
    * Register event handler for interim results
-   * 
+   *
    * @param callback - Callback function for interim results
    */
   onInterimResult(callback: (result: TranscriptionResult) => void): void {
@@ -212,7 +212,7 @@ export class TranscriptionService {
 
   /**
    * Register event handler for final results
-   * 
+   *
    * @param callback - Callback function for final results
    */
   onFinalResult(callback: (result: TranscriptionResult) => void): void {
@@ -221,7 +221,7 @@ export class TranscriptionService {
 
   /**
    * Register event handler for errors
-   * 
+   *
    * @param callback - Callback function for errors
    */
   onError(callback: (error: Error) => void): void {
@@ -230,7 +230,7 @@ export class TranscriptionService {
 
   /**
    * Register event handler for reconnection attempts
-   * 
+   *
    * @param callback - Callback function for reconnection attempts
    */
   onReconnecting(callback: (attempt: number) => void): void {
@@ -239,7 +239,7 @@ export class TranscriptionService {
 
   /**
    * Register event handler for successful reconnection
-   * 
+   *
    * @param callback - Callback function for successful reconnection
    */
   onReconnected(callback: () => void): void {
@@ -248,7 +248,7 @@ export class TranscriptionService {
 
   /**
    * Set custom reconnection configuration
-   * 
+   *
    * @param config - Reconnection configuration
    */
   setReconnectionConfig(config: Partial<ReconnectionConfig>): void {
@@ -260,7 +260,7 @@ export class TranscriptionService {
 
   /**
    * Handle stream data events
-   * 
+   *
    * @param streamId - Stream identifier
    * @param data - Recognition response data
    */
@@ -286,7 +286,9 @@ export class TranscriptionService {
     };
 
     // Log transcription result for debugging
-    console.log(`Stream ${streamId} - ${transcriptionResult.isFinal ? 'Final' : 'Interim'}: ${transcriptionResult.transcript}`);
+    console.log(
+      `Stream ${streamId} - ${transcriptionResult.isFinal ? 'Final' : 'Interim'}: ${transcriptionResult.transcript}`
+    );
 
     // Call appropriate event handler
     if (transcriptionResult.isFinal) {
@@ -302,7 +304,7 @@ export class TranscriptionService {
 
   /**
    * Handle stream error events
-   * 
+   *
    * @param streamId - Stream identifier
    * @param error - Error object
    */
@@ -324,7 +326,7 @@ export class TranscriptionService {
     } else {
       // Mark stream as inactive
       stream.isActive = false;
-      
+
       // Notify error handler
       if (this.eventHandlers.onError) {
         this.eventHandlers.onError(error);
@@ -334,7 +336,7 @@ export class TranscriptionService {
 
   /**
    * Handle stream end events
-   * 
+   *
    * @param streamId - Stream identifier
    */
   private handleStreamEnd(streamId: string): void {
@@ -347,7 +349,7 @@ export class TranscriptionService {
 
   /**
    * Get active stream count
-   * 
+   *
    * @returns Number of active streams
    */
   getActiveStreamCount(): number {
@@ -356,7 +358,7 @@ export class TranscriptionService {
 
   /**
    * Check if a stream is active
-   * 
+   *
    * @param transcriptionStream - The transcription stream to check
    * @returns True if stream is active
    */
@@ -367,7 +369,7 @@ export class TranscriptionService {
 
   /**
    * Attempt to reconnect a failed stream
-   * 
+   *
    * @param transcriptionStream - The transcription stream to reconnect
    */
   private async attemptReconnection(transcriptionStream: TranscriptionStream): Promise<void> {
@@ -381,18 +383,23 @@ export class TranscriptionService {
 
     // Check if max retries exceeded
     if (stream.retryCount > this.reconnectionConfig.maxRetries) {
-      console.error(`Max retries (${this.reconnectionConfig.maxRetries}) exceeded for stream ${stream.id}`);
+      console.error(
+        `Max retries (${this.reconnectionConfig.maxRetries}) exceeded for stream ${stream.id}`
+      );
       stream.isActive = false;
       return;
     }
 
     // Calculate delay with exponential backoff
     const delay = Math.min(
-      this.reconnectionConfig.initialDelayMs * Math.pow(this.reconnectionConfig.backoffMultiplier, stream.retryCount - 1),
+      this.reconnectionConfig.initialDelayMs *
+        Math.pow(this.reconnectionConfig.backoffMultiplier, stream.retryCount - 1),
       this.reconnectionConfig.maxDelayMs
     );
 
-    console.log(`Attempting reconnection for stream ${stream.id} (attempt ${stream.retryCount}/${this.reconnectionConfig.maxRetries}) after ${delay}ms`);
+    console.log(
+      `Attempting reconnection for stream ${stream.id} (attempt ${stream.retryCount}/${this.reconnectionConfig.maxRetries}) after ${delay}ms`
+    );
 
     // Notify reconnection attempt
     if (this.eventHandlers.onReconnecting) {
@@ -405,11 +412,12 @@ export class TranscriptionService {
     try {
       // Get original config
       const config = this.streamConfigs.get(stream.id);
-      
+
       // Create new stream
       const client = getSpeechClient();
       const recognitionConfig = getStreamingRecognitionConfig({
-        encoding: config?.encoding || google.cloud.speech.v1.RecognitionConfig.AudioEncoding.LINEAR16,
+        encoding:
+          config?.encoding || google.cloud.speech.v1.RecognitionConfig.AudioEncoding.LINEAR16,
         sampleRateHertz: config?.sampleRateHertz || 16000,
         languageCode: config?.languageCode || 'en-US',
       } as Partial<SpeechToTextConfig>);
@@ -452,7 +460,7 @@ export class TranscriptionService {
       console.log(`Successfully reconnected stream ${stream.id}`);
     } catch (error) {
       console.error(`Reconnection failed for stream ${stream.id}:`, error);
-      
+
       // Try again if retries remaining
       if (stream.retryCount < this.reconnectionConfig.maxRetries) {
         await this.attemptReconnection(transcriptionStream);
@@ -467,16 +475,16 @@ export class TranscriptionService {
 
   /**
    * Sleep utility for delays
-   * 
+   *
    * @param ms - Milliseconds to sleep
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
    * Transcribe a complete audio file (non-streaming)
-   * 
+   *
    * @param audioBuffer - Audio file buffer
    * @param config - Optional configuration
    * @returns Transcription result
@@ -486,40 +494,41 @@ export class TranscriptionService {
     config?: Partial<SpeechToTextConfig>
   ): Promise<TranscriptionResult> {
     const client = getSpeechClient();
-    
+
     const audio = {
       content: audioBuffer.toString('base64'),
     };
-    
+
     const recognitionConfig = {
-      encoding: config?.encoding || google.cloud.speech.v1.RecognitionConfig.AudioEncoding.WEBM_OPUS,
+      encoding:
+        config?.encoding || google.cloud.speech.v1.RecognitionConfig.AudioEncoding.WEBM_OPUS,
       sampleRateHertz: config?.sampleRateHertz || 48000,
       languageCode: config?.languageCode || 'en-US',
       enableAutomaticPunctuation: true,
     };
-    
+
     const request = {
       audio,
       config: recognitionConfig,
     };
-    
+
     console.log('Sending audio to Google Speech-to-Text API...');
     const [response] = await client.recognize(request);
-    
+
     if (!response.results || response.results.length === 0) {
       throw new Error('No transcription results returned');
     }
-    
+
     // Combine all transcripts
     const transcript = response.results
-      .map(result => result.alternatives?.[0]?.transcript || '')
+      .map((result) => result.alternatives?.[0]?.transcript || '')
       .join(' ')
       .trim();
-    
+
     const confidence = response.results[0]?.alternatives?.[0]?.confidence || 0;
-    
+
     console.log(`Transcription result: "${transcript}" (confidence: ${confidence})`);
-    
+
     return {
       transcript,
       isFinal: true,

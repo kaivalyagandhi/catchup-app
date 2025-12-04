@@ -12,8 +12,14 @@ import * as preferencesRepository from './preferences-repository';
  */
 export interface NotificationPreferencesService {
   getPreferences(userId: string): Promise<NotificationPreferences>;
-  setPreferences(userId: string, preferences: NotificationPreferences): Promise<NotificationPreferences>;
-  updatePreferences(userId: string, updates: Partial<NotificationPreferences>): Promise<NotificationPreferences>;
+  setPreferences(
+    userId: string,
+    preferences: NotificationPreferences
+  ): Promise<NotificationPreferences>;
+  updatePreferences(
+    userId: string,
+    updates: Partial<NotificationPreferences>
+  ): Promise<NotificationPreferences>;
 }
 
 /**
@@ -98,7 +104,6 @@ export class NotificationPreferencesServiceImpl implements NotificationPreferenc
 
 // Export singleton instance
 export const notificationPreferencesService = new NotificationPreferencesServiceImpl();
-
 
 // Convenience functions for direct use
 export async function getNotificationPreferences(userId: string): Promise<NotificationPreferences> {

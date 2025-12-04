@@ -55,8 +55,4 @@ export {
   SessionEvent,
 } from './voice-note-service';
 
-export {
-  VoiceNoteWebSocketHandler,
-  WSMessageType,
-  WSMessage,
-} from './websocket-handler';
+export { VoiceNoteWebSocketHandler, WSMessageType, WSMessage } from './websocket-handler';

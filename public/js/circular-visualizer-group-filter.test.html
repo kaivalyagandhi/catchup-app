@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circular Visualizer - Group Filter Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-header h1 {
+      font-size: 24px;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+    
+    .test-header p {
+      color: #6b7280;
+      font-size: 14px;
+    }
+    
+    .test-controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-controls h2 {
+      font-size: 18px;
+      color: #1f2937;
+      margin-bottom: 16px;
+    }
+    
+    .control-group {
+      margin-bottom: 16px;
+    }
+    
+    .control-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    
+    .control-group button {
+      padding: 10px 16px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+    
+    .control-group button:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+    
+    .control-group button.secondary {
+      background: #6b7280;
+    }
+    
+    .control-group button.secondary:hover {
+      background: #4b5563;
+    }
+    
+    .visualizer-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      height: 800px;
+    }
+    
+    .test-results {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-results h2 {
+      font-size: 18px;
+      color: #1f2937;
+      margin-bottom: 16px;
+    }
+    
+    .test-result-item {
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #374151;
+    }
+    
+    .test-result-item.success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .test-result-item.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>🎯 Group Overlay & Filtering Test</h1>
+      <p>Testing group filter controls, visual indicators, and distribution display</p>
+    </div>
+    
+    <div class="test-controls">
+      <h2>Test Controls</h2>
+      
+      <div class="control-group">
+        <label>Load Test Data:</label>
+        <button onclick="loadTestData()">Load Contacts with Groups</button>
+        <button onclick="loadEmptyGroups()" class="secondary">Load Without Groups</button>
+        <button onclick="loadMultipleGroups()" class="secondary">Load Multiple Groups per Contact</button>
+      </div>
+      
+      <div class="control-group">
+        <label>Group Filter Actions:</label>
+        <button onclick="filterByGroup('work')">Filter: Work</button>
+        <button onclick="filterByGroup('family')">Filter: Family</button>
+        <button onclick="filterByGroup('friends')">Filter: Friends</button>
+        <button onclick="clearFilter()" class="secondary">Clear Filter</button>
+      </div>
+      
+      <div class="control-group">
+        <label>Test Scenarios:</label>
+        <button onclick="testGroupToggle()">Test Group Toggle</button>
+        <button onclick="testDistribution()">Test Distribution Display</button>
+        <button onclick="testMultipleGroups()">Test Multiple Group Indicators</button>
+        <button onclick="runAllTests()" class="secondary">Run All Tests</button>
+      </div>
+    </div>
+    
+    <div class="visualizer-container" id="visualizer"></div>
+    
+    <div class="test-results">
+      <h2>Test Results</h2>
+      <div id="test-results"></div>
+    </div>
+  </div>
+  
+  <script src="circular-visualizer.js"></script>
+  <script>
+    let visualizer;
+    let testResults = [];
+    
+    // Initialize visualizer
+    function initVisualizer() {
+      visualizer = new CircularVisualizer('visualizer');
+      
+      // Add event listeners
+      visualizer.on('contactDrag', (data) => {
+        logResult(`Contact dragged: ${data.contactId} from ${data.fromCircle} to ${data.toCircle}`, 'success');
+        visualizer.updateContact(data.contactId, data.toCircle);
+      });
+      
+      visualizer.on('contactClick', (data) => {
+        logResult(`Contact clicked: ${data.contact.name}`, 'success');
+      });
+    }
+    
+    // Test data generators
+    function generateContact(id, name, circle, groups = []) {
+      return {
+        id: id,
+        name: name,
+        email: `${name.toLowerCase().replace(' ', '.')}@example.com`,
+        circle: circle,
+        groups: groups,
+        color: null // Will be auto-generated
+      };
+    }
+    
+    function loadTestData() {
+      const contacts = [
+        // Work group
+        generateContact('1', 'Alice Johnson', 'inner', ['work']),
+        generateContact('2', 'Bob Smith', 'close', ['work']),
+        generateContact('3', 'Carol Davis', 'close', ['work']),
+        generateContact('4', 'David Wilson', 'active', ['work']),
+        generateContact('5', 'Eve Martinez', 'active', ['work']),
+        
+        // Family group
+        generateContact('6', 'Frank Brown', 'inner', ['family']),
+        generateContact('7', 'Grace Lee', 'inner', ['family']),
+        generateContact('8', 'Henry Taylor', 'close', ['family']),
+        generateContact('9', 'Iris Anderson', 'close', ['family']),
+        
+        // Friends group
+        generateContact('10', 'Jack Thomas', 'close', ['friends']),
+        generateContact('11', 'Kate Moore', 'active', ['friends']),
+        generateContact('12', 'Liam Jackson', 'active', ['friends']),
+        generateContact('13', 'Mia White', 'casual', ['friends']),
+        generateContact('14', 'Noah Harris', 'casual', ['friends']),
+        
+        // No groups
+        generateContact('15', 'Olivia Martin', 'casual', []),
+        generateContact('16', 'Peter Thompson', 'acquaintance', []),
+        generateContact('17', 'Quinn Garcia', 'acquaintance', [])
+      ];
+      
+      const groups = [
+        { id: 'work', name: 'Work', description: 'Work colleagues' },
+        { id: 'family', name: 'Family', description: 'Family members' },
+        { id: 'friends', name: 'Friends', description: 'Personal friends' }
+      ];
+      
+      visualizer.render(contacts, groups);
+      logResult('Loaded test data with 17 contacts across 3 groups', 'success');
+    }
+    
+    function loadEmptyGroups() {
+      const contacts = [
+        generateContact('1', 'Alice Johnson', 'inner', []),
+        generateContact('2', 'Bob Smith', 'close', []),
+        generateContact('3', 'Carol Davis', 'active', []),
+        generateContact('4', 'David Wilson', 'casual', []),
+        generateContact('5', 'Eve Martinez', 'acquaintance', [])
+      ];
+      
+      visualizer.render(contacts, []);
+      logResult('Loaded contacts without any groups', 'success');
+    }
+    
+    function loadMultipleGroups() {
+      const contacts = [
+        generateContact('1', 'Alice Johnson', 'inner', ['work', 'friends']),
+        generateContact('2', 'Bob Smith', 'close', ['work', 'family', 'friends']),
+        generateContact('3', 'Carol Davis', 'close', ['family', 'friends']),
+        generateContact('4', 'David Wilson', 'active', ['work']),
+        generateContact('5', 'Eve Martinez', 'active', ['friends']),
+        generateContact('6', 'Frank Brown', 'casual', ['work', 'friends']),
+        generateContact('7', 'Grace Lee', 'casual', ['family'])
+      ];
+      
+      const groups = [
+        { id: 'work', name: 'Work', description: 'Work colleagues' },
+        { id: 'family', name: 'Family', description: 'Family members' },
+        { id: 'friends', name: 'Friends', description: 'Personal friends' }
+      ];
+      
+      visualizer.render(contacts, groups);
+      logResult('Loaded contacts with multiple group memberships', 'success');
+    }
+    
+    // Filter actions
+    function filterByGroup(groupId) {
+      visualizer.showGroupFilter(groupId);
+      logResult(`Applied filter for group: ${groupId}`, 'success');
+    }
+    
+    function clearFilter() {
+      visualizer.clearGroupFilter();
+      logResult('Cleared group filter', 'success');
+    }
+    
+    // Test scenarios
+    function testGroupToggle() {
+      logResult('Testing group toggle...', 'info');
+      
+      // Check if toggle exists
+      const toggle = document.querySelector('#visualizer-group-toggle');
+      if (!toggle) {
+        logResult('❌ Group toggle not found', 'error');
+        return;
+      }
+      
+      // Test toggle on
+      toggle.checked = true;
+      toggle.dispatchEvent(new Event('change'));
+      
+      setTimeout(() => {
+        const groupList = document.querySelector('#visualizer-group-list');
+        if (groupList && groupList.style.display !== 'none') {
+          logResult('✅ Group toggle ON works - list is visible', 'success');
+        } else {
+          logResult('❌ Group toggle ON failed - list not visible', 'error');
+        }
+        
+        // Test toggle off
+        toggle.checked = false;
+        toggle.dispatchEvent(new Event('change'));
+        
+        setTimeout(() => {
+          if (groupList && groupList.style.display === 'none') {
+            logResult('✅ Group toggle OFF works - list is hidden', 'success');
+          } else {
+            logResult('❌ Group toggle OFF failed - list still visible', 'error');
+          }
+        }, 100);
+      }, 100);
+    }
+    
+    function testDistribution() {
+      logResult('Testing distribution display...', 'info');
+      
+      // Apply a filter
+      visualizer.showGroupFilter('work');
+      
+      setTimeout(() => {
+        const distribution = document.querySelector('#visualizer-group-distribution');
+        if (!distribution) {
+          logResult('❌ Distribution container not found', 'error');
+          return;
+        }
+        
+        if (distribution.style.display !== 'none') {
+          logResult('✅ Distribution display is visible when filter is active', 'success');
+          
+          // Check for distribution bars
+          const bars = distribution.querySelectorAll('.distribution-bar-item');
+          if (bars.length === 5) {
+            logResult(`✅ All 5 circle distributions are shown`, 'success');
+          } else {
+            logResult(`❌ Expected 5 distributions, found ${bars.length}`, 'error');
+          }
+        } else {
+          logResult('❌ Distribution display is not visible', 'error');
+        }
+        
+        // Clear filter and check distribution hides
+        visualizer.clearGroupFilter();
+        
+        setTimeout(() => {
+          if (distribution.style.display === 'none') {
+            logResult('✅ Distribution hides when filter is cleared', 'success');
+          } else {
+            logResult('❌ Distribution still visible after clearing filter', 'error');
+          }
+        }, 100);
+      }, 100);
+    }
+    
+    function testMultipleGroups() {
+      logResult('Testing multiple group indicators...', 'info');
+      
+      // Load data with multiple groups
+      loadMultipleGroups();
+      
+      setTimeout(() => {
+        // Check for group badges
+        const badges = document.querySelectorAll('.group-badge');
+        if (badges.length > 0) {
+          logResult(`✅ Found ${badges.length} group badges`, 'success');
+          
+          // Check for multi-group indicators (badges with numbers)
+          const multiGroupBadges = Array.from(badges).filter(badge => {
+            const text = badge.querySelector('text');
+            return text && text.textContent && parseInt(text.textContent) > 1;
+          });
+          
+          if (multiGroupBadges.length > 0) {
+            logResult(`✅ Found ${multiGroupBadges.length} contacts with multiple group indicators`, 'success');
+          } else {
+            logResult('⚠️ No multi-group indicators found (contacts may not have multiple groups)', 'info');
+          }
+        } else {
+          logResult('❌ No group badges found', 'error');
+        }
+      }, 200);
+    }
+    
+    function runAllTests() {
+      logResult('=== Running All Tests ===', 'info');
+      testResults = [];
+      
+      loadTestData();
+      
+      setTimeout(() => {
+        testGroupToggle();
+        setTimeout(() => {
+          testDistribution();
+          setTimeout(() => {
+            testMultipleGroups();
+            setTimeout(() => {
+              logResult('=== All Tests Complete ===', 'info');
+            }, 500);
+          }, 1000);
+        }, 1000);
+      }, 500);
+    }
+    
+    // Logging
+    function logResult(message, type = 'info') {
+      testResults.push({ message, type, timestamp: new Date() });
+      updateResultsDisplay();
+    }
+    
+    function updateResultsDisplay() {
+      const container = document.getElementById('test-results');
+      container.innerHTML = testResults.map(result => `
+        <div class="test-result-item ${result.type}">
+          <strong>${result.timestamp.toLocaleTimeString()}</strong>: ${result.message}
+        </div>
+      `).join('');
+      
+      // Scroll to bottom
+      container.scrollTop = container.scrollHeight;
+    }
+    
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      initVisualizer();
+      logResult('Visualizer initialized. Click "Load Contacts with Groups" to begin.', 'info');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Filter Functionality Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .test-case {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-case h3 {
+            margin-top: 0;
+            color: #2563eb;
+        }
+        .pass {
+            color: green;
+            font-weight: bold;
+        }
+        .fail {
+            color: red;
+            font-weight: bold;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 3px;
+        }
+        code {
+            background: #e5e7eb;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Search Filter Functionality Tests</h1>
+    <p>Automated tests for Task 5 implementation</p>
+    
+    <div id="test-results"></div>
+    
+    <script src="public/js/contacts-table.js"></script>
+    <script>
+        // Test data
+        const testContacts = [
+            {
+                id: '1',
+                name: 'Alice Johnson',
+                email: 'alice@example.com',
+                phone: '+1-555-0101',
+                dunbarCircle: 'inner',
+                tags: [{ text: 'work' }, { text: 'friend' }],
+                groups: ['g1'],
+                source: 'google'
+            },
+            {
+                id: '2',
+                name: 'Bob Smith',
+                email: 'bob@example.com',
+                phone: '+1-555-0102',
+                dunbarCircle: 'close',
+                tags: [{ text: 'work' }],
+                groups: ['g1'],
+                source: 'manual'
+            },
+            {
+                id: '3',
+                name: 'Carol Davis',
+                email: 'carol@example.com',
+                phone: '+1-555-0103',
+                dunbarCircle: 'active',
+                tags: [{ text: 'family' }],
+                groups: ['g2'],
+                source: 'google'
+            }
+        ];
+
+        // Create a temporary container for SearchFilterBar
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        
+        const searchFilterBar = new SearchFilterBar(container);
+        
+        // Test results container
+        const resultsDiv = document.getElementById('test-results');
+        
+        function runTest(name, description, testFn) {
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-case';
+            
+            const title = document.createElement('h3');
+            title.textContent = name;
+            testDiv.appendChild(title);
+            
+            const desc = document.createElement('p');
+            desc.textContent = description;
+            testDiv.appendChild(desc);
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'result';
+            
+            try {
+                const result = testFn();
+                if (result.pass) {
+                    resultDiv.innerHTML = `<span class="pass">✓ PASS</span><br>${result.message}`;
+                } else {
+                    resultDiv.innerHTML = `<span class="fail">✗ FAIL</span><br>${result.message}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="fail">✗ ERROR</span><br>${error.message}`;
+            }
+            
+            testDiv.appendChild(resultDiv);
+            resultsDiv.appendChild(testDiv);
+        }
+        
+        // Run tests
+        runTest(
+            'Test 1: Parse text search query',
+            'Requirement 4.1: Text search should be extracted correctly',
+            () => {
+                const parsed = searchFilterBar.parseQuery('alice');
+                return {
+                    pass: parsed.text === 'alice' && Object.keys(parsed.filters).length === 0,
+                    message: `Text: "${parsed.text}", Filters: ${JSON.stringify(parsed.filters)}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 2: Parse tag filter',
+            'Requirement 4.2: Tag filter syntax should be parsed',
+            () => {
+                const parsed = searchFilterBar.parseQuery('tag:work');
+                return {
+                    pass: parsed.filters.tag && parsed.filters.tag.includes('work'),
+                    message: `Filters: ${JSON.stringify(parsed.filters)}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 3: Parse group filter',
+            'Requirement 4.3: Group filter syntax should be parsed',
+            () => {
+                const parsed = searchFilterBar.parseQuery('group:family');
+                return {
+                    pass: parsed.filters.group && parsed.filters.group.includes('family'),
+                    message: `Filters: ${JSON.stringify(parsed.filters)}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 4: Parse source filter',
+            'Requirement 4.4: Source filter syntax should be parsed',
+            () => {
+                const parsed = searchFilterBar.parseQuery('source:google');
+                return {
+                    pass: parsed.filters.source && parsed.filters.source.includes('google'),
+                    message: `Filters: ${JSON.stringify(parsed.filters)}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 5: Parse circle filter',
+            'Requirement 8.4: Circle filter syntax should be parsed',
+            () => {
+                const parsed = searchFilterBar.parseQuery('circle:inner');
+                return {
+                    pass: parsed.filters.circle && parsed.filters.circle.includes('inner'),
+                    message: `Filters: ${JSON.stringify(parsed.filters)}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 6: Parse multiple filters (AND logic)',
+            'Requirement 4.5: Multiple filters should be parsed with AND logic',
+            () => {
+                const parsed = searchFilterBar.parseQuery('tag:work source:google');
+                return {
+                    pass: parsed.filters.tag && parsed.filters.source && 
+                          parsed.filters.tag.includes('work') && 
+                          parsed.filters.source.includes('google'),
+                    message: `Filters: ${JSON.stringify(parsed.filters)}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 7: Parse combined text and filters',
+            'Text search and filters should be separated',
+            () => {
+                const parsed = searchFilterBar.parseQuery('alice tag:work');
+                return {
+                    pass: parsed.text === 'alice' && 
+                          parsed.filters.tag && 
+                          parsed.filters.tag.includes('work'),
+                    message: `Text: "${parsed.text}", Filters: ${JSON.stringify(parsed.filters)}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 8: Apply text search filter',
+            'Requirement 4.1: Text search should filter by name, email, phone',
+            () => {
+                const filtered = searchFilterBar.applyFilters(testContacts, 'alice', {});
+                return {
+                    pass: filtered.length === 1 && filtered[0].name === 'Alice Johnson',
+                    message: `Found ${filtered.length} contact(s): ${filtered.map(c => c.name).join(', ')}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 9: Apply tag filter',
+            'Requirement 4.2: Tag filter should match contacts with specified tag',
+            () => {
+                const filtered = searchFilterBar.applyFilters(testContacts, '', { tag: ['work'] });
+                return {
+                    pass: filtered.length === 2 && 
+                          filtered.every(c => c.tags.some(t => t.text === 'work')),
+                    message: `Found ${filtered.length} contact(s): ${filtered.map(c => c.name).join(', ')}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 10: Apply source filter',
+            'Requirement 4.4: Source filter should match contacts with specified source',
+            () => {
+                const filtered = searchFilterBar.applyFilters(testContacts, '', { source: ['google'] });
+                return {
+                    pass: filtered.length === 2 && 
+                          filtered.every(c => c.source === 'google'),
+                    message: `Found ${filtered.length} contact(s): ${filtered.map(c => c.name).join(', ')}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 11: Apply circle filter',
+            'Requirement 8.4: Circle filter should match contacts in specified circle',
+            () => {
+                const filtered = searchFilterBar.applyFilters(testContacts, '', { circle: ['inner'] });
+                return {
+                    pass: filtered.length === 1 && filtered[0].dunbarCircle === 'inner',
+                    message: `Found ${filtered.length} contact(s): ${filtered.map(c => c.name).join(', ')}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 12: Apply multiple filters with AND logic',
+            'Requirement 4.5: Multiple filters should use AND logic',
+            () => {
+                const filtered = searchFilterBar.applyFilters(testContacts, '', { 
+                    tag: ['work'], 
+                    source: ['google'] 
+                });
+                return {
+                    pass: filtered.length === 1 && 
+                          filtered[0].name === 'Alice Johnson' &&
+                          filtered[0].tags.some(t => t.text === 'work') &&
+                          filtered[0].source === 'google',
+                    message: `Found ${filtered.length} contact(s): ${filtered.map(c => c.name).join(', ')}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 13: Clear filters',
+            'Requirement 4.6: Clearing filters should restore full list',
+            () => {
+                searchFilterBar.setQuery('tag:work');
+                searchFilterBar.clearFilters();
+                const query = searchFilterBar.getQuery();
+                return {
+                    pass: query === '',
+                    message: `Query after clear: "${query}"`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 14: Get autocomplete suggestions for tag',
+            'Requirement 4.2: Autocomplete should suggest tags',
+            () => {
+                searchFilterBar.availableTags = ['work', 'family', 'friend'];
+                const suggestions = searchFilterBar.getAutocompleteSuggestions('tag:w');
+                return {
+                    pass: suggestions.length > 0 && 
+                          suggestions.some(s => s.value === 'work'),
+                    message: `Found ${suggestions.length} suggestion(s): ${suggestions.map(s => s.display).join(', ')}`
+                };
+            }
+        );
+        
+        runTest(
+            'Test 15: Get autocomplete suggestions for circle',
+            'Requirement 8.4: Autocomplete should suggest circles',
+            () => {
+                const suggestions = searchFilterBar.getAutocompleteSuggestions('circle:i');
+                return {
+                    pass: suggestions.length > 0 && 
+                          suggestions.some(s => s.value === 'inner'),
+                    message: `Found ${suggestions.length} suggestion(s): ${suggestions.map(s => s.display).join(', ')}`
+                };
+            }
+        );
+        
+        // Clean up
+        container.remove();
+        
+        // Summary
+        const summary = document.createElement('div');
+        summary.style.marginTop = '30px';
+        summary.style.padding = '20px';
+        summary.style.background = '#f0f9ff';
+        summary.style.borderRadius = '8px';
+        summary.style.border = '2px solid #3b82f6';
+        
+        const passCount = document.querySelectorAll('.pass').length;
+        const failCount = document.querySelectorAll('.fail').length;
+        const totalCount = passCount + failCount;
+        
+        summary.innerHTML = `
+            <h2>Test Summary</h2>
+            <p><strong>Total Tests:</strong> ${totalCount}</p>
+            <p><strong>Passed:</strong> <span class="pass">${passCount}</span></p>
+            <p><strong>Failed:</strong> <span class="fail">${failCount}</span></p>
+            <p><strong>Success Rate:</strong> ${((passCount / totalCount) * 100).toFixed(1)}%</p>
+        `;
+        
+        resultsDiv.appendChild(summary);
+    </script>
+</body>
+</html>

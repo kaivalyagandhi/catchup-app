@@ -5,7 +5,14 @@
  */
 
 import pool from '../db/connection';
-import { Suggestion, SuggestionStatus, TriggerType, TimeSlot, Contact, SharedContextScore } from '../types';
+import {
+  Suggestion,
+  SuggestionStatus,
+  TriggerType,
+  TimeSlot,
+  Contact,
+  SharedContextScore,
+} from '../types';
 import { contactService } from '../contacts/service';
 
 /**
@@ -77,7 +84,7 @@ function mapRowToSuggestion(row: any): Suggestion {
  */
 async function mapRowToSuggestionWithContacts(row: any): Promise<Suggestion> {
   const suggestion = mapRowToSuggestion(row);
-  
+
   // Fetch contacts for this suggestion
   const contactsResult = await pool.query(
     `SELECT c.* FROM contacts c
@@ -85,14 +92,14 @@ async function mapRowToSuggestionWithContacts(row: any): Promise<Suggestion> {
      WHERE sc.suggestion_id = $1`,
     [suggestion.id]
   );
-  
+
   // Map contact rows to Contact objects
   suggestion.contacts = await Promise.all(
     contactsResult.rows.map(async (contactRow) => {
       return await contactService.getContact(contactRow.id, suggestion.userId);
     })
   );
-  
+
   return suggestion;
 }
 
@@ -101,22 +108,22 @@ async function mapRowToSuggestionWithContacts(row: any): Promise<Suggestion> {
  */
 export async function create(data: SuggestionCreateData): Promise<Suggestion> {
   const client = await pool.connect();
-  
+
   try {
     await client.query('BEGIN');
-    
+
     // Determine contact IDs
     const contactIds = data.contactIds || (data.contactId ? [data.contactId] : []);
     if (contactIds.length === 0) {
       throw new Error('At least one contact ID is required');
     }
-    
+
     // Determine type
     const type = data.type || (contactIds.length > 1 ? 'group' : 'individual');
-    
+
     // Use first contact ID for backward compatibility
     const primaryContactId = contactIds[0];
-    
+
     // Create suggestion
     const result = await client.query(
       `INSERT INTO suggestions (
@@ -139,9 +146,9 @@ export async function create(data: SuggestionCreateData): Promise<Suggestion> {
         data.calendarEventId || null,
       ]
     );
-    
+
     const suggestionId = result.rows[0].id;
-    
+
     // Insert into suggestion_contacts junction table
     for (const contactId of contactIds) {
       await client.query(
@@ -150,9 +157,9 @@ export async function create(data: SuggestionCreateData): Promise<Suggestion> {
         [suggestionId, contactId]
       );
     }
-    
+
     await client.query('COMMIT');
-    
+
     // Return suggestion with contacts populated
     return await mapRowToSuggestionWithContacts(result.rows[0]);
   } catch (error) {
@@ -167,10 +174,10 @@ export async function create(data: SuggestionCreateData): Promise<Suggestion> {
  * Find suggestion by ID
  */
 export async function findById(id: string, userId: string): Promise<Suggestion | null> {
-  const result = await pool.query(
-    'SELECT * FROM suggestions WHERE id = $1 AND user_id = $2',
-    [id, userId]
-  );
+  const result = await pool.query('SELECT * FROM suggestions WHERE id = $1 AND user_id = $2', [
+    id,
+    userId,
+  ]);
 
   return result.rows.length > 0 ? await mapRowToSuggestionWithContacts(result.rows[0]) : null;
 }
@@ -178,10 +185,7 @@ export async function findById(id: string, userId: string): Promise<Suggestion |
 /**
  * Find all suggestions for a user with optional filters
  */
-export async function findAll(
-  userId: string,
-  filters?: SuggestionFilters
-): Promise<Suggestion[]> {
+export async function findAll(userId: string, filters?: SuggestionFilters): Promise<Suggestion[]> {
   let query = 'SELECT * FROM suggestions WHERE user_id = $1';
   const params: any[] = [userId];
   let paramIndex = 2;

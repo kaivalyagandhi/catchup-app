@@ -1,9 +1,9 @@
 /**
  * Google Contacts Sync Service
- * 
+ *
  * Orchestrates full and incremental synchronization of contacts from Google Contacts.
  * Handles pagination, sync tokens, error recovery, and integrates with rate limiting.
- * 
+ *
  * Requirements: 2.1, 2.2, 3.1, 3.2, 3.6, 10.1, 10.2, 10.4, 10.6
  */
 
@@ -56,10 +56,10 @@ export class GoogleContactsSyncService {
 
   /**
    * Perform full synchronization of all contacts
-   * 
+   *
    * Fetches all contacts with pagination (pageSize=1000), processes each page,
    * and stores sync token after completion.
-   * 
+   *
    * Requirements: 2.2, 2.5, 12.1, 12.2
    */
   async performFullSync(userId: string, accessToken: string): Promise<SyncResult> {
@@ -91,7 +91,8 @@ export class GoogleContactsSyncService {
               resourceName: 'people/me',
               pageSize: 1000,
               pageToken: pageToken,
-              personFields: 'names,emailAddresses,phoneNumbers,organizations,urls,addresses,memberships,metadata',
+              personFields:
+                'names,emailAddresses,phoneNumbers,organizations,urls,addresses,memberships,metadata',
             });
           });
 
@@ -101,12 +102,12 @@ export class GoogleContactsSyncService {
 
           console.log(
             `Fetched page with ${connections.length} contacts. ` +
-            `Next page token: ${pageToken ? 'yes' : 'no'}, ` +
-            `Sync token: ${syncToken ? 'yes' : 'no'}`
+              `Next page token: ${pageToken ? 'yes' : 'no'}, ` +
+              `Sync token: ${syncToken ? 'yes' : 'no'}`
           );
 
           // Filter valid contacts for batch processing
-          const validContacts = connections.filter(person => {
+          const validContacts = connections.filter((person) => {
             // Skip contacts without names
             if (!person.names || person.names.length === 0) {
               return false;
@@ -119,7 +120,7 @@ export class GoogleContactsSyncService {
           });
 
           // Handle deleted contacts separately (not batched)
-          const deletedContacts = connections.filter(person => person.metadata?.deleted);
+          const deletedContacts = connections.filter((person) => person.metadata?.deleted);
           for (const person of deletedContacts) {
             try {
               await this.importService.handleDeletedContact(userId, person.resourceName!);
@@ -146,9 +147,7 @@ export class GoogleContactsSyncService {
                   contactsImported++;
                 } catch (error) {
                   const errorMessage = error instanceof Error ? error.message : String(error);
-                  console.error(
-                    `Error importing contact ${person.resourceName}: ${errorMessage}`
-                  );
+                  console.error(`Error importing contact ${person.resourceName}: ${errorMessage}`);
                   errors.push({
                     contactResourceName: person.resourceName || undefined,
                     errorMessage,
@@ -169,7 +168,7 @@ export class GoogleContactsSyncService {
           // Handle pagination errors
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error(`Error fetching page: ${errorMessage}`);
-          
+
           // Check if this is a token expiration error (shouldn't happen in full sync)
           if (this.isSyncTokenExpiredError(error)) {
             console.log('Sync token expired during full sync (unexpected)');
@@ -184,7 +183,8 @@ export class GoogleContactsSyncService {
               // Retry with new token
               return await this.performFullSync(userId, newAccessToken);
             } catch (refreshError) {
-              const refreshErrorMsg = refreshError instanceof Error ? refreshError.message : String(refreshError);
+              const refreshErrorMsg =
+                refreshError instanceof Error ? refreshError.message : String(refreshError);
               throw new Error(`Token refresh failed: ${refreshErrorMsg}`);
             }
           }
@@ -209,30 +209,30 @@ export class GoogleContactsSyncService {
 
       console.log(
         `Full sync completed for user ${userId}. ` +
-        `Imported: ${contactsImported}, Duration: ${duration}ms, Errors: ${errors.length}`
+          `Imported: ${contactsImported}, Duration: ${duration}ms, Errors: ${errors.length}`
       );
 
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Full sync failed for user ${userId}: ${errorMessage}`);
-      
+
       // End performance monitoring with error
       this.performanceMonitor.endOperation(operationId, contactsImported);
-      
+
       // Mark sync as failed
       await this.syncStateRepository.markSyncFailed(userId, errorMessage);
-      
+
       throw error;
     }
   }
 
   /**
    * Perform incremental sync using sync token
-   * 
+   *
    * Uses stored sync token to fetch only changed contacts since last sync.
    * Handles deleted contacts and updates sync token after completion.
-   * 
+   *
    * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5
    */
   async performIncrementalSync(userId: string, accessToken: string): Promise<SyncResult> {
@@ -252,7 +252,7 @@ export class GoogleContactsSyncService {
 
       // Get sync state to retrieve sync token
       const syncState = await this.syncStateRepository.getSyncState(userId);
-      
+
       if (!syncState || !syncState.syncToken) {
         console.log('No sync token found, performing full sync instead');
         return await this.performFullSync(userId, accessToken);
@@ -274,7 +274,8 @@ export class GoogleContactsSyncService {
             pageSize: 100, // Smaller page size for incremental sync
             requestSyncToken: true,
             syncToken: syncToken,
-            personFields: 'names,emailAddresses,phoneNumbers,organizations,urls,addresses,memberships,metadata',
+            personFields:
+              'names,emailAddresses,phoneNumbers,organizations,urls,addresses,memberships,metadata',
           });
         });
 
@@ -283,11 +284,11 @@ export class GoogleContactsSyncService {
 
         console.log(
           `Fetched ${connections.length} changed contacts. ` +
-          `New sync token: ${newSyncToken ? 'yes' : 'no'}`
+            `New sync token: ${newSyncToken ? 'yes' : 'no'}`
         );
 
         // Filter valid contacts for batch processing
-        const validContacts = connections.filter(person => {
+        const validContacts = connections.filter((person) => {
           // Skip contacts without names
           if (!person.names || person.names.length === 0) {
             return false;
@@ -300,16 +301,14 @@ export class GoogleContactsSyncService {
         });
 
         // Handle deleted contacts separately (not batched)
-        const deletedContacts = connections.filter(person => person.metadata?.deleted);
+        const deletedContacts = connections.filter((person) => person.metadata?.deleted);
         for (const person of deletedContacts) {
           try {
             await this.importService.handleDeletedContact(userId, person.resourceName!);
             contactsDeleted++;
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
-            console.error(
-              `Error handling deleted contact ${person.resourceName}: ${errorMessage}`
-            );
+            console.error(`Error handling deleted contact ${person.resourceName}: ${errorMessage}`);
             errors.push({
               contactResourceName: person.resourceName || undefined,
               errorMessage,
@@ -328,9 +327,7 @@ export class GoogleContactsSyncService {
                 contactsUpdated++;
               } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
-                console.error(
-                  `Error processing contact ${person.resourceName}: ${errorMessage}`
-                );
+                console.error(`Error processing contact ${person.resourceName}: ${errorMessage}`);
                 errors.push({
                   contactResourceName: person.resourceName || undefined,
                   errorMessage,
@@ -366,8 +363,8 @@ export class GoogleContactsSyncService {
 
         console.log(
           `Incremental sync completed for user ${userId}. ` +
-          `Updated: ${contactsUpdated}, Deleted: ${contactsDeleted}, ` +
-          `Duration: ${duration}ms, Errors: ${errors.length}`
+            `Updated: ${contactsUpdated}, Deleted: ${contactsDeleted}, ` +
+            `Duration: ${duration}ms, Errors: ${errors.length}`
         );
 
         return result;
@@ -386,7 +383,8 @@ export class GoogleContactsSyncService {
             // Retry with new token
             return await this.performIncrementalSync(userId, newAccessToken);
           } catch (refreshError) {
-            const refreshErrorMsg = refreshError instanceof Error ? refreshError.message : String(refreshError);
+            const refreshErrorMsg =
+              refreshError instanceof Error ? refreshError.message : String(refreshError);
             throw new Error(`Token refresh failed: ${refreshErrorMsg}`);
           }
         }
@@ -396,31 +394,31 @@ export class GoogleContactsSyncService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Incremental sync failed for user ${userId}: ${errorMessage}`);
-      
+
       // End performance monitoring with error
       const totalProcessed = contactsUpdated + contactsDeleted;
       this.performanceMonitor.endOperation(operationId, totalProcessed);
-      
+
       // Mark sync as failed
       await this.syncStateRepository.markSyncFailed(userId, errorMessage);
-      
+
       throw error;
     }
   }
 
   /**
    * Handle sync token expiration (410 Gone error)
-   * 
+   *
    * Automatically triggers full synchronization when sync token expires.
-   * 
+   *
    * Requirements: 3.6
    */
   async handleTokenExpiration(userId: string, accessToken: string): Promise<SyncResult> {
     console.log(`Handling sync token expiration for user ${userId}`);
-    
+
     // Clear the expired sync token
     await this.syncStateRepository.updateSyncToken(userId, '');
-    
+
     // Perform full sync to establish new sync token
     return await this.performFullSync(userId, accessToken);
   }

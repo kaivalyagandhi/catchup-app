@@ -1,6 +1,6 @@
 /**
  * Calendar Events Repository
- * 
+ *
  * Handles database operations for cached calendar events
  */
 
@@ -68,10 +68,9 @@ export async function getLastSyncTime(userId: string): Promise<Date | null> {
  * Update last sync time for a user
  */
 export async function updateLastSyncTime(userId: string): Promise<void> {
-  await pool.query(
-    'UPDATE users SET last_calendar_sync = CURRENT_TIMESTAMP WHERE id = $1',
-    [userId]
-  );
+  await pool.query('UPDATE users SET last_calendar_sync = CURRENT_TIMESTAMP WHERE id = $1', [
+    userId,
+  ]);
 }
 
 /**
@@ -79,7 +78,7 @@ export async function updateLastSyncTime(userId: string): Promise<void> {
  */
 export async function needsRefresh(userId: string): Promise<boolean> {
   const lastSync = await getLastSyncTime(userId);
-  
+
   if (!lastSync) {
     return true; // Never synced
   }
@@ -87,7 +86,7 @@ export async function needsRefresh(userId: string): Promise<boolean> {
   // Check if last sync was today (in user's timezone, but using UTC for simplicity)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const lastSyncDate = new Date(lastSync);
   lastSyncDate.setHours(0, 0, 0, 0);
 

@@ -1,347 +1,426 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enrichment Review Test</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .test-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .test-controls {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f9fafb;
-            border-radius: 8px;
-        }
-        .test-controls h2 {
-            margin-top: 0;
-        }
-        .test-controls button {
-            margin-right: 10px;
-            margin-bottom: 10px;
-        }
-        .hidden {
-            display: none !important;
-        }
-        button {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        button:hover {
-            background: #1d4ed8;
-        }
-        button.secondary {
-            background: #6b7280;
-        }
-        button.secondary:hover {
-            background: #4b5563;
-        }
-        #toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-        }
-        .toast {
-            padding: 14px 18px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            margin-bottom: 10px;
-            min-width: 250px;
-        }
-        .toast-success {
-            background: #d1fae5;
-            color: #065f46;
-            border-left: 4px solid #10b981;
-        }
-        .toast-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border-left: 4px solid #ef4444;
-        }
-        .toast-info {
-            background: #e0e7ff;
-            color: #3730a3;
-            border-left: 4px solid #6366f1;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enrichment Review UI Test - SMS/MMS Support</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-header h1 {
+      margin: 0 0 8px 0;
+      color: #1f2937;
+    }
+    
+    .test-header p {
+      margin: 0;
+      color: #6b7280;
+    }
+    
+    .test-controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-controls h2 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      color: #1f2937;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .test-btn {
+      padding: 10px 20px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .test-btn:hover {
+      background: #1d4ed8;
+    }
+    
+    .test-btn.secondary {
+      background: #6b7280;
+    }
+    
+    .test-btn.secondary:hover {
+      background: #4b5563;
+    }
+    
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .toast.success {
+      border-left: 4px solid #10b981;
+    }
+    
+    .toast.error {
+      border-left: 4px solid #ef4444;
+    }
+    
+    .toast.warning {
+      border-left: 4px solid #f59e0b;
+    }
+    
+    .toast.info {
+      border-left: 4px solid #3b82f6;
+    }
+  </style>
 </head>
 <body>
-    <div class="test-container">
-        <div class="test-controls">
-            <h2>Enrichment Review Component Test</h2>
-            <p>Test the enrichment review interface with sample data</p>
-            <button onclick="testSingleContact()">Test Single Contact</button>
-            <button onclick="testMultipleContacts()">Test Multiple Contacts</button>
-            <button onclick="testEmptyProposal()">Test Empty Proposal</button>
-            <button onclick="testMixedItems()" class="secondary">Test Mixed Items</button>
-        </div>
-        
-        <div id="enrichment-review-container"></div>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>🧪 Enrichment Review UI Test</h1>
+      <p>Testing SMS/MMS enrichment source display and filtering</p>
     </div>
     
-    <div id="toast-container"></div>
+    <div class="test-controls">
+      <h2>Test Scenarios</h2>
+      <div class="button-group">
+        <button class="test-btn" onclick="testLoadWebEnrichments()">Load Web Enrichments</button>
+        <button class="test-btn" onclick="testLoadSMSEnrichments()">Load SMS Enrichments</button>
+        <button class="test-btn" onclick="testLoadMMSEnrichments()">Load MMS Enrichments</button>
+        <button class="test-btn" onclick="testLoadMixedEnrichments()">Load Mixed Sources</button>
+        <button class="test-btn secondary" onclick="testClearEnrichments()">Clear All</button>
+      </div>
+    </div>
     
-    <script src="enrichment-review.js"></script>
-    <script>
-        // Toast notification helper
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.textContent = message;
-            container.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
+    <div id="enrichment-review-container"></div>
+  </div>
+  
+  <script src="enrichment-review.js"></script>
+  
+  <script>
+    // Mock API responses
+    let mockEnrichmentItems = [];
+    
+    // Override fetch to return mock data
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+      if (url.includes('/api/enrichment-items')) {
+        // Parse query params
+        const urlObj = new URL(url, window.location.origin);
+        const source = urlObj.searchParams.get('source');
+        
+        // Filter mock data by source
+        let filteredItems = mockEnrichmentItems;
+        if (source && source !== 'all') {
+          filteredItems = mockEnrichmentItems.filter(item => item.source === source);
         }
         
-        // Test cases
-        function testSingleContact() {
-            const proposal = {
-                voiceNoteId: 'test-voice-note-1',
-                contactProposals: [
-                    {
-                        contactId: 'contact-1',
-                        contactName: 'John Doe',
-                        items: [
-                            {
-                                id: 'item-1',
-                                type: 'tag',
-                                action: 'add',
-                                value: 'hiking',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-2',
-                                type: 'tag',
-                                action: 'add',
-                                value: 'photography',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-3',
-                                type: 'field',
-                                action: 'update',
-                                field: 'location',
-                                value: 'Seattle, WA',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-4',
-                                type: 'field',
-                                action: 'add',
-                                field: 'email',
-                                value: 'john.doe@example.com',
-                                accepted: false
-                            }
-                        ]
-                    }
-                ],
-                requiresContactSelection: false
-            };
-            
-            enrichmentReview.display(proposal, async (proposal) => {
-                console.log('Applying enrichment:', proposal);
-                showToast('Enrichment applied successfully!', 'success');
-            });
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(filteredItems)
+        });
+      }
+      
+      if (url.includes('/api/enrichment-items/') && options?.method === 'PATCH') {
+        // Mock update
+        const id = url.split('/').pop();
+        const body = JSON.parse(options.body);
+        const item = mockEnrichmentItems.find(i => i.id === id);
+        if (item) {
+          if (body.accepted !== undefined) item.accepted = body.accepted;
+          if (body.value !== undefined) item.value = body.value;
         }
-        
-        function testMultipleContacts() {
-            const proposal = {
-                voiceNoteId: 'test-voice-note-2',
-                contactProposals: [
-                    {
-                        contactId: 'contact-1',
-                        contactName: 'Alice Johnson',
-                        items: [
-                            {
-                                id: 'item-1',
-                                type: 'tag',
-                                action: 'add',
-                                value: 'hiking',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-2',
-                                type: 'group',
-                                action: 'add',
-                                value: 'Outdoor Friends',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-3',
-                                type: 'lastContactDate',
-                                action: 'update',
-                                value: '2024-01-15',
-                                accepted: true
-                            }
-                        ]
-                    },
-                    {
-                        contactId: 'contact-2',
-                        contactName: 'Bob Smith',
-                        items: [
-                            {
-                                id: 'item-4',
-                                type: 'tag',
-                                action: 'add',
-                                value: 'hiking',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-5',
-                                type: 'field',
-                                action: 'add',
-                                field: 'phone',
-                                value: '+1-555-123-4567',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-6',
-                                type: 'field',
-                                action: 'update',
-                                field: 'location',
-                                value: 'Portland, OR',
-                                accepted: false
-                            }
-                        ]
-                    },
-                    {
-                        contactId: 'contact-3',
-                        contactName: 'Carol Williams',
-                        items: [
-                            {
-                                id: 'item-7',
-                                type: 'group',
-                                action: 'add',
-                                value: 'Outdoor Friends',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-8',
-                                type: 'field',
-                                action: 'add',
-                                field: 'instagram',
-                                value: '@carolwilliams',
-                                accepted: true
-                            }
-                        ]
-                    }
-                ],
-                requiresContactSelection: false
-            };
-            
-            enrichmentReview.display(proposal, async (proposal) => {
-                console.log('Applying enrichment:', proposal);
-                showToast('Enrichment applied successfully!', 'success');
-            });
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(item)
+        });
+      }
+      
+      if (url.includes('/api/enrichment-items/apply')) {
+        // Mock apply
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            appliedCount: 3,
+            failedCount: 0
+          })
+        });
+      }
+      
+      return originalFetch(url, options);
+    };
+    
+    // Mock user ID
+    localStorage.setItem('userId', 'test-user-123');
+    
+    // Toast notification function
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+    
+    // Test functions
+    function testLoadWebEnrichments() {
+      mockEnrichmentItems = [
+        {
+          id: 'web-1',
+          contactId: 'contact-1',
+          contactName: 'Sarah Johnson',
+          itemType: 'tag',
+          action: 'add',
+          value: 'hiking',
+          accepted: true,
+          applied: false,
+          source: 'web',
+          sourceMetadata: {},
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'web-2',
+          contactId: 'contact-1',
+          contactName: 'Sarah Johnson',
+          itemType: 'field',
+          action: 'update',
+          fieldName: 'location',
+          value: 'Seattle, WA',
+          accepted: true,
+          applied: false,
+          source: 'web',
+          sourceMetadata: {},
+          createdAt: new Date().toISOString()
         }
-        
-        function testEmptyProposal() {
-            const proposal = {
-                voiceNoteId: 'test-voice-note-3',
-                contactProposals: [],
-                requiresContactSelection: false
-            };
-            
-            enrichmentReview.display(proposal, async (proposal) => {
-                console.log('Applying enrichment:', proposal);
-                showToast('Enrichment applied successfully!', 'success');
-            });
+      ];
+      
+      enrichmentReview.loadEnrichmentItems('test-user-123', 'all');
+      showToast('Loaded web enrichments', 'success');
+    }
+    
+    function testLoadSMSEnrichments() {
+      mockEnrichmentItems = [
+        {
+          id: 'sms-1',
+          contactId: 'contact-2',
+          contactName: 'Mike Chen',
+          itemType: 'tag',
+          action: 'add',
+          value: 'photography',
+          accepted: true,
+          applied: false,
+          source: 'sms',
+          sourceMetadata: {
+            phoneNumber: '+15551234567',
+            originalMessage: 'Mike is really into photography these days',
+            messageSid: 'SM123456'
+          },
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'sms-2',
+          contactId: 'contact-2',
+          contactName: 'Mike Chen',
+          itemType: 'field',
+          action: 'add',
+          fieldName: 'customNotes',
+          value: 'Met at coffee shop, discussed new camera gear',
+          accepted: true,
+          applied: false,
+          source: 'sms',
+          sourceMetadata: {
+            phoneNumber: '+15551234567',
+            originalMessage: 'Just met Mike at coffee shop, we discussed new camera gear',
+            messageSid: 'SM123457'
+          },
+          createdAt: new Date().toISOString()
         }
-        
-        function testMixedItems() {
-            const proposal = {
-                voiceNoteId: 'test-voice-note-4',
-                contactProposals: [
-                    {
-                        contactId: 'contact-1',
-                        contactName: 'David Chen',
-                        items: [
-                            {
-                                id: 'item-1',
-                                type: 'field',
-                                action: 'add',
-                                field: 'email',
-                                value: 'david.chen@example.com',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-2',
-                                type: 'field',
-                                action: 'add',
-                                field: 'linkedIn',
-                                value: 'linkedin.com/in/davidchen',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-3',
-                                type: 'field',
-                                action: 'add',
-                                field: 'xHandle',
-                                value: '@davidchen',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-4',
-                                type: 'tag',
-                                action: 'add',
-                                value: 'tech',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-5',
-                                type: 'tag',
-                                action: 'add',
-                                value: 'startup',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-6',
-                                type: 'group',
-                                action: 'add',
-                                value: 'Tech Friends',
-                                accepted: true
-                            },
-                            {
-                                id: 'item-7',
-                                type: 'lastContactDate',
-                                action: 'add',
-                                value: '2024-02-01',
-                                accepted: true
-                            }
-                        ]
-                    }
-                ],
-                requiresContactSelection: false
-            };
-            
-            enrichmentReview.display(proposal, async (proposal) => {
-                console.log('Applying enrichment:', proposal);
-                showToast('Enrichment applied successfully!', 'success');
-            });
+      ];
+      
+      enrichmentReview.loadEnrichmentItems('test-user-123', 'all');
+      showToast('Loaded SMS enrichments', 'success');
+    }
+    
+    function testLoadMMSEnrichments() {
+      mockEnrichmentItems = [
+        {
+          id: 'mms-1',
+          contactId: 'contact-3',
+          contactName: 'Emily Rodriguez',
+          itemType: 'tag',
+          action: 'add',
+          value: 'yoga',
+          accepted: true,
+          applied: false,
+          source: 'mms',
+          sourceMetadata: {
+            phoneNumber: '+15559876543',
+            mediaType: 'audio/ogg',
+            transcript: 'Emily and I went to yoga class together this morning. She mentioned she is teaching a new class on Saturdays.',
+            messageSid: 'MM123456'
+          },
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'mms-2',
+          contactId: 'contact-4',
+          contactName: 'David Kim',
+          itemType: 'field',
+          action: 'update',
+          fieldName: 'location',
+          value: 'Portland, OR',
+          accepted: true,
+          applied: false,
+          source: 'mms',
+          sourceMetadata: {
+            phoneNumber: '+15559876543',
+            mediaType: 'image/jpeg',
+            originalMessage: 'Business card from David',
+            messageSid: 'MM123457'
+          },
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'mms-3',
+          contactId: 'contact-5',
+          contactName: 'Lisa Park',
+          itemType: 'tag',
+          action: 'add',
+          value: 'cooking',
+          accepted: true,
+          applied: false,
+          source: 'mms',
+          sourceMetadata: {
+            phoneNumber: '+15559876543',
+            mediaType: 'video/mp4',
+            transcript: 'Lisa showed me her new cooking techniques at the dinner party',
+            messageSid: 'MM123458'
+          },
+          createdAt: new Date().toISOString()
         }
-        
-        // Initialize with single contact test
-        testSingleContact();
-    </script>
+      ];
+      
+      enrichmentReview.loadEnrichmentItems('test-user-123', 'all');
+      showToast('Loaded MMS enrichments', 'success');
+    }
+    
+    function testLoadMixedEnrichments() {
+      mockEnrichmentItems = [
+        {
+          id: 'web-1',
+          contactId: 'contact-1',
+          contactName: 'Sarah Johnson',
+          itemType: 'tag',
+          action: 'add',
+          value: 'hiking',
+          accepted: true,
+          applied: false,
+          source: 'web',
+          sourceMetadata: {},
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'sms-1',
+          contactId: 'contact-2',
+          contactName: 'Mike Chen',
+          itemType: 'tag',
+          action: 'add',
+          value: 'photography',
+          accepted: true,
+          applied: false,
+          source: 'sms',
+          sourceMetadata: {
+            phoneNumber: '+15551234567',
+            originalMessage: 'Mike is really into photography',
+            messageSid: 'SM123456'
+          },
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'mms-1',
+          contactId: 'contact-3',
+          contactName: 'Emily Rodriguez',
+          itemType: 'field',
+          action: 'add',
+          fieldName: 'customNotes',
+          value: 'Teaching yoga on Saturdays',
+          accepted: true,
+          applied: false,
+          source: 'mms',
+          sourceMetadata: {
+            phoneNumber: '+15559876543',
+            mediaType: 'audio/ogg',
+            transcript: 'Emily mentioned she is teaching a new yoga class on Saturdays',
+            messageSid: 'MM123456'
+          },
+          createdAt: new Date().toISOString()
+        }
+      ];
+      
+      enrichmentReview.loadEnrichmentItems('test-user-123', 'all');
+      showToast('Loaded mixed source enrichments', 'success');
+    }
+    
+    function testClearEnrichments() {
+      mockEnrichmentItems = [];
+      enrichmentReview.loadEnrichmentItems('test-user-123', 'all');
+      showToast('Cleared all enrichments', 'info');
+    }
+    
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('Enrichment Review UI Test loaded');
+      testLoadMixedEnrichments();
+    });
+  </script>
 </body>
 </html>

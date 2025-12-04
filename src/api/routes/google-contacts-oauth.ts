@@ -8,10 +8,7 @@ import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { googleContactsOAuthService } from '../../integrations/google-contacts-oauth-service';
 import { googleContactsSyncQueue } from '../../jobs/queue';
 import { GoogleContactsSyncJobData } from '../../jobs/types';
-import { 
-  scheduleUserGoogleContactsSync, 
-  removeUserGoogleContactsSync 
-} from '../../jobs/scheduler';
+import { scheduleUserGoogleContactsSync, removeUserGoogleContactsSync } from '../../jobs/scheduler';
 
 const router = Router();
 
@@ -21,14 +18,23 @@ const router = Router();
  */
 router.get('/authorize', (req: Request, res: Response) => {
   try {
-    const authUrl = googleContactsOAuthService.getAuthorizationUrl();
+    const { userId } = req.query;
+    
+    if (!userId || typeof userId !== 'string') {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+    
+    // Encode userId as state parameter
+    const state = Buffer.from(userId).toString('base64');
+    const authUrl = googleContactsOAuthService.getAuthorizationUrl(state);
     res.json({ authUrl });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error('Error generating authorization URL:', errorMsg);
-    res.status(500).json({ 
-      error: 'Failed to generate authorization URL', 
-      details: errorMsg 
+    res.status(500).json({
+      error: 'Failed to generate authorization URL',
+      details: errorMsg,
     });
   }
 });
@@ -36,63 +42,71 @@ router.get('/authorize', (req: Request, res: Response) => {
 /**
  * GET /api/contacts/oauth/callback
  * Handle OAuth callback from Google
- * Note: This endpoint requires the user to be authenticated with a valid JWT token
+ * Note: This endpoint does NOT require authentication since it's called by Google redirect
+ * Instead, we use state parameter to identify the user
  */
-router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/callback', async (req: Request, res: Response) => {
   try {
-    if (!req.userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+    const { code, state } = req.query;
+
+    if (!code || typeof code !== 'string') {
+      res.redirect('/?contacts_error=missing_code');
       return;
     }
 
-    const { code } = req.query;
+    if (!state || typeof state !== 'string') {
+      res.redirect('/?contacts_error=missing_state');
+      return;
+    }
 
-    if (!code || typeof code !== 'string') {
-      res.status(400).json({ error: 'Authorization code is required' });
+    // Decode state to get userId
+    let userId: string;
+    try {
+      userId = Buffer.from(state, 'base64').toString('utf-8');
+    } catch (error) {
+      console.error('Failed to decode state:', error);
+      res.redirect('/?contacts_error=invalid_state');
       return;
     }
 
     console.log('Exchanging authorization code for tokens...');
-    
+
     // Exchange code for tokens and store them
     let tokens;
     try {
-      tokens = await googleContactsOAuthService.handleCallback(code, req.userId);
+      tokens = await googleContactsOAuthService.handleCallback(code, userId);
     } catch (tokenError) {
       const tokenErrorMsg = tokenError instanceof Error ? tokenError.message : String(tokenError);
       console.error('Failed to exchange code for tokens:', tokenErrorMsg);
-      res.status(400).json({ 
-        error: 'Failed to exchange authorization code', 
-        details: tokenErrorMsg 
-      });
+      res.redirect(`/?contacts_error=${encodeURIComponent(tokenErrorMsg)}`);
       return;
     }
 
-    console.log('Google Contacts connection successful for user:', req.userId);
-    
+    console.log('Google Contacts connection successful for user:', userId);
+
     // Reset sync state to force full sync (important for reconnection)
     try {
       const { resetSyncState } = await import('../../integrations/sync-state-repository');
-      await resetSyncState(req.userId);
-      console.log(`Sync state reset for user ${req.userId}`);
+      await resetSyncState(userId);
+      console.log(`Sync state reset for user ${userId}`);
     } catch (resetError) {
       // Log error but don't fail the OAuth flow
       const resetErrorMsg = resetError instanceof Error ? resetError.message : String(resetError);
       console.error('Failed to reset sync state:', resetErrorMsg);
     }
-    
+
     // Queue immediate full sync job
     try {
       const jobData: GoogleContactsSyncJobData = {
-        userId: req.userId,
+        userId: userId,
         syncType: 'full',
       };
 
       const job = await googleContactsSyncQueue.add(jobData, {
-        jobId: `google-contacts-sync-${req.userId}-${Date.now()}`,
+        jobId: `google-contacts-sync-${userId}-${Date.now()}`,
       });
 
-      console.log(`Full sync job queued for user ${req.userId}, job ID: ${job.id}`);
+      console.log(`Full sync job queued for user ${userId}, job ID: ${job.id}`);
     } catch (queueError) {
       // Log error but don't fail the OAuth flow
       const queueErrorMsg = queueError instanceof Error ? queueError.message : String(queueError);
@@ -101,27 +115,23 @@ router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Res
 
     // Schedule daily incremental sync
     try {
-      await scheduleUserGoogleContactsSync(req.userId);
-      console.log(`Daily sync scheduled for user ${req.userId}`);
+      await scheduleUserGoogleContactsSync(userId);
+      console.log(`Daily sync scheduled for user ${userId}`);
     } catch (scheduleError) {
       // Log error but don't fail the OAuth flow
-      const scheduleErrorMsg = scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
+      const scheduleErrorMsg =
+        scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
       console.error('Failed to schedule daily sync:', scheduleErrorMsg);
     }
 
-    res.json({
-      message: 'Google Contacts connected successfully',
-      expiresAt: tokens.expiresAt,
-    });
+    // Redirect to frontend with success
+    res.redirect('/?contacts_success=true');
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : '';
     console.error('Unexpected error in OAuth callback:', errorMsg);
     console.error('Stack:', errorStack);
-    res.status(500).json({ 
-      error: 'Failed to complete OAuth flow', 
-      details: errorMsg 
-    });
+    res.redirect(`/?contacts_error=${encodeURIComponent(errorMsg)}`);
   }
 });
 
@@ -139,7 +149,7 @@ router.get('/status', authenticate, async (req: AuthenticatedRequest, res: Respo
 
     // Get OAuth connection status
     const connectionStatus = await googleContactsOAuthService.getConnectionStatus(req.userId);
-    
+
     // If not connected, return basic status
     if (!connectionStatus.connected) {
       res.json({
@@ -156,7 +166,7 @@ router.get('/status', authenticate, async (req: AuthenticatedRequest, res: Respo
     // Check if auto-sync is enabled by checking for scheduled job
     const repeatableJobs = await googleContactsSyncQueue.getRepeatableJobs();
     const autoSyncEnabled = repeatableJobs.some(
-      job => job.id === `google-contacts-sync-${req.userId}`
+      (job) => job.id === `google-contacts-sync-${req.userId}`
     );
 
     // Determine last sync timestamp (prefer incremental, fallback to full)
@@ -173,10 +183,10 @@ router.get('/status', authenticate, async (req: AuthenticatedRequest, res: Respo
       lastSyncError: syncState?.lastSyncError || null,
       autoSyncEnabled,
     };
-    
-    console.log('Status check - Google Contacts:', { 
+
+    console.log('Status check - Google Contacts:', {
       userId: req.userId,
-      connected: status.connected, 
+      connected: status.connected,
       email: status.email,
       lastSyncAt: status.lastSyncAt,
       totalContactsSynced: status.totalContactsSynced,
@@ -187,9 +197,9 @@ router.get('/status', authenticate, async (req: AuthenticatedRequest, res: Respo
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error('Error checking OAuth status:', errorMsg);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to check OAuth status',
-      details: errorMsg
+      details: errorMsg,
     });
   }
 });
@@ -206,28 +216,29 @@ router.delete('/disconnect', authenticate, async (req: AuthenticatedRequest, res
     }
 
     console.log('Disconnecting Google Contacts for user:', req.userId);
-    
+
     await googleContactsOAuthService.disconnect(req.userId);
-    
+
     // Stop scheduled sync jobs
     try {
       await removeUserGoogleContactsSync(req.userId);
       console.log('Scheduled sync jobs stopped for user:', req.userId);
     } catch (scheduleError) {
       // Log error but don't fail the disconnect flow
-      const scheduleErrorMsg = scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
+      const scheduleErrorMsg =
+        scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
       console.error('Failed to remove scheduled sync:', scheduleErrorMsg);
     }
-    
+
     console.log('Google Contacts disconnected successfully for user:', req.userId);
 
     res.json({ message: 'Google Contacts disconnected successfully' });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error('Error disconnecting Google Contacts:', errorMsg);
-    res.status(500).json({ 
-      error: 'Failed to disconnect Google Contacts', 
-      details: errorMsg 
+    res.status(500).json({
+      error: 'Failed to disconnect Google Contacts',
+      details: errorMsg,
     });
   }
 });

@@ -9,6 +9,11 @@ import pool from '../db/connection';
 import { Contact, FrequencyOption } from '../types';
 
 /**
+ * Dunbar circle types for contact categorization
+ */
+export type DunbarCircle = 'inner' | 'close' | 'active' | 'casual' | 'acquaintance';
+
+/**
  * Contact Repository Interface
  */
 export interface ContactRepository {
@@ -17,11 +22,25 @@ export interface ContactRepository {
   findById(id: string, userId: string): Promise<Contact | null>;
   findAll(userId: string, filters?: ContactFilters): Promise<Contact[]>;
   findByGoogleResourceName(userId: string, resourceName: string): Promise<Contact | null>;
-  findBySource(userId: string, source: 'manual' | 'google' | 'calendar' | 'voice_note'): Promise<Contact[]>;
+  findBySource(
+    userId: string,
+    source: 'manual' | 'google' | 'calendar' | 'voice_note'
+  ): Promise<Contact[]>;
   delete(id: string, userId: string): Promise<void>;
   archive(id: string, userId: string): Promise<void>;
   unarchive(id: string, userId: string): Promise<void>;
   clearGoogleSyncMetadata(userId: string): Promise<void>;
+
+  // Circle assignment methods - Requirements: 3.3, 12.2, 12.5
+  assignToCircle(
+    id: string,
+    userId: string,
+    circle: DunbarCircle,
+    confidence?: number
+  ): Promise<Contact>;
+  batchAssignToCircle(contactIds: string[], userId: string, circle: DunbarCircle): Promise<void>;
+  findUncategorized(userId: string): Promise<Contact[]>;
+  findByCircle(userId: string, circle: DunbarCircle): Promise<Contact[]>;
 }
 
 export interface ContactCreateData {
@@ -45,7 +64,7 @@ export interface ContactCreateData {
 
 /**
  * Contact Update Data
- * 
+ *
  * IMPORTANT - Requirements: 15.4
  * When updating contacts from user edits, DO NOT include Google metadata fields
  * (source, googleResourceName, googleEtag, lastSyncedAt).
@@ -362,7 +381,10 @@ export class PostgresContactRepository implements ContactRepository {
     return result.rows.map((row) => this.mapRowToContact(row));
   }
 
-  async findBySource(userId: string, source: 'manual' | 'google' | 'calendar' | 'voice_note'): Promise<Contact[]> {
+  async findBySource(
+    userId: string,
+    source: 'manual' | 'google' | 'calendar' | 'voice_note'
+  ): Promise<Contact[]> {
     const result = await pool.query(
       `SELECT c.*,
         COALESCE(
@@ -477,6 +499,168 @@ export class PostgresContactRepository implements ContactRepository {
     );
   }
 
+  /**
+   * Assign contact to a Dunbar circle
+   * Requirements: 3.3
+   */
+  async assignToCircle(
+    id: string,
+    userId: string,
+    circle: DunbarCircle,
+    confidence?: number
+  ): Promise<Contact> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const result = await client.query(
+        `UPDATE contacts
+         SET dunbar_circle = $1,
+             circle_assigned_at = CURRENT_TIMESTAMP,
+             circle_confidence = $2
+         WHERE id = $3 AND user_id = $4
+         RETURNING *`,
+        [circle, confidence || null, id, userId]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error('Contact not found');
+      }
+
+      await client.query('COMMIT');
+
+      // Fetch full contact with groups and tags
+      const contact = await this.findById(id, userId);
+      if (!contact) {
+        throw new Error('Contact not found after update');
+      }
+
+      return contact;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Batch assign contacts to a circle
+   * Requirements: 5.5
+   */
+  async batchAssignToCircle(
+    contactIds: string[],
+    userId: string,
+    circle: DunbarCircle
+  ): Promise<void> {
+    if (contactIds.length === 0) {
+      return;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Verify all contacts belong to user
+      const verifyResult = await client.query(
+        'SELECT id FROM contacts WHERE id = ANY($1) AND user_id = $2',
+        [contactIds, userId]
+      );
+
+      if (verifyResult.rows.length !== contactIds.length) {
+        throw new Error('One or more contacts not found');
+      }
+
+      // Batch update
+      await client.query(
+        `UPDATE contacts
+         SET dunbar_circle = $1,
+             circle_assigned_at = CURRENT_TIMESTAMP
+         WHERE id = ANY($2) AND user_id = $3`,
+        [circle, contactIds, userId]
+      );
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Find uncategorized contacts (no circle assigned)
+   * Requirements: 11.1, 11.3
+   */
+  async findUncategorized(userId: string): Promise<Contact[]> {
+    const result = await pool.query(
+      `SELECT c.*,
+        COALESCE(
+          json_agg(DISTINCT g.id) FILTER (WHERE g.id IS NOT NULL),
+          '[]'
+        ) as group_ids,
+        COALESCE(
+          json_agg(DISTINCT jsonb_build_object(
+            'id', t.id,
+            'text', t.text,
+            'source', t.source,
+            'createdAt', t.created_at
+          )) FILTER (WHERE t.id IS NOT NULL),
+          '[]'
+        ) as tags
+      FROM contacts c
+      LEFT JOIN contact_groups cg ON c.id = cg.contact_id
+      LEFT JOIN groups g ON cg.group_id = g.id
+      LEFT JOIN contact_tags ct ON c.id = ct.contact_id
+      LEFT JOIN tags t ON ct.tag_id = t.id
+      WHERE c.user_id = $1 
+        AND c.dunbar_circle IS NULL
+        AND c.archived = false
+      GROUP BY c.id
+      ORDER BY c.created_at DESC`,
+      [userId]
+    );
+
+    return result.rows.map((row) => this.mapRowToContact(row));
+  }
+
+  /**
+   * Find contacts in a specific circle
+   * Requirements: 3.3
+   */
+  async findByCircle(userId: string, circle: DunbarCircle): Promise<Contact[]> {
+    const result = await pool.query(
+      `SELECT c.*,
+        COALESCE(
+          json_agg(DISTINCT g.id) FILTER (WHERE g.id IS NOT NULL),
+          '[]'
+        ) as group_ids,
+        COALESCE(
+          json_agg(DISTINCT jsonb_build_object(
+            'id', t.id,
+            'text', t.text,
+            'source', t.source,
+            'createdAt', t.created_at
+          )) FILTER (WHERE t.id IS NOT NULL),
+          '[]'
+        ) as tags
+      FROM contacts c
+      LEFT JOIN contact_groups cg ON c.id = cg.contact_id
+      LEFT JOIN groups g ON cg.group_id = g.id
+      LEFT JOIN contact_tags ct ON c.id = ct.contact_id
+      LEFT JOIN tags t ON ct.tag_id = t.id
+      WHERE c.user_id = $1 
+        AND c.dunbar_circle = $2
+        AND c.archived = false
+      GROUP BY c.id
+      ORDER BY c.name ASC`,
+      [userId, circle]
+    );
+
+    return result.rows.map((row) => this.mapRowToContact(row));
+  }
+
   private mapRowToContact(row: any): Contact {
     return {
       id: row.id,
@@ -500,6 +684,10 @@ export class PostgresContactRepository implements ContactRepository {
       googleResourceName: row.google_resource_name || undefined,
       googleEtag: row.google_etag || undefined,
       lastSyncedAt: row.last_synced_at ? new Date(row.last_synced_at) : undefined,
+      dunbarCircle: row.dunbar_circle || undefined,
+      circleAssignedAt: row.circle_assigned_at ? new Date(row.circle_assigned_at) : undefined,
+      circleConfidence: row.circle_confidence ? parseFloat(row.circle_confidence) : undefined,
+      aiSuggestedCircle: row.ai_suggested_circle || undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     };
@@ -551,6 +739,9 @@ export async function getContactsByIds(userId: string, contactIds: string[]): Pr
 const defaultRepository = new PostgresContactRepository();
 
 export const findById = (id: string, userId: string) => defaultRepository.findById(id, userId);
-export const findAll = (userId: string, filters?: ContactFilters) => defaultRepository.findAll(userId, filters);
-export const create = (userId: string, data: ContactCreateData) => defaultRepository.create(userId, data);
-export const update = (id: string, userId: string, data: ContactUpdateData) => defaultRepository.update(id, userId, data);
+export const findAll = (userId: string, filters?: ContactFilters) =>
+  defaultRepository.findAll(userId, filters);
+export const create = (userId: string, data: ContactCreateData) =>
+  defaultRepository.create(userId, data);
+export const update = (id: string, userId: string, data: ContactUpdateData) =>
+  defaultRepository.update(id, userId, data);

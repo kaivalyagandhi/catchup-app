@@ -59,10 +59,7 @@ export function startWorker(): void {
 
   // Log queue events
   suggestionGenerationQueue.on('completed', (job, result) => {
-    console.log(
-      `Suggestion generation job ${job.id} completed:`,
-      result
-    );
+    console.log(`Suggestion generation job ${job.id} completed:`, result);
   });
 
   batchNotificationQueue.on('completed', (job, result) => {

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Suggestion UI Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-header h1 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      color: #1f2937;
+    }
+    
+    .test-header p {
+      margin: 0;
+      color: #6b7280;
+    }
+    
+    .test-controls {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-controls h2 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      color: #1f2937;
+    }
+    
+    .test-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .test-btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #3b82f6;
+      color: white;
+      transition: background 0.2s;
+    }
+    
+    .test-btn:hover {
+      background: #2563eb;
+    }
+    
+    .test-btn.secondary {
+      background: #6b7280;
+    }
+    
+    .test-btn.secondary:hover {
+      background: #4b5563;
+    }
+    
+    .test-display {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-display h2 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      color: #1f2937;
+    }
+    
+    .test-events {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-events h2 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      color: #1f2937;
+    }
+    
+    .event-log {
+      background: #f9fafb;
+      border-radius: 6px;
+      padding: 16px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    
+    .event-entry {
+      padding: 8px;
+      margin-bottom: 8px;
+      background: white;
+      border-radius: 4px;
+      border-left: 3px solid #3b82f6;
+    }
+    
+    .event-entry.accept {
+      border-left-color: #10b981;
+    }
+    
+    .event-entry.override {
+      border-left-color: #f59e0b;
+    }
+    
+    .event-entry.error {
+      border-left-color: #ef4444;
+    }
+    
+    .event-time {
+      color: #6b7280;
+      font-size: 11px;
+    }
+    
+    .event-type {
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    
+    .event-data {
+      color: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>🤖 AI Suggestion UI Test</h1>
+      <p>Test the AI circle suggestion component with different scenarios</p>
+    </div>
+    
+    <div class="test-controls">
+      <h2>Test Scenarios</h2>
+      <div class="test-buttons">
+        <button class="test-btn" onclick="testHighConfidence()">High Confidence (85%)</button>
+        <button class="test-btn" onclick="testMediumConfidence()">Medium Confidence (55%)</button>
+        <button class="test-btn" onclick="testLowConfidence()">Low Confidence (25%)</button>
+        <button class="test-btn" onclick="testWithFactors()">With Explanation Factors</button>
+        <button class="test-btn" onclick="testWithAlternatives()">With Alternatives</button>
+        <button class="test-btn" onclick="testComplete()">Complete Suggestion</button>
+        <button class="test-btn secondary" onclick="testLoading()">Loading State</button>
+        <button class="test-btn secondary" onclick="testError()">Error State</button>
+        <button class="test-btn secondary" onclick="testEmpty()">Empty State</button>
+        <button class="test-btn secondary" onclick="clearUI()">Clear UI</button>
+      </div>
+    </div>
+    
+    <div class="test-display">
+      <h2>AI Suggestion Display</h2>
+      <div id="ai-suggestion-container"></div>
+    </div>
+    
+    <div class="test-events">
+      <h2>Event Log</h2>
+      <div class="event-log" id="event-log"></div>
+    </div>
+  </div>
+  
+  <script src="ai-suggestion-ui.js"></script>
+  <script>
+    // Initialize AI Suggestion UI
+    const aiSuggestionUI = new AISuggestionUI('ai-suggestion-container');
+    aiSuggestionUI.initialize('test-token-123');
+    
+    // Event log
+    const eventLog = document.getElementById('event-log');
+    
+    function logEvent(type, data) {
+      const entry = document.createElement('div');
+      entry.className = `event-entry ${type}`;
+      
+      const time = new Date().toLocaleTimeString();
+      entry.innerHTML = `
+        <div class="event-time">${time}</div>
+        <div class="event-type">${type.toUpperCase()}</div>
+        <div class="event-data">${JSON.stringify(data, null, 2)}</div>
+      `;
+      
+      eventLog.insertBefore(entry, eventLog.firstChild);
+    }
+    
+    // Register event listeners
+    aiSuggestionUI.on('accept', (data) => {
+      logEvent('accept', data);
+      console.log('Accept event:', data);
+    });
+    
+    aiSuggestionUI.on('override', (data) => {
+      logEvent('override', data);
+      console.log('Override event:', data);
+    });
+    
+    aiSuggestionUI.on('error', (error) => {
+      logEvent('error', { message: error.message });
+      console.error('Error event:', error);
+    });
+    
+    // Test functions
+    function testHighConfidence() {
+      const contact = {
+        id: 'contact-1',
+        name: 'Alice Johnson'
+      };
+      
+      const suggestion = {
+        contactId: 'contact-1',
+        suggestedCircle: 'inner',
+        confidence: 0.85,
+        factors: [],
+        alternativeCircles: []
+      };
+      
+      aiSuggestionUI.displaySuggestion(contact, suggestion);
+    }
+    
+    function testMediumConfidence() {
+      const contact = {
+        id: 'contact-2',
+        name: 'Bob Smith'
+      };
+      
+      const suggestion = {
+        contactId: 'contact-2',
+        suggestedCircle: 'close',
+        confidence: 0.55,
+        factors: [],
+        alternativeCircles: []
+      };
+      
+      aiSuggestionUI.displaySuggestion(contact, suggestion);
+    }
+    
+    function testLowConfidence() {
+      const contact = {
+        id: 'contact-3',
+        name: 'Charlie Brown'
+      };
+      
+      const suggestion = {
+        contactId: 'contact-3',
+        suggestedCircle: 'casual',
+        confidence: 0.25,
+        factors: [],
+        alternativeCircles: []
+      };
+      
+      aiSuggestionUI.displaySuggestion(contact, suggestion);
+    }
+    
+    function testWithFactors() {
+      const contact = {
+        id: 'contact-4',
+        name: 'Diana Prince'
+      };
+      
+      const suggestion = {
+        contactId: 'contact-4',
+        suggestedCircle: 'close',
+        confidence: 0.78,
+        factors: [
+          {
+            type: 'communication_frequency',
+            weight: 0.4,
+            value: 0.8,
+            description: 'You communicate with Diana 3-4 times per week'
+          },
+          {
+            type: 'recency',
+            weight: 0.3,
+            value: 0.9,
+            description: 'Last interaction was 2 days ago'
+          },
+          {
+            type: 'consistency',
+            weight: 0.3,
+            value: 0.7,
+            description: 'Regular interaction pattern over the past 6 months'
+          }
+        ],
+        alternativeCircles: []
+      };
+      
+      aiSuggestionUI.displaySuggestion(contact, suggestion);
+    }
+    
+    function testWithAlternatives() {
+      const contact = {
+        id: 'contact-5',
+        name: 'Ethan Hunt'
+      };
+      
+      const suggestion = {
+        contactId: 'contact-5',
+        suggestedCircle: 'active',
+        confidence: 0.62,
+        factors: [],
+        alternativeCircles: [
+          {
+            circle: 'close',
+            confidence: 0.45
+          },
+          {
+            circle: 'casual',
+            confidence: 0.38
+          }
+        ]
+      };
+      
+      aiSuggestionUI.displaySuggestion(contact, suggestion);
+    }
+    
+    function testComplete() {
+      const contact = {
+        id: 'contact-6',
+        name: 'Fiona Gallagher'
+      };
+      
+      const suggestion = {
+        contactId: 'contact-6',
+        suggestedCircle: 'inner',
+        confidence: 0.92,
+        factors: [
+          {
+            type: 'communication_frequency',
+            weight: 0.35,
+            value: 0.95,
+            description: 'You communicate with Fiona daily'
+          },
+          {
+            type: 'recency',
+            weight: 0.25,
+            value: 1.0,
+            description: 'Last interaction was today'
+          },
+          {
+            type: 'consistency',
+            weight: 0.2,
+            value: 0.9,
+            description: 'Consistent daily interaction for over a year'
+          },
+          {
+            type: 'multi_channel',
+            weight: 0.2,
+            value: 0.85,
+            description: 'Communication across multiple channels (calls, messages, in-person)'
+          }
+        ],
+        alternativeCircles: [
+          {
+            circle: 'close',
+            confidence: 0.15
+          }
+        ]
+      };
+      
+      aiSuggestionUI.displaySuggestion(contact, suggestion);
+    }
+    
+    function testLoading() {
+      aiSuggestionUI.showLoading();
+    }
+    
+    function testError() {
+      aiSuggestionUI.showError('Failed to analyze contact patterns. Please try again.');
+    }
+    
+    function testEmpty() {
+      aiSuggestionUI.showEmpty();
+    }
+    
+    function clearUI() {
+      aiSuggestionUI.clear();
+    }
+    
+    // Load initial test
+    testComplete();
+  </script>
+</body>
+</html>

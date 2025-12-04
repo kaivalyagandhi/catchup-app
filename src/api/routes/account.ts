@@ -35,7 +35,7 @@ router.delete('/', authenticate, async (req: AuthenticatedRequest, res: Response
 
     res.json({
       message: 'Account deleted successfully',
-      deletedAt: new Date().toISOString()
+      deletedAt: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Error deleting account:', error);
@@ -62,7 +62,7 @@ router.post('/clear-data', authenticate, async (req: AuthenticatedRequest, res: 
 
     res.json({
       message: 'All user data cleared successfully',
-      ...result
+      ...result,
     });
   } catch (error) {
     console.error('Error clearing user data:', error);

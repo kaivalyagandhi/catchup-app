@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circular Visualizer - Drag and Drop Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #1f2937;
+      margin-bottom: 10px;
+    }
+    
+    .test-description {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-description h2 {
+      color: #374151;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+    
+    .test-description ul {
+      margin-left: 20px;
+      color: #6b7280;
+    }
+    
+    .test-description li {
+      margin-bottom: 8px;
+    }
+    
+    .visualizer-wrapper {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      height: 800px;
+      margin-bottom: 20px;
+    }
+    
+    .event-log {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .event-log h2 {
+      color: #374151;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+    
+    .log-entry {
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .log-entry.drag {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .log-entry.batch-drag {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .log-entry.click {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .log-entry.selection {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+    
+    .clear-log-btn {
+      padding: 8px 16px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+    
+    .clear-log-btn:hover {
+      background: #dc2626;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>🎯 Circular Visualizer - Drag and Drop Test</h1>
+    
+    <div class="test-description">
+      <h2>Test Instructions</h2>
+      <ul>
+        <li><strong>Single Drag:</strong> Click and drag any contact dot to move it to a different circle</li>
+        <li><strong>Multi-Select:</strong> Hold Ctrl (or Cmd on Mac) and click contacts to select multiple</li>
+        <li><strong>Batch Drag:</strong> After selecting multiple contacts, drag any selected contact to move all selected contacts to the same circle</li>
+        <li><strong>Cancel Drag:</strong> Drag a contact and release it outside any circle or in its original circle to cancel</li>
+        <li><strong>Mobile Touch:</strong> Long-press a contact to select it, then drag to move</li>
+        <li><strong>Clear Selection:</strong> Click the "Clear Selection" button or press Escape</li>
+      </ul>
+    </div>
+    
+    <div class="visualizer-wrapper" id="visualizer-container"></div>
+    
+    <div class="event-log">
+      <h2>Event Log</h2>
+      <button class="clear-log-btn" onclick="clearLog()">Clear Log</button>
+      <div id="log-container"></div>
+    </div>
+  </div>
+
+  <script src="circular-visualizer.js"></script>
+  <script>
+    // Sample contacts data
+    const sampleContacts = [
+      // Inner circle (5)
+      { id: '1', name: 'Alice Johnson', circle: 'inner', email: 'alice@example.com' },
+      { id: '2', name: 'Bob Smith', circle: 'inner', email: 'bob@example.com' },
+      { id: '3', name: 'Carol White', circle: 'inner', email: 'carol@example.com' },
+      { id: '4', name: 'David Brown', circle: 'inner', email: 'david@example.com' },
+      { id: '5', name: 'Eve Davis', circle: 'inner', email: 'eve@example.com' },
+      
+      // Close friends (10)
+      { id: '6', name: 'Frank Miller', circle: 'close', email: 'frank@example.com' },
+      { id: '7', name: 'Grace Wilson', circle: 'close', email: 'grace@example.com' },
+      { id: '8', name: 'Henry Moore', circle: 'close', email: 'henry@example.com' },
+      { id: '9', name: 'Iris Taylor', circle: 'close', email: 'iris@example.com' },
+      { id: '10', name: 'Jack Anderson', circle: 'close', email: 'jack@example.com' },
+      { id: '11', name: 'Kate Thomas', circle: 'close', email: 'kate@example.com' },
+      { id: '12', name: 'Leo Jackson', circle: 'close', email: 'leo@example.com' },
+      { id: '13', name: 'Mia Martin', circle: 'close', email: 'mia@example.com' },
+      { id: '14', name: 'Noah Lee', circle: 'close', email: 'noah@example.com' },
+      { id: '15', name: 'Olivia Harris', circle: 'close', email: 'olivia@example.com' },
+      
+      // Active friends (15)
+      { id: '16', name: 'Paul Clark', circle: 'active', email: 'paul@example.com' },
+      { id: '17', name: 'Quinn Lewis', circle: 'active', email: 'quinn@example.com' },
+      { id: '18', name: 'Rachel Walker', circle: 'active', email: 'rachel@example.com' },
+      { id: '19', name: 'Sam Hall', circle: 'active', email: 'sam@example.com' },
+      { id: '20', name: 'Tina Allen', circle: 'active', email: 'tina@example.com' },
+      { id: '21', name: 'Uma Young', circle: 'active', email: 'uma@example.com' },
+      { id: '22', name: 'Victor King', circle: 'active', email: 'victor@example.com' },
+      { id: '23', name: 'Wendy Wright', circle: 'active', email: 'wendy@example.com' },
+      { id: '24', name: 'Xavier Lopez', circle: 'active', email: 'xavier@example.com' },
+      { id: '25', name: 'Yara Hill', circle: 'active', email: 'yara@example.com' },
+      { id: '26', name: 'Zack Scott', circle: 'active', email: 'zack@example.com' },
+      { id: '27', name: 'Amy Green', circle: 'active', email: 'amy@example.com' },
+      { id: '28', name: 'Ben Adams', circle: 'active', email: 'ben@example.com' },
+      { id: '29', name: 'Chloe Baker', circle: 'active', email: 'chloe@example.com' },
+      { id: '30', name: 'Dan Nelson', circle: 'active', email: 'dan@example.com' },
+      
+      // Casual network (10)
+      { id: '31', name: 'Emma Carter', circle: 'casual', email: 'emma@example.com' },
+      { id: '32', name: 'Felix Mitchell', circle: 'casual', email: 'felix@example.com' },
+      { id: '33', name: 'Gina Perez', circle: 'casual', email: 'gina@example.com' },
+      { id: '34', name: 'Hugo Roberts', circle: 'casual', email: 'hugo@example.com' },
+      { id: '35', name: 'Ivy Turner', circle: 'casual', email: 'ivy@example.com' },
+      { id: '36', name: 'Jake Phillips', circle: 'casual', email: 'jake@example.com' },
+      { id: '37', name: 'Kara Campbell', circle: 'casual', email: 'kara@example.com' },
+      { id: '38', name: 'Liam Parker', circle: 'casual', email: 'liam@example.com' },
+      { id: '39', name: 'Maya Evans', circle: 'casual', email: 'maya@example.com' },
+      { id: '40', name: 'Nick Edwards', circle: 'casual', email: 'nick@example.com' },
+      
+      // Acquaintances (5)
+      { id: '41', name: 'Oscar Collins', circle: 'acquaintance', email: 'oscar@example.com' },
+      { id: '42', name: 'Pam Stewart', circle: 'acquaintance', email: 'pam@example.com' },
+      { id: '43', name: 'Quincy Morris', circle: 'acquaintance', email: 'quincy@example.com' },
+      { id: '44', name: 'Rita Rogers', circle: 'acquaintance', email: 'rita@example.com' },
+      { id: '45', name: 'Steve Reed', circle: 'acquaintance', email: 'steve@example.com' }
+    ];
+
+    // Initialize visualizer
+    const visualizer = new CircularVisualizer('visualizer-container');
+    
+    // Render contacts
+    visualizer.render(sampleContacts);
+    
+    // Event logging
+    function logEvent(type, message, data) {
+      const logContainer = document.getElementById('log-container');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      
+      const timestamp = new Date().toLocaleTimeString();
+      entry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+      
+      if (data) {
+        entry.innerHTML += `<br><small>${JSON.stringify(data, null, 2)}</small>`;
+      }
+      
+      logContainer.insertBefore(entry, logContainer.firstChild);
+      
+      // Keep only last 20 entries
+      while (logContainer.children.length > 20) {
+        logContainer.removeChild(logContainer.lastChild);
+      }
+    }
+    
+    function clearLog() {
+      document.getElementById('log-container').innerHTML = '';
+    }
+    
+    // Listen to drag events
+    visualizer.on('contactDrag', (data) => {
+      logEvent('drag', `Single drag: ${data.contactId} from ${data.fromCircle} to ${data.toCircle}`, data);
+      
+      // Update the contact in the visualizer
+      visualizer.updateContact(data.contactId, data.toCircle);
+    });
+    
+    // Listen to batch drag events
+    visualizer.on('batchDrag', (data) => {
+      logEvent('batch-drag', `Batch drag: ${data.contactIds.length} contacts to ${data.toCircle}`, {
+        count: data.contactIds.length,
+        contactIds: data.contactIds,
+        toCircle: data.toCircle
+      });
+      
+      // Update all contacts in the visualizer
+      const updates = data.contactIds.map(contactId => ({
+        contactId,
+        newCircle: data.toCircle
+      }));
+      visualizer.updateMultipleContacts(updates);
+    });
+    
+    // Listen to click events
+    visualizer.on('contactClick', (data) => {
+      logEvent('click', `Clicked: ${data.contact.name}`, {
+        id: data.contactId,
+        name: data.contact.name,
+        circle: data.contact.circle
+      });
+    });
+    
+    // Listen to selection changes (we'll track this through the selection methods)
+    const originalToggle = visualizer.toggleContactSelection.bind(visualizer);
+    visualizer.toggleContactSelection = function(contactId) {
+      const wasSelected = this.selectedContacts.has(contactId);
+      originalToggle(contactId);
+      const isSelected = this.selectedContacts.has(contactId);
+      
+      if (isSelected && !wasSelected) {
+        logEvent('selection', `Selected: ${contactId}`, {
+          totalSelected: this.selectedContacts.size
+        });
+      } else if (!isSelected && wasSelected) {
+        logEvent('selection', `Deselected: ${contactId}`, {
+          totalSelected: this.selectedContacts.size
+        });
+      }
+    };
+    
+    // Add keyboard shortcut for clearing selection
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (visualizer.selectedContacts.size > 0) {
+          logEvent('selection', 'Cleared selection via Escape key');
+          visualizer.clearSelection();
+        }
+      }
+    });
+    
+    // Log initial state
+    logEvent('drag', 'Visualizer initialized with 45 contacts', {
+      inner: 5,
+      close: 10,
+      active: 15,
+      casual: 10,
+      acquaintance: 5
+    });
+  </script>
+</body>
+</html>

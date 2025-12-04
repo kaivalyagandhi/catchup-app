@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Mappings Integration Test</title>
+    <link rel="stylesheet" href="public/css/contacts-table.css">
+    <link rel="stylesheet" href="public/css/groups-table.css">
+    <link rel="stylesheet" href="public/css/google-mappings-review.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h2 {
+            margin-bottom: 20px;
+            color: #2563eb;
+        }
+        
+        .test-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .test-section h3 {
+            margin-bottom: 15px;
+            color: #1f2937;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #2563eb;
+            color: white;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            background: #1d4ed8;
+        }
+        
+        button.secondary {
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+        }
+        
+        button.secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        /* Directory Tabs */
+        .directory-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0;
+            margin-bottom: 25px;
+        }
+        
+        .directory-tab {
+            background: transparent;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .directory-tab:hover {
+            color: #2563eb;
+            background: #f9fafb;
+        }
+        
+        .directory-tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            font-weight: 600;
+        }
+        
+        .directory-tab-content {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .directory-tab-content.hidden {
+            display: none;
+        }
+        
+        /* Red dot indicator */
+        .directory-tab .notification-dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .status-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .status-message.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+        
+        .status-message.warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Google Mappings Integration Test</h2>
+        
+        <!-- Test Controls -->
+        <div class="test-section">
+            <h3>Test Controls</h3>
+            <div class="test-controls">
+                <button onclick="loadMockMappings()">Load Mock Mappings</button>
+                <button onclick="clearMappings()" class="secondary">Clear Mappings</button>
+                <button onclick="checkPendingMappings()">Check Pending Count</button>
+                <button onclick="toggleRedDot()">Toggle Red Dot</button>
+            </div>
+            <div id="status-messages"></div>
+        </div>
+        
+        <!-- Directory Tab Navigation -->
+        <div class="directory-tabs">
+            <button class="directory-tab" data-tab="contacts">
+                <span style="margin-right: 6px;">👥</span>Contacts
+            </button>
+            <button class="directory-tab active" data-tab="groups">
+                <span style="margin-right: 6px;">👥</span>Groups
+            </button>
+            <button class="directory-tab" data-tab="tags">
+                <span style="margin-right: 6px;">🏷️</span>Tags
+            </button>
+        </div>
+        
+        <!-- Contacts Tab Content -->
+        <div id="contacts-tab" class="directory-tab-content hidden">
+            <div style="padding: 20px; background: #f9fafb; border-radius: 6px;">
+                <h3>Contacts Tab</h3>
+                <p>This is the contacts tab content.</p>
+            </div>
+        </div>
+        
+        <!-- Groups Tab Content -->
+        <div id="groups-tab" class="directory-tab-content">
+            <div id="groups-table-container"></div>
+        </div>
+        
+        <!-- Tags Tab Content -->
+        <div id="tags-tab" class="directory-tab-content hidden">
+            <div style="padding: 20px; background: #f9fafb; border-radius: 6px;">
+                <h3>Tags Tab</h3>
+                <p>This is the tags tab content.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load Scripts -->
+    <script src="public/js/google-mappings-review.js"></script>
+    <script src="public/js/groups-table.js"></script>
+    <script src="public/js/contacts-table.js"></script>
+    
+    <script>
+        // Mock data and global variables
+        let tabNavigation;
+        let groupsTable;
+        let mockMappings = [];
+        
+        // Mock auth token and API base
+        window.authToken = 'mock-token';
+        window.API_BASE = '/api';
+        window.userId = 'test-user-123';
+        
+        // Sample groups data
+        const sampleGroups = [
+            {
+                id: 'g1',
+                userId: 'test-user-123',
+                name: 'Work Colleagues',
+                description: 'People I work with',
+                contactIds: ['c1', 'c2', 'c3']
+            },
+            {
+                id: 'g2',
+                userId: 'test-user-123',
+                name: 'Family',
+                description: 'Family members',
+                contactIds: ['c4', 'c5']
+            },
+            {
+                id: 'g3',
+                userId: 'test-user-123',
+                name: 'Friends',
+                description: 'Close friends',
+                contactIds: ['c6', 'c7', 'c8', 'c9']
+            }
+        ];
+        
+        // Sample contacts data
+        const sampleContacts = [
+            { id: 'c1', name: 'Alice Johnson', email: 'alice@example.com', phone: '+1-555-0101' },
+            { id: 'c2', name: 'Bob Smith', email: 'bob@example.com', phone: '+1-555-0102' },
+            { id: 'c3', name: 'Carol Davis', email: 'carol@example.com', phone: '+1-555-0103' },
+            { id: 'c4', name: 'David Wilson', email: 'david@example.com', phone: '+1-555-0104' },
+            { id: 'c5', name: 'Emma Brown', email: 'emma@example.com', phone: '+1-555-0105' },
+            { id: 'c6', name: 'Frank Miller', email: 'frank@example.com', phone: '+1-555-0106' },
+            { id: 'c7', name: 'Grace Lee', email: 'grace@example.com', phone: '+1-555-0107' },
+            { id: 'c8', name: 'Henry Chen', email: 'henry@example.com', phone: '+1-555-0108' },
+            { id: 'c9', name: 'Iris Wang', email: 'iris@example.com', phone: '+1-555-0109' }
+        ];
+        
+        // Mock API responses
+        function setupMockAPI() {
+            // Override fetch for mock responses
+            const originalFetch = window.fetch;
+            window.fetch = async function(url, options) {
+                console.log('Mock fetch:', url);
+                
+                // Mock pending mappings endpoint
+                if (url.includes('/contacts/sync/groups/mappings/pending')) {
+                    return {
+                        ok: true,
+                        json: async () => mockMappings.filter(m => m.status === 'pending')
+                    };
+                }
+                
+                // Mock mapping members endpoint
+                if (url.includes('/mappings/') && url.includes('/members')) {
+                    const mappingId = url.split('/mappings/')[1].split('/members')[0];
+                    const mapping = mockMappings.find(m => m.id === mappingId);
+                    
+                    if (mapping) {
+                        // Return mock members based on member count
+                        const members = [];
+                        for (let i = 0; i < Math.min(mapping.memberCount, sampleContacts.length); i++) {
+                            members.push(sampleContacts[i]);
+                        }
+                        
+                        return {
+                            ok: true,
+                            json: async () => ({
+                                mappingId,
+                                googleName: mapping.googleName,
+                                memberCount: members.length,
+                                members
+                            })
+                        };
+                    }
+                }
+                
+                // Mock approve mapping endpoint
+                if (url.includes('/approve') && options?.method === 'POST') {
+                    const mappingId = url.split('/mappings/')[1].split('/approve')[0];
+                    const mapping = mockMappings.find(m => m.id === mappingId);
+                    
+                    if (mapping) {
+                        mapping.status = 'approved';
+                        
+                        // Add a new group to simulate the approval
+                        const newGroup = {
+                            id: `g-new-${Date.now()}`,
+                            userId: 'test-user-123',
+                            name: mapping.suggestedGroupName || mapping.googleName,
+                            description: `Synced from Google Contacts`,
+                            contactIds: []
+                        };
+                        sampleGroups.push(newGroup);
+                        
+                        return {
+                            ok: true,
+                            json: async () => ({
+                                message: 'Group mapping approved successfully',
+                                mapping,
+                                membershipsUpdated: mapping.memberCount
+                            })
+                        };
+                    }
+                }
+                
+                // Mock reject mapping endpoint
+                if (url.includes('/reject') && options?.method === 'POST') {
+                    const mappingId = url.split('/mappings/')[1].split('/reject')[0];
+                    const mapping = mockMappings.find(m => m.id === mappingId);
+                    
+                    if (mapping) {
+                        mapping.status = 'rejected';
+                        
+                        return {
+                            ok: true,
+                            json: async () => ({
+                                message: 'Group mapping rejected successfully'
+                            })
+                        };
+                    }
+                }
+                
+                // Mock groups endpoint
+                if (url.includes('/contacts/groups')) {
+                    return {
+                        ok: true,
+                        json: async () => sampleGroups
+                    };
+                }
+                
+                // Fall back to original fetch
+                return originalFetch(url, options);
+            };
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            setupMockAPI();
+            
+            // Create TabNavigation instance
+            tabNavigation = new TabNavigation({
+                tabs: ['contacts', 'groups', 'tags'],
+                defaultTab: 'groups',
+                onTabChange: (newTab, oldTab) => {
+                    console.log(`Tab changed from ${oldTab} to ${newTab}`);
+                }
+            });
+            
+            // Attach click handlers to tab buttons
+            tabNavigation.attachTabHandlers();
+            
+            // Initialize tab navigation
+            tabNavigation.init();
+            
+            // Initialize groups table
+            groupsTable = new GroupsTable('groups-table-container', sampleGroups, sampleContacts, {
+                onMappingsUpdate: async () => {
+                    // Update red dot indicator when mappings change
+                    await updateRedDotIndicator();
+                }
+            });
+            
+            groupsTable.render();
+            
+            // Check for pending mappings and show red dot
+            await updateRedDotIndicator();
+            
+            showStatus('Test page loaded successfully. Use the controls above to test the integration.', 'success');
+        });
+        
+        // Test functions
+        function loadMockMappings() {
+            mockMappings = [
+                {
+                    id: 'mapping-1',
+                    userId: 'test-user-123',
+                    googleResourceName: 'contactGroups/123',
+                    googleName: 'Project Team',
+                    suggestedAction: 'create_new',
+                    suggestedGroupName: 'Project Team',
+                    suggestionReason: 'No existing group with similar name found',
+                    confidenceScore: 0.85,
+                    memberCount: 5,
+                    status: 'pending'
+                },
+                {
+                    id: 'mapping-2',
+                    userId: 'test-user-123',
+                    googleResourceName: 'contactGroups/456',
+                    googleName: 'College Friends',
+                    suggestedAction: 'map_existing',
+                    suggestedGroupName: 'Friends',
+                    suggestionReason: 'Similar to existing group "Friends"',
+                    confidenceScore: 0.72,
+                    memberCount: 8,
+                    status: 'pending'
+                },
+                {
+                    id: 'mapping-3',
+                    userId: 'test-user-123',
+                    googleResourceName: 'contactGroups/789',
+                    googleName: 'Gym Buddies',
+                    suggestedAction: 'create_new',
+                    suggestedGroupName: 'Gym Buddies',
+                    suggestionReason: 'Unique group not found in existing groups',
+                    confidenceScore: 0.95,
+                    memberCount: 3,
+                    status: 'pending'
+                }
+            ];
+            
+            // Re-render groups table to show mappings
+            groupsTable.render();
+            
+            // Update red dot
+            updateRedDotIndicator();
+            
+            showStatus(`Loaded ${mockMappings.length} mock mappings`, 'success');
+        }
+        
+        function clearMappings() {
+            mockMappings = [];
+            
+            // Re-render groups table
+            groupsTable.render();
+            
+            // Update red dot
+            updateRedDotIndicator();
+            
+            showStatus('Cleared all mappings', 'info');
+        }
+        
+        async function checkPendingMappings() {
+            const hasPending = await groupsTable.hasPendingMappings();
+            const pendingCount = mockMappings.filter(m => m.status === 'pending').length;
+            
+            showStatus(`Pending mappings: ${pendingCount} (hasPending: ${hasPending})`, 'info');
+        }
+        
+        function toggleRedDot() {
+            const hasDot = document.querySelector('.directory-tab[data-tab="groups"] .notification-dot');
+            
+            if (hasDot) {
+                tabNavigation.hideNotification('groups');
+                showStatus('Red dot hidden', 'info');
+            } else {
+                tabNavigation.showNotification('groups');
+                showStatus('Red dot shown', 'info');
+            }
+        }
+        
+        async function updateRedDotIndicator() {
+            const hasPending = await groupsTable.hasPendingMappings();
+            
+            if (hasPending) {
+                const pendingCount = mockMappings.filter(m => m.status === 'pending').length;
+                tabNavigation.showNotification('groups', pendingCount);
+            } else {
+                tabNavigation.hideNotification('groups');
+            }
+        }
+        
+        function showStatus(message, type = 'info') {
+            const container = document.getElementById('status-messages');
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status-message ${type}`;
+            statusDiv.textContent = message;
+            
+            container.innerHTML = '';
+            container.appendChild(statusDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                statusDiv.remove();
+            }, 5000);
+        }
+        
+        // Mock showToast function
+        window.showToast = function(message, type) {
+            showStatus(message, type);
+        };
+    </script>
+</body>
+</html>

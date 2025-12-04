@@ -9,6 +9,12 @@
     <!-- Google Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
+    <!-- Directory Page Stylesheets -->
+    <link rel="stylesheet" href="css/contacts-table.css">
+    <link rel="stylesheet" href="css/groups-table.css">
+    <link rel="stylesheet" href="css/tags-table.css">
+    <link rel="stylesheet" href="css/google-mappings-review.css">
+    
     <!-- Theme Initialization Script - Runs before page render to prevent FOUC -->
     <script>
         (function() {
@@ -211,9 +217,9 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 95%;
             margin: 0 auto;
-            padding: 20px;
+            padding: 20px 10px;
         }
         
         header {
@@ -354,9 +360,10 @@
         
         .content {
             background: var(--card-bg);
-            padding: 30px;
+            padding: 20px 10px;
             border-radius: 8px;
             box-shadow: 0 2px 4px var(--card-shadow);
+            max-width: 100%;
         }
         
         .auth-container {
@@ -389,6 +396,127 @@
             text-decoration: underline;
         }
         
+        /* Google SSO Button Styles */
+        .google-sso-button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 12px 24px;
+            background: #ffffff;
+            color: #3c4043;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3);
+            margin-bottom: 20px;
+        }
+        
+        .google-sso-button:hover {
+            background: #f8f9fa;
+            border-color: #d2e3fc;
+            box-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.3);
+        }
+        
+        .google-sso-button:active {
+            background: #f1f3f4;
+            box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3);
+        }
+        
+        .google-sso-button:disabled {
+            background: #f1f3f4;
+            color: #80868b;
+            cursor: not-allowed;
+            border-color: #dadce0;
+        }
+        
+        .google-sso-button.loading {
+            position: relative;
+        }
+        
+        .google-logo {
+            flex-shrink: 0;
+        }
+        
+        .google-sso-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f4f6;
+            border-top-color: #4285f4;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        /* Dark theme adjustments for Google button */
+        [data-theme="dark"] .google-sso-button {
+            background: #2d2d2d;
+            color: #e5e5e5;
+            border-color: #404040;
+        }
+        
+        [data-theme="dark"] .google-sso-button:hover {
+            background: #404040;
+            border-color: #525252;
+        }
+        
+        [data-theme="dark"] .google-sso-button:active {
+            background: #353535;
+        }
+        
+        [data-theme="dark"] .google-sso-button:disabled {
+            background: #242424;
+            color: #737373;
+        }
+        
+        /* Auth divider */
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 20px 0;
+            color: var(--text-secondary);
+        }
+        
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--border-primary);
+        }
+        
+        .auth-divider span {
+            padding: 0 10px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        /* Test mode notice */
+        .test-mode-notice {
+            text-align: center;
+            margin-top: 20px;
+            padding: 8px 12px;
+            background: var(--status-info-bg);
+            color: var(--status-info-text);
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        /* Info message styling */
+        .info-message {
+            background: var(--status-info-bg);
+            color: var(--status-info-text);
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
         
         .hidden {
             display: none !important;
@@ -1531,6 +1659,92 @@
             display: none;
         }
         
+        /* Directory Tabs */
+        .directory-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid var(--border-primary);
+            padding-bottom: 0;
+            margin-bottom: 25px;
+        }
+        
+        .directory-tab {
+            background: transparent;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .directory-tab:hover {
+            color: var(--color-primary);
+            background: var(--bg-tertiary);
+        }
+        
+        .directory-tab.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+            font-weight: 600;
+        }
+        
+        .directory-tab-content {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .directory-tab-content.hidden {
+            display: none;
+        }
+        
+        /* Red dot indicator for pending items */
+        .directory-tab .notification-dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: var(--color-danger);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+        
+        /* Mobile responsive for directory tabs */
+        @media (max-width: 768px) {
+            .directory-tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE and Edge */
+            }
+            
+            .directory-tabs::-webkit-scrollbar {
+                display: none; /* Chrome, Safari, Opera */
+            }
+            
+            .directory-tab {
+                padding: 12px 20px;
+                font-size: 14px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+        }
+        
         /* Group Suggestion Styles */
         .suggestion-card {
             position: relative;
@@ -2376,26 +2590,53 @@
     
     <!-- Auth Screen -->
     <div id="auth-screen" class="auth-container hidden">
-        <h2 id="auth-title">Login to CatchUp</h2>
-        <div id="auth-error" class="error hidden"></div>
-        <div id="auth-success" class="success hidden"></div>
-        <form id="auth-form" onsubmit="handleAuth(event)">
-            <div class="form-group">
-                <label for="auth-email">Email</label>
-                <input type="email" id="auth-email" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="auth-password">Password</label>
-                <input type="password" id="auth-password" required minlength="6">
-            </div>
-            
-            <button type="submit" id="auth-submit-btn">Login</button>
-        </form>
+        <h2 id="auth-title">Welcome to CatchUp</h2>
         
-        <div class="auth-toggle">
-            <span id="auth-toggle-text">Don't have an account?</span>
-            <a onclick="toggleAuthMode()">Sign up</a>
+        <!-- Google SSO Messages -->
+        <div id="google-sso-error" class="error hidden"></div>
+        <div id="google-sso-success" class="success hidden"></div>
+        <div id="google-sso-loading" class="info-message hidden"></div>
+        
+        <!-- Google SSO Button (Always Visible) -->
+        <button id="google-sso-btn" class="google-sso-button" type="button">
+            <svg class="google-logo" width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.44 15.983 5.485 18 9.003 18z" fill="#34A853"/>
+                <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.485 0 2.44 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
+            </svg>
+            <span>Sign in with Google</span>
+        </button>
+        
+        <!-- Email/Password Form (Only in Test Mode) -->
+        <div id="email-auth-form" style="display: none;">
+            <div class="auth-divider">
+                <span>OR</span>
+            </div>
+            
+            <div id="auth-error" class="error hidden"></div>
+            <div id="auth-success" class="success hidden"></div>
+            
+            <form id="auth-form" onsubmit="handleAuth(event)">
+                <div class="form-group">
+                    <label for="auth-email">Email</label>
+                    <input type="email" id="auth-email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="auth-password">Password</label>
+                    <input type="password" id="auth-password" required minlength="6">
+                </div>
+                
+                <button type="submit" id="auth-submit-btn">Login</button>
+            </form>
+            
+            <div class="auth-toggle">
+                <span id="auth-toggle-text">Don't have an account?</span>
+                <a onclick="toggleAuthMode()">Sign up</a>
+            </div>
+            
+            <p class="test-mode-notice">🧪 Test Mode Enabled</p>
         </div>
     </div>
     
@@ -2405,8 +2646,7 @@
             <h1>CatchUp</h1>
             <p>AI-Powered Relationship Manager</p>
             <nav>
-                <a href="#contacts" class="nav-link active" data-page="contacts">👥 Contacts</a>
-                <a href="#groups-tags" class="nav-link" data-page="groups-tags">🏷️ Groups & Tags</a>
+                <a href="#directory" class="nav-link active" data-page="directory">📁 Directory</a>
                 <a href="#suggestions" class="nav-link" data-page="suggestions">💡 Suggestions</a>
                 <a href="#edits" class="nav-link" data-page="edits">✏️ Edits <span id="edits-badge" class="nav-badge hidden">#</span></a>
             </nav>
@@ -2423,70 +2663,73 @@
         </header>
         
         <div class="content">
-            <!-- Contacts Page -->
-            <div id="contacts-page" class="page">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-                    <h2>Contacts</h2>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button onclick="showAddContactModal()">Add Contact</button>
-                        <button class="secondary" onclick="seedTestData()">Load Test Data</button>
-                        <button class="secondary" onclick="clearTestData()" style="background: var(--color-danger);">Clear Test Data</button>
-                    </div>
-                </div>
+            <!-- Directory Page -->
+            <div id="directory-page" class="page">
+                <h2 style="margin-bottom: 20px;">Directory</h2>
                 
-                <div class="search-bar">
-                    <input type="text" id="contact-search" placeholder="Search contacts..." onkeyup="searchContacts()">
-                </div>
-                
-                <!-- Contact Filters -->
-                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                    <button class="filter-btn active" onclick="filterContactsBySource('all')" id="filter-all">
-                        All Contacts
+                <!-- Directory Tab Navigation -->
+                <div class="directory-tabs" style="display: flex; gap: 0; margin-bottom: 25px; border-bottom: 2px solid var(--border-primary);">
+                    <button class="directory-tab active" data-tab="contacts" onclick="switchDirectoryTab('contacts')">
+                        <span style="margin-right: 6px;">👥</span>Contacts
                     </button>
-                    <button class="filter-btn" onclick="filterContactsBySource('google')" id="filter-google">
-                        <img src="https://www.gstatic.com/marketing-cms/assets/images/ff/21/95f22bf94e35bea3ec097d3f4720/contacts.png" alt="Google" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">
-                        Google Contacts
+                    <button class="directory-tab" data-tab="circles" onclick="switchDirectoryTab('circles')">
+                        <span style="margin-right: 6px;">🎯</span>Circles
                     </button>
-                    <button class="filter-btn" onclick="filterContactsBySource('manual')" id="filter-manual">
-                        Manual Contacts
+                    <button class="directory-tab" data-tab="groups" onclick="switchDirectoryTab('groups')">
+                        <span style="margin-right: 6px;">👥</span>Groups
+                    </button>
+                    <button class="directory-tab" data-tab="tags" onclick="switchDirectoryTab('tags')">
+                        <span style="margin-right: 6px;">🏷️</span>Tags
                     </button>
                 </div>
                 
-                <div id="contacts-list"></div>
-            </div>
-            
-            <!-- Groups & Tags Management Page -->
-            <div id="groups-tags-page" class="page hidden">
-                <h2 style="margin-bottom: 20px;">Groups & Tags Management</h2>
+                <!-- Contacts Tab Content -->
+                <div id="directory-contacts-tab" class="directory-tab-content">
+                    <!-- ContactsTable component will render all controls here -->
+                    <div id="contacts-list"></div>
+                </div>
                 
-                <div class="management-container">
-                    <!-- Groups Section -->
-                    <div class="management-section">
-                        <div class="section-header">
-                            <h3>Groups</h3>
-                            <button onclick="showCreateGroupModal()">Create Group</button>
-                        </div>
-                        
-                        <div class="search-bar">
-                            <input type="text" id="group-search" placeholder="Search groups..." onkeyup="searchGroups()">
-                        </div>
-                        
-                        <div id="groups-list" class="items-list"></div>
+                <!-- Circles Tab Content -->
+                <div id="directory-circles-tab" class="directory-tab-content hidden">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="margin: 0;">Circles</h3>
+                        <button onclick="openOnboardingManagement()" style="background: var(--color-primary); font-weight: 600;">
+                            <span style="margin-right: 6px;">⚙️</span>Manage Circles
+                        </button>
                     </div>
                     
-                    <!-- Tags Section -->
-                    <div class="management-section">
-                        <div class="section-header">
-                            <h3>Tags</h3>
-                            <button onclick="showCreateTagModal()">Create Tag</button>
-                        </div>
-                        
-                        <div class="search-bar">
-                            <input type="text" id="tag-search" placeholder="Search tags..." onkeyup="searchTags()">
-                        </div>
-                        
-                        <div id="tags-list" class="items-list"></div>
+                    <!-- Circle Visualizer Container -->
+                    <div id="circles-visualizer-container">
+                        <!-- CircularVisualizer will be rendered here -->
                     </div>
+                </div>
+                
+                <!-- Groups Tab Content -->
+                <div id="directory-groups-tab" class="directory-tab-content hidden">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="margin: 0;">Groups</h3>
+                        <button onclick="showCreateGroupModal()">Create Group</button>
+                    </div>
+                    
+                    <div class="search-bar">
+                        <input type="text" id="group-search" placeholder="Search groups..." onkeyup="searchGroups()">
+                    </div>
+                    
+                    <div id="groups-list" class="items-list"></div>
+                </div>
+                
+                <!-- Tags Tab Content -->
+                <div id="directory-tags-tab" class="directory-tab-content hidden">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="margin: 0;">Tags</h3>
+                        <button onclick="showCreateTagModal()">Create Tag</button>
+                    </div>
+                    
+                    <div class="search-bar">
+                        <input type="text" id="tag-search" placeholder="Search tags..." onkeyup="searchTags()">
+                    </div>
+                    
+                    <div id="tags-list" class="items-list"></div>
                 </div>
             </div>
             
@@ -2751,18 +2994,24 @@
     <script src="/js/recording-indicator.js"></script>
     <script src="/js/enrichment-panel.js"></script>
     <script src="/js/voice-notes.js"></script>
-    <script src="/js/voice-notes-history.js"></script>
     <script src="/js/contact-selector.js"></script>
     <script src="/js/enrichment-review.js"></script>
     <script src="/js/schedule-preview.js"></script>
+    <script src="/js/onboarding-controller.js"></script>
     <script src="/js/google-contacts.js"></script>
     <script src="/js/floating-chat-icon.js"></script>
     <script src="/js/chat-window.js"></script>
-    
+
     <!-- Compact Edits UI -->
     <script src="/js/edits-compact-utils.js"></script>
     <script src="/js/edits-menu-compact.js"></script>
-    
+
+    <script src="/js/google-sso.js"></script>
+    <script src="/js/circular-visualizer.js"></script>
+    <script src="/js/contacts-table.js"></script>
+    <script src="/js/groups-table.js"></script>
+    <script src="/js/tags-table.js"></script>
+    <script src="/js/google-mappings-review.js"></script>
     <script src="/js/app.js"></script>
 </body>
 </html>

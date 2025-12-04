@@ -44,17 +44,17 @@ export async function getUserSuggestions(
   statuses?: SuggestionStatus[]
 ): Promise<Suggestion[]> {
   // Use imported pool
-  
+
   let query = 'SELECT * FROM suggestions WHERE user_id = $1';
   const params: any[] = [userId];
-  
+
   if (statuses && statuses.length > 0) {
     query += ' AND status = ANY($2)';
     params.push(statuses);
   }
-  
+
   query += ' ORDER BY created_at DESC';
-  
+
   const result = await pool.query(query, params);
   return result.rows.map(rowToSuggestion);
 }
@@ -64,15 +64,12 @@ export async function getUserSuggestions(
  */
 export async function getSuggestionById(suggestionId: string): Promise<Suggestion | null> {
   // Use imported pool
-  
-  const result = await pool.query(
-    'SELECT * FROM suggestions WHERE id = $1',
-    [suggestionId]
-  );
-  
+
+  const result = await pool.query('SELECT * FROM suggestions WHERE id = $1', [suggestionId]);
+
   if (result.rows.length === 0) {
     return null;
   }
-  
+
   return rowToSuggestion(result.rows[0]);
 }

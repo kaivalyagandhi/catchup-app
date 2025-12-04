@@ -35,9 +35,12 @@ export class TwilioSMSService implements SMSService {
     retryDelayMs: number = 1000
   ) {
     // Use explicit checks to properly handle empty strings
-    const sid = accountSid !== undefined && accountSid !== '' ? accountSid : process.env.TWILIO_ACCOUNT_SID;
-    const token = authToken !== undefined && authToken !== '' ? authToken : process.env.TWILIO_AUTH_TOKEN;
-    const phone = fromNumber !== undefined && fromNumber !== '' ? fromNumber : process.env.TWILIO_PHONE_NUMBER;
+    const sid =
+      accountSid !== undefined && accountSid !== '' ? accountSid : process.env.TWILIO_ACCOUNT_SID;
+    const token =
+      authToken !== undefined && authToken !== '' ? authToken : process.env.TWILIO_AUTH_TOKEN;
+    const phone =
+      fromNumber !== undefined && fromNumber !== '' ? fromNumber : process.env.TWILIO_PHONE_NUMBER;
 
     if (!sid || !token) {
       throw new Error('Twilio credentials not configured');

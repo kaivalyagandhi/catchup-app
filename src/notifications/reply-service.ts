@@ -5,7 +5,14 @@
  * Extracts suggestion actions and contact metadata using NLP.
  */
 
-import { Contact, ExtractedEntities, EnrichmentProposal, Suggestion, SuggestionStatus, InteractionType } from '../types';
+import {
+  Contact,
+  ExtractedEntities,
+  EnrichmentProposal,
+  Suggestion,
+  SuggestionStatus,
+  InteractionType,
+} from '../types';
 import * as voiceService from '../voice/voice-service';
 import * as suggestionRepository from '../matching/suggestion-repository';
 import * as contactRepository from '../contacts/repository';
@@ -154,7 +161,11 @@ export class ReplyProcessingService {
     const lowerText = text.toLowerCase();
 
     // Check for accept
-    if (lowerText.includes('accept') || lowerText.includes('yes') || lowerText.includes('confirm')) {
+    if (
+      lowerText.includes('accept') ||
+      lowerText.includes('yes') ||
+      lowerText.includes('confirm')
+    ) {
       return { type: 'accept' };
     }
 
@@ -166,7 +177,11 @@ export class ReplyProcessingService {
     }
 
     // Check for snooze
-    if (lowerText.includes('snooze') || lowerText.includes('remind') || lowerText.includes('later')) {
+    if (
+      lowerText.includes('snooze') ||
+      lowerText.includes('remind') ||
+      lowerText.includes('later')
+    ) {
       // Try to extract snooze duration
       const snoozeDuration = this.extractSnoozeDuration(text);
       return { type: 'snooze', snoozeDuration };

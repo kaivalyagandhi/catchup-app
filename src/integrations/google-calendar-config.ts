@@ -12,11 +12,12 @@ import type { Credentials } from 'google-auth-library';
 function createOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  // Use calendar-specific redirect URI, fallback to main redirect URI for backwards compatibility
+  const redirectUri = process.env.GOOGLE_CALENDAR_REDIRECT_URI || process.env.GOOGLE_REDIRECT_URI;
 
   if (!clientId || !clientSecret || !redirectUri) {
     throw new Error(
-      'Google OAuth credentials not configured. Please set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI environment variables.'
+      'Google OAuth credentials not configured. Please set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALENDAR_REDIRECT_URI environment variables.'
     );
   }
 
@@ -26,7 +27,7 @@ function createOAuth2Client() {
 /**
  * Generate OAuth authorization URL
  */
-export function getAuthorizationUrl(): string {
+export function getAuthorizationUrl(state?: string): string {
   const oauth2Client = createOAuth2Client();
   const scopes = [
     'https://www.googleapis.com/auth/calendar.readonly',
@@ -38,6 +39,7 @@ export function getAuthorizationUrl(): string {
     access_type: 'offline',
     scope: scopes,
     prompt: 'consent',
+    state: state,
   });
 }
 

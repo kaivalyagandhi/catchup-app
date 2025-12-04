@@ -15,12 +15,7 @@ import {
 import { Contact, CityTimezoneData } from '../types';
 import { validateContactData } from './validation';
 import { TimezoneService, timezoneService as defaultTimezoneService } from './timezone-service';
-import {
-  getOrSetCache,
-  CacheKeys,
-  CacheTTL,
-  invalidateContactCache,
-} from '../utils/cache';
+import { getOrSetCache, CacheKeys, CacheTTL, invalidateContactCache } from '../utils/cache';
 
 /**
  * Contact Service Interface
@@ -32,6 +27,7 @@ export interface ContactService {
   listContacts(userId: string, filters?: ContactFilters): Promise<Contact[]>;
   deleteContact(id: string, userId: string): Promise<void>;
   archiveContact(id: string, userId: string): Promise<void>;
+  unarchiveContact(id: string, userId: string): Promise<void>;
   inferTimezoneFromLocation(location: string): string | null;
   getCityDataset(): CityTimezoneData[];
 }
@@ -124,7 +120,7 @@ export class ContactServiceImpl implements ContactService {
     // NO API calls are made to Google Contacts.
     // Google metadata (google_resource_name, google_etag, source) is preserved for future syncs.
     // The repository layer ensures Google metadata fields are not modified during updates.
-    
+
     // Update contact (local database only)
     const contact = await this.repository.update(id, userId, data);
 
@@ -172,6 +168,13 @@ export class ContactServiceImpl implements ContactService {
 
   async archiveContact(id: string, userId: string): Promise<void> {
     await this.repository.archive(id, userId);
+
+    // Invalidate caches
+    await invalidateContactCache(userId, id);
+  }
+
+  async unarchiveContact(id: string, userId: string): Promise<void> {
+    await this.repository.unarchive(id, userId);
 
     // Invalidate caches
     await invalidateContactCache(userId, id);

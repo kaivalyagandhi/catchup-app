@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archived Contacts Manager Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin-bottom: 30px;
+      color: #333;
+    }
+
+    /* Archived Contacts Manager Styles */
+    .archived-contacts-empty {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .empty-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+
+    .archived-contacts-empty h2 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .archived-contacts-empty p {
+      color: #666;
+    }
+
+    .archived-header {
+      margin-bottom: 20px;
+    }
+
+    .archived-header h2 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .archived-header p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .bulk-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .bulk-actions span {
+      font-weight: 500;
+      color: #333;
+      margin-right: auto;
+    }
+
+    .archived-contacts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .archived-contact-card {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 20px;
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .archived-contact-card:hover {
+      border-color: #007bff;
+      box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+    }
+
+    .archived-contact-card.selected {
+      border-color: #007bff;
+      background: #f0f7ff;
+    }
+
+    .contact-checkbox input {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    .contact-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .contact-info {
+      flex: 1;
+    }
+
+    .contact-info h3 {
+      color: #333;
+      margin-bottom: 5px;
+      font-size: 18px;
+    }
+
+    .contact-meta {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .contact-details {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: #888;
+    }
+
+    .circle-badge {
+      padding: 4px 8px;
+      background: #e3f2fd;
+      color: #1976d2;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .archived-date {
+      color: #f57c00;
+    }
+
+    .contact-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Button Styles */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #545b62;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    /* Toast Styles */
+    .success-toast,
+    .error-toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      border-radius: 6px;
+      color: white;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .success-toast {
+      background: #28a745;
+    }
+
+    .error-toast {
+      background: #dc3545;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Archived Contacts Manager Test</h1>
+    <div id="archived-contacts-container"></div>
+  </div>
+
+  <script src="archived-contacts-manager.js"></script>
+  <script>
+    // Mock fetch for testing
+    window.fetch = async (url, options = {}) => {
+      console.log('Mock fetch:', url, options);
+
+      // Mock archived contacts data
+      if (url === '/api/contacts/archived' && options.method !== 'POST') {
+        return {
+          json: async () => ({
+            success: true,
+            contacts: [
+              {
+                id: '1',
+                name: 'John Doe',
+                email: 'john@example.com',
+                phone: '+1234567890',
+                dunbarCircle: 'close',
+                frequencyPreference: 'weekly',
+                archivedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+                lastContactDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+              },
+              {
+                id: '2',
+                name: 'Jane Smith',
+                email: 'jane@example.com',
+                dunbarCircle: 'active',
+                archivedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+                lastContactDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // 60 days ago
+              },
+              {
+                id: '3',
+                name: 'Bob Johnson',
+                phone: '+9876543210',
+                dunbarCircle: 'casual',
+                archivedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 14 days ago
+              },
+              {
+                id: '4',
+                name: 'Alice Williams',
+                email: 'alice@example.com',
+                phone: '+1122334455',
+                dunbarCircle: 'inner',
+                archivedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+                lastContactDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+              },
+            ],
+            count: 4,
+          }),
+        };
+      }
+
+      // Mock reactivate
+      if (url.includes('/reactivate') && options.method === 'POST') {
+        const contactId = url.split('/')[3];
+        return {
+          json: async () => ({
+            success: true,
+            result: {
+              success: true,
+              contactId,
+              action: 'reactivated',
+              circleDistribution: {
+                inner: 5,
+                close: 15,
+                active: 50,
+                casual: 150,
+                acquaintance: 500,
+                uncategorized: 10,
+                total: 730,
+              },
+            },
+          }),
+        };
+      }
+
+      return {
+        json: async () => ({ success: false, error: 'Not implemented' }),
+      };
+    };
+
+    // Mock localStorage
+    if (!localStorage.getItem('authToken')) {
+      localStorage.setItem('authToken', 'mock-token-123');
+    }
+
+    // Initialize the manager
+    const archivedContactsManager = new ArchivedContactsManager('archived-contacts-container');
+  </script>
+</body>
+</html>

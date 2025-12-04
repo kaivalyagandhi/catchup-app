@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mobile Responsive Design Test - Contact Onboarding</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-header h1 {
+      font-size: 24px;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+    
+    .test-header p {
+      color: #6b7280;
+      font-size: 14px;
+    }
+    
+    .device-info {
+      background: #eff6ff;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #1e40af;
+    }
+    
+    .device-info strong {
+      font-weight: 600;
+    }
+    
+    .test-section {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-section h2 {
+      font-size: 18px;
+      color: #1f2937;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .test-description {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+    
+    .test-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    
+    .test-btn {
+      padding: 10px 20px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: 44px;
+    }
+    
+    .test-btn:active {
+      transform: scale(0.98);
+      background: #2563eb;
+    }
+    
+    .test-btn.secondary {
+      background: #6b7280;
+    }
+    
+    .test-btn.secondary:active {
+      background: #4b5563;
+    }
+    
+    .test-result {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    
+    .test-result.success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #10b981;
+    }
+    
+    .test-result.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #ef4444;
+    }
+    
+    .test-result.info {
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #3b82f6;
+    }
+    
+    .visualizer-container {
+      height: 600px;
+      margin-top: 16px;
+    }
+    
+    .autocomplete-container {
+      margin-top: 16px;
+      position: relative;
+    }
+    
+    .orientation-test {
+      padding: 16px;
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 8px;
+      margin-top: 16px;
+      text-align: center;
+    }
+    
+    .orientation-test strong {
+      display: block;
+      font-size: 16px;
+      color: #92400e;
+      margin-bottom: 8px;
+    }
+    
+    .orientation-test p {
+      font-size: 14px;
+      color: #78350f;
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 12px;
+      }
+      
+      .test-header h1 {
+        font-size: 20px;
+      }
+      
+      .test-section h2 {
+        font-size: 16px;
+      }
+      
+      .visualizer-container {
+        height: 500px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      body {
+        padding: 8px;
+      }
+      
+      .test-header {
+        padding: 16px;
+      }
+      
+      .test-section {
+        padding: 16px;
+      }
+      
+      .test-actions {
+        flex-direction: column;
+      }
+      
+      .test-btn {
+        width: 100%;
+      }
+      
+      .visualizer-container {
+        height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>📱 Mobile Responsive Design Test</h1>
+      <p>Testing touch gestures, responsive layouts, and orientation handling</p>
+      <div class="device-info">
+        <strong>Device:</strong> <span id="device-type">Detecting...</span><br>
+        <strong>Screen:</strong> <span id="screen-size">Detecting...</span><br>
+        <strong>Orientation:</strong> <span id="orientation">Detecting...</span>
+      </div>
+    </div>
+    
+    <!-- Test 1: Touch Gesture Support -->
+    <div class="test-section">
+      <h2>1. Touch Gesture Support</h2>
+      <p class="test-description">
+        Test tap, long-press, and drag gestures on the circular visualizer.
+        Long-press a contact for 500ms to select it. Drag contacts between circles.
+      </p>
+      <div class="test-actions">
+        <button class="test-btn" onclick="testTouchGestures()">Test Touch Gestures</button>
+        <button class="test-btn secondary" onclick="clearTouchTest()">Clear</button>
+      </div>
+      <div id="touch-result"></div>
+      <div id="visualizer-touch" class="visualizer-container"></div>
+    </div>
+    
+    <!-- Test 2: Responsive Layout -->
+    <div class="test-section">
+      <h2>2. Responsive Layout</h2>
+      <p class="test-description">
+        Resize your browser window or rotate your device to test responsive behavior.
+        The visualizer should adapt to different screen sizes.
+      </p>
+      <div class="test-actions">
+        <button class="test-btn" onclick="testResponsiveLayout()">Test Responsive Layout</button>
+        <button class="test-btn secondary" onclick="simulateResize()">Simulate Resize</button>
+      </div>
+      <div id="responsive-result"></div>
+      <div id="visualizer-responsive" class="visualizer-container"></div>
+    </div>
+    
+    <!-- Test 3: Mobile Autocomplete -->
+    <div class="test-section">
+      <h2>3. Mobile Autocomplete</h2>
+      <p class="test-description">
+        Test the touch-optimized autocomplete for contact search.
+        Type to search, tap to select. Results have large touch targets.
+      </p>
+      <div class="test-actions">
+        <button class="test-btn" onclick="testAutocomplete()">Initialize Autocomplete</button>
+        <button class="test-btn secondary" onclick="clearAutocomplete()">Clear</button>
+      </div>
+      <div id="autocomplete-result"></div>
+      <div class="autocomplete-container">
+        <input type="text" id="contact-search" placeholder="Search contacts..." />
+      </div>
+    </div>
+    
+    <!-- Test 4: Orientation Change -->
+    <div class="test-section">
+      <h2>4. Orientation Change Handling</h2>
+      <p class="test-description">
+        Rotate your device to test orientation change handling.
+        State (selections, filters) should be preserved across orientation changes.
+      </p>
+      <div class="test-actions">
+        <button class="test-btn" onclick="testOrientationChange()">Test Orientation Change</button>
+        <button class="test-btn secondary" onclick="selectRandomContacts()">Select Random Contacts</button>
+      </div>
+      <div id="orientation-result"></div>
+      <div class="orientation-test">
+        <strong>Rotate your device now!</strong>
+        <p>Selected contacts and filters should be preserved</p>
+      </div>
+      <div id="visualizer-orientation" class="visualizer-container"></div>
+    </div>
+    
+    <!-- Test 5: Touch Target Sizes -->
+    <div class="test-section">
+      <h2>5. Touch Target Sizes</h2>
+      <p class="test-description">
+        Verify that all interactive elements meet minimum touch target size (44x44px).
+        Contact dots should be at least 36px on mobile.
+      </p>
+      <div class="test-actions">
+        <button class="test-btn" onclick="testTouchTargets()">Test Touch Targets</button>
+      </div>
+      <div id="touch-target-result"></div>
+    </div>
+  </div>
+  
+  <script src="circular-visualizer.js"></script>
+  <script src="mobile-autocomplete.js"></script>
+  <script>
+    // Sample contact data
+    const sampleContacts = [
+      { id: '1', name: 'Alice Johnson', email: 'alice@example.com', circle: 'inner', groups: ['family'] },
+      { id: '2', name: 'Bob Smith', email: 'bob@example.com', circle: 'close', groups: ['work'] },
+      { id: '3', name: 'Carol Williams', email: 'carol@example.com', circle: 'close', groups: ['friends'] },
+      { id: '4', name: 'David Brown', email: 'david@example.com', circle: 'active', groups: ['work'] },
+      { id: '5', name: 'Eve Davis', email: 'eve@example.com', circle: 'active', groups: ['friends'] },
+      { id: '6', name: 'Frank Miller', email: 'frank@example.com', circle: 'casual', groups: ['hobby'] },
+      { id: '7', name: 'Grace Wilson', email: 'grace@example.com', circle: 'casual', groups: ['hobby'] },
+      { id: '8', name: 'Henry Moore', email: 'henry@example.com', circle: 'acquaintance', groups: [] },
+      { id: '9', name: 'Ivy Taylor', email: 'ivy@example.com', circle: 'acquaintance', groups: [] },
+      { id: '10', name: 'Jack Anderson', email: 'jack@example.com', circle: 'inner', groups: ['family'] }
+    ];
+    
+    const sampleGroups = [
+      { id: 'family', name: 'Family' },
+      { id: 'work', name: 'Work' },
+      { id: 'friends', name: 'Friends' },
+      { id: 'hobby', name: 'Hobby Club' }
+    ];
+    
+    let visualizers = {};
+    let autocomplete = null;
+    
+    // Update device info
+    function updateDeviceInfo() {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isTablet = /(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(navigator.userAgent);
+      
+      let deviceType = 'Desktop';
+      if (isTablet) deviceType = 'Tablet';
+      else if (isMobile) deviceType = 'Mobile';
+      
+      document.getElementById('device-type').textContent = deviceType;
+      document.getElementById('screen-size').textContent = `${window.innerWidth}x${window.innerHeight}`;
+      
+      const orientation = window.innerWidth > window.innerHeight ? 'Landscape' : 'Portrait';
+      document.getElementById('orientation').textContent = orientation;
+    }
+    
+    updateDeviceInfo();
+    window.addEventListener('resize', updateDeviceInfo);
+    window.addEventListener('orientationchange', updateDeviceInfo);
+    
+    // Test 1: Touch Gestures
+    function testTouchGestures() {
+      const resultDiv = document.getElementById('touch-result');
+      resultDiv.innerHTML = '<div class="test-result info">Initializing touch gesture test...</div>';
+      
+      try {
+        visualizers.touch = new CircularVisualizer('visualizer-touch');
+        visualizers.touch.render(sampleContacts, sampleGroups);
+        
+        // Listen for events
+        let eventLog = [];
+        
+        visualizers.touch.on('contactClick', (data) => {
+          eventLog.push(`Tap: ${data.contact.name}`);
+          updateEventLog();
+        });
+        
+        visualizers.touch.on('contactDrag', (data) => {
+          eventLog.push(`Drag: Contact moved to ${data.toCircle}`);
+          updateEventLog();
+        });
+        
+        visualizers.touch.on('batchDrag', (data) => {
+          eventLog.push(`Batch Drag: ${data.contactIds.length} contacts moved to ${data.toCircle}`);
+          updateEventLog();
+        });
+        
+        function updateEventLog() {
+          const recent = eventLog.slice(-5).reverse();
+          resultDiv.innerHTML = `
+            <div class="test-result success">
+              <strong>Touch Events Detected:</strong><br>
+              ${recent.map(e => `• ${e}`).join('<br>')}
+            </div>
+          `;
+        }
+        
+        resultDiv.innerHTML = '<div class="test-result success">✓ Touch gestures enabled. Try tapping, long-pressing, and dragging contacts!</div>';
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="test-result error">✗ Error: ${error.message}</div>`;
+      }
+    }
+    
+    function clearTouchTest() {
+      if (visualizers.touch) {
+        visualizers.touch.clearSelection();
+      }
+      document.getElementById('touch-result').innerHTML = '';
+    }
+    
+    // Test 2: Responsive Layout
+    function testResponsiveLayout() {
+      const resultDiv = document.getElementById('responsive-result');
+      resultDiv.innerHTML = '<div class="test-result info">Testing responsive layout...</div>';
+      
+      try {
+        visualizers.responsive = new CircularVisualizer('visualizer-responsive');
+        visualizers.responsive.render(sampleContacts, sampleGroups);
+        
+        const width = window.innerWidth;
+        let layoutType = 'Desktop';
+        if (width < 480) layoutType = 'Small Mobile';
+        else if (width < 768) layoutType = 'Mobile';
+        else if (width < 1024) layoutType = 'Tablet';
+        
+        resultDiv.innerHTML = `
+          <div class="test-result success">
+            ✓ Responsive layout active<br>
+            <strong>Current Layout:</strong> ${layoutType}<br>
+            <strong>Screen Width:</strong> ${width}px<br>
+            <strong>Contact Dot Size:</strong> ${visualizers.responsive.contactDotSize}px
+          </div>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="test-result error">✗ Error: ${error.message}</div>`;
+      }
+    }
+    
+    function simulateResize() {
+      if (visualizers.responsive) {
+        visualizers.responsive.handleResize();
+        testResponsiveLayout();
+      }
+    }
+    
+    // Test 3: Autocomplete
+    function testAutocomplete() {
+      const resultDiv = document.getElementById('autocomplete-result');
+      const input = document.getElementById('contact-search');
+      
+      try {
+        if (autocomplete) {
+          autocomplete.destroy();
+        }
+        
+        autocomplete = new MobileAutocomplete(input, {
+          minChars: 1,
+          maxResults: 10,
+          touchOptimized: true,
+          onSearch: async (query) => {
+            // Simulate search
+            return sampleContacts.filter(contact => 
+              contact.name.toLowerCase().includes(query.toLowerCase()) ||
+              (contact.email && contact.email.toLowerCase().includes(query.toLowerCase()))
+            );
+          },
+          onSelect: (contact) => {
+            resultDiv.innerHTML = `
+              <div class="test-result success">
+                ✓ Selected: <strong>${contact.name}</strong><br>
+                Email: ${contact.email}<br>
+                Circle: ${contact.circle}
+              </div>
+            `;
+          }
+        });
+        
+        resultDiv.innerHTML = '<div class="test-result success">✓ Autocomplete initialized. Start typing to search!</div>';
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="test-result error">✗ Error: ${error.message}</div>`;
+      }
+    }
+    
+    function clearAutocomplete() {
+      if (autocomplete) {
+        autocomplete.clear();
+      }
+      document.getElementById('autocomplete-result').innerHTML = '';
+    }
+    
+    // Test 4: Orientation Change
+    function testOrientationChange() {
+      const resultDiv = document.getElementById('orientation-result');
+      resultDiv.innerHTML = '<div class="test-result info">Testing orientation change handling...</div>';
+      
+      try {
+        visualizers.orientation = new CircularVisualizer('visualizer-orientation');
+        visualizers.orientation.render(sampleContacts, sampleGroups);
+        
+        // Select some contacts
+        visualizers.orientation.selectMultipleContacts(['1', '2', '3']);
+        
+        // Listen for orientation change
+        let orientationChangeCount = 0;
+        window.addEventListener('orientationchange', () => {
+          orientationChangeCount++;
+          setTimeout(() => {
+            const selectedCount = visualizers.orientation.getSelectedContacts().length;
+            resultDiv.innerHTML = `
+              <div class="test-result success">
+                ✓ Orientation changed ${orientationChangeCount} time(s)<br>
+                <strong>Selected contacts preserved:</strong> ${selectedCount}<br>
+                <strong>Current orientation:</strong> ${window.innerWidth > window.innerHeight ? 'Landscape' : 'Portrait'}
+              </div>
+            `;
+          }, 200);
+        });
+        
+        resultDiv.innerHTML = `
+          <div class="test-result success">
+            ✓ Orientation change handler active<br>
+            <strong>Selected contacts:</strong> 3<br>
+            Rotate your device to test!
+          </div>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="test-result error">✗ Error: ${error.message}</div>`;
+      }
+    }
+    
+    function selectRandomContacts() {
+      if (visualizers.orientation) {
+        const randomIds = sampleContacts
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3)
+          .map(c => c.id);
+        visualizers.orientation.selectMultipleContacts(randomIds);
+        
+        document.getElementById('orientation-result').innerHTML = `
+          <div class="test-result info">
+            Selected ${randomIds.length} random contacts. Now rotate your device!
+          </div>
+        `;
+      }
+    }
+    
+    // Test 5: Touch Target Sizes
+    function testTouchTargets() {
+      const resultDiv = document.getElementById('touch-target-result');
+      const results = [];
+      
+      // Check contact dots
+      const contactDots = document.querySelectorAll('.contact-dot circle');
+      contactDots.forEach((dot, index) => {
+        const radius = parseFloat(dot.getAttribute('r'));
+        const diameter = radius * 2;
+        const meetsStandard = diameter >= 36;
+        results.push({
+          element: `Contact Dot ${index + 1}`,
+          size: `${diameter}px`,
+          meets: meetsStandard
+        });
+      });
+      
+      // Check buttons
+      const buttons = document.querySelectorAll('.test-btn');
+      buttons.forEach((btn, index) => {
+        const rect = btn.getBoundingClientRect();
+        const meetsStandard = rect.height >= 44 && rect.width >= 44;
+        results.push({
+          element: `Button ${index + 1}`,
+          size: `${Math.round(rect.width)}x${Math.round(rect.height)}px`,
+          meets: meetsStandard
+        });
+      });
+      
+      const allMeet = results.every(r => r.meets);
+      const summary = results.map(r => 
+        `${r.meets ? '✓' : '✗'} ${r.element}: ${r.size}`
+      ).join('<br>');
+      
+      resultDiv.innerHTML = `
+        <div class="test-result ${allMeet ? 'success' : 'error'}">
+          <strong>${allMeet ? '✓ All touch targets meet standards!' : '✗ Some touch targets are too small'}</strong><br>
+          ${summary}
+        </div>
+      `;
+    }
+    
+    // Initialize first test on load
+    window.addEventListener('load', () => {
+      testTouchGestures();
+    });
+  </script>
+</body>
+</html>

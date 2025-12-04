@@ -80,7 +80,7 @@ function renderGoogleContactsCard(status) {
                     <div style="padding: 10px; background: var(--bg-secondary); border-radius: 4px;">
                         <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">LAST SYNC</div>
                         <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
-                            ${status.lastSyncAt ? formatRelativeTime(status.lastSyncAt) : 'Never'}
+                            ${status.lastSyncAt ? formatRelativeTime(new Date(status.lastSyncAt)) : 'Never'}
                         </div>
                     </div>
                     <div style="padding: 10px; background: var(--bg-secondary); border-radius: 4px;">
@@ -162,9 +162,18 @@ function renderGoogleContactsCard(status) {
  */
 async function connectGoogleContacts() {
     try {
-        const response = await fetch(`${API_BASE}/contacts/oauth/authorize`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-        });
+        // Ensure we have userId
+        let currentUserId = userId;
+        if (!currentUserId) {
+            currentUserId = localStorage.getItem('userId');
+        }
+        
+        if (!currentUserId) {
+            showToast('You must be logged in to connect Google Contacts', 'error');
+            return;
+        }
+        
+        const response = await fetch(`${API_BASE}/contacts/oauth/authorize?userId=${currentUserId}`);
         
         if (!response.ok) {
             throw new Error('Failed to get authorization URL');
@@ -187,13 +196,14 @@ async function connectGoogleContacts() {
 async function syncGoogleContactsNow() {
     const button = document.getElementById('sync-contacts-btn');
     const originalText = button.textContent;
+    let loadingToastId = null;
     
     try {
         button.disabled = true;
         button.innerHTML = '<span class="loading-spinner"></span> Syncing...';
         
         // Show loading indicator
-        const loadingToastId = showToast('Starting sync...', 'loading');
+        loadingToastId = showToast('Starting sync...', 'loading');
         
         const response = await fetch(`${API_BASE}/contacts/sync/incremental`, {
             method: 'POST',
@@ -203,25 +213,20 @@ async function syncGoogleContactsNow() {
             }
         });
         
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Sync failed');
-        }
-        
         const result = await response.json();
         
         // Hide loading toast
         if (loadingToastId && typeof hideToast === 'function') {
             hideToast(loadingToastId);
+            loadingToastId = null;
         }
         
-        // Show detailed success message with results
-        let message = 'Sync queued successfully!';
-        if (result.message) {
-            message = result.message;
+        if (!response.ok) {
+            throw new Error(result.message || result.error || 'Sync failed');
         }
         
-        showToast(message, 'success');
+        // Show success message
+        showToast(result.message || 'Sync started successfully', 'success');
         
         // Show confirmation that Google Contacts remain unchanged
         setTimeout(() => {
@@ -241,12 +246,19 @@ async function syncGoogleContactsNow() {
     } catch (error) {
         console.error('Error syncing Google Contacts:', error);
         
+        // Hide loading toast if still showing
+        if (loadingToastId && typeof hideToast === 'function') {
+            hideToast(loadingToastId);
+        }
+        
         // Show error with actionable steps
-        let errorMessage = `Sync failed: ${error.message}`;
-        if (error.message.includes('not connected')) {
+        let errorMessage = error.message;
+        if (errorMessage.includes('not connected')) {
             errorMessage = 'Please connect your Google Contacts account first';
-        } else if (error.message.includes('already in progress')) {
+        } else if (errorMessage.includes('already in progress') || errorMessage.includes('already running')) {
             errorMessage = 'A sync is already in progress. Please wait for it to complete.';
+        } else if (!errorMessage || errorMessage === 'Sync failed') {
+            errorMessage = 'Sync failed. Please try again.';
         }
         
         showToast(errorMessage, 'error');
@@ -282,6 +294,13 @@ async function pollSyncStatus(jobId) {
                 if (status.lastSyncStatus === 'success') {
                     const contactsUpdated = status.totalContactsSynced || 0;
                     showToast(`✓ Sync completed! ${contactsUpdated} contacts synced`, 'success');
+                    
+                    // Trigger post-import onboarding if contacts were imported
+                    if (contactsUpdated > 0 && typeof triggerPostImportOnboarding === 'function') {
+                        setTimeout(() => {
+                            triggerPostImportOnboarding(contactsUpdated);
+                        }, 2000);
+                    }
                 } else if (status.lastSyncStatus === 'failed' && status.lastSyncError) {
                     showToast(`Sync failed: ${status.lastSyncError}`, 'error');
                 }
@@ -437,7 +456,7 @@ if (typeof module !== 'undefined' && module.exports) {
  */
 async function loadGroupMappingSuggestions() {
     try {
-        const response = await fetch(`${API_BASE}/contacts/groups/mappings/pending`, {
+        const response = await fetch(`${API_BASE}/contacts/sync/groups/mappings/pending`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         
@@ -459,7 +478,7 @@ async function loadGroupMappingSuggestions() {
  */
 async function loadAllGroupMappings() {
     try {
-        const response = await fetch(`${API_BASE}/contacts/groups/mappings`, {
+        const response = await fetch(`${API_BASE}/contacts/sync/groups/mappings`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         
@@ -574,7 +593,9 @@ function renderGroupMappingCard(mapping, status) {
                         ${escapeHtml(mapping.googleName)}
                     </h4>
                     <div style="display: flex; gap: 12px; font-size: 12px; color: var(--text-secondary);">
-                        <span>👥 ${mapping.memberCount} members</span>
+                        <span style="cursor: pointer; text-decoration: underline;" onclick="toggleMappingMembers('${mapping.id}')">
+                            👥 ${mapping.memberCount} members
+                        </span>
                         ${mapping.confidenceScore ? `
                             <span style="color: ${confidenceColor}; font-weight: 600;">
                                 ${Math.round(mapping.confidenceScore * 100)}% confidence
@@ -593,6 +614,9 @@ function renderGroupMappingCard(mapping, status) {
                     </span>
                 ` : ''}
             </div>
+            
+            <!-- Members Section (collapsible) -->
+            <div id="mapping-members-${mapping.id}" style="display: none; margin-bottom: 12px;"></div>
             
             <!-- Suggested Action -->
             ${mapping.suggestedAction ? `
@@ -644,15 +668,27 @@ function renderGroupMappingCard(mapping, status) {
  * Requirements: 6.6
  */
 async function approveGroupMapping(mappingId) {
+    let loadingToastId = null;
     try {
-        showToast('Approving mapping...', 'loading');
+        loadingToastId = showToast('Approving mapping...', 'loading');
         
-        const response = await fetch(`${API_BASE}/contacts/groups/mappings/${mappingId}/approve`, {
+        // Get excluded members if any
+        const container = document.getElementById(`mapping-members-${mappingId}`);
+        const excludedMembers = [];
+        if (container) {
+            const removedCards = container.querySelectorAll('.member-card[data-removed="true"]');
+            removedCards.forEach(card => {
+                excludedMembers.push(card.dataset.memberId);
+            });
+        }
+        
+        const response = await fetch(`${API_BASE}/contacts/sync/groups/mappings/${mappingId}/approve`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${authToken}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ excludedMembers })
         });
         
         if (!response.ok) {
@@ -662,16 +698,201 @@ async function approveGroupMapping(mappingId) {
         
         const result = await response.json();
         
-        showToast('Group mapping approved successfully!', 'success');
+        // Hide loading toast
+        if (loadingToastId && typeof hideToast === 'function') {
+            hideToast(loadingToastId);
+        }
         
-        // Reload preferences to show updated mappings
+        const membersAdded = result.membershipsUpdated || 0;
+        showToast(`✓ Group approved! ${membersAdded} members added.`, 'success');
+        
+        // Reload page to show updated mappings
         setTimeout(() => {
-            loadPreferences();
-        }, 1000);
+            if (typeof loadGroupsTagsManagement === 'function') {
+                loadGroupsTagsManagement();
+            }
+        }, 1500);
         
     } catch (error) {
         console.error('Error approving group mapping:', error);
+        
+        // Hide loading toast
+        if (loadingToastId && typeof hideToast === 'function') {
+            hideToast(loadingToastId);
+        }
+        
         showToast(`Failed to approve mapping: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Toggle display of mapping members
+ */
+async function toggleMappingMembers(mappingId) {
+    const container = document.getElementById(`mapping-members-${mappingId}`);
+    
+    if (container.style.display === 'none') {
+        // Show members - fetch if not already loaded
+        if (!container.dataset.loaded) {
+            container.innerHTML = '<div style="text-align: center; padding: 20px;">Loading members...</div>';
+            container.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_BASE}/contacts/sync/groups/mappings/${mappingId}/members`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load members');
+                }
+                
+                const data = await response.json();
+                container.innerHTML = renderMappingMembers(mappingId, data.members);
+                container.dataset.loaded = 'true';
+            } catch (error) {
+                console.error('Error loading mapping members:', error);
+                container.innerHTML = `<div style="color: var(--status-error-text); padding: 10px;">Failed to load members</div>`;
+            }
+        } else {
+            container.style.display = 'block';
+        }
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+/**
+ * Render mapping members list
+ */
+function renderMappingMembers(mappingId, members) {
+    if (members.length === 0) {
+        return `
+            <div style="padding: 12px; background: var(--bg-secondary); border-radius: 4px; text-align: center;">
+                <div style="color: var(--text-secondary); margin-bottom: 8px;">
+                    No membership data available yet
+                </div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
+                    Click "Sync Now" in Preferences to populate member data
+                </div>
+                <button onclick="window.location.hash='preferences'" class="secondary" style="font-size: 12px;">
+                    Go to Preferences
+                </button>
+            </div>
+        `;
+    }
+    
+    return `
+        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 4px; max-height: 300px; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">
+                    MEMBERS (${members.length})
+                </div>
+                <button onclick="editMappingMembers('${mappingId}')" class="secondary" style="font-size: 11px; padding: 4px 8px;">
+                    ✏️ Edit
+                </button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                ${members.map(member => `
+                    <div class="member-card" data-member-id="${member.id}" style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-primary); border-radius: 4px; border: 1px solid var(--border-primary);">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px;">
+                            ${member.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 500; font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${escapeHtml(member.name)}
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${member.email || member.phone || member.location || 'No contact info'}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Edit mapping members (remove members before approval)
+ */
+function editMappingMembers(mappingId) {
+    const container = document.getElementById(`mapping-members-${mappingId}`);
+    const memberCards = container.querySelectorAll('.member-card');
+    
+    // Toggle edit mode
+    const isEditing = container.dataset.editing === 'true';
+    
+    if (!isEditing) {
+        // Enter edit mode
+        container.dataset.editing = 'true';
+        memberCards.forEach(card => {
+            const memberId = card.dataset.memberId;
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'secondary';
+            removeBtn.style.cssText = 'font-size: 11px; padding: 4px 8px; background: var(--status-error-bg); color: var(--status-error-text);';
+            removeBtn.textContent = '✕';
+            removeBtn.onclick = () => removeMemberFromMapping(mappingId, memberId);
+            card.appendChild(removeBtn);
+        });
+        
+        // Update edit button
+        const editBtn = container.parentElement.querySelector('button[onclick*="editMappingMembers"]');
+        if (editBtn) {
+            editBtn.textContent = '✓ Done';
+        }
+    } else {
+        // Exit edit mode
+        container.dataset.editing = 'false';
+        memberCards.forEach(card => {
+            const removeBtn = card.querySelector('button');
+            if (removeBtn) removeBtn.remove();
+        });
+        
+        // Update edit button
+        const editBtn = container.parentElement.querySelector('button[onclick*="editMappingMembers"]');
+        if (editBtn) {
+            editBtn.textContent = '✏️ Edit';
+        }
+    }
+}
+
+/**
+ * Remove member from mapping (before approval)
+ */
+function removeMemberFromMapping(mappingId, memberId) {
+    const card = document.querySelector(`#mapping-members-${mappingId} .member-card[data-member-id="${memberId}"]`);
+    if (card) {
+        card.style.opacity = '0.5';
+        card.style.textDecoration = 'line-through';
+        card.dataset.removed = 'true';
+    }
+}
+
+/**
+ * Sync group members for approved mappings
+ * Requirements: 6.8
+ */
+async function syncGroupMembers() {
+    try {
+        const response = await fetch(`${API_BASE}/contacts/sync/groups/members`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to sync group members');
+        }
+        
+        const result = await response.json();
+        console.log('Group members synced:', result);
+        return result;
+    } catch (error) {
+        console.error('Error syncing group members:', error);
+        throw error;
     }
 }
 
@@ -683,7 +904,7 @@ async function rejectGroupMapping(mappingId) {
     try {
         showToast('Rejecting mapping...', 'loading');
         
-        const response = await fetch(`${API_BASE}/contacts/groups/mappings/${mappingId}/reject`, {
+        const response = await fetch(`${API_BASE}/contacts/sync/groups/mappings/${mappingId}/reject`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${authToken}`,

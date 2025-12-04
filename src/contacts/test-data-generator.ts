@@ -80,30 +80,102 @@ export interface ClearResult {
 export class TestDataGeneratorImpl implements TestDataGenerator {
   // Sample data for generating realistic test contacts
   private readonly firstNames = [
-    'Alice', 'Bob', 'Carol', 'David', 'Emma', 'Frank', 'Grace', 'Henry',
-    'Iris', 'Jack', 'Kate', 'Liam', 'Maya', 'Noah', 'Olivia', 'Peter',
-    'Quinn', 'Rachel', 'Sam', 'Tara', 'Uma', 'Victor', 'Wendy', 'Xavier',
-    'Yara', 'Zoe'
+    'Alice',
+    'Bob',
+    'Carol',
+    'David',
+    'Emma',
+    'Frank',
+    'Grace',
+    'Henry',
+    'Iris',
+    'Jack',
+    'Kate',
+    'Liam',
+    'Maya',
+    'Noah',
+    'Olivia',
+    'Peter',
+    'Quinn',
+    'Rachel',
+    'Sam',
+    'Tara',
+    'Uma',
+    'Victor',
+    'Wendy',
+    'Xavier',
+    'Yara',
+    'Zoe',
   ];
 
   private readonly lastNames = [
-    'Anderson', 'Brown', 'Chen', 'Davis', 'Evans', 'Garcia', 'Harris',
-    'Johnson', 'Kim', 'Lee', 'Martinez', 'Miller', 'Nguyen', 'Patel',
-    'Rodriguez', 'Smith', 'Taylor', 'Wilson', 'Young', 'Zhang'
+    'Anderson',
+    'Brown',
+    'Chen',
+    'Davis',
+    'Evans',
+    'Garcia',
+    'Harris',
+    'Johnson',
+    'Kim',
+    'Lee',
+    'Martinez',
+    'Miller',
+    'Nguyen',
+    'Patel',
+    'Rodriguez',
+    'Smith',
+    'Taylor',
+    'Wilson',
+    'Young',
+    'Zhang',
   ];
 
   private readonly tagOptions = [
-    'tech', 'hiking', 'coffee', 'startup', 'basketball', 'music',
-    'design', 'yoga', 'photography', 'gaming', 'cooking', 'running',
-    'books', 'travel', 'art', 'fitness', 'movies', 'cycling', 'food',
-    'tennis', 'golf', 'swimming', 'skiing', 'climbing', 'dancing'
+    'tech',
+    'hiking',
+    'coffee',
+    'startup',
+    'basketball',
+    'music',
+    'design',
+    'yoga',
+    'photography',
+    'gaming',
+    'cooking',
+    'running',
+    'books',
+    'travel',
+    'art',
+    'fitness',
+    'movies',
+    'cycling',
+    'food',
+    'tennis',
+    'golf',
+    'swimming',
+    'skiing',
+    'climbing',
+    'dancing',
   ];
 
   private readonly groupNames = [
-    'Close Friends', 'College Friends', 'Work Colleagues', 'Family',
-    'Gym Buddies', 'Book Club', 'Running Group', 'Tech Meetup',
-    'Work Friends', 'College Buddies', 'Hiking Group', 'Startup Founders',
-    'Basketball Team', 'Music Lovers', 'Photography Club', 'Gaming Squad'
+    'Close Friends',
+    'College Friends',
+    'Work Colleagues',
+    'Family',
+    'Gym Buddies',
+    'Book Club',
+    'Running Group',
+    'Tech Meetup',
+    'Work Friends',
+    'College Buddies',
+    'Hiking Group',
+    'Startup Founders',
+    'Basketball Team',
+    'Music Lovers',
+    'Photography Club',
+    'Gaming Squad',
   ];
 
   private readonly frequencyOptions: FrequencyOption[] = [
@@ -111,50 +183,58 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
     FrequencyOption.WEEKLY,
     FrequencyOption.MONTHLY,
     FrequencyOption.YEARLY,
-    FrequencyOption.FLEXIBLE
+    FrequencyOption.FLEXIBLE,
   ];
 
   // Sample voice note transcriptions with realistic content
   private readonly voiceNoteTemplates = [
     {
-      template: "Had a great coffee chat with {name} today. We talked about {interest1} and {interest2}. They mentioned they're working on a new project related to {interest1}. Should catch up again soon!",
-      interests: ['tech', 'startup', 'design', 'coding']
+      template:
+        "Had a great coffee chat with {name} today. We talked about {interest1} and {interest2}. They mentioned they're working on a new project related to {interest1}. Should catch up again soon!",
+      interests: ['tech', 'startup', 'design', 'coding'],
     },
     {
-      template: "Ran into {name} at the {location}. We discussed {interest1} and made plans to go {activity} next week. They're really into {interest2} these days.",
+      template:
+        "Ran into {name} at the {location}. We discussed {interest1} and made plans to go {activity} next week. They're really into {interest2} these days.",
       interests: ['hiking', 'running', 'cycling', 'fitness'],
-      locations: ['gym', 'park', 'coffee shop', 'trail']
+      locations: ['gym', 'park', 'coffee shop', 'trail'],
     },
     {
-      template: "Called {name} to catch up. They're planning a trip to {destination} and asked for recommendations. We also talked about {interest1} and {interest2}.",
+      template:
+        "Called {name} to catch up. They're planning a trip to {destination} and asked for recommendations. We also talked about {interest1} and {interest2}.",
       interests: ['travel', 'photography', 'food', 'art'],
-      destinations: ['Japan', 'Italy', 'Peru', 'Iceland', 'New Zealand']
+      destinations: ['Japan', 'Italy', 'Peru', 'Iceland', 'New Zealand'],
     },
     {
-      template: "Met {name} and {name2} for dinner. Great conversation about {interest1}. {name} is thinking about starting a {interest2} group. Count me in!",
-      interests: ['books', 'movies', 'music', 'cooking', 'gaming']
+      template:
+        'Met {name} and {name2} for dinner. Great conversation about {interest1}. {name} is thinking about starting a {interest2} group. Count me in!',
+      interests: ['books', 'movies', 'music', 'cooking', 'gaming'],
     },
     {
-      template: "Played {sport} with {name} today. They've really improved! We grabbed lunch after and talked about {interest1}. Need to schedule another game soon.",
+      template:
+        "Played {sport} with {name} today. They've really improved! We grabbed lunch after and talked about {interest1}. Need to schedule another game soon.",
       interests: ['basketball', 'tennis', 'golf', 'swimming'],
-      sports: ['basketball', 'tennis', 'golf', 'volleyball']
+      sports: ['basketball', 'tennis', 'golf', 'volleyball'],
     },
     {
-      template: "Video call with {name} about {interest1}. They shared some great insights on {interest2}. Planning to collaborate on a project together.",
-      interests: ['tech', 'design', 'startup', 'photography', 'art']
+      template:
+        'Video call with {name} about {interest1}. They shared some great insights on {interest2}. Planning to collaborate on a project together.',
+      interests: ['tech', 'design', 'startup', 'photography', 'art'],
     },
     {
-      template: "Bumped into {name} at {location}. We chatted about {interest1} and they recommended a great {recommendation}. Should definitely check it out!",
+      template:
+        'Bumped into {name} at {location}. We chatted about {interest1} and they recommended a great {recommendation}. Should definitely check it out!',
       interests: ['books', 'movies', 'music', 'food', 'art'],
       locations: ['bookstore', 'gallery', 'concert', 'restaurant'],
-      recommendations: ['book', 'restaurant', 'podcast', 'album', 'exhibition']
+      recommendations: ['book', 'restaurant', 'podcast', 'album', 'exhibition'],
     },
     {
-      template: "Went {activity} with {name} and {name2}. Beautiful day! We talked about organizing a group trip. {name} suggested {destination}.",
+      template:
+        'Went {activity} with {name} and {name2}. Beautiful day! We talked about organizing a group trip. {name} suggested {destination}.',
       interests: ['hiking', 'cycling', 'climbing', 'skiing'],
       activities: ['hiking', 'cycling', 'climbing', 'skiing'],
-      destinations: ['Yosemite', 'the Alps', 'Patagonia', 'Colorado']
-    }
+      destinations: ['Yosemite', 'the Alps', 'Patagonia', 'Colorado'],
+    },
   ];
 
   /**
@@ -165,11 +245,11 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
       contactCount = 10,
       includeCalendarEvents = false,
       includeSuggestions = false,
-      includeVoiceNotes = false
+      includeVoiceNotes = false,
     } = options;
 
     const client = await pool.connect();
-    
+
     try {
       await client.query('BEGIN');
 
@@ -183,7 +263,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
            RETURNING id`,
           [userId, groupName, false]
         );
-        
+
         if (groupResult.rows.length > 0) {
           groupIds.push(groupResult.rows[0].id);
         }
@@ -192,7 +272,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
       // Generate contacts with intentional shared groups and tags
       const contactIds: string[] = [];
       const usedEmails = new Set<string>();
-      
+
       // Define shared tag clusters to ensure multiple contacts share tags
       const tagClusters = [
         ['tech', 'startup', 'coding'],
@@ -200,14 +280,14 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         ['coffee', 'food', 'cooking'],
         ['music', 'art', 'photography'],
         ['basketball', 'tennis', 'sports'],
-        ['books', 'movies', 'gaming']
+        ['books', 'movies', 'gaming'],
       ];
-      
+
       for (let i = 0; i < contactCount; i++) {
         const firstName = this.randomElement(this.firstNames);
         const lastName = this.randomElement(this.lastNames);
         const name = `${firstName} ${lastName}`;
-        
+
         // Generate unique email
         let email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`;
         let emailSuffix = 1;
@@ -245,7 +325,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
             timezone,
             frequencyPreference,
             lastContactDate,
-            `Test contact - Last contacted ${daysAgo} days ago`
+            `Test contact - Last contacted ${daysAgo} days ago`,
           ]
         );
 
@@ -257,20 +337,20 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         const numClusters = Math.floor(Math.random() * 2) + 1; // 1-2 clusters
         const selectedClusters = this.randomElements(tagClusters, numClusters);
         const selectedTags: string[] = [];
-        
+
         for (const cluster of selectedClusters) {
           // Pick 2-3 tags from each cluster
           const tagsFromCluster = this.randomElements(cluster, Math.floor(Math.random() * 2) + 2);
           selectedTags.push(...tagsFromCluster);
         }
-        
+
         for (const tagText of selectedTags) {
           // Check if tag already exists for this user
           const existingTag = await client.query(
             `SELECT id FROM tags WHERE user_id = $1 AND LOWER(text) = LOWER($2)`,
             [userId, tagText]
           );
-          
+
           let tagId: string;
           if (existingTag.rows.length > 0) {
             tagId = existingTag.rows[0].id;
@@ -283,7 +363,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
                RETURNING id`,
               [tagText, TagSource.MANUAL, userId]
             );
-            
+
             if (tagResult.rows.length > 0) {
               tagId = tagResult.rows[0].id;
             } else {
@@ -295,7 +375,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
               tagId = fetchResult.rows[0].id;
             }
           }
-          
+
           // Associate tag with contact
           await client.query(
             `INSERT INTO contact_tags (contact_id, tag_id)
@@ -311,10 +391,10 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         // Next 30% -> Group 2 & 3 (e.g., "Tech Meetup", "College Buddies")
         // Next 30% -> Group 3 & 4 (e.g., "College Buddies", "Hiking Group")
         // Last 10% -> Random groups
-        
+
         let selectedGroups: string[] = [];
         const contactPosition = i / contactCount;
-        
+
         if (contactPosition < 0.3 && groupIds.length >= 2) {
           // First cluster: Groups 0 and 1
           selectedGroups = [groupIds[0], groupIds[1]];
@@ -329,7 +409,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           const numGroups = Math.floor(Math.random() * 2) + 1; // 1-2 groups
           selectedGroups = this.randomElements(groupIds, Math.min(numGroups, groupIds.length));
         }
-        
+
         for (const groupId of selectedGroups) {
           await client.query(
             `INSERT INTO contact_groups (contact_id, group_id)
@@ -369,7 +449,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           {
             includeWeekends: true,
             timesOfDay: [TimeOfDay.Morning, TimeOfDay.Afternoon, TimeOfDay.Evening],
-            slotDuration: 60
+            slotDuration: 60,
           }
         );
         calendarEventsCreated = calendarEvents.length;
@@ -394,7 +474,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         tagsCreated: parseInt(tagsResult.rows[0].count),
         calendarEventsCreated,
         suggestionsCreated,
-        voiceNotesCreated
+        voiceNotesCreated,
       };
     } catch (error) {
       await client.query('ROLLBACK');
@@ -407,7 +487,10 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
   /**
    * Generate suggestions for existing contacts (including group suggestions)
    */
-  async generateSuggestions(userId: string, options: GenerateOptions = {}): Promise<GenerateResult> {
+  async generateSuggestions(
+    userId: string,
+    options: GenerateOptions = {}
+  ): Promise<GenerateResult> {
     const { daysAhead = 7 } = options;
 
     // First, verify that contacts exist for this user
@@ -415,7 +498,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
       'SELECT COUNT(*) as count FROM contacts WHERE user_id = $1',
       [userId]
     );
-    
+
     const contactCount = parseInt(contactsResult.rows[0].count);
     if (contactCount === 0) {
       // No contacts to generate suggestions for
@@ -435,11 +518,11 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
 
     // Convert calendar events to time slots
     const availableSlots = calendarEvents
-      .filter(event => event.isAvailable)
-      .map(event => ({
+      .filter((event) => !event.isBusy)
+      .map((event) => ({
         start: event.startTime,
         end: event.endTime,
-        timezone: event.timezone
+        timezone: event.timezone,
       }));
 
     // Note: We no longer generate fake calendar events here since users can connect
@@ -452,14 +535,14 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
       for (let i = 0; i < daysAhead; i++) {
         const slotDate = new Date(startDate);
         slotDate.setDate(slotDate.getDate() + i);
-        
+
         // Morning slot
         const morningStart = new Date(slotDate);
         morningStart.setHours(9, 0, 0, 0);
         const morningEnd = new Date(morningStart);
         morningEnd.setHours(10, 0, 0, 0);
         generatedSlots.push({ start: morningStart, end: morningEnd, timezone: 'UTC' });
-        
+
         // Afternoon slot
         const afternoonStart = new Date(slotDate);
         afternoonStart.setHours(14, 0, 0, 0);
@@ -467,7 +550,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         afternoonEnd.setHours(15, 0, 0, 0);
         generatedSlots.push({ start: afternoonStart, end: afternoonEnd, timezone: 'UTC' });
       }
-      
+
       availableSlots.push(...generatedSlots);
     }
 
@@ -481,7 +564,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         [userId]
       );
       const contactCount = parseInt(contactCheck.rows[0].count);
-      
+
       if (contactCount === 0) {
         console.warn('No contacts found for suggestion generation');
         return { suggestionsCreated: 0 };
@@ -496,7 +579,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
 
       // Mark suggestions as test data by prepending "Test: " to reasoning
       if (suggestions.length > 0) {
-        const suggestionIds = suggestions.map(s => s.id);
+        const suggestionIds = suggestions.map((s) => s.id);
         await pool.query(
           `UPDATE suggestions 
            SET reasoning = 'Test: ' || reasoning 
@@ -506,12 +589,15 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
       }
 
       return {
-        suggestionsCreated: suggestions.length
+        suggestionsCreated: suggestions.length,
       };
     } catch (error: any) {
       // If suggestion generation fails due to missing contacts, return 0
       if (error.message && error.message.includes('foreign key')) {
-        console.warn('Suggestion generation failed: foreign key constraint violation', error.message);
+        console.warn(
+          'Suggestion generation failed: foreign key constraint violation',
+          error.message
+        );
         return { suggestionsCreated: 0 };
       }
       console.error('Suggestion generation error:', error);
@@ -529,7 +615,8 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
     try {
       await pool.query('SELECT 1 FROM calendar_events LIMIT 1');
     } catch (error: any) {
-      if (error.code === '42P01') { // undefined_table
+      if (error.code === '42P01') {
+        // undefined_table
         calendarEventsExists = false;
       }
     }
@@ -539,7 +626,8 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
     try {
       await pool.query('SELECT 1 FROM voice_notes LIMIT 1');
     } catch (error: any) {
-      if (error.code === '42P01') { // undefined_table
+      if (error.code === '42P01') {
+        // undefined_table
         voiceNotesExists = false;
       }
     }
@@ -549,18 +637,19 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
     try {
       await pool.query('SELECT 1 FROM enrichment_items LIMIT 1');
     } catch (error: any) {
-      if (error.code === '42P01') { // undefined_table
+      if (error.code === '42P01') {
+        // undefined_table
         enrichmentItemsExists = false;
       }
     }
 
     const client = await pool.connect();
-    
+
     try {
       await client.query('BEGIN');
 
       // Delete in proper order to maintain referential integrity
-      
+
       // 1. Delete enrichment items first (references voice_notes and contacts)
       // Requirement 12.5: Maintain referential integrity during deletion
       if (enrichmentItemsExists) {
@@ -576,20 +665,18 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
       let voiceNotesDeleted = 0;
       if (voiceNotesExists) {
         // voice_note_contacts will cascade delete due to ON DELETE CASCADE
-        const voiceNotesResult = await client.query(
-          'DELETE FROM voice_notes WHERE user_id = $1',
-          [userId]
-        );
+        const voiceNotesResult = await client.query('DELETE FROM voice_notes WHERE user_id = $1', [
+          userId,
+        ]);
         voiceNotesDeleted = voiceNotesResult.rowCount || 0;
       }
 
       // 3. Delete suggestions (both individual and group types)
       // Requirements 12.3: Remove all group suggestions (type='group')
       // suggestion_contacts will cascade delete due to ON DELETE CASCADE
-      const suggestionsResult = await client.query(
-        'DELETE FROM suggestions WHERE user_id = $1',
-        [userId]
-      );
+      const suggestionsResult = await client.query('DELETE FROM suggestions WHERE user_id = $1', [
+        userId,
+      ]);
 
       // 4. Delete calendar events (if table exists)
       // Requirement 12.4: Remove all calendar events
@@ -617,10 +704,9 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
       );
 
       // 7. Delete contacts
-      const contactsResult = await client.query(
-        'DELETE FROM contacts WHERE user_id = $1',
-        [userId]
-      );
+      const contactsResult = await client.query('DELETE FROM contacts WHERE user_id = $1', [
+        userId,
+      ]);
 
       // 8. Delete groups (only if they have no other contacts)
       const groupsResult = await client.query(
@@ -650,7 +736,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         tagsDeleted,
         calendarEventsDeleted,
         suggestionsDeleted: suggestionsResult.rowCount || 0,
-        voiceNotesDeleted
+        voiceNotesDeleted,
       };
     } catch (error) {
       await client.query('ROLLBACK');
@@ -669,7 +755,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
   async generateGroupSuggestions(userId: string): Promise<number> {
     // Import group matching service
     const { groupMatchingService } = await import('../matching/group-matching-service');
-    
+
     // Get all contacts for the user with their tags and groups
     const contactsResult = await pool.query(
       `SELECT c.*, 
@@ -691,7 +777,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
     }
 
     // Convert database rows to Contact objects
-    const contacts = contactsResult.rows.map(row => ({
+    const contacts = contactsResult.rows.map((row) => ({
       id: row.id,
       userId: row.user_id,
       name: row.name,
@@ -706,7 +792,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       tags: (row.tags || []).filter((t: any) => t && t.id),
-      groups: row.group_ids || []
+      groups: row.group_ids || [],
     }));
 
     // Find potential groups with strong shared context
@@ -734,29 +820,29 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
 
     // If no calendar events, create generic time slots
     let timeSlots: Array<{ start: Date; end: Date; timezone: string }> = [];
-    
+
     if (calendarEvents.rows.length > 0) {
-      timeSlots = calendarEvents.rows.map(event => ({
+      timeSlots = calendarEvents.rows.map((event) => ({
         start: new Date(event.start_time),
         end: new Date(event.end_time),
-        timezone: event.timezone
+        timezone: event.timezone,
       }));
     } else {
       // Create generic slots for the next 7 days
       for (let i = 0; i < 7; i++) {
         const slotDate = new Date(startDate);
         slotDate.setDate(slotDate.getDate() + i);
-        
+
         // Afternoon slot
         const slotStart = new Date(slotDate);
         slotStart.setHours(14, 0, 0, 0);
         const slotEnd = new Date(slotStart);
         slotEnd.setHours(15, 30, 0, 0);
-        
+
         timeSlots.push({
           start: slotStart,
           end: slotEnd,
-          timezone: 'UTC'
+          timezone: 'UTC',
         });
       }
     }
@@ -768,15 +854,11 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
     for (const group of potentialGroups) {
       // Use first available time slot
       if (timeSlots.length === 0) break;
-      
+
       const timeSlot = timeSlots[0];
 
       try {
-        const suggestion = await generateGroupSuggestion(
-          userId,
-          group,
-          timeSlot
-        );
+        const suggestion = await generateGroupSuggestion(userId, group, timeSlot);
 
         if (suggestion) {
           createdCount++;
@@ -796,7 +878,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
    */
   private async generateVoiceNotes(userId: string, contactIds: string[]): Promise<number> {
     const client = await pool.connect();
-    
+
     try {
       // Get contact details for generating realistic transcriptions
       const contactsResult = await client.query(
@@ -809,10 +891,10 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         [contactIds]
       );
 
-      const contacts = contactsResult.rows.map(row => ({
+      const contacts = contactsResult.rows.map((row) => ({
         id: row.id,
         name: row.name,
-        tags: row.tags.filter((t: string | null) => t !== null)
+        tags: row.tags.filter((t: string | null) => t !== null),
       }));
 
       // Generate 5-10 voice notes
@@ -826,33 +908,34 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
 
         // Decide if this is a co-mention (30% chance)
         const isCoMention = Math.random() < 0.3 && contacts.length >= 2;
-        const mentionedContacts = isCoMention 
+        const mentionedContacts = isCoMention
           ? this.randomElements(contacts, Math.min(2, contacts.length))
           : [this.randomElement(contacts)];
 
         // Generate transcript based on template
         const template = this.randomElement(this.voiceNoteTemplates);
         let transcript = this.generateTranscript(template, mentionedContacts);
-        
+
         // Mark as test data by prepending "Test: " to transcript
         transcript = `Test: ${transcript}`;
 
         // Extract entities from the mentioned contacts
         const extractedEntities: Record<string, any> = {};
-        
+
         for (const contact of mentionedContacts) {
           // Get interests from contact tags
-          const interests = contact.tags.length > 0 
-            ? this.randomElements(contact.tags, Math.min(2, contact.tags.length))
-            : this.randomElements(template.interests, 2);
+          const interests =
+            contact.tags.length > 0
+              ? this.randomElements(contact.tags, Math.min(2, contact.tags.length))
+              : this.randomElements(template.interests, 2);
 
           extractedEntities[contact.id] = {
             fields: {
-              name: contact.name
+              name: contact.name,
             },
             tags: interests,
             groups: [],
-            lastContactDate: recordingTimestamp
+            lastContactDate: recordingTimestamp,
           };
         }
 
@@ -862,13 +945,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
             user_id, transcript, recording_timestamp, status, extracted_entities
           ) VALUES ($1, $2, $3, $4, $5)
           RETURNING id`,
-          [
-            userId,
-            transcript,
-            recordingTimestamp,
-            'ready',
-            JSON.stringify(extractedEntities)
-          ]
+          [userId, transcript, recordingTimestamp, 'ready', JSON.stringify(extractedEntities)]
         );
 
         const voiceNoteId = voiceNoteResult.rows[0].id;
@@ -969,18 +1046,18 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
    */
   async getStatus(userId: string): Promise<StatusResult> {
     const client = await pool.connect();
-    
+
     try {
       // Check which tables exist
       let calendarEventsExists = true;
       let voiceNotesExists = true;
-      
+
       try {
         await client.query('SELECT 1 FROM calendar_events LIMIT 1');
       } catch (error: any) {
         if (error.code === '42P01') calendarEventsExists = false;
       }
-      
+
       try {
         await client.query('SELECT 1 FROM voice_notes LIMIT 1');
       } catch (error: any) {
@@ -995,7 +1072,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
          FROM contacts WHERE user_id = $1`,
         [userId]
       );
-      
+
       // Handle case where no rows are returned
       if (contactsResult.rows.length === 0) {
         return {
@@ -1003,7 +1080,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           calendarEvents: { test: 0, real: 0 },
           suggestions: { test: 0, real: 0 },
           groupSuggestions: { test: 0, real: 0 },
-          voiceNotes: { test: 0, real: 0 }
+          voiceNotes: { test: 0, real: 0 },
         };
       }
       const contactsTotal = parseInt(contactsResult.rows[0].total);
@@ -1062,10 +1139,16 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
 
       return {
         contacts: { test: contactsTest, real: contactsTotal - contactsTest },
-        calendarEvents: { test: calendarEventsTest, real: calendarEventsTotal - calendarEventsTest },
+        calendarEvents: {
+          test: calendarEventsTest,
+          real: calendarEventsTotal - calendarEventsTest,
+        },
         suggestions: { test: suggestionsTest, real: suggestionsTotal - suggestionsTest },
-        groupSuggestions: { test: groupSuggestionsTest, real: groupSuggestionsTotal - groupSuggestionsTest },
-        voiceNotes: { test: voiceNotesTest, real: voiceNotesTotal - voiceNotesTest }
+        groupSuggestions: {
+          test: groupSuggestionsTest,
+          real: groupSuggestionsTotal - groupSuggestionsTest,
+        },
+        voiceNotes: { test: voiceNotesTest, real: voiceNotesTotal - voiceNotesTest },
       };
     } finally {
       client.release();
@@ -1082,9 +1165,9 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         const contactResult = await this.seedTestData(userId, { contactCount: 10 });
         return {
           itemsCreated: contactResult.contactsCreated,
-          message: `Generated ${contactResult.contactsCreated} test contacts`
+          message: `Generated ${contactResult.contactsCreated} test contacts`,
         };
-      
+
       case 'calendarEvents':
         const startDate = new Date();
         const endDate = new Date();
@@ -1096,47 +1179,47 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           {
             includeWeekends: true,
             timesOfDay: [TimeOfDay.Morning, TimeOfDay.Afternoon, TimeOfDay.Evening],
-            slotDuration: 60
+            slotDuration: 60,
           }
         );
         return {
           itemsCreated: calendarEvents.length,
-          message: `Generated ${calendarEvents.length} test calendar events`
+          message: `Generated ${calendarEvents.length} test calendar events`,
         };
-      
+
       case 'suggestions':
         const suggestionResult = await this.generateSuggestions(userId, { daysAhead: 7 });
         return {
           itemsCreated: suggestionResult.suggestionsCreated,
-          message: `Generated ${suggestionResult.suggestionsCreated} test suggestions`
+          message: `Generated ${suggestionResult.suggestionsCreated} test suggestions`,
         };
-      
+
       case 'groupSuggestions':
         // Generate group suggestions based on existing contacts
         const existingContactsResult = await pool.query(
           'SELECT id FROM contacts WHERE user_id = $1 LIMIT 20',
           [userId]
         );
-        
+
         if (existingContactsResult.rows.length < 2) {
           // Generate contacts first if not enough exist
           await this.seedTestData(userId, { contactCount: 10 });
         }
-        
+
         const groupSuggestionsCount = await this.generateGroupSuggestions(userId);
         return {
           itemsCreated: groupSuggestionsCount,
-          message: `Generated ${groupSuggestionsCount} test group suggestions`
+          message: `Generated ${groupSuggestionsCount} test group suggestions`,
         };
-      
+
       case 'voiceNotes':
         // Get existing contacts to associate with voice notes
         const contactsResult = await pool.query(
           'SELECT id FROM contacts WHERE user_id = $1 LIMIT 10',
           [userId]
         );
-        const contactIds = contactsResult.rows.map(row => row.id);
-        
+        const contactIds = contactsResult.rows.map((row) => row.id);
+
         if (contactIds.length === 0) {
           // Generate contacts first
           await this.seedTestData(userId, { contactCount: 5 });
@@ -1144,15 +1227,15 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
             'SELECT id FROM contacts WHERE user_id = $1 LIMIT 10',
             [userId]
           );
-          contactIds.push(...newContactsResult.rows.map(row => row.id));
+          contactIds.push(...newContactsResult.rows.map((row) => row.id));
         }
-        
+
         const voiceNotesCount = await this.generateVoiceNotes(userId, contactIds);
         return {
           itemsCreated: voiceNotesCount,
-          message: `Generated ${voiceNotesCount} test voice notes`
+          message: `Generated ${voiceNotesCount} test voice notes`,
         };
-      
+
       default:
         throw new Error(`Unknown data type: ${dataType}`);
     }
@@ -1164,7 +1247,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
    */
   async removeByType(userId: string, dataType: string): Promise<RemoveByTypeResult> {
     const client = await pool.connect();
-    
+
     try {
       await client.query('BEGIN');
 
@@ -1180,7 +1263,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           );
           itemsDeleted = contactsResult.rowCount || 0;
           break;
-        
+
         case 'calendarEvents':
           // Delete test calendar events (identified by calendar_id = 'test-calendar')
           const calendarResult = await client.query(
@@ -1190,7 +1273,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           );
           itemsDeleted = calendarResult.rowCount || 0;
           break;
-        
+
         case 'suggestions':
           // Delete test suggestions (excluding group suggestions)
           const suggestionsResult = await client.query(
@@ -1200,7 +1283,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           );
           itemsDeleted = suggestionsResult.rowCount || 0;
           break;
-        
+
         case 'groupSuggestions':
           // Delete test group suggestions
           const groupSuggestionsResult = await client.query(
@@ -1210,7 +1293,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           );
           itemsDeleted = groupSuggestionsResult.rowCount || 0;
           break;
-        
+
         case 'voiceNotes':
           // Delete test voice notes
           const voiceNotesResult = await client.query(
@@ -1220,7 +1303,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
           );
           itemsDeleted = voiceNotesResult.rowCount || 0;
           break;
-        
+
         default:
           throw new Error(`Unknown data type: ${dataType}`);
       }
@@ -1229,7 +1312,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
 
       return {
         itemsDeleted,
-        message: `Removed ${itemsDeleted} test ${dataType}`
+        message: `Removed ${itemsDeleted} test ${dataType}`,
       };
     } catch (error) {
       await client.query('ROLLBACK');

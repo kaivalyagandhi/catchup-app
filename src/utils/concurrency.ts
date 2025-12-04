@@ -191,11 +191,7 @@ export async function updateWithOptimisticLock<T extends VersionedEntity>(
       RETURNING *
     `;
 
-    const updateResult = await client.query(updateQuery, [
-      entityId,
-      newVersion,
-      ...updateValues,
-    ]);
+    const updateResult = await client.query(updateQuery, [entityId, newVersion, ...updateValues]);
 
     await client.query('COMMIT');
 

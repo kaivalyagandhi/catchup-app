@@ -59,11 +59,7 @@ export async function processCalendarSync(
     };
 
     // Sync calendars from Google first
-    await calendarService.syncCalendarsFromGoogle(
-      userId,
-      token.accessToken,
-      token.refreshToken
-    );
+    await calendarService.syncCalendarsFromGoogle(userId, token.accessToken, token.refreshToken);
 
     // Refresh calendar data (fetch events and calculate free slots)
     const availableSlots = await calendarService.getFreeTimeSlots(

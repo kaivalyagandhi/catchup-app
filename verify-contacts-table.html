@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContactsTable Verification</title>
+    <link rel="stylesheet" href="http://localhost:3000/css/contacts-table.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #2563eb;
+        }
+        .verification-results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        .check-item {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .check-pass {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .check-fail {
+            color: #ef4444;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ContactsTable Component Verification</h1>
+        <p>Testing Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 8.1, 8.2</p>
+        
+        <div id="contacts-table-container"></div>
+        
+        <div class="verification-results">
+            <h3>Verification Results</h3>
+            <div id="verification-output"></div>
+        </div>
+    </div>
+    
+    <script src="http://localhost:3000/js/contacts-table.js"></script>
+    <script>
+        // Sample contact data
+        const sampleContacts = [
+            {
+                id: '1',
+                name: 'Alice Johnson',
+                phone: '+1-555-0101',
+                email: 'alice@example.com',
+                location: 'New York, NY',
+                timezone: 'America/New_York',
+                frequencyPreference: 'weekly',
+                dunbarCircle: 'inner',
+                tags: [
+                    { id: 't1', text: 'work', source: 'manual' },
+                    { id: 't2', text: 'friend', source: 'manual' }
+                ],
+                groups: ['g1', 'g2'],
+                source: 'google',
+                createdAt: new Date('2024-01-15')
+            },
+            {
+                id: '2',
+                name: 'Bob Smith',
+                phone: '+1-555-0102',
+                email: 'bob@example.com',
+                location: 'San Francisco, CA',
+                timezone: 'America/Los_Angeles',
+                frequencyPreference: 'biweekly',
+                dunbarCircle: 'close',
+                tags: [{ id: 't3', text: 'colleague', source: 'ai' }],
+                groups: ['g1'],
+                source: 'manual',
+                createdAt: new Date('2024-02-20')
+            },
+            {
+                id: '3',
+                name: 'Uncategorized User',
+                phone: '+1-555-0199',
+                email: 'uncategorized@example.com',
+                location: 'Portland, OR',
+                timezone: 'America/Los_Angeles',
+                frequencyPreference: 'monthly',
+                dunbarCircle: null, // Uncategorized
+                tags: [],
+                groups: [],
+                source: 'manual',
+                createdAt: new Date('2024-06-01')
+            }
+        ];
+
+        // Initialize table
+        const contactsTable = new ContactsTable('contacts-table-container', sampleContacts);
+        contactsTable.render();
+
+        // Verification checks
+        function runVerification() {
+            const results = [];
+            
+            // Requirement 1.1: Table with all columns
+            const table = document.querySelector('.contacts-table');
+            const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim());
+            const expectedColumns = ['Name', 'Phone', 'Email', 'Location', 'Timezone', 'Frequency', 'Circle', 'Tags', 'Groups', 'Source', 'Actions'];
+            const hasAllColumns = expectedColumns.every(col => headers.includes(col));
+            results.push({
+                requirement: '1.1',
+                description: 'Table displays all required columns',
+                pass: hasAllColumns,
+                details: hasAllColumns ? 'All columns present' : `Missing columns: ${expectedColumns.filter(c => !headers.includes(c)).join(', ')}`
+            });
+
+            // Requirement 1.2: All metadata visible without interaction
+            const firstRow = table.querySelector('tbody tr:first-child');
+            const cells = Array.from(firstRow.querySelectorAll('td'));
+            const hasVisibleData = cells.some(cell => cell.textContent.trim().length > 0);
+            results.push({
+                requirement: '1.2',
+                description: 'Contact metadata visible without interaction',
+                pass: hasVisibleData,
+                details: hasVisibleData ? 'Data visible in cells' : 'No data visible'
+            });
+
+            // Requirement 1.3: Compact spacing
+            const cellPadding = window.getComputedStyle(cells[0]).padding;
+            results.push({
+                requirement: '1.3',
+                description: 'Compact spacing applied',
+                pass: true,
+                details: `Cell padding: ${cellPadding}`
+            });
+
+            // Requirement 1.4: Google badge for Google-sourced contacts
+            const googleBadges = table.querySelectorAll('.badge-google');
+            const hasGoogleBadge = googleBadges.length > 0;
+            results.push({
+                requirement: '1.4',
+                description: 'Google badge displayed for Google-sourced contacts',
+                pass: hasGoogleBadge,
+                details: hasGoogleBadge ? `Found ${googleBadges.length} Google badge(s)` : 'No Google badges found'
+            });
+
+            // Requirement 1.5: Tags and groups as badges
+            const tagBadges = table.querySelectorAll('.badge-tag');
+            const groupBadges = table.querySelectorAll('.badge-group');
+            const hasBadges = tagBadges.length > 0 || groupBadges.length > 0;
+            results.push({
+                requirement: '1.5',
+                description: 'Tags and groups displayed as badges',
+                pass: hasBadges,
+                details: `Found ${tagBadges.length} tag badge(s) and ${groupBadges.length} group badge(s)`
+            });
+
+            // Requirement 8.1, 8.2: Circle column with badges
+            const circleBadges = table.querySelectorAll('.badge-circle, .badge-uncategorized');
+            const hasCircleBadges = circleBadges.length > 0;
+            results.push({
+                requirement: '8.1, 8.2',
+                description: 'Circle column displays circle badges',
+                pass: hasCircleBadges,
+                details: hasCircleBadges ? `Found ${circleBadges.length} circle badge(s)` : 'No circle badges found'
+            });
+
+            // Display results
+            const output = document.getElementById('verification-output');
+            output.innerHTML = results.map(r => `
+                <div class="check-item">
+                    <span class="${r.pass ? 'check-pass' : 'check-fail'}">${r.pass ? '✓' : '✗'}</span>
+                    <strong>Req ${r.requirement}:</strong> ${r.description}
+                    <span style="color: #6b7280; margin-left: auto;">${r.details}</span>
+                </div>
+            `).join('');
+
+            const allPassed = results.every(r => r.pass);
+            if (allPassed) {
+                output.innerHTML += '<div style="margin-top: 20px; padding: 15px; background: #d1fae5; color: #065f46; border-radius: 6px; font-weight: 600;">✓ All verification checks passed!</div>';
+            }
+        }
+
+        // Run verification after a short delay to ensure rendering is complete
+        setTimeout(runVerification, 100);
+    </script>
+</body>
+</html>

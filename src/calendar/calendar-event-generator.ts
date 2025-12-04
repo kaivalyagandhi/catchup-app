@@ -9,9 +9,9 @@ import pool from '../db/connection';
 import { CalendarEvent } from '../types';
 
 export enum TimeOfDay {
-  Morning = 'morning',    // 8am-12pm
+  Morning = 'morning', // 8am-12pm
   Afternoon = 'afternoon', // 12pm-5pm
-  Evening = 'evening'      // 5pm-9pm
+  Evening = 'evening', // 5pm-9pm
 }
 
 export interface SlotOptions {
@@ -26,7 +26,7 @@ export interface SlotOptions {
 export class CalendarEventGenerator {
   /**
    * Generate availability slots for a user across a date range
-   * 
+   *
    * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5
    */
   async generateAvailabilitySlots(
@@ -38,7 +38,7 @@ export class CalendarEventGenerator {
     const {
       includeWeekends = true,
       timesOfDay = [TimeOfDay.Morning, TimeOfDay.Afternoon, TimeOfDay.Evening],
-      slotDuration = 60 // 1 hour default
+      slotDuration = 60, // 1 hour default
     } = options;
 
     const client = await pool.connect();
@@ -49,7 +49,7 @@ export class CalendarEventGenerator {
 
       // Iterate through each day in the range
       const currentDate = new Date(startDate);
-      
+
       while (currentDate <= endDate) {
         const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 6 = Saturday
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
@@ -62,11 +62,7 @@ export class CalendarEventGenerator {
 
         // Generate slots for each time of day
         for (const timeOfDay of timesOfDay) {
-          const slot = this.createSlotForTimeOfDay(
-            currentDate,
-            timeOfDay,
-            slotDuration
-          );
+          const slot = this.createSlotForTimeOfDay(currentDate, timeOfDay, slotDuration);
 
           // Insert into database
           const result = await client.query<{
@@ -93,7 +89,7 @@ export class CalendarEventGenerator {
               slot.startTime,
               slot.endTime,
               slot.timezone,
-              !slot.isAvailable // is_busy (inverse of isAvailable)
+              !slot.isAvailable, // is_busy (inverse of isAvailable)
             ]
           );
 
@@ -101,13 +97,19 @@ export class CalendarEventGenerator {
           events.push({
             id: row.id,
             userId: row.user_id,
-            title: row.summary,
+            googleEventId: row.google_event_id,
+            calendarId: row.calendar_id,
+            summary: row.summary,
+            description: undefined,
             startTime: row.start_time,
             endTime: row.end_time,
             timezone: row.timezone,
-            isAvailable: !row.is_busy, // Convert is_busy back to isAvailable
-            source: 'test',
-            createdAt: row.created_at
+            isAllDay: false,
+            isBusy: row.is_busy,
+            location: undefined,
+            syncedAt: row.created_at,
+            createdAt: row.created_at,
+            updatedAt: row.created_at,
           });
         }
 
@@ -140,7 +142,7 @@ export class CalendarEventGenerator {
     isAvailable: boolean;
   } {
     const startTime = new Date(date);
-    
+
     // Set the hour based on time of day
     switch (timeOfDay) {
       case TimeOfDay.Morning:
@@ -165,7 +167,7 @@ export class CalendarEventGenerator {
       startTime,
       endTime,
       timezone: 'UTC', // TODO: Use user's timezone preference
-      isAvailable: true
+      isAvailable: true,
     };
   }
 
@@ -173,10 +175,7 @@ export class CalendarEventGenerator {
    * Delete all calendar events for a user
    */
   async deleteUserCalendarEvents(userId: string): Promise<number> {
-    const result = await pool.query(
-      'DELETE FROM calendar_events WHERE user_id = $1',
-      [userId]
-    );
+    const result = await pool.query('DELETE FROM calendar_events WHERE user_id = $1', [userId]);
     return result.rowCount || 0;
   }
 
@@ -191,12 +190,19 @@ export class CalendarEventGenerator {
     const result = await pool.query<{
       id: string;
       user_id: string;
+      google_event_id: string;
+      calendar_id: string;
       summary: string;
+      description?: string;
       start_time: Date;
       end_time: Date;
       timezone: string;
+      is_all_day: boolean;
       is_busy: boolean;
+      location?: string;
+      synced_at: Date;
       created_at: Date;
+      updated_at: Date;
     }>(
       `SELECT * FROM calendar_events
        WHERE user_id = $1
@@ -206,16 +212,22 @@ export class CalendarEventGenerator {
       [userId, startDate, endDate]
     );
 
-    return result.rows.map(row => ({
+    return result.rows.map((row) => ({
       id: row.id,
       userId: row.user_id,
-      title: row.summary,
+      googleEventId: row.google_event_id,
+      calendarId: row.calendar_id,
+      summary: row.summary,
+      description: row.description,
       startTime: row.start_time,
       endTime: row.end_time,
       timezone: row.timezone,
-      isAvailable: !row.is_busy, // Convert is_busy to isAvailable
-      source: 'test',
-      createdAt: row.created_at
+      isAllDay: row.is_all_day,
+      isBusy: row.is_busy,
+      location: row.location,
+      syncedAt: row.synced_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
     }));
   }
 }

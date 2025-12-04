@@ -11,11 +11,12 @@ const poolConfig: PoolConfig = {
   user: process.env.DATABASE_USER || 'postgres',
   password: process.env.DATABASE_PASSWORD,
   // In production, enforce SSL/TLS for database connections
-  ssl: process.env.NODE_ENV === 'production' 
-    ? { rejectUnauthorized: true }
-    : process.env.DATABASE_SSL === 'true' 
-      ? { rejectUnauthorized: false } 
-      : false,
+  ssl:
+    process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: true }
+      : process.env.DATABASE_SSL === 'true'
+        ? { rejectUnauthorized: false }
+        : false,
   min: parseInt(process.env.DATABASE_POOL_MIN || '2', 10),
   max: parseInt(process.env.DATABASE_POOL_MAX || '10', 10),
   idleTimeoutMillis: 30000,

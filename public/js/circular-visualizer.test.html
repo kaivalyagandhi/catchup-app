@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circular Visualizer Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      text-align: center;
+      color: #1f2937;
+      margin-bottom: 30px;
+    }
+    
+    .test-controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .control-group {
+      margin-bottom: 15px;
+    }
+    
+    .control-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #374151;
+    }
+    
+    .control-group button {
+      padding: 10px 20px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-right: 10px;
+      transition: all 0.2s;
+    }
+    
+    .control-group button:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+    
+    .control-group button.secondary {
+      background: #6b7280;
+    }
+    
+    .control-group button.secondary:hover {
+      background: #4b5563;
+    }
+    
+    .visualizer-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      height: 800px;
+    }
+    
+    .event-log {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .event-log h3 {
+      margin-bottom: 15px;
+      color: #1f2937;
+    }
+    
+    .event-item {
+      padding: 8px 12px;
+      background: #f9fafb;
+      border-left: 3px solid #2563eb;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #374151;
+    }
+    
+    .event-time {
+      color: #6b7280;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 Circular Visualizer Test</h1>
+    
+    <div class="test-controls">
+      <div class="control-group">
+        <label>Test Actions:</label>
+        <button onclick="loadSampleContacts()">Load Sample Contacts</button>
+        <button onclick="addRandomContact()">Add Random Contact</button>
+        <button onclick="clearContacts()" class="secondary">Clear All</button>
+      </div>
+      
+      <div class="control-group">
+        <label>Drag & Drop:</label>
+        <button onclick="toggleDragDrop()">Toggle Drag & Drop</button>
+        <span id="drag-status" style="margin-left: 10px; color: #10b981; font-weight: 600;">Enabled</span>
+      </div>
+      
+      <div class="control-group">
+        <label>Animations:</label>
+        <button onclick="celebrateMilestone()">Celebrate Milestone</button>
+        <button onclick="highlightRandomCircle()">Highlight Random Circle</button>
+      </div>
+      
+      <div class="control-group">
+        <label>Group Filter:</label>
+        <button onclick="filterByGroup('family')">Filter: Family</button>
+        <button onclick="filterByGroup('work')">Filter: Work</button>
+        <button onclick="clearFilter()" class="secondary">Clear Filter</button>
+      </div>
+    </div>
+    
+    <div id="visualizer-container" class="visualizer-container"></div>
+    
+    <div class="event-log">
+      <h3>Event Log</h3>
+      <div id="event-log-content"></div>
+    </div>
+  </div>
+  
+  <script src="circular-visualizer.js"></script>
+  <script>
+    let visualizer;
+    let dragEnabled = true;
+    let contacts = [];
+    
+    // Initialize visualizer
+    document.addEventListener('DOMContentLoaded', () => {
+      visualizer = new CircularVisualizer('visualizer-container');
+      
+      // Register event listeners
+      visualizer.on('contactDrag', (data) => {
+        logEvent(`Contact dragged: ${data.contactId} from ${data.fromCircle} to ${data.toCircle}`);
+        
+        // Update the contact in our data
+        const contact = contacts.find(c => c.id === data.contactId);
+        if (contact) {
+          contact.circle = data.toCircle;
+          visualizer.updateContact(data.contactId, data.toCircle);
+        }
+      });
+      
+      visualizer.on('contactClick', (data) => {
+        logEvent(`Contact clicked: ${data.contact.name}`);
+      });
+      
+      visualizer.on('circleHover', (data) => {
+        if (data.isHovering) {
+          logEvent(`Hovering over: ${data.circle.name}`);
+        }
+      });
+      
+      visualizer.on('contactUpdate', (data) => {
+        logEvent(`Contact updated: ${data.contactId} moved to ${data.newCircle}`);
+      });
+      
+      // Load initial sample contacts
+      loadSampleContacts();
+    });
+    
+    function loadSampleContacts() {
+      contacts = [
+        // Inner circle
+        { id: '1', name: 'Alice Johnson', email: 'alice@example.com', circle: 'inner', groups: ['family'] },
+        { id: '2', name: 'Bob Smith', email: 'bob@example.com', circle: 'inner', groups: ['family'] },
+        { id: '3', name: 'Carol Williams', email: 'carol@example.com', circle: 'inner', groups: ['family'] },
+        
+        // Close friends
+        { id: '4', name: 'David Brown', email: 'david@example.com', circle: 'close', groups: ['work'] },
+        { id: '5', name: 'Emma Davis', email: 'emma@example.com', circle: 'close', groups: ['work'] },
+        { id: '6', name: 'Frank Miller', email: 'frank@example.com', circle: 'close', groups: ['friends'] },
+        { id: '7', name: 'Grace Wilson', email: 'grace@example.com', circle: 'close', groups: ['friends'] },
+        { id: '8', name: 'Henry Moore', email: 'henry@example.com', circle: 'close', groups: ['friends'] },
+        
+        // Active friends
+        { id: '9', name: 'Ivy Taylor', email: 'ivy@example.com', circle: 'active', groups: ['work'] },
+        { id: '10', name: 'Jack Anderson', email: 'jack@example.com', circle: 'active', groups: ['work'] },
+        { id: '11', name: 'Kate Thomas', email: 'kate@example.com', circle: 'active', groups: ['friends'] },
+        { id: '12', name: 'Liam Jackson', email: 'liam@example.com', circle: 'active', groups: ['friends'] },
+        { id: '13', name: 'Mia White', email: 'mia@example.com', circle: 'active', groups: ['hobby'] },
+        { id: '14', name: 'Noah Harris', email: 'noah@example.com', circle: 'active', groups: ['hobby'] },
+        
+        // Casual network
+        { id: '15', name: 'Olivia Martin', email: 'olivia@example.com', circle: 'casual', groups: ['work'] },
+        { id: '16', name: 'Peter Thompson', email: 'peter@example.com', circle: 'casual', groups: ['work'] },
+        { id: '17', name: 'Quinn Garcia', email: 'quinn@example.com', circle: 'casual', groups: ['hobby'] },
+        { id: '18', name: 'Rachel Martinez', email: 'rachel@example.com', circle: 'casual', groups: ['hobby'] },
+        
+        // Acquaintances
+        { id: '19', name: 'Sam Robinson', email: 'sam@example.com', circle: 'acquaintance', groups: ['work'] },
+        { id: '20', name: 'Tina Clark', email: 'tina@example.com', circle: 'acquaintance', groups: ['work'] },
+        { id: '21', name: 'Uma Rodriguez', email: 'uma@example.com', circle: 'acquaintance', groups: ['hobby'] },
+        { id: '22', name: 'Victor Lewis', email: 'victor@example.com', circle: 'acquaintance', groups: ['hobby'] }
+      ];
+      
+      // Add AI suggestions to some contacts
+      contacts[0].aiSuggestion = { circle: 'inner', confidence: 0.95, reason: 'High interaction frequency' };
+      contacts[4].aiSuggestion = { circle: 'close', confidence: 0.85, reason: 'Regular communication' };
+      contacts[9].aiSuggestion = { circle: 'active', confidence: 0.75, reason: 'Moderate interaction' };
+      
+      visualizer.render(contacts);
+      logEvent(`Loaded ${contacts.length} sample contacts`);
+    }
+    
+    function addRandomContact() {
+      const names = ['Alex', 'Bailey', 'Cameron', 'Dakota', 'Emerson', 'Finley', 'Gray', 'Harper'];
+      const circles = ['inner', 'close', 'active', 'casual', 'acquaintance'];
+      const groups = ['family', 'work', 'friends', 'hobby'];
+      
+      const name = names[Math.floor(Math.random() * names.length)] + ' ' + 
+                   names[Math.floor(Math.random() * names.length)];
+      const circle = circles[Math.floor(Math.random() * circles.length)];
+      const group = groups[Math.floor(Math.random() * groups.length)];
+      
+      const newContact = {
+        id: Date.now().toString(),
+        name: name,
+        email: name.toLowerCase().replace(' ', '.') + '@example.com',
+        circle: circle,
+        groups: [group]
+      };
+      
+      contacts.push(newContact);
+      visualizer.render(contacts);
+      logEvent(`Added contact: ${name} to ${circle}`);
+    }
+    
+    function clearContacts() {
+      contacts = [];
+      visualizer.render(contacts);
+      logEvent('Cleared all contacts');
+    }
+    
+    function toggleDragDrop() {
+      dragEnabled = !dragEnabled;
+      if (dragEnabled) {
+        visualizer.enableDragDrop();
+        document.getElementById('drag-status').textContent = 'Enabled';
+        document.getElementById('drag-status').style.color = '#10b981';
+      } else {
+        visualizer.disableDragDrop();
+        document.getElementById('drag-status').textContent = 'Disabled';
+        document.getElementById('drag-status').style.color = '#ef4444';
+      }
+      logEvent(`Drag & drop ${dragEnabled ? 'enabled' : 'disabled'}`);
+    }
+    
+    function celebrateMilestone() {
+      const milestones = [
+        'First 5 contacts categorized! 🎉',
+        'Inner circle complete! 💫',
+        'All contacts organized! 🌟',
+        'Network health: Excellent! ✨'
+      ];
+      const milestone = milestones[Math.floor(Math.random() * milestones.length)];
+      visualizer.celebrateMilestone(milestone);
+      logEvent(`Celebrated: ${milestone}`);
+    }
+    
+    function highlightRandomCircle() {
+      const circles = ['inner', 'close', 'active', 'casual', 'acquaintance'];
+      const circle = circles[Math.floor(Math.random() * circles.length)];
+      visualizer.highlightCircle(circle);
+      logEvent(`Highlighted circle: ${circle}`);
+    }
+    
+    function filterByGroup(groupId) {
+      visualizer.showGroupFilter(groupId);
+      logEvent(`Filtered by group: ${groupId}`);
+    }
+    
+    function clearFilter() {
+      visualizer.clearGroupFilter();
+      logEvent('Cleared group filter');
+    }
+    
+    function logEvent(message) {
+      const logContent = document.getElementById('event-log-content');
+      const eventItem = document.createElement('div');
+      eventItem.className = 'event-item';
+      
+      const time = new Date().toLocaleTimeString();
+      eventItem.innerHTML = `
+        <div>${message}</div>
+        <div class="event-time">${time}</div>
+      `;
+      
+      logContent.insertBefore(eventItem, logContent.firstChild);
+      
+      // Keep only last 20 events
+      while (logContent.children.length > 20) {
+        logContent.removeChild(logContent.lastChild);
+      }
+    }
+  </script>
+</body>
+</html>

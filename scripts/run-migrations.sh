@@ -100,12 +100,40 @@ echo "Running migration 016: Add group mapping suggestions..."
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/016_add_group_mapping_suggestions.sql
 
 echo ""
-echo "Running migration 017: Create chat edits tables..."
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/017_create_chat_edits_tables.sql
+echo "Running migration 017: Create contact onboarding schema..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/017_create_contact_onboarding_schema.sql
 
 echo ""
-echo "Running migration 018: Add pending edits deduplication..."
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/018_add_pending_edits_deduplication.sql
+echo "Running migration 018: Create SMS/MMS enrichment schema..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/018_create_sms_mms_enrichment_schema.sql
+
+echo ""
+echo "Running migration 019: Add user_id to enrichment items..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/019_add_user_id_to_enrichment_items.sql
+
+echo ""
+echo "Running migration 020: Add SMS performance indexes..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/020_add_sms_performance_indexes.sql
+
+echo ""
+echo "Running migration 021: Add Google SSO support..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/021_add_google_sso_support.sql
+
+echo ""
+echo "Running migration 022: Fix calendar events schema..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/022_fix_calendar_events_schema.sql
+
+echo ""
+echo "Running migration 023: Add contact Google memberships..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/023_add_contact_google_memberships.sql
+
+echo ""
+echo "Running migration 024: Create chat edits tables..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/024_create_chat_edits_tables.sql
+
+echo ""
+echo "Running migration 025: Add pending edits deduplication..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/025_add_pending_edits_deduplication.sql
 
 echo ""
 echo "✓ All migrations completed successfully!"

@@ -242,10 +242,10 @@ export class VoiceNoteRepository implements VoiceNoteRepositoryInterface {
     try {
       await client.query('BEGIN');
 
-      const result = await client.query(
-        'DELETE FROM voice_notes WHERE id = $1 AND user_id = $2',
-        [id, userId]
-      );
+      const result = await client.query('DELETE FROM voice_notes WHERE id = $1 AND user_id = $2', [
+        id,
+        userId,
+      ]);
 
       if (result.rowCount === 0) {
         throw new Error('Voice note not found');
@@ -264,7 +264,11 @@ export class VoiceNoteRepository implements VoiceNoteRepositoryInterface {
    * Associate multiple contacts with a voice note
    * Requirements: 2.2, 13.3
    */
-  async associateContacts(voiceNoteId: string, userId: string, contactIds: string[]): Promise<void> {
+  async associateContacts(
+    voiceNoteId: string,
+    userId: string,
+    contactIds: string[]
+  ): Promise<void> {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -326,17 +330,21 @@ export class VoiceNoteRepository implements VoiceNoteRepositoryInterface {
 
     const contactIds = result.rows.map((row) => row.id);
     const contacts = await getContactsByIds(userId, contactIds);
-    
+
     // Preserve the order from the query
-    const contactMap = new Map(contacts.map(c => [c.id, c]));
-    return contactIds.map(id => contactMap.get(id)!).filter(Boolean);
+    const contactMap = new Map(contacts.map((c) => [c.id, c]));
+    return contactIds.map((id) => contactMap.get(id)!).filter(Boolean);
   }
 
   /**
    * Remove a contact association from a voice note
    * Requirements: 2.6
    */
-  async removeContactAssociation(voiceNoteId: string, userId: string, contactId: string): Promise<void> {
+  async removeContactAssociation(
+    voiceNoteId: string,
+    userId: string,
+    contactId: string
+  ): Promise<void> {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');

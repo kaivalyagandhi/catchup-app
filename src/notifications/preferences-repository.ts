@@ -24,10 +24,9 @@ function mapRowToPreferences(row: any): NotificationPreferences {
  * Get notification preferences for a user
  */
 export async function getPreferences(userId: string): Promise<NotificationPreferences | null> {
-  const result = await pool.query(
-    'SELECT * FROM notification_preferences WHERE user_id = $1',
-    [userId]
-  );
+  const result = await pool.query('SELECT * FROM notification_preferences WHERE user_id = $1', [
+    userId,
+  ]);
 
   return result.rows.length > 0 ? mapRowToPreferences(result.rows[0]) : null;
 }

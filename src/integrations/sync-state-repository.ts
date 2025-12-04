@@ -164,18 +164,12 @@ export class PostgresSyncStateRepository implements SyncStateRepository {
     try {
       await client.query('BEGIN');
 
-      // Get current state to calculate total contacts
-      const currentState = await this.getSyncState(userId);
-      const currentTotal = currentState?.totalContactsSynced || 0;
-
-      // Calculate new total based on sync result
-      let newTotal = currentTotal;
-      if (result.contactsImported !== undefined) {
-        newTotal += result.contactsImported;
-      }
-      if (result.contactsDeleted !== undefined) {
-        newTotal -= result.contactsDeleted;
-      }
+      // Get actual count from database instead of calculating
+      const countResult = await client.query(
+        'SELECT COUNT(*) as total FROM contacts WHERE user_id = $1 AND google_resource_name IS NOT NULL',
+        [userId]
+      );
+      const actualTotal = parseInt(countResult.rows[0].total, 10);
 
       // Determine which timestamp to update
       const isFullSync = result.contactsImported !== undefined;
@@ -200,7 +194,7 @@ export class PostgresSyncStateRepository implements SyncStateRepository {
           last_sync_status = 'success',
           last_sync_error = NULL,
           updated_at = CURRENT_TIMESTAMP`,
-        [userId, result.syncToken || null, newTotal]
+        [userId, result.syncToken || null, actualTotal]
       );
 
       await client.query('COMMIT');

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directory Page Test</title>
+    <link rel="stylesheet" href="css/contacts-table.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h2 {
+            margin-bottom: 20px;
+            color: #2563eb;
+        }
+        
+        /* Directory Tabs */
+        .directory-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0;
+            margin-bottom: 25px;
+        }
+        
+        .directory-tab {
+            background: transparent;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .directory-tab:hover {
+            color: #2563eb;
+            background: #f9fafb;
+        }
+        
+        .directory-tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            font-weight: 600;
+        }
+        
+        .directory-tab-content {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .directory-tab-content.hidden {
+            display: none;
+        }
+        
+        /* Red dot indicator */
+        .directory-tab .notification-dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .tab-content-box {
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .directory-tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            
+            .directory-tabs::-webkit-scrollbar {
+                display: none;
+            }
+            
+            .directory-tab {
+                padding: 12px 20px;
+                font-size: 14px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Directory</h2>
+        
+        <!-- Directory Tab Navigation -->
+        <div class="directory-tabs">
+            <button class="directory-tab active" data-tab="contacts">
+                <span style="margin-right: 6px;">👥</span>Contacts
+            </button>
+            <button class="directory-tab" data-tab="circles">
+                <span style="margin-right: 6px;">🎯</span>Circles
+            </button>
+            <button class="directory-tab" data-tab="groups">
+                <span style="margin-right: 6px;">👥</span>Groups
+                <span class="notification-dot"></span>
+            </button>
+            <button class="directory-tab" data-tab="tags">
+                <span style="margin-right: 6px;">🏷️</span>Tags
+            </button>
+        </div>
+        
+        <!-- Contacts Tab Content -->
+        <div id="contacts-tab" class="directory-tab-content">
+            <div id="search-filter-bar-container"></div>
+            <div id="contacts-table-container"></div>
+        </div>
+        
+        <!-- Circles Tab Content -->
+        <div id="circles-tab" class="directory-tab-content hidden">
+            <div class="tab-content-box">
+                <h3>Circles Tab</h3>
+                <p>This is where the CircularVisualizer will be displayed.</p>
+                <p>Shows contacts organized by Dunbar's number relationship tiers.</p>
+                <p>Current URL hash: <span id="hash-circles"></span></p>
+            </div>
+        </div>
+        
+        <!-- Groups Tab Content -->
+        <div id="groups-tab" class="directory-tab-content hidden">
+            <div class="tab-content-box">
+                <h3>Groups Tab</h3>
+                <p>This is where the groups table will be displayed.</p>
+                <p>Notice the red dot indicator on the tab - this shows pending Google Contact mappings.</p>
+                <p>Current URL hash: <span id="hash-groups"></span></p>
+            </div>
+        </div>
+        
+        <!-- Tags Tab Content -->
+        <div id="tags-tab" class="directory-tab-content hidden">
+            <div class="tab-content-box">
+                <h3>Tags Tab</h3>
+                <p>This is where the tags table will be displayed.</p>
+                <p>Current URL hash: <span id="hash-tags"></span></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize TabNavigation
+        let tabNavigation;
+        
+        function updateHashDisplay() {
+            const hash = window.location.hash;
+            document.querySelectorAll('[id^="hash-"]').forEach(el => {
+                el.textContent = hash;
+            });
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Create TabNavigation instance
+            tabNavigation = new TabNavigation({
+                tabs: ['contacts', 'circles', 'groups', 'tags'],
+                defaultTab: 'contacts',
+                onTabChange: (newTab, oldTab) => {
+                    console.log(`Tab changed from ${oldTab} to ${newTab}`);
+                    updateHashDisplay();
+                    
+                    // Handle tab-specific initialization
+                    if (newTab === 'contacts' && !window.contactsTableInitialized) {
+                        initializeSearchFilterBar();
+                        initializeContactsTable();
+                        window.contactsTableInitialized = true;
+                    }
+                }
+            });
+            
+            // Attach click handlers to tab buttons
+            tabNavigation.attachTabHandlers();
+            
+            // Initialize tab navigation (will parse hash and show correct tab)
+            tabNavigation.init();
+            
+            updateHashDisplay();
+        });
+        
+        // Legacy function for backwards compatibility
+        function switchTab(tab) {
+            if (tabNavigation) {
+                tabNavigation.switchTab(tab);
+            }
+        }
+    </script>
+    
+    <script src="js/contacts-table.js"></script>
+    <script>
+        // Sample contact data for testing
+        const sampleContacts = [
+            {
+                id: '1',
+                name: 'Alice Johnson',
+                phone: '+1-555-0101',
+                email: 'alice@example.com',
+                location: 'New York, NY',
+                timezone: 'America/New_York',
+                frequencyPreference: 'weekly',
+                dunbarCircle: 'inner',
+                tags: [
+                    { id: 't1', text: 'work', source: 'manual' },
+                    { id: 't2', text: 'friend', source: 'manual' }
+                ],
+                groups: ['g1', 'g2'],
+                source: 'google',
+                createdAt: new Date('2024-01-15')
+            },
+            {
+                id: '2',
+                name: 'Bob Smith',
+                phone: '+1-555-0102',
+                email: 'bob@example.com',
+                location: 'San Francisco, CA',
+                timezone: 'America/Los_Angeles',
+                frequencyPreference: 'biweekly',
+                dunbarCircle: 'close',
+                tags: [
+                    { id: 't3', text: 'colleague', source: 'ai' }
+                ],
+                groups: ['g1'],
+                source: 'manual',
+                createdAt: new Date('2024-02-20')
+            },
+            {
+                id: '3',
+                name: 'Carol Davis',
+                phone: '+1-555-0103',
+                email: 'carol@example.com',
+                location: 'Austin, TX',
+                timezone: 'America/Chicago',
+                frequencyPreference: 'monthly',
+                dunbarCircle: 'active',
+                tags: [
+                    { id: 't4', text: 'family', source: 'manual' }
+                ],
+                groups: ['g3'],
+                source: 'google',
+                createdAt: new Date('2024-03-10')
+            },
+            {
+                id: '4',
+                name: 'David Wilson',
+                phone: '+1-555-0104',
+                email: 'david@example.com',
+                location: 'Seattle, WA',
+                timezone: 'America/Los_Angeles',
+                frequencyPreference: 'quarterly',
+                dunbarCircle: 'casual',
+                tags: [],
+                groups: [],
+                source: 'manual',
+                createdAt: new Date('2024-04-05')
+            },
+            {
+                id: '5',
+                name: 'Emma Brown',
+                phone: '+1-555-0105',
+                email: 'emma@example.com',
+                location: 'Boston, MA',
+                timezone: 'America/New_York',
+                frequencyPreference: 'monthly',
+                dunbarCircle: 'acquaintance',
+                tags: [
+                    { id: 't5', text: 'networking', source: 'voice' }
+                ],
+                groups: ['g2'],
+                source: 'google',
+                createdAt: new Date('2024-05-12')
+            },
+            {
+                id: '6',
+                name: 'Frank Miller',
+                phone: '+1-555-0106',
+                email: 'frank@example.com',
+                location: 'Chicago, IL',
+                timezone: 'America/Chicago',
+                frequencyPreference: 'weekly',
+                dunbarCircle: null, // Uncategorized
+                tags: [
+                    { id: 't6', text: 'client', source: 'manual' }
+                ],
+                groups: ['g1'],
+                source: 'manual',
+                createdAt: new Date('2024-06-18')
+            }
+        ];
+
+        // Initialize ContactsTable and SearchFilterBar
+        let contactsTable;
+        let searchFilterBar;
+        
+        function initializeContactsTable() {
+            contactsTable = new ContactsTable('contacts-table-container', sampleContacts, {
+                onDelete: (contactId) => {
+                    if (confirm('Are you sure you want to delete this contact?')) {
+                        console.log('Delete contact:', contactId);
+                        // In real implementation, call API to delete
+                        const newData = sampleContacts.filter(c => c.id !== contactId);
+                        contactsTable.refresh(newData);
+                    }
+                }
+            });
+            contactsTable.render();
+        }
+
+        function initializeSearchFilterBar() {
+            searchFilterBar = new SearchFilterBar('search-filter-bar-container', {
+                onSearch: (text, filters) => {
+                    console.log('Search:', text, 'Filters:', filters);
+                    
+                    // Apply filters to contacts table
+                    const filteredData = searchFilterBar.applyFilters(sampleContacts, text, filters);
+                    contactsTable.filteredData = filteredData;
+                    contactsTable.render();
+                    
+                    // Save filter state to tab navigation
+                    if (tabNavigation) {
+                        tabNavigation.setTabState('contacts', {
+                            searchQuery: text,
+                            filters: filters
+                        });
+                    }
+                },
+                onFetchTags: async () => {
+                    // Extract unique tags from sample contacts
+                    const tagsSet = new Set();
+                    sampleContacts.forEach(contact => {
+                        if (contact.tags) {
+                            contact.tags.forEach(tag => tagsSet.add(tag.text));
+                        }
+                    });
+                    return Array.from(tagsSet);
+                },
+                onFetchGroups: async () => {
+                    // Return sample groups
+                    return [
+                        { id: 'g1', name: 'Work' },
+                        { id: 'g2', name: 'Family' },
+                        { id: 'g3', name: 'Friends' }
+                    ];
+                }
+            });
+            searchFilterBar.render();
+            
+            // Make searchFilterBar globally accessible for tab state management
+            window.searchFilterBar = searchFilterBar;
+        }
+    </script>
+</body>
+</html>

@@ -122,5 +122,6 @@ export class PostgresInteractionRepository implements InteractionRepository {
 const defaultRepository = new PostgresInteractionRepository();
 
 export const create = (data: InteractionLogData) => defaultRepository.create(data);
-export const findByContactId = (contactId: string, userId: string) => defaultRepository.findByContactId(contactId, userId);
+export const findByContactId = (contactId: string, userId: string) =>
+  defaultRepository.findByContactId(contactId, userId);
 export const findById = (id: string, userId: string) => defaultRepository.findById(id, userId);

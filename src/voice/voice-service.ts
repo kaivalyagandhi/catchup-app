@@ -22,7 +22,7 @@ function getOpenAIClient(): OpenAI {
 
 /**
  * Transcribes audio data to text using OpenAI Whisper
- * 
+ *
  * @param audioData - Buffer containing audio file data
  * @param filename - Original filename (used for format detection)
  * @returns Transcribed text
@@ -34,7 +34,7 @@ export async function transcribeAudio(
 ): Promise<string> {
   try {
     // Create a File object from the buffer
-    const file = new File([audioData], filename, {
+    const file = new File([audioData as any], filename, {
       type: getAudioMimeType(filename),
     });
 
@@ -73,7 +73,7 @@ function getAudioMimeType(filename: string): string {
 
 /**
  * Store audio file (placeholder - in production would use S3 or similar)
- * 
+ *
  * @param _audioData - Buffer containing audio file data (unused in placeholder)
  * @param userId - User ID for organizing storage
  * @param filename - Original filename
@@ -93,11 +93,11 @@ export async function storeAudioFile(
 
 /**
  * Disambiguate which contact a voice note transcript refers to
- * 
+ *
  * Uses NLP to match transcript mentions to the user's contact list.
  * Returns null if disambiguation fails, allowing the system to continue
  * processing and prompt for manual contact selection.
- * 
+ *
  * @param transcript - Transcribed text from voice note
  * @param userContacts - List of user's contacts
  * @returns Matched contact or null if disambiguation fails
@@ -162,10 +162,10 @@ Response (number only or NONE):`;
 
 /**
  * Extract entities and attributes from a voice note transcript
- * 
+ *
  * Uses OpenAI GPT to identify contact fields, tags, groups, and last contact date
  * from natural language. Handles extraction errors with manual entry fallback.
- * 
+ *
  * @param transcript - Transcribed text from voice note
  * @param _contact - The contact being discussed (if known, unused in current implementation)
  * @returns Extracted entities including fields, tags, groups, and dates
@@ -211,8 +211,7 @@ JSON response:`;
       messages: [
         {
           role: 'system',
-          content:
-            'You are an entity extraction assistant. Always respond with valid JSON only.',
+          content: 'You are an entity extraction assistant. Always respond with valid JSON only.',
         },
         { role: 'user', content: prompt },
       ],
@@ -231,13 +230,25 @@ JSON response:`;
     // Validate and clean the extracted data
     const entities: ExtractedEntities = {
       fields: {},
-      tags: Array.isArray(extracted.tags) ? extracted.tags.filter((t: any) => typeof t === 'string') : [],
-      groups: Array.isArray(extracted.groups) ? extracted.groups.filter((g: any) => typeof g === 'string') : [],
+      tags: Array.isArray(extracted.tags)
+        ? extracted.tags.filter((t: any) => typeof t === 'string')
+        : [],
+      groups: Array.isArray(extracted.groups)
+        ? extracted.groups.filter((g: any) => typeof g === 'string')
+        : [],
     };
 
     // Extract fields
     if (extracted.fields && typeof extracted.fields === 'object') {
-      const validFields = ['phone', 'email', 'linkedIn', 'instagram', 'xHandle', 'location', 'customNotes'];
+      const validFields = [
+        'phone',
+        'email',
+        'linkedIn',
+        'instagram',
+        'xHandle',
+        'location',
+        'customNotes',
+      ];
       for (const field of validFields) {
         if (extracted.fields[field] && extracted.fields[field] !== null) {
           entities.fields[field] = extracted.fields[field];
@@ -268,11 +279,11 @@ JSON response:`;
 
 /**
  * Generate an enrichment confirmation proposal from extracted entities
- * 
+ *
  * Presents atomic enrichment items for individual review. Supports contact
  * selection when disambiguation fails. Allows editing of field values, tags,
  * and groups before application.
- * 
+ *
  * @param entities - Extracted entities from voice note or notification reply
  * @param contact - The contact being enriched (null if disambiguation failed)
  * @param userContacts - List of user's contacts for manual selection
@@ -351,11 +362,11 @@ export function generateEnrichmentConfirmation(
 
 /**
  * Apply enrichment proposal to a contact
- * 
+ *
  * Updates contact fields, generates and associates tags (1-3 words each),
  * and updates group memberships. Prefers existing similar tags over creating
  * new ones using semantic similarity matching.
- * 
+ *
  * @param contactId - ID of the contact to enrich
  * @param userId - ID of the user
  * @param proposal - Enrichment proposal with accepted items
@@ -429,9 +440,7 @@ export async function applyEnrichment(
     try {
       // Try to find existing group by name
       const existingGroups = await groupService.listGroups(userId);
-      let group = existingGroups.find(
-        (g: any) => g.name.toLowerCase() === groupName.toLowerCase()
-      );
+      let group = existingGroups.find((g: any) => g.name.toLowerCase() === groupName.toLowerCase());
 
       // Create group if it doesn't exist
       if (!group) {
@@ -452,11 +461,11 @@ export async function applyEnrichment(
 
 /**
  * Prefer existing tags over creating new ones
- * 
+ *
  * Uses semantic similarity matching to find existing tags that are similar
  * to the new tags being added. Returns a list of tag texts that should be
  * used, preferring existing similar tags when found.
- * 
+ *
  * @param newTags - Array of new tag texts to add
  * @param existingTags - Array of existing tags in the system
  * @param _similarityThreshold - Similarity threshold (default: 0.85, unused in current implementation)
@@ -473,9 +482,7 @@ export async function preferExistingTags(
 
   for (const newTag of newTags) {
     // Check for exact match (case-insensitive)
-    const exactMatch = existingTags.find(
-      (t) => t.text.toLowerCase() === newTag.toLowerCase()
-    );
+    const exactMatch = existingTags.find((t) => t.text.toLowerCase() === newTag.toLowerCase());
 
     if (exactMatch) {
       result.push(exactMatch.text);
@@ -492,9 +499,9 @@ export async function preferExistingTags(
 
 /**
  * Process a voice note end-to-end
- * 
+ *
  * Transcribes audio, stores it, extracts entities, and generates enrichment proposal
- * 
+ *
  * @param userId - User ID
  * @param audioData - Audio file buffer
  * @param filename - Original filename
@@ -532,11 +539,7 @@ export async function processVoiceNote(
   const entities = await extractEntities(transcript, contact || undefined);
 
   // Generate enrichment confirmation
-  const enrichmentProposal = generateEnrichmentConfirmation(
-    entities,
-    contact,
-    userContacts
-  );
+  const enrichmentProposal = generateEnrichmentConfirmation(entities, contact, userContacts);
 
   // Create voice note record
   const voiceNote = await voiceNoteRepo.create({
@@ -555,7 +558,7 @@ export async function processVoiceNote(
 
 /**
  * Get a voice note by ID
- * 
+ *
  * @param id - Voice note ID
  * @returns Voice note or null if not found
  */

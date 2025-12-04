@@ -1,9 +1,9 @@
 /**
  * Google Contacts API Client (Read-Only)
- * 
+ *
  * Wrapper around Google People API that enforces read-only operations.
  * This client ONLY allows GET requests to ensure one-way sync from Google to CatchUp.
- * 
+ *
  * Requirements: 15.3
  */
 
@@ -29,24 +29,24 @@ export class GoogleContactsClient {
 
   /**
    * Validate that the request method is read-only (GET)
-   * 
+   *
    * Requirements: 15.3
    */
   private validateReadOnlyOperation(method: string): void {
     const allowedMethods: AllowedMethod[] = ['GET'];
-    
+
     if (!allowedMethods.includes(method as AllowedMethod)) {
       throw new Error(
         `SECURITY ERROR: Write operation attempted on Google Contacts API. ` +
-        `Method '${method}' is not allowed. Only GET requests are permitted. ` +
-        `CatchUp never modifies Google Contacts data.`
+          `Method '${method}' is not allowed. Only GET requests are permitted. ` +
+          `CatchUp never modifies Google Contacts data.`
       );
     }
   }
 
   /**
    * List contacts (connections) - READ ONLY
-   * 
+   *
    * This is the primary method for syncing contacts from Google.
    */
   async listConnections(params: {
@@ -58,7 +58,7 @@ export class GoogleContactsClient {
     personFields?: string;
   }): Promise<people_v1.Schema$ListConnectionsResponse> {
     this.validateReadOnlyOperation('GET');
-    
+
     const response = await this.client.people.connections.list(params);
     return response.data;
   }
@@ -71,7 +71,7 @@ export class GoogleContactsClient {
     personFields?: string;
   }): Promise<people_v1.Schema$Person> {
     this.validateReadOnlyOperation('GET');
-    
+
     const response = await this.client.people.get(params);
     return response.data;
   }
@@ -85,7 +85,7 @@ export class GoogleContactsClient {
     syncToken?: string;
   }): Promise<people_v1.Schema$ListContactGroupsResponse> {
     this.validateReadOnlyOperation('GET');
-    
+
     const response = await this.client.contactGroups.list(params);
     return response.data;
   }
@@ -98,14 +98,14 @@ export class GoogleContactsClient {
     maxMembers?: number;
   }): Promise<people_v1.Schema$ContactGroup> {
     this.validateReadOnlyOperation('GET');
-    
+
     const response = await this.client.contactGroups.get(params);
     return response.data;
   }
 
   /**
    * WRITE OPERATIONS - EXPLICITLY DISABLED
-   * 
+   *
    * These methods throw errors to prevent accidental writes to Google Contacts.
    * Requirements: 15.3
    */
@@ -116,7 +116,7 @@ export class GoogleContactsClient {
   async createContact(): Promise<never> {
     throw new Error(
       'SECURITY ERROR: Creating contacts in Google Contacts is not supported. ' +
-      'CatchUp operates in read-only mode and never modifies Google Contacts data.'
+        'CatchUp operates in read-only mode and never modifies Google Contacts data.'
     );
   }
 
@@ -126,7 +126,7 @@ export class GoogleContactsClient {
   async updateContact(): Promise<never> {
     throw new Error(
       'SECURITY ERROR: Updating contacts in Google Contacts is not supported. ' +
-      'CatchUp operates in read-only mode and never modifies Google Contacts data.'
+        'CatchUp operates in read-only mode and never modifies Google Contacts data.'
     );
   }
 
@@ -136,7 +136,7 @@ export class GoogleContactsClient {
   async deleteContact(): Promise<never> {
     throw new Error(
       'SECURITY ERROR: Deleting contacts in Google Contacts is not supported. ' +
-      'CatchUp operates in read-only mode and never modifies Google Contacts data.'
+        'CatchUp operates in read-only mode and never modifies Google Contacts data.'
     );
   }
 
@@ -146,7 +146,7 @@ export class GoogleContactsClient {
   async createContactGroup(): Promise<never> {
     throw new Error(
       'SECURITY ERROR: Creating contact groups in Google Contacts is not supported. ' +
-      'CatchUp operates in read-only mode and never modifies Google Contacts data.'
+        'CatchUp operates in read-only mode and never modifies Google Contacts data.'
     );
   }
 
@@ -156,7 +156,7 @@ export class GoogleContactsClient {
   async updateContactGroup(): Promise<never> {
     throw new Error(
       'SECURITY ERROR: Updating contact groups in Google Contacts is not supported. ' +
-      'CatchUp operates in read-only mode and never modifies Google Contacts data.'
+        'CatchUp operates in read-only mode and never modifies Google Contacts data.'
     );
   }
 
@@ -166,7 +166,7 @@ export class GoogleContactsClient {
   async deleteContactGroup(): Promise<never> {
     throw new Error(
       'SECURITY ERROR: Deleting contact groups in Google Contacts is not supported. ' +
-      'CatchUp operates in read-only mode and never modifies Google Contacts data.'
+        'CatchUp operates in read-only mode and never modifies Google Contacts data.'
     );
   }
 
@@ -176,7 +176,7 @@ export class GoogleContactsClient {
   async batchCreateContacts(): Promise<never> {
     throw new Error(
       'SECURITY ERROR: Batch creating contacts in Google Contacts is not supported. ' +
-      'CatchUp operates in read-only mode and never modifies Google Contacts data.'
+        'CatchUp operates in read-only mode and never modifies Google Contacts data.'
     );
   }
 
@@ -186,7 +186,7 @@ export class GoogleContactsClient {
   async batchUpdateContacts(): Promise<never> {
     throw new Error(
       'SECURITY ERROR: Batch updating contacts in Google Contacts is not supported. ' +
-      'CatchUp operates in read-only mode and never modifies Google Contacts data.'
+        'CatchUp operates in read-only mode and never modifies Google Contacts data.'
     );
   }
 
@@ -196,7 +196,7 @@ export class GoogleContactsClient {
   async batchDeleteContacts(): Promise<never> {
     throw new Error(
       'SECURITY ERROR: Batch deleting contacts in Google Contacts is not supported. ' +
-      'CatchUp operates in read-only mode and never modifies Google Contacts data.'
+        'CatchUp operates in read-only mode and never modifies Google Contacts data.'
     );
   }
 }

@@ -55,10 +55,7 @@ function rowToOAuthToken(row: OAuthTokenRow): OAuthToken {
 /**
  * Get OAuth token for a user and provider
  */
-export async function getToken(
-  userId: string,
-  provider: string
-): Promise<OAuthToken | null> {
+export async function getToken(userId: string, provider: string): Promise<OAuthToken | null> {
   const result = await pool.query<OAuthTokenRow>(
     'SELECT * FROM oauth_tokens WHERE user_id = $1 AND provider = $2',
     [userId, provider]
@@ -74,9 +71,7 @@ export async function getToken(
 /**
  * Get all users with OAuth tokens for a specific provider
  */
-export async function getUsersWithProvider(
-  provider: string
-): Promise<string[]> {
+export async function getUsersWithProvider(provider: string): Promise<string[]> {
   const result = await pool.query<{ user_id: string }>(
     'SELECT DISTINCT user_id FROM oauth_tokens WHERE provider = $1',
     [provider]
@@ -102,7 +97,7 @@ export async function upsertToken(
   // Encrypt tokens before storage
   const encryptedAccessToken = encryptToken(accessToken);
   const encryptedRefreshToken = refreshToken ? encryptToken(refreshToken) : null;
-  
+
   const result = await pool.query<OAuthTokenRow>(
     `INSERT INTO oauth_tokens (user_id, provider, access_token, refresh_token, token_type, expires_at, scope, email)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -116,7 +111,16 @@ export async function upsertToken(
        email = EXCLUDED.email,
        updated_at = CURRENT_TIMESTAMP
      RETURNING *`,
-    [userId, provider, encryptedAccessToken, encryptedRefreshToken, tokenType, expiresAt, scope, email]
+    [
+      userId,
+      provider,
+      encryptedAccessToken,
+      encryptedRefreshToken,
+      tokenType,
+      expiresAt,
+      scope,
+      email,
+    ]
   );
 
   return rowToOAuthToken(result.rows[0]);
@@ -125,12 +129,9 @@ export async function upsertToken(
 /**
  * Delete OAuth token
  */
-export async function deleteToken(
-  userId: string,
-  provider: string
-): Promise<void> {
-  await pool.query(
-    'DELETE FROM oauth_tokens WHERE user_id = $1 AND provider = $2',
-    [userId, provider]
-  );
+export async function deleteToken(userId: string, provider: string): Promise<void> {
+  await pool.query('DELETE FROM oauth_tokens WHERE user_id = $1 AND provider = $2', [
+    userId,
+    provider,
+  ]);
 }

@@ -17,7 +17,16 @@ const router = Router();
  */
 router.get('/authorize', (req: Request, res: Response) => {
   try {
-    const authUrl = getAuthorizationUrl();
+    const { userId } = req.query;
+    
+    if (!userId || typeof userId !== 'string') {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+    
+    // Encode userId as state parameter
+    const state = Buffer.from(userId).toString('base64');
+    const authUrl = getAuthorizationUrl(state);
     res.json({ authUrl });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -29,19 +38,30 @@ router.get('/authorize', (req: Request, res: Response) => {
 /**
  * GET /api/calendar/oauth/callback
  * Handle OAuth callback from Google
- * Note: This endpoint requires the user to be authenticated with a valid JWT token
+ * Note: This endpoint does NOT require authentication since it's called by Google redirect
+ * Instead, we use state parameter to identify the user
  */
-router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/callback', async (req: Request, res: Response) => {
   try {
-    if (!req.userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+    const { code, state } = req.query;
+
+    if (!code || typeof code !== 'string') {
+      res.redirect('/?calendar_error=missing_code');
       return;
     }
 
-    const { code } = req.query;
+    if (!state || typeof state !== 'string') {
+      res.redirect('/?calendar_error=missing_state');
+      return;
+    }
 
-    if (!code || typeof code !== 'string') {
-      res.status(400).json({ error: 'Authorization code is required' });
+    // Decode state to get userId (state should be base64 encoded userId)
+    let userId: string;
+    try {
+      userId = Buffer.from(state, 'base64').toString('utf-8');
+    } catch (error) {
+      console.error('Failed to decode state:', error);
+      res.redirect('/?calendar_error=invalid_state');
       return;
     }
 
@@ -53,9 +73,9 @@ router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Res
     } catch (tokenError) {
       const tokenErrorMsg = tokenError instanceof Error ? tokenError.message : String(tokenError);
       console.error('Failed to exchange code for tokens:', tokenErrorMsg);
-      res.status(400).json({ 
-        error: 'Failed to exchange authorization code', 
-        details: tokenErrorMsg 
+      res.status(400).json({
+        error: 'Failed to exchange authorization code',
+        details: tokenErrorMsg,
       });
       return;
     }
@@ -73,11 +93,12 @@ router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Res
       profile = await getUserProfile(tokens);
       console.log('User profile retrieved:', { email: profile.email, name: profile.name });
     } catch (profileError) {
-      const profileErrorMsg = profileError instanceof Error ? profileError.message : String(profileError);
+      const profileErrorMsg =
+        profileError instanceof Error ? profileError.message : String(profileError);
       console.error('Failed to get user profile:', profileErrorMsg);
-      res.status(400).json({ 
-        error: 'Failed to get user profile', 
-        details: profileErrorMsg 
+      res.status(400).json({
+        error: 'Failed to get user profile',
+        details: profileErrorMsg,
       });
       return;
     }
@@ -88,7 +109,7 @@ router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Res
       const emailToStore = profile.email || undefined;
       console.log('Storing email:', emailToStore);
       await upsertToken(
-        req.userId,
+        userId,
         'google_calendar',
         tokens.access_token,
         tokens.refresh_token || undefined,
@@ -100,47 +121,46 @@ router.get('/callback', authenticate, async (req: AuthenticatedRequest, res: Res
     } catch (dbError) {
       const dbErrorMsg = dbError instanceof Error ? dbError.message : String(dbError);
       console.error('Failed to store tokens in database:', dbErrorMsg);
-      res.status(500).json({ 
-        error: 'Failed to store calendar connection', 
-        details: dbErrorMsg 
+      res.status(500).json({
+        error: 'Failed to store calendar connection',
+        details: dbErrorMsg,
       });
       return;
     }
 
-    console.log('Calendar connection successful for user:', req.userId);
-    
+    console.log('Calendar connection successful for user:', userId);
+
     // Trigger initial calendar sync and suggestion regeneration
     try {
       const { forceRefreshCalendarEvents } = await import('../../calendar/calendar-service');
       await forceRefreshCalendarEvents(
-        req.userId,
+        userId,
         tokens.access_token,
         tokens.refresh_token || undefined
       );
-      
+
       // Enqueue suggestion regeneration
-      const { enqueueJob } = await import('../../jobs/queue');
-      await enqueueJob('suggestion-regeneration', {
-        userId: req.userId,
+      const { enqueueJob, QUEUE_NAMES } = await import('../../jobs/queue');
+      await enqueueJob(QUEUE_NAMES.SUGGESTION_REGENERATION, {
+        userId: userId,
         reason: 'calendar_sync',
       });
-      console.log(`Initial calendar sync and suggestion regeneration queued for user ${req.userId}`);
+      console.log(
+        `Initial calendar sync and suggestion regeneration queued for user ${userId}`
+      );
     } catch (syncError) {
       console.error('Failed to sync calendar or enqueue suggestion regeneration:', syncError);
       // Don't fail the OAuth flow if sync fails
     }
-    
-    res.json({
-      message: 'Google Calendar connected successfully',
-      email: profile.email,
-      name: profile.name
-    });
+
+    // Redirect to frontend with success
+    res.redirect('/?calendar_success=true');
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : '';
     console.error('Unexpected error in OAuth callback:', errorMsg);
     console.error('Stack:', errorStack);
-    res.status(500).json({ error: 'Failed to complete OAuth flow', details: errorMsg });
+    res.redirect(`/?calendar_error=${encodeURIComponent(errorMsg)}`);
   }
 });
 
@@ -156,16 +176,16 @@ router.get('/status', authenticate, async (req: AuthenticatedRequest, res: Respo
     }
 
     const token = await getToken(req.userId, 'google_calendar');
-    console.log('Status check - Token retrieved:', { 
-      connected: !!token, 
+    console.log('Status check - Token retrieved:', {
+      connected: !!token,
       email: token?.email,
-      expiresAt: token?.expiresAt 
+      expiresAt: token?.expiresAt,
     });
 
     res.json({
       connected: !!token,
       email: token?.email || null,
-      expiresAt: token?.expiresAt || null
+      expiresAt: token?.expiresAt || null,
     });
   } catch (error) {
     console.error('Error checking OAuth status:', error);

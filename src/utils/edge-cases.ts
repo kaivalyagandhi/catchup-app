@@ -241,9 +241,7 @@ export function validateContactForSuggestions(contact: {
   }
 
   if (!contact.frequencyPreference) {
-    warnings.push(
-      `No frequency preference set. Using default: ${DEFAULT_FREQUENCY_PREFERENCE}`
-    );
+    warnings.push(`No frequency preference set. Using default: ${DEFAULT_FREQUENCY_PREFERENCE}`);
   }
 
   if (!contact.lastContactDate) {
@@ -266,9 +264,7 @@ export interface TimezonePromptResult {
   suggestedTimezones?: string[];
 }
 
-export function handleMissingTimezone(
-  location?: string | null
-): TimezonePromptResult {
+export function handleMissingTimezone(location?: string | null): TimezonePromptResult {
   if (!location) {
     return {
       requiresManualEntry: true,
@@ -360,9 +356,11 @@ export function formatSuggestionWithTimezones(
   const display = formatCrossTimezone(date, userTimezone, contactTimezone);
 
   if (hasSignificantTimezoneOffset(userTimezone, contactTimezone, date)) {
-    return `Catch up with ${contactName}:\n` +
+    return (
+      `Catch up with ${contactName}:\n` +
       `Your time: ${display.userTime} (${display.userTimezone})\n` +
-      `Their time: ${display.contactTime} (${display.contactTimezone})`;
+      `Their time: ${display.contactTime} (${display.contactTimezone})`
+    );
   }
 
   return `Catch up with ${contactName}: ${display.userTime}`;

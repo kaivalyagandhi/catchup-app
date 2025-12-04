@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobile Circles Responsive Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      font-size: 24px;
+      color: #111827;
+      margin-bottom: 10px;
+    }
+    
+    .test-info {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+    
+    .viewport-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    
+    .viewport-btn {
+      padding: 8px 16px;
+      border: 2px solid #e5e7eb;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .viewport-btn:hover {
+      border-color: #6366f1;
+      background: #f9fafb;
+    }
+    
+    .viewport-btn.active {
+      border-color: #6366f1;
+      background: #6366f1;
+      color: white;
+    }
+    
+    .circles-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    
+    #circles-visualizer {
+      width: 100%;
+      height: 600px;
+    }
+    
+    .test-results {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-results h2 {
+      font-size: 18px;
+      color: #111827;
+      margin-bottom: 15px;
+    }
+    
+    .test-item {
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .test-item.pass {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .test-item.fail {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .test-item.info {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .status-icon {
+      font-weight: bold;
+      font-size: 16px;
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .test-header {
+        padding: 15px;
+      }
+      
+      h1 {
+        font-size: 20px;
+      }
+      
+      #circles-visualizer {
+        height: 500px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      #circles-visualizer {
+        height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>🔄 Mobile Circles Responsive Test</h1>
+      <div class="test-info">
+        Testing CircularVisualizer mobile responsive layout with SVG scaling and aspect ratio maintenance.
+      </div>
+      
+      <div class="viewport-controls">
+        <button class="viewport-btn" onclick="setViewport('desktop')">
+          🖥️ Desktop (1200px)
+        </button>
+        <button class="viewport-btn" onclick="setViewport('tablet')">
+          📱 Tablet (768px)
+        </button>
+        <button class="viewport-btn" onclick="setViewport('mobile')">
+          📱 Mobile (480px)
+        </button>
+        <button class="viewport-btn" onclick="setViewport('small')">
+          📱 Small (375px)
+        </button>
+        <button class="viewport-btn active" onclick="setViewport('full')">
+          ↔️ Full Width
+        </button>
+      </div>
+    </div>
+    
+    <div class="circles-container" id="circles-container">
+      <div id="circles-visualizer"></div>
+    </div>
+    
+    <div class="test-results">
+      <h2>Test Results</h2>
+      <div id="test-results"></div>
+    </div>
+  </div>
+
+  <script src="/js/circular-visualizer.js"></script>
+  <script>
+    // Sample test data
+    const sampleContacts = [
+      // Inner circle (5)
+      { id: '1', name: 'Alice Johnson', email: 'alice@example.com', phone: '555-0101', circle: 'inner', groups: ['family'] },
+      { id: '2', name: 'Bob Smith', email: 'bob@example.com', phone: '555-0102', circle: 'inner', groups: ['family'] },
+      { id: '3', name: 'Carol White', email: 'carol@example.com', phone: '555-0103', circle: 'inner', groups: ['best-friends'] },
+      { id: '4', name: 'David Brown', email: 'david@example.com', phone: '555-0104', circle: 'inner', groups: ['family'] },
+      { id: '5', name: 'Eve Davis', email: 'eve@example.com', phone: '555-0105', circle: 'inner', groups: ['best-friends'] },
+      
+      // Close friends (10)
+      ...Array.from({ length: 10 }, (_, i) => ({
+        id: `close-${i}`,
+        name: `Close Friend ${i + 1}`,
+        email: `close${i + 1}@example.com`,
+        circle: 'close',
+        groups: i % 2 === 0 ? ['work'] : ['hobby']
+      })),
+      
+      // Active friends (20)
+      ...Array.from({ length: 20 }, (_, i) => ({
+        id: `active-${i}`,
+        name: `Active Friend ${i + 1}`,
+        email: `active${i + 1}@example.com`,
+        circle: 'active',
+        groups: i % 3 === 0 ? ['work'] : []
+      })),
+      
+      // Casual network (15)
+      ...Array.from({ length: 15 }, (_, i) => ({
+        id: `casual-${i}`,
+        name: `Casual Contact ${i + 1}`,
+        email: `casual${i + 1}@example.com`,
+        circle: 'casual',
+        groups: []
+      })),
+      
+      // Acquaintances (10)
+      ...Array.from({ length: 10 }, (_, i) => ({
+        id: `acquaintance-${i}`,
+        name: `Acquaintance ${i + 1}`,
+        email: `acq${i + 1}@example.com`,
+        circle: 'acquaintance',
+        groups: []
+      }))
+    ];
+    
+    const sampleGroups = [
+      { id: 'family', name: 'Family' },
+      { id: 'best-friends', name: 'Best Friends' },
+      { id: 'work', name: 'Work' },
+      { id: 'hobby', name: 'Hobby Group' }
+    ];
+    
+    // Initialize visualizer
+    let visualizer;
+    
+    function initVisualizer() {
+      visualizer = new CircularVisualizer('circles-visualizer');
+      visualizer.render(sampleContacts, sampleGroups);
+      
+      // Run tests after a short delay to allow rendering
+      setTimeout(runTests, 500);
+    }
+    
+    function setViewport(size) {
+      const container = document.getElementById('circles-container');
+      const buttons = document.querySelectorAll('.viewport-btn');
+      
+      buttons.forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      switch(size) {
+        case 'desktop':
+          container.style.maxWidth = '1200px';
+          container.style.margin = '0 auto';
+          break;
+        case 'tablet':
+          container.style.maxWidth = '768px';
+          container.style.margin = '0 auto';
+          break;
+        case 'mobile':
+          container.style.maxWidth = '480px';
+          container.style.margin = '0 auto';
+          break;
+        case 'small':
+          container.style.maxWidth = '375px';
+          container.style.margin = '0 auto';
+          break;
+        case 'full':
+          container.style.maxWidth = '100%';
+          container.style.margin = '0';
+          break;
+      }
+      
+      // Trigger resize event
+      window.dispatchEvent(new Event('resize'));
+      
+      // Re-run tests after viewport change
+      setTimeout(runTests, 300);
+    }
+    
+    function runTests() {
+      const results = [];
+      const svg = document.querySelector('#circles-visualizer svg');
+      const canvas = document.querySelector('.visualizer-canvas');
+      
+      // Test 1: SVG exists
+      if (svg) {
+        results.push({ pass: true, message: 'SVG element exists' });
+      } else {
+        results.push({ pass: false, message: 'SVG element not found' });
+      }
+      
+      // Test 2: ViewBox is set correctly
+      const viewBox = svg?.getAttribute('viewBox');
+      if (viewBox === '0 0 900 900') {
+        results.push({ pass: true, message: 'ViewBox set correctly (0 0 900 900)' });
+      } else {
+        results.push({ pass: false, message: `ViewBox incorrect: ${viewBox}` });
+      }
+      
+      // Test 3: preserveAspectRatio is set
+      const aspectRatio = svg?.getAttribute('preserveAspectRatio');
+      if (aspectRatio === 'xMidYMid meet') {
+        results.push({ pass: true, message: 'preserveAspectRatio set to "xMidYMid meet"' });
+      } else {
+        results.push({ pass: false, message: `preserveAspectRatio incorrect: ${aspectRatio}` });
+      }
+      
+      // Test 4: SVG has width and height attributes
+      const width = svg?.getAttribute('width');
+      const height = svg?.getAttribute('height');
+      if (width && height) {
+        results.push({ pass: true, message: `SVG dimensions set: ${width}x${height}` });
+      } else {
+        results.push({ pass: false, message: 'SVG dimensions not set' });
+      }
+      
+      // Test 5: Check if mobile styles apply on small viewports
+      const containerWidth = canvas?.clientWidth || 0;
+      const isMobile = window.innerWidth <= 768;
+      
+      if (isMobile && containerWidth > 0) {
+        results.push({ 
+          pass: true, 
+          message: `Mobile viewport detected (${window.innerWidth}px), canvas width: ${containerWidth}px` 
+        });
+      } else if (!isMobile) {
+        results.push({ 
+          pass: true, 
+          message: `Desktop viewport (${window.innerWidth}px), canvas width: ${containerWidth}px` 
+        });
+      }
+      
+      // Test 6: Check aspect ratio maintenance
+      const svgWidth = parseFloat(width);
+      const svgHeight = parseFloat(height);
+      const aspectRatioValue = svgWidth / svgHeight;
+      
+      if (Math.abs(aspectRatioValue - 1) < 0.1) {
+        results.push({ pass: true, message: `Aspect ratio maintained (${aspectRatioValue.toFixed(2)}:1)` });
+      } else {
+        results.push({ pass: false, message: `Aspect ratio not square: ${aspectRatioValue.toFixed(2)}:1` });
+      }
+      
+      // Test 7: Check contact dots are rendered
+      const contactDots = svg?.querySelectorAll('.contact-dot');
+      if (contactDots && contactDots.length === sampleContacts.length) {
+        results.push({ pass: true, message: `All ${sampleContacts.length} contacts rendered` });
+      } else {
+        results.push({ 
+          pass: false, 
+          message: `Expected ${sampleContacts.length} contacts, found ${contactDots?.length || 0}` 
+        });
+      }
+      
+      // Test 8: Check circle zones are rendered
+      const circleZones = svg?.querySelectorAll('.circle-zone');
+      if (circleZones && circleZones.length === 5) {
+        results.push({ pass: true, message: 'All 5 circle zones rendered' });
+      } else {
+        results.push({ pass: false, message: `Expected 5 zones, found ${circleZones?.length || 0}` });
+      }
+      
+      // Display results
+      displayResults(results);
+    }
+    
+    function displayResults(results) {
+      const container = document.getElementById('test-results');
+      container.innerHTML = results.map(result => `
+        <div class="test-item ${result.pass ? 'pass' : 'fail'}">
+          <span class="status-icon">${result.pass ? '✓' : '✗'}</span>
+          <span>${result.message}</span>
+        </div>
+      `).join('');
+      
+      // Add summary
+      const passed = results.filter(r => r.pass).length;
+      const total = results.length;
+      const summaryClass = passed === total ? 'pass' : (passed > total / 2 ? 'info' : 'fail');
+      
+      container.innerHTML += `
+        <div class="test-item ${summaryClass}" style="margin-top: 15px; font-weight: 600;">
+          <span class="status-icon">${passed === total ? '🎉' : '📊'}</span>
+          <span>Summary: ${passed}/${total} tests passed</span>
+        </div>
+      `;
+    }
+    
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', initVisualizer);
+  </script>
+</body>
+</html>

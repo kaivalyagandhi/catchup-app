@@ -319,4 +319,47 @@ router.post('/:id/archive', async (req: Request, res: Response): Promise<void> =
   }
 });
 
+// POST /contacts/:id/reactivate - Reactivate an archived contact
+// Requirements: 12.5
+router.post('/:id/reactivate', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+    const contactService = new ContactServiceImpl();
+    await contactService.unarchiveContact(req.params.id, userId);
+    res.json({
+      success: true,
+      message: 'Contact reactivated successfully',
+    });
+  } catch (error) {
+    console.error('Error reactivating contact:', error);
+    res.status(500).json({ error: 'Failed to reactivate contact' });
+  }
+});
+
+// GET /contacts/archived - Get all archived contacts
+// Requirements: 12.2
+router.get('/archived', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
+    }
+    const contactService = new ContactServiceImpl();
+    const contacts = await contactService.listContacts(userId as string, { archived: true });
+    res.json({
+      success: true,
+      contacts,
+      count: contacts.length,
+    });
+  } catch (error) {
+    console.error('Error fetching archived contacts:', error);
+    res.status(500).json({ error: 'Failed to fetch archived contacts' });
+  }
+});
+
 export default router;

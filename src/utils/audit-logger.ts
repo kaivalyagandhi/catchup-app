@@ -13,26 +13,26 @@ export enum AuditAction {
   USER_LOGOUT = 'user_logout',
   PASSWORD_CHANGED = 'password_changed',
   ACCOUNT_DELETED = 'account_deleted',
-  
+
   // OAuth operations
   OAUTH_CONSENT_GRANTED = 'oauth_consent_granted',
   OAUTH_CONSENT_REVOKED = 'oauth_consent_revoked',
   OAUTH_TOKEN_REFRESHED = 'oauth_token_refreshed',
-  
+
   // Data operations
   DATA_EXPORTED = 'data_exported',
   DATA_CLEARED = 'data_cleared',
   CONTACT_DELETED = 'contact_deleted',
   BULK_CONTACTS_IMPORTED = 'bulk_contacts_imported',
-  
+
   // Security events
   FAILED_LOGIN_ATTEMPT = 'failed_login_attempt',
   SUSPICIOUS_ACTIVITY = 'suspicious_activity',
   RATE_LIMIT_EXCEEDED = 'rate_limit_exceeded',
-  
+
   // Admin operations
   ADMIN_ACCESS = 'admin_access',
-  TEST_USER_CREATED = 'test_user_created'
+  TEST_USER_CREATED = 'test_user_created',
 }
 
 export interface AuditLogEntry {
@@ -94,7 +94,7 @@ export async function logAuditEvent(
         options.userAgent || null,
         options.metadata ? JSON.stringify(options.metadata) : null,
         options.success !== false, // Default to true
-        options.errorMessage || null
+        options.errorMessage || null,
       ]
     );
   } catch (error) {
@@ -117,34 +117,34 @@ export async function getUserAuditLogs(
   } = {}
 ): Promise<AuditLogEntry[]> {
   const { limit = 100, offset = 0, actions, startDate, endDate } = options;
-  
+
   let query = 'SELECT * FROM audit_logs WHERE user_id = $1';
   const params: any[] = [userId];
   let paramIndex = 2;
-  
+
   if (actions && actions.length > 0) {
     query += ` AND action = ANY($${paramIndex})`;
     params.push(actions);
     paramIndex++;
   }
-  
+
   if (startDate) {
     query += ` AND created_at >= $${paramIndex}`;
     params.push(startDate);
     paramIndex++;
   }
-  
+
   if (endDate) {
     query += ` AND created_at <= $${paramIndex}`;
     params.push(endDate);
     paramIndex++;
   }
-  
+
   query += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
   params.push(limit, offset);
-  
+
   const result = await pool.query<AuditLogRow>(query, params);
-  
+
   return result.rows.map(rowToAuditLogEntry);
 }
 
@@ -161,34 +161,34 @@ export async function getAllAuditLogs(
   } = {}
 ): Promise<AuditLogEntry[]> {
   const { limit = 100, offset = 0, actions, startDate, endDate } = options;
-  
+
   let query = 'SELECT * FROM audit_logs WHERE 1=1';
   const params: any[] = [];
   let paramIndex = 1;
-  
+
   if (actions && actions.length > 0) {
     query += ` AND action = ANY($${paramIndex})`;
     params.push(actions);
     paramIndex++;
   }
-  
+
   if (startDate) {
     query += ` AND created_at >= $${paramIndex}`;
     params.push(startDate);
     paramIndex++;
   }
-  
+
   if (endDate) {
     query += ` AND created_at <= $${paramIndex}`;
     params.push(endDate);
     paramIndex++;
   }
-  
+
   query += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
   params.push(limit, offset);
-  
+
   const result = await pool.query<AuditLogRow>(query, params);
-  
+
   return result.rows.map(rowToAuditLogEntry);
 }
 
@@ -198,7 +198,7 @@ export async function getAllAuditLogs(
 export async function detectSuspiciousActivity(userId: string): Promise<boolean> {
   // Check for multiple failed login attempts in the last hour
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  
+
   const result = await pool.query<{ count: string }>(
     `SELECT COUNT(*) as count FROM audit_logs 
      WHERE user_id = $1 
@@ -207,19 +207,19 @@ export async function detectSuspiciousActivity(userId: string): Promise<boolean>
      AND created_at >= $3`,
     [userId, AuditAction.FAILED_LOGIN_ATTEMPT, oneHourAgo]
   );
-  
+
   const failedAttempts = parseInt(result.rows[0].count, 10);
-  
+
   // Flag as suspicious if more than 5 failed attempts in an hour
   if (failedAttempts > 5) {
     await logAuditEvent(AuditAction.SUSPICIOUS_ACTIVITY, {
       userId,
       metadata: { failedAttempts, timeWindow: '1 hour' },
-      success: true
+      success: true,
     });
     return true;
   }
-  
+
   return false;
 }
 
@@ -228,12 +228,9 @@ export async function detectSuspiciousActivity(userId: string): Promise<boolean>
  */
 export async function cleanupOldAuditLogs(retentionDays: number = 90): Promise<number> {
   const cutoffDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-  
-  const result = await pool.query(
-    'DELETE FROM audit_logs WHERE created_at < $1',
-    [cutoffDate]
-  );
-  
+
+  const result = await pool.query('DELETE FROM audit_logs WHERE created_at < $1', [cutoffDate]);
+
   return result.rowCount || 0;
 }
 
@@ -249,6 +246,6 @@ function rowToAuditLogEntry(row: AuditLogRow): AuditLogEntry {
     metadata: row.metadata || undefined,
     success: row.success,
     errorMessage: row.error_message || undefined,
-    timestamp: row.created_at
+    timestamp: row.created_at,
   };
 }

@@ -1,6 +1,6 @@
 /**
  * Google Cloud Speech-to-Text Configuration
- * 
+ *
  * This module provides configuration and client initialization for Google Cloud Speech-to-Text API.
  * Supports both service account authentication and API key authentication.
  */
@@ -34,12 +34,12 @@ export const DEFAULT_SPEECH_CONFIG: SpeechToTextConfig = {
 
 /**
  * Initialize Speech-to-Text client
- * 
+ *
  * Authentication methods (in order of precedence):
  * 1. GOOGLE_APPLICATION_CREDENTIALS environment variable (service account JSON file path)
  * 2. GOOGLE_CLOUD_API_KEY environment variable (API key)
  * 3. Default application credentials (for GCP environments)
- * 
+ *
  * @returns Initialized SpeechClient instance
  * @throws Error if no valid authentication method is found
  */
@@ -68,14 +68,14 @@ export function initializeSpeechClient(): SpeechClient {
     console.error('Failed to initialize Speech-to-Text client:', error);
     throw new Error(
       'Failed to initialize Google Cloud Speech-to-Text client. ' +
-      'Please ensure GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_CLOUD_API_KEY is set.'
+        'Please ensure GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_CLOUD_API_KEY is set.'
     );
   }
 }
 
 /**
  * Validate Speech-to-Text configuration
- * 
+ *
  * @param config Configuration to validate
  * @throws Error if configuration is invalid
  */
@@ -91,7 +91,7 @@ export function validateSpeechConfig(config: Partial<SpeechToTextConfig>): void 
 
 /**
  * Get streaming recognition config for Speech-to-Text API
- * 
+ *
  * @param customConfig Optional custom configuration to override defaults
  * @returns Recognition config for streaming requests
  */
@@ -99,7 +99,7 @@ export function getStreamingRecognitionConfig(
   customConfig?: Partial<SpeechToTextConfig>
 ): google.cloud.speech.v1.IRecognitionConfig {
   const config = { ...DEFAULT_SPEECH_CONFIG, ...customConfig };
-  
+
   validateSpeechConfig(config);
 
   return {
@@ -119,7 +119,7 @@ let speechClientInstance: SpeechClient | null = null;
 
 /**
  * Get or create Speech-to-Text client instance
- * 
+ *
  * @returns Singleton SpeechClient instance
  */
 export function getSpeechClient(): SpeechClient {

@@ -15,7 +15,7 @@ export interface AuthenticatedRequest extends Request {
 export enum UserRole {
   USER = 'user',
   ADMIN = 'admin',
-  TEST_USER = 'test_user'
+  TEST_USER = 'test_user',
 }
 
 interface JWTPayload {
@@ -30,11 +30,11 @@ interface JWTPayload {
  */
 function getJWTSecret(): string {
   const secret = process.env.JWT_SECRET;
-  
+
   if (!secret) {
     throw new Error('JWT_SECRET environment variable is not set');
   }
-  
+
   return secret;
 }
 
@@ -44,12 +44,12 @@ function getJWTSecret(): string {
 export function generateToken(userId: string, role: UserRole = UserRole.USER): string {
   const payload: JWTPayload = {
     userId,
-    role
+    role,
   };
-  
+
   const secret = getJWTSecret();
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
-  
+
   return jwt.sign(payload, secret, { expiresIn } as jwt.SignOptions);
 }
 
@@ -69,29 +69,29 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
   try {
     // Extract token from Authorization header
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader) {
       res.status(401).json({ error: 'No authorization header provided' });
       return;
     }
-    
+
     // Expected format: "Bearer <token>"
     const parts = authHeader.split(' ');
-    
+
     if (parts.length !== 2 || parts[0] !== 'Bearer') {
       res.status(401).json({ error: 'Invalid authorization header format' });
       return;
     }
-    
+
     const token = parts[1];
-    
+
     // Verify token
     const payload = verifyToken(token);
-    
+
     // Attach user info to request
     req.userId = payload.userId;
     req.userRole = payload.role;
-    
+
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
@@ -108,24 +108,28 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
  * Optional authentication middleware
  * Attaches user info if token is present, but doesn't require it
  */
-export function optionalAuthenticate(req: AuthenticatedRequest, _res: Response, next: NextFunction): void {
+export function optionalAuthenticate(
+  req: AuthenticatedRequest,
+  _res: Response,
+  next: NextFunction
+): void {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader) {
       return next();
     }
-    
+
     const parts = authHeader.split(' ');
-    
+
     if (parts.length === 2 && parts[0] === 'Bearer') {
       const token = parts[1];
       const payload = verifyToken(token);
-      
+
       req.userId = payload.userId;
       req.userRole = payload.role;
     }
-    
+
     next();
   } catch (error) {
     // Ignore authentication errors for optional auth
@@ -143,12 +147,12 @@ export function authorize(...allowedRoles: UserRole[]) {
       res.status(401).json({ error: 'Authentication required' });
       return;
     }
-    
+
     if (!allowedRoles.includes(req.userRole)) {
       res.status(403).json({ error: 'Insufficient permissions' });
       return;
     }
-    
+
     next();
   };
 }
@@ -156,24 +160,28 @@ export function authorize(...allowedRoles: UserRole[]) {
 /**
  * Ensure user can only access their own resources
  */
-export function ensureOwnResource(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+export function ensureOwnResource(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void {
   const requestedUserId = req.params.userId || req.query.userId || req.body.userId;
-  
+
   if (!req.userId) {
     res.status(401).json({ error: 'Authentication required' });
     return;
   }
-  
+
   // Admins can access any resource
   if (req.userRole === UserRole.ADMIN) {
     return next();
   }
-  
+
   // Users can only access their own resources
   if (requestedUserId && requestedUserId !== req.userId) {
     res.status(403).json({ error: 'Access denied' });
     return;
   }
-  
+
   next();
 }

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SMS/MMS Monitoring Dashboard - CatchUp</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        background: #f5f5f5;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 10px;
+      }
+
+      .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+      }
+
+      .period-selector {
+        margin-bottom: 30px;
+      }
+
+      .period-selector button {
+        padding: 10px 20px;
+        margin-right: 10px;
+        border: 1px solid #ddd;
+        background: white;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .period-selector button.active {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+      }
+
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .metric-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .metric-card h3 {
+        color: #666;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+
+      .metric-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 5px;
+      }
+
+      .metric-label {
+        color: #999;
+        font-size: 14px;
+      }
+
+      .metric-breakdown {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+      }
+
+      .metric-breakdown-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+
+      .metric-breakdown-label {
+        color: #666;
+      }
+
+      .metric-breakdown-value {
+        color: #333;
+        font-weight: 500;
+      }
+
+      .section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      .section h2 {
+        color: #333;
+        font-size: 20px;
+        margin-bottom: 20px;
+      }
+
+      .alert {
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .alert.warning {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+      }
+
+      .alert.critical {
+        background: #f8d7da;
+        border-left: 4px solid #dc3545;
+      }
+
+      .alert-message {
+        flex: 1;
+      }
+
+      .alert-type {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .alert-timestamp {
+        color: #666;
+        font-size: 12px;
+      }
+
+      .error-breakdown {
+        margin-top: 10px;
+      }
+
+      .error-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .error-item:last-child {
+        border-bottom: none;
+      }
+
+      .error-type {
+        font-weight: 500;
+        color: #333;
+      }
+
+      .error-stats {
+        display: flex;
+        gap: 20px;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+
+      .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+      }
+
+      .refresh-button {
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+
+      .refresh-button:hover {
+        background: #0056b3;
+      }
+
+      .top-users-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .top-users-table th,
+      .top-users-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+
+      .top-users-table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .top-users-table td {
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>SMS/MMS Monitoring Dashboard</h1>
+      <p class="subtitle">Real-time monitoring of SMS/MMS enrichment processing</p>
+
+      <button class="refresh-button" onclick="loadDashboard()">Refresh Data</button>
+
+      <div class="period-selector">
+        <button class="active" data-period="hour" onclick="selectPeriod('hour')">Last Hour</button>
+        <button data-period="day" onclick="selectPeriod('day')">Last 24 Hours</button>
+        <button data-period="week" onclick="selectPeriod('week')">Last Week</button>
+        <button data-period="month" onclick="selectPeriod('month')">Last Month</button>
+      </div>
+
+      <div id="error-container"></div>
+      <div id="loading" class="loading">Loading dashboard data...</div>
+      <div id="dashboard" style="display: none"></div>
+    </div>
+
+    <script>
+      let currentPeriod = 'day';
+
+      function selectPeriod(period) {
+        currentPeriod = period;
+
+        // Update button states
+        document.querySelectorAll('.period-selector button').forEach((btn) => {
+          btn.classList.remove('active');
+          if (btn.dataset.period === period) {
+            btn.classList.add('active');
+          }
+        });
+
+        loadDashboard();
+      }
+
+      async function loadDashboard() {
+        const loadingEl = document.getElementById('loading');
+        const dashboardEl = document.getElementById('dashboard');
+        const errorEl = document.getElementById('error-container');
+
+        loadingEl.style.display = 'block';
+        dashboardEl.style.display = 'none';
+        errorEl.innerHTML = '';
+
+        try {
+          const response = await fetch(`/api/sms/monitoring/dashboard?period=${currentPeriod}`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+
+          if (!data.success) {
+            throw new Error('Failed to load dashboard data');
+          }
+
+          renderDashboard(data.statistics);
+
+          loadingEl.style.display = 'none';
+          dashboardEl.style.display = 'block';
+        } catch (error) {
+          console.error('Error loading dashboard:', error);
+          errorEl.innerHTML = `
+            <div class="error-message">
+              <strong>Error loading dashboard:</strong> ${error.message}
+            </div>
+          `;
+          loadingEl.style.display = 'none';
+        }
+      }
+
+      function renderDashboard(stats) {
+        const dashboardEl = document.getElementById('dashboard');
+
+        const html = `
+          <!-- Message Metrics -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <h3>Messages Received</h3>
+              <div class="metric-value">${stats.messageMetrics.messagesReceived}</div>
+              <div class="metric-label">Total messages</div>
+              <div class="metric-breakdown">
+                <div class="metric-breakdown-item">
+                  <span class="metric-breakdown-label">SMS</span>
+                  <span class="metric-breakdown-value">${stats.messageMetrics.byType.sms}</span>
+                </div>
+                <div class="metric-breakdown-item">
+                  <span class="metric-breakdown-label">MMS</span>
+                  <span class="metric-breakdown-value">${stats.messageMetrics.byType.mms}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <h3>Processing Success</h3>
+              <div class="metric-value">${stats.messageMetrics.messagesProcessed}</div>
+              <div class="metric-label">Successfully processed</div>
+              <div class="metric-breakdown">
+                <div class="metric-breakdown-item">
+                  <span class="metric-breakdown-label">Failed</span>
+                  <span class="metric-breakdown-value">${stats.messageMetrics.messagesFailed}</span>
+                </div>
+                <div class="metric-breakdown-item">
+                  <span class="metric-breakdown-label">Error Rate</span>
+                  <span class="metric-breakdown-value">${stats.messageMetrics.errorRate.toFixed(2)}%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <h3>Content Types</h3>
+              <div class="metric-breakdown">
+                <div class="metric-breakdown-item">
+                  <span class="metric-breakdown-label">Text</span>
+                  <span class="metric-breakdown-value">${stats.messageMetrics.byContentType.text}</span>
+                </div>
+                <div class="metric-breakdown-item">
+                  <span class="metric-breakdown-label">Audio</span>
+                  <span class="metric-breakdown-value">${stats.messageMetrics.byContentType.audio}</span>
+                </div>
+                <div class="metric-breakdown-item">
+                  <span class="metric-breakdown-label">Image</span>
+                  <span class="metric-breakdown-value">${stats.messageMetrics.byContentType.image}</span>
+                </div>
+                <div class="metric-breakdown-item">
+                  <span class="metric-breakdown-label">Video</span>
+                  <span class="metric-breakdown-value">${stats.messageMetrics.byContentType.video}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <h3>Estimated Costs</h3>
+              <div class="metric-value">$${stats.costs.totalEstimatedCost.toFixed(2)}</div>
+              <div class="metric-label">Total estimated cost</div>
+              <div class="metric-breakdown">
+                <div class="metric-breakdown-item">
+                  <span class="metric-breakdown-label">Twilio</span>
+                  <span class="metric-breakdown-value">$${stats.costs.twilio.estimatedCost.toFixed(4)}</span>
+                </div>
+                <div class="metric-breakdown-item">
+                  <span class="metric-breakdown-label">Google Cloud</span>
+                  <span class="metric-breakdown-value">$${stats.costs.googleCloud.estimatedCost.toFixed(4)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Performance -->
+          <div class="section">
+            <h2>AI Performance</h2>
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <h3>Total AI Calls</h3>
+                <div class="metric-value">${stats.aiPerformance.totalCalls}</div>
+                <div class="metric-breakdown">
+                  <div class="metric-breakdown-item">
+                    <span class="metric-breakdown-label">Gemini</span>
+                    <span class="metric-breakdown-value">${stats.aiPerformance.byService.gemini.calls}</span>
+                  </div>
+                  <div class="metric-breakdown-item">
+                    <span class="metric-breakdown-label">Speech-to-Text</span>
+                    <span class="metric-breakdown-value">${stats.aiPerformance.byService.speechToText.calls}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="metric-card">
+                <h3>Average Latency</h3>
+                <div class="metric-value">${(stats.aiPerformance.averageLatency / 1000).toFixed(2)}s</div>
+                <div class="metric-breakdown">
+                  <div class="metric-breakdown-item">
+                    <span class="metric-breakdown-label">Gemini</span>
+                    <span class="metric-breakdown-value">${(stats.aiPerformance.byService.gemini.averageLatency / 1000).toFixed(2)}s</span>
+                  </div>
+                  <div class="metric-breakdown-item">
+                    <span class="metric-breakdown-label">Speech-to-Text</span>
+                    <span class="metric-breakdown-value">${(stats.aiPerformance.byService.speechToText.averageLatency / 1000).toFixed(2)}s</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="metric-card">
+                <h3>Error Rate</h3>
+                <div class="metric-value">${stats.aiPerformance.errorRate.toFixed(2)}%</div>
+                <div class="metric-label">${stats.aiPerformance.errorCount} errors</div>
+                <div class="metric-breakdown">
+                  <div class="metric-breakdown-item">
+                    <span class="metric-breakdown-label">Gemini Errors</span>
+                    <span class="metric-breakdown-value">${stats.aiPerformance.byService.gemini.errors}</span>
+                  </div>
+                  <div class="metric-breakdown-item">
+                    <span class="metric-breakdown-label">Speech-to-Text Errors</span>
+                    <span class="metric-breakdown-value">${stats.aiPerformance.byService.speechToText.errors}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Users -->
+          ${
+            stats.topUsers.length > 0
+              ? `
+          <div class="section">
+            <h2>Top Users</h2>
+            <table class="top-users-table">
+              <thead>
+                <tr>
+                  <th>User ID</th>
+                  <th>Messages</th>
+                  <th>Enrichments</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${stats.topUsers
+                  .map(
+                    (user) => `
+                  <tr>
+                    <td>${user.userId}</td>
+                    <td>${user.messageCount}</td>
+                    <td>${user.enrichmentCount}</td>
+                  </tr>
+                `
+                  )
+                  .join('')}
+              </tbody>
+            </table>
+          </div>
+          `
+              : ''
+          }
+
+          <!-- Error Breakdown -->
+          ${
+            stats.errorBreakdown.length > 0
+              ? `
+          <div class="section">
+            <h2>Error Breakdown</h2>
+            <div class="error-breakdown">
+              ${stats.errorBreakdown
+                .map(
+                  (error) => `
+                <div class="error-item">
+                  <span class="error-type">${error.errorType}</span>
+                  <div class="error-stats">
+                    <span>${error.count} occurrences</span>
+                    <span>${error.percentage.toFixed(1)}%</span>
+                  </div>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
+          `
+              : ''
+          }
+        `;
+
+        dashboardEl.innerHTML = html;
+
+        // Load alerts separately
+        loadAlerts();
+      }
+
+      async function loadAlerts() {
+        try {
+          const response = await fetch('/api/sms/monitoring/alerts?limit=5', {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
+
+          if (!response.ok) return;
+
+          const data = await response.json();
+
+          if (data.success && data.alerts.length > 0) {
+            const alertsHtml = `
+              <div class="section">
+                <h2>Recent Alerts</h2>
+                ${data.alerts
+                  .map(
+                    (alert) => `
+                  <div class="alert ${alert.severity}">
+                    <div class="alert-message">
+                      <div class="alert-type">${alert.type.toUpperCase()}</div>
+                      <div>${alert.message}</div>
+                      <div class="alert-timestamp">${new Date(alert.timestamp).toLocaleString()}</div>
+                    </div>
+                  </div>
+                `
+                  )
+                  .join('')}
+              </div>
+            `;
+
+            document.getElementById('dashboard').innerHTML += alertsHtml;
+          }
+        } catch (error) {
+          console.error('Error loading alerts:', error);
+        }
+      }
+
+      // Load dashboard on page load
+      loadDashboard();
+
+      // Auto-refresh every 30 seconds
+      setInterval(loadDashboard, 30000);
+    </script>
+  </body>
+</html>

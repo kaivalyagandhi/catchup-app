@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inline Editing Verification</title>
+    <link rel="stylesheet" href="http://localhost:3000/css/contacts-table.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #2563eb;
+        }
+        .instructions {
+            margin: 20px 0;
+            padding: 15px;
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            border-radius: 4px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1e40af;
+        }
+        .instructions ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+        .test-results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        .test-item {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .test-pass {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .test-fail {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .test-pending {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Inline Editing Verification</h1>
+        <p>Testing Requirements: 2.1, 2.2, 2.3, 2.4, 2.5</p>
+        
+        <div class="instructions">
+            <h3>Manual Testing Instructions</h3>
+            <ul>
+                <li><strong>Requirement 2.1:</strong> Click on any editable cell (Name, Phone, Email, Location, Timezone, Frequency, Tags, Groups) - it should convert to an input field</li>
+                <li><strong>Requirement 2.2:</strong> Edit a cell and press Enter or click outside - the change should be saved (check browser console for API call)</li>
+                <li><strong>Requirement 2.3:</strong> Try editing with invalid data (e.g., invalid email) - should show error and revert</li>
+                <li><strong>Requirement 2.4:</strong> Click on Tags or Groups cell and start typing - autocomplete dropdown should appear</li>
+                <li><strong>Requirement 2.5:</strong> Start editing a cell and press Escape - edit should be cancelled and original value restored</li>
+            </ul>
+        </div>
+        
+        <div id="contacts-table-container"></div>
+        
+        <div class="test-results">
+            <h3>Automated Test Results</h3>
+            <div id="test-output"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Mock global userId for testing
+        window.userId = 'test-user-123';
+        
+        // Mock showToast function
+        window.showToast = function(message, type) {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        };
+    </script>
+    <script src="http://localhost:3000/js/contacts-table.js"></script>
+    <script>
+        // Sample contact data
+        const sampleContacts = [
+            {
+                id: '1',
+                name: 'Alice Johnson',
+                phone: '+1-555-0101',
+                email: 'alice@example.com',
+                location: 'New York, NY',
+                timezone: 'America/New_York',
+                frequencyPreference: 'weekly',
+                dunbarCircle: 'inner',
+                tags: [
+                    { id: 't1', text: 'work', source: 'manual' },
+                    { id: 't2', text: 'friend', source: 'manual' }
+                ],
+                groups: ['g1', 'g2'],
+                source: 'google',
+                createdAt: new Date('2024-01-15')
+            },
+            {
+                id: '2',
+                name: 'Bob Smith',
+                phone: '+1-555-0102',
+                email: 'bob@example.com',
+                location: 'San Francisco, CA',
+                timezone: 'America/Los_Angeles',
+                frequencyPreference: 'biweekly',
+                dunbarCircle: 'close',
+                tags: [{ id: 't3', text: 'colleague', source: 'ai' }],
+                groups: ['g1'],
+                source: 'manual',
+                createdAt: new Date('2024-02-20')
+            }
+        ];
+
+        // Initialize table
+        const contactsTable = new ContactsTable('contacts-table-container', sampleContacts, {
+            onEdit: (contactId, field, value) => {
+                console.log(`Contact ${contactId} edited: ${field} = ${value}`);
+            }
+        });
+        contactsTable.render();
+
+        // Automated tests
+        function runTests() {
+            const results = [];
+            
+            // Test 2.1: Editable cells have correct attributes
+            const table = document.querySelector('.contacts-table');
+            const editableCells = table.querySelectorAll('td.editable');
+            const hasEditableCells = editableCells.length > 0;
+            const allHaveDataAttributes = Array.from(editableCells).every(cell => 
+                cell.hasAttribute('data-field') && cell.hasAttribute('data-type')
+            );
+            results.push({
+                requirement: '2.1',
+                description: 'Editable cells have correct attributes',
+                pass: hasEditableCells && allHaveDataAttributes,
+                details: `Found ${editableCells.length} editable cells with proper attributes`
+            });
+
+            // Test 2.1: Click-to-edit behavior (simulated)
+            const nameCell = table.querySelector('td.contact-name.editable');
+            if (nameCell) {
+                nameCell.click();
+                setTimeout(() => {
+                    const hasInput = nameCell.querySelector('input') !== null;
+                    const isEditing = nameCell.classList.contains('editing');
+                    results.push({
+                        requirement: '2.1',
+                        description: 'Click converts cell to input field',
+                        pass: hasInput && isEditing,
+                        details: hasInput ? 'Input field created' : 'No input field found'
+                    });
+                    
+                    // Cancel the edit
+                    if (hasInput) {
+                        const input = nameCell.querySelector('input');
+                        const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+                        input.dispatchEvent(escapeEvent);
+                    }
+                    
+                    displayResults(results);
+                }, 100);
+            }
+
+            // Test 2.4: Autocomplete setup for multiselect
+            const tagsCell = table.querySelector('td.contact-tags.editable');
+            const hasMultiselectType = tagsCell && tagsCell.dataset.type === 'multiselect';
+            results.push({
+                requirement: '2.4',
+                description: 'Tags/Groups cells configured for autocomplete',
+                pass: hasMultiselectType,
+                details: hasMultiselectType ? 'Multiselect type configured' : 'Not configured'
+            });
+
+            // Test 2.5: Escape key handler exists
+            const hasInlineEditCell = typeof InlineEditCell !== 'undefined';
+            results.push({
+                requirement: '2.5',
+                description: 'InlineEditCell component exists',
+                pass: hasInlineEditCell,
+                details: hasInlineEditCell ? 'Component defined' : 'Component not found'
+            });
+
+            // Display initial results (some will be updated after async operations)
+            setTimeout(() => displayResults(results), 200);
+        }
+
+        function displayResults(results) {
+            const output = document.getElementById('test-output');
+            output.innerHTML = results.map(r => `
+                <div class="test-item">
+                    <span class="${r.pass ? 'test-pass' : (r.pass === null ? 'test-pending' : 'test-fail')}">
+                        ${r.pass ? '✓' : (r.pass === null ? '⏳' : '✗')}
+                    </span>
+                    <strong>Req ${r.requirement}:</strong> ${r.description}
+                    <span style="color: #6b7280; margin-left: auto;">${r.details}</span>
+                </div>
+            `).join('');
+
+            const allPassed = results.every(r => r.pass === true);
+            const hasPending = results.some(r => r.pass === null);
+            
+            if (allPassed && !hasPending) {
+                output.innerHTML += '<div style="margin-top: 20px; padding: 15px; background: #d1fae5; color: #065f46; border-radius: 6px; font-weight: 600;">✓ All automated tests passed! Please complete manual testing above.</div>';
+            }
+        }
+
+        // Run tests after a short delay
+        setTimeout(runTests, 100);
+    </script>
+</body>
+</html>

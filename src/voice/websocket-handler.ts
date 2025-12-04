@@ -1,13 +1,13 @@
 /**
  * WebSocket Handler for Voice Notes
- * 
+ *
  * Provides real-time communication for voice note recording sessions:
  * - Audio streaming from client to server
  * - Interim transcript updates
  * - Final transcript updates
  * - Status change notifications
  * - Error notifications
- * 
+ *
  * Requirements: 1.4, 1.5, 7.7
  */
 
@@ -27,7 +27,7 @@ export enum WSMessageType {
   RESUME_SESSION = 'resume_session',
   END_SESSION = 'end_session',
   CANCEL_SESSION = 'cancel_session',
-  
+
   // Server -> Client
   SESSION_STARTED = 'session_started',
   INTERIM_TRANSCRIPT = 'interim_transcript',
@@ -67,10 +67,7 @@ export class VoiceNoteWebSocketHandler {
   private clients: Map<WebSocket, ClientConnection> = new Map();
   private sessionClients: Map<string, WebSocket> = new Map();
 
-  constructor(
-    wss: WebSocketServer,
-    voiceNoteService?: VoiceNoteService
-  ) {
+  constructor(wss: WebSocketServer, voiceNoteService?: VoiceNoteService) {
     this.wss = wss;
     this.voiceNoteService = voiceNoteService || VoiceNoteService.getInstance();
     this.setupWebSocketServer();
@@ -79,7 +76,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Set up WebSocket server event handlers
-   * 
+   *
    * @private
    */
   private setupWebSocketServer(): void {
@@ -121,7 +118,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Set up voice note service event handlers
-   * 
+   *
    * @private
    */
   private setupServiceEventHandlers(): void {
@@ -238,7 +235,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Handle incoming client message
-   * 
+   *
    * @param ws - WebSocket connection
    * @param data - Message data
    * @private
@@ -262,7 +259,7 @@ export class VoiceNoteWebSocketHandler {
             client.sessionId = (message as any).sessionId;
             this.sessionClients.set((message as any).sessionId, ws);
             console.log(`Associated session ${(message as any).sessionId} with WebSocket`);
-            
+
             // Send confirmation
             this.sendMessage(ws, {
               type: WSMessageType.STATUS_CHANGE,
@@ -306,7 +303,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Handle start session request
-   * 
+   *
    * @param ws - WebSocket connection
    * @param client - Client connection metadata
    * @param data - Session start data
@@ -323,13 +320,10 @@ export class VoiceNoteWebSocketHandler {
       const languageCode = data?.languageCode || 'en-US';
       const userContacts: Contact[] = data?.userContacts || [];
       console.log(`handleStartSession received ${userContacts.length} contacts`);
-      
+
       // Create voice note session
       console.log('Creating session with languageCode:', languageCode);
-      const session = await this.voiceNoteService.createSession(
-        client.userId,
-        languageCode
-      );
+      const session = await this.voiceNoteService.createSession(client.userId, languageCode);
 
       console.log('Session created:', session.id);
 
@@ -367,7 +361,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Handle audio chunk
-   * 
+   *
    * @param sessionId - Session ID
    * @param audioChunk - Audio data buffer
    * @private
@@ -391,15 +385,12 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Handle pause session request
-   * 
+   *
    * @param ws - WebSocket connection
    * @param client - Client connection metadata
    * @private
    */
-  private async handlePauseSession(
-    ws: WebSocket,
-    client: ClientConnection
-  ): Promise<void> {
+  private async handlePauseSession(ws: WebSocket, client: ClientConnection): Promise<void> {
     if (!client.sessionId) {
       this.sendMessage(ws, {
         type: WSMessageType.ERROR,
@@ -410,7 +401,7 @@ export class VoiceNoteWebSocketHandler {
 
     try {
       await this.voiceNoteService.pauseSession(client.sessionId);
-      
+
       this.sendMessage(ws, {
         type: WSMessageType.STATUS_CHANGE,
         data: { status: 'paused' },
@@ -427,15 +418,12 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Handle resume session request
-   * 
+   *
    * @param ws - WebSocket connection
    * @param client - Client connection metadata
    * @private
    */
-  private async handleResumeSession(
-    ws: WebSocket,
-    client: ClientConnection
-  ): Promise<void> {
+  private async handleResumeSession(ws: WebSocket, client: ClientConnection): Promise<void> {
     if (!client.sessionId) {
       this.sendMessage(ws, {
         type: WSMessageType.ERROR,
@@ -446,7 +434,7 @@ export class VoiceNoteWebSocketHandler {
 
     try {
       await this.voiceNoteService.resumeSession(client.sessionId);
-      
+
       this.sendMessage(ws, {
         type: WSMessageType.STATUS_CHANGE,
         data: { status: 'recording' },
@@ -463,7 +451,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Handle end session request
-   * 
+   *
    * @param ws - WebSocket connection
    * @param client - Client connection metadata
    * @param data - Session end data (includes userContacts)
@@ -487,10 +475,7 @@ export class VoiceNoteWebSocketHandler {
       const userContacts: Contact[] = data.userContacts || [];
 
       // Finalize voice note
-      const result = await this.voiceNoteService.finalizeVoiceNote(
-        client.sessionId,
-        userContacts
-      );
+      const result = await this.voiceNoteService.finalizeVoiceNote(client.sessionId, userContacts);
 
       // Send finalization result
       this.sendMessage(ws, {
@@ -516,22 +501,19 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Handle cancel session request
-   * 
+   *
    * @param ws - WebSocket connection
    * @param client - Client connection metadata
    * @private
    */
-  private async handleCancelSession(
-    ws: WebSocket,
-    client: ClientConnection
-  ): Promise<void> {
+  private async handleCancelSession(ws: WebSocket, client: ClientConnection): Promise<void> {
     if (!client.sessionId) {
       return;
     }
 
     try {
       await this.voiceNoteService.cancelSession(client.sessionId);
-      
+
       // Clean up session mapping
       this.sessionClients.delete(client.sessionId);
       client.sessionId = undefined;
@@ -547,7 +529,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Handle client disconnect
-   * 
+   *
    * @param ws - WebSocket connection
    * @private
    */
@@ -563,7 +545,9 @@ export class VoiceNoteWebSocketHandler {
     // Just remove the WebSocket association
     if (client.sessionId) {
       this.sessionClients.delete(client.sessionId);
-      console.log(`WebSocket disconnected but session ${client.sessionId} kept alive for finalization`);
+      console.log(
+        `WebSocket disconnected but session ${client.sessionId} kept alive for finalization`
+      );
     }
 
     // Remove client
@@ -572,7 +556,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Send message to client
-   * 
+   *
    * @param ws - WebSocket connection
    * @param message - Message to send
    * @private
@@ -585,7 +569,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Extract user ID from request
-   * 
+   *
    * @param request - Incoming HTTP request
    * @returns User ID or null
    * @private
@@ -594,7 +578,7 @@ export class VoiceNoteWebSocketHandler {
     // Try to get from query parameters
     const url = new URL(request.url || '', `http://${request.headers.host}`);
     const userId = url.searchParams.get('userId');
-    
+
     if (userId) {
       return userId;
     }
@@ -613,7 +597,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Broadcast message to all clients
-   * 
+   *
    * @param message - Message to broadcast
    */
   broadcastMessage(message: WSMessage): void {
@@ -624,7 +608,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Send message to specific user
-   * 
+   *
    * @param userId - User ID
    * @param message - Message to send
    */
@@ -638,7 +622,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Send connection status update to a session
-   * 
+   *
    * @param sessionId - Session ID
    * @param status - Connection status
    * @param attempt - Reconnection attempt number (optional)
@@ -659,7 +643,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Get active session count
-   * 
+   *
    * @returns Number of active sessions
    */
   getActiveSessionCount(): number {
@@ -668,7 +652,7 @@ export class VoiceNoteWebSocketHandler {
 
   /**
    * Get connected client count
-   * 
+   *
    * @returns Number of connected clients
    */
   getConnectedClientCount(): number {
