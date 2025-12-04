@@ -28,6 +28,7 @@ export enum TagSource {
   VOICE_MEMO = 'voice_memo',
   MANUAL = 'manual',
   NOTIFICATION_REPLY = 'notification_reply',
+  AI_EDIT = 'ai_edit',
 }
 
 export enum SuggestionStatus {

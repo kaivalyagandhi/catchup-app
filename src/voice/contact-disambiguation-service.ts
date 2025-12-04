@@ -59,10 +59,10 @@ export class ContactDisambiguationService {
   private model: GenerativeModel;
 
   /** Threshold for automatic matching (0-1) */
-  private readonly EXACT_MATCH_THRESHOLD = 0.85;
+  private readonly EXACT_MATCH_THRESHOLD = 0.65;
 
   /** Threshold for partial matching (0-1) */
-  private readonly PARTIAL_MATCH_THRESHOLD = 0.6;
+  private readonly PARTIAL_MATCH_THRESHOLD = 0.45;
 
   /** Maximum number of partial match candidates to return */
   private readonly MAX_CANDIDATES = 3;
@@ -320,22 +320,27 @@ export class ContactDisambiguationService {
 
     // Check if any part of the extracted name matches any part of the contact name
     for (const namePart of nameParts) {
-      // Skip very short name parts (less than 2 chars)
-      if (namePart.length < 2) continue;
+      // Skip empty parts but allow single characters (for nicknames like "J")
+      if (namePart.length === 0) continue;
       
       for (const contactPart of contactParts) {
         if (namePart === contactPart) {
           // Exact match on a name part - high confidence for first name matches
           // If matching first name (first part of contact name), give higher score
           const isFirstName = contactPart === contactParts[0];
-          bestScore = Math.max(bestScore, isFirstName ? 0.9 : 0.85);
+          bestScore = Math.max(bestScore, isFirstName ? 0.95 : 0.85);
+        } else if (contactPart.startsWith(namePart) || namePart.startsWith(contactPart)) {
+          // One name is a prefix of the other (e.g., "Mike" matches "Michael")
+          const isFirstName = contactPart === contactParts[0];
+          const prefixScore = Math.min(namePart.length, contactPart.length) / Math.max(namePart.length, contactPart.length);
+          bestScore = Math.max(bestScore, prefixScore * (isFirstName ? 0.9 : 0.8));
         } else {
           // Fuzzy match on name parts
           const fuzzyScore = this.calculateFuzzyScore(namePart, contactPart);
-          if (fuzzyScore > 0.6) {
+          if (fuzzyScore > 0.5) {
             // Higher weight for first name fuzzy matches
             const isFirstName = contactPart === contactParts[0];
-            const weight = isFirstName ? 0.9 : 0.8;
+            const weight = isFirstName ? 0.85 : 0.75;
             bestScore = Math.max(bestScore, fuzzyScore * weight);
           }
         }
