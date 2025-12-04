@@ -1,0 +1,147 @@
+# Cloud Build Configuration for CatchUp Application
+# This pipeline is triggered on push to the main branch
+# It builds, tests, and deploys the application to Cloud Run
+
+steps:
+  # Step 1: Install dependencies
+  - name: 'node:18'
+    id: 'install-dependencies'
+    entrypoint: npm
+    args: ['ci']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+
+  # Step 2: Run linting
+  - name: 'node:18'
+    id: 'lint'
+    entrypoint: npm
+    args: ['run', 'lint']
+    waitFor: ['install-dependencies']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+
+  # Step 3: Run type checking
+  - name: 'node:18'
+    id: 'typecheck'
+    entrypoint: npm
+    args: ['run', 'typecheck']
+    waitFor: ['install-dependencies']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+
+  # Step 4: Run tests
+  - name: 'node:18'
+    id: 'test'
+    entrypoint: npm
+    args: ['test', '--run']
+    waitFor: ['install-dependencies']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+
+  # Step 5: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:latest'
+      - '.'
+    waitFor: ['lint', 'typecheck', 'test']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+
+  # Step 6: Push image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA'
+    waitFor: ['build-image']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+
+  # Step 6b: Push latest tag to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image-latest'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:latest'
+    waitFor: ['build-image']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+
+  # Step 7: Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/run'
+    id: 'deploy-cloud-run'
+    args:
+      - 'deploy'
+      - 'catchup'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA'
+      - '--region=us-central1'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--timeout=3600'
+      - '--service-account=catchup-cloud-run@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--no-allow-unauthenticated'
+      - '--set-env-vars=NODE_ENV=production,LOG_LEVEL=info'
+      - '--update-secrets=GOOGLE_OAUTH_CLIENT_ID=google-oauth-client-id:latest,GOOGLE_OAUTH_CLIENT_SECRET=google-oauth-client-secret:latest,DATABASE_PASSWORD=db-password:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,GOOGLE_CLOUD_SPEECH_KEY=google-cloud-speech-key:latest,GOOGLE_GEMINI_API_KEY=google-gemini-api-key:latest,ENCRYPTION_KEY=encryption-key:latest'
+    waitFor: ['push-image', 'push-image-latest']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+
+  # Step 8: Verify deployment health
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    id: 'verify-health'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Waiting for deployment to stabilize..."
+        sleep 30
+        SERVICE_URL=$$(gcloud run services describe catchup --region=us-central1 --format='value(status.url)')
+        echo "Service URL: $$SERVICE_URL"
+        if [ -z "$$SERVICE_URL" ]; then
+          echo "ERROR: Could not get service URL"
+          exit 1
+        fi
+        # Get an identity token for authenticated request
+        TOKEN=$$(gcloud auth print-identity-token)
+        echo "Testing health endpoint..."
+        HTTP_STATUS=$$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $$TOKEN" "$$SERVICE_URL/health")
+        echo "Health check response: $$HTTP_STATUS"
+        if [ "$$HTTP_STATUS" = "200" ]; then
+          echo "✓ Health check passed!"
+          exit 0
+        else
+          echo "✗ Health check failed with status: $$HTTP_STATUS"
+          exit 1
+        fi
+    waitFor: ['deploy-cloud-run']
+
+# Build configuration
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+  
+# Timeout for the entire build (30 minutes)
+timeout: '1800s'
+
+# Images to be pushed to Artifact Registry
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:latest'
+
+# Substitutions for custom variables
+substitutions:
+  _REGION: 'us-central1'
+  _SERVICE_NAME: 'catchup'
+  _ARTIFACT_REPO: 'catchup-repo'
+
+# Tags for organizing builds
+tags:
+  - 'gcp-cloud'
+  - 'catchup-deployment'
+  - '$BRANCH_NAME'
+  - '$SHORT_SHA'

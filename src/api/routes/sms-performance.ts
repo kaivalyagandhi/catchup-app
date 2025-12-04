@@ -29,7 +29,8 @@ router.get(
     const cacheStats = getCacheStats();
     const poolHealth = await checkPoolHealth();
     const connectionPools = connectionPoolManager.getAllStats();
-    const monitoringStats = smsMonitoringService.getStats();
+    const aiPerformance = smsMonitoringService.getAIPerformanceMetrics();
+    const costs = smsMonitoringService.getCostMetrics();
 
     res.json({
       success: true,
@@ -37,7 +38,10 @@ router.get(
         cache: cacheStats,
         database: poolHealth,
         connectionPools,
-        monitoring: monitoringStats,
+        monitoring: {
+          aiPerformance,
+          costs,
+        },
         timestamp: new Date().toISOString(),
       },
     });
@@ -100,7 +104,7 @@ router.post(
   '/reset',
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
     resetMetrics();
-    smsMonitoringService.resetStats();
+    smsMonitoringService.clearMetrics();
 
     res.json({
       success: true,

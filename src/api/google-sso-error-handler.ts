@@ -184,14 +184,14 @@ export class GoogleSSOErrorHandler {
       const { logAuditEvent, AuditAction } = await import('../utils/audit-logger');
       
       // Determine the appropriate audit action
-      let action: AuditAction;
+      let action: string;
       if (this.isSecurityEvent({ code: logEntry.errorCode } as GoogleSSOError)) {
         action = AuditAction.SUSPICIOUS_ACTIVITY;
       } else {
         action = AuditAction.FAILED_LOGIN_ATTEMPT;
       }
 
-      await logAuditEvent(action, {
+      await logAuditEvent(action as any, {
         userId: logEntry.userId,
         ipAddress: logEntry.ipAddress,
         userAgent: logEntry.userAgent,
