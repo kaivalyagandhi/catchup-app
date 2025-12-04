@@ -103,9 +103,12 @@ export function applyRecencyDecay(
   const thresholds: Record<FrequencyOption, number> = {
     [FrequencyOption.DAILY]: 1,
     [FrequencyOption.WEEKLY]: 7,
+    [FrequencyOption.BIWEEKLY]: 14,
     [FrequencyOption.MONTHLY]: 30,
+    [FrequencyOption.QUARTERLY]: 90,
     [FrequencyOption.YEARLY]: 365,
     [FrequencyOption.FLEXIBLE]: 60, // Default to ~2 months for flexible
+    [FrequencyOption.NA]: 365, // N/A defaults to yearly (low priority)
   };
 
   const threshold = thresholds[frequencyPreference];
@@ -225,9 +228,12 @@ export async function generateTimeboundSuggestions(
     const thresholds: Record<FrequencyOption, number> = {
       [FrequencyOption.DAILY]: 1,
       [FrequencyOption.WEEKLY]: 7,
+      [FrequencyOption.BIWEEKLY]: 14,
       [FrequencyOption.MONTHLY]: 30,
+      [FrequencyOption.QUARTERLY]: 90,
       [FrequencyOption.YEARLY]: 365,
       [FrequencyOption.FLEXIBLE]: 60,
+      [FrequencyOption.NA]: 365,
     };
 
     return daysSinceContact >= thresholds[frequency];
@@ -704,9 +710,12 @@ export async function generateGroupSuggestion(
   const thresholds: Record<FrequencyOption, number> = {
     [FrequencyOption.DAILY]: 1,
     [FrequencyOption.WEEKLY]: 7,
+    [FrequencyOption.BIWEEKLY]: 14,
     [FrequencyOption.MONTHLY]: 30,
+    [FrequencyOption.QUARTERLY]: 90,
     [FrequencyOption.YEARLY]: 365,
     [FrequencyOption.FLEXIBLE]: 60,
+    [FrequencyOption.NA]: 365,
   };
 
   for (const contact of contactGroup.contacts) {
