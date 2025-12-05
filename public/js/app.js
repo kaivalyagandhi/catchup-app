@@ -242,12 +242,13 @@ function initializeChatComponents() {
             },
             onSendMessage: async (text) => {
                 console.log('Message sent:', text);
-                // Add user message to chat
+                // Add user message to chat with initial 'sent' status
                 chatWindow.addMessage({
                     id: Date.now().toString(),
                     type: 'user',
                     content: text,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    status: 'sent'
                 });
                 
                 // Process message for contact enrichment
@@ -3712,15 +3713,23 @@ function stopChatAudioMonitoring() {
 
 // Process text message for contact enrichment
 async function processTextMessageForEnrichment(text) {
+    // Get the last user message ID to update its status
+    const lastUserMessage = chatWindow?.messages?.filter(m => m.type === 'user').pop();
+    const messageId = lastUserMessage?.id;
+    
     try {
-        // Show processing indicator
-        if (chatWindow) {
-            chatWindow.addMessage({
-                id: 'processing-' + Date.now(),
-                type: 'system',
-                content: 'Processing your message...',
-                timestamp: new Date().toISOString()
-            });
+        // Update message status to show read receipt progression
+        if (chatWindow && messageId) {
+            // Brief delay to show "delivered" state
+            chatWindow.updateMessageStatus(messageId, 'delivered');
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Show "read" state
+            chatWindow.updateMessageStatus(messageId, 'read');
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Show "processing" state with animated dots
+            chatWindow.updateMessageStatus(messageId, 'processing');
         }
         
         const response = await fetch(`${API_BASE}/voice-notes/text`, {
@@ -3867,8 +3876,19 @@ async function processTextMessageForEnrichment(text) {
         
         console.log('Text message processed:', result);
         
+        // Update status back to "read" after processing completes
+        if (chatWindow && messageId) {
+            chatWindow.updateMessageStatus(messageId, 'read');
+        }
+        
     } catch (error) {
         console.error('Error processing text message:', error);
+        
+        // Update status back to "read" on error
+        if (chatWindow && messageId) {
+            chatWindow.updateMessageStatus(messageId, 'read');
+        }
+        
         if (chatWindow) {
             chatWindow.addMessage({
                 id: 'error-' + Date.now(),

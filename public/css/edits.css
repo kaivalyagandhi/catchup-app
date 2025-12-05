@@ -344,11 +344,82 @@
   line-height: 1.5;
 }
 
+/* Message footer with time and receipt */
+.chat-message__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .chat-message__time {
-  display: block;
   font-size: 11px;
   opacity: 0.7;
-  margin-top: 4px;
+}
+
+/* Read receipt indicators */
+.chat-message__receipt {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+}
+
+.receipt-icon {
+  opacity: 0.7;
+}
+
+.receipt-icon--sent {
+  opacity: 0.5;
+}
+
+.receipt-icon--delivered {
+  opacity: 0.7;
+}
+
+.receipt-icon--read {
+  opacity: 1;
+  color: #60a5fa;
+}
+
+/* Processing dots animation */
+.receipt-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 2px;
+}
+
+.receipt-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+  animation: receiptDotPulse 1.4s ease-in-out infinite;
+}
+
+.receipt-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.receipt-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.receipt-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes receiptDotPulse {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .chat-message__edit-ref {
