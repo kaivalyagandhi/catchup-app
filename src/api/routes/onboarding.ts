@@ -22,8 +22,37 @@ router.use(authenticate);
 router.use(requestTimeout(30000));
 
 /**
+ * POST /api/onboarding/init
+ * Initialize onboarding for new user
+ * Requirements: All requirements (state management)
+ */
+router.post(
+  '/init',
+  asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const userId = req.userId!;
+
+    logOperation('init_onboarding', userId);
+
+    const onboardingService = new PostgresOnboardingService();
+
+    // Execute with timeout (10 seconds for initialization)
+    const state = await withTimeout(
+      () =>
+        onboardingService.initializeOnboarding(userId, {
+          type: 'manual',
+          source: 'onboarding_flow',
+        }),
+      10000,
+      'init_onboarding'
+    );
+
+    res.status(201).json(state);
+  })
+);
+
+/**
  * POST /api/onboarding/initialize
- * Initialize onboarding flow for a user
+ * Initialize onboarding flow for a user (legacy endpoint)
  */
 router.post(
   '/initialize',
@@ -85,8 +114,34 @@ router.get(
 );
 
 /**
+ * PUT /api/onboarding/state
+ * Update onboarding state
+ * Requirements: All requirements (state management)
+ */
+router.put(
+  '/state',
+  asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const userId = req.userId!;
+    const stateUpdate = req.body;
+
+    logOperation('update_onboarding_state', userId, stateUpdate);
+
+    const onboardingService = new PostgresOnboardingService();
+
+    // Execute with timeout (10 seconds for update operation)
+    await withTimeout(
+      () => onboardingService.updateOnboardingState(userId, stateUpdate),
+      10000,
+      'update_onboarding_state'
+    );
+
+    res.status(204).send();
+  })
+);
+
+/**
  * PUT /api/onboarding/progress
- * Update onboarding progress
+ * Update onboarding progress (legacy endpoint)
  */
 router.put(
   '/progress',
@@ -104,6 +159,32 @@ router.put(
       () => onboardingService.updateProgress(userId, step, data || {}),
       10000,
       'update_onboarding_progress'
+    );
+
+    res.status(204).send();
+  })
+);
+
+/**
+ * POST /api/onboarding/sync
+ * Sync local state to server
+ * Requirements: All requirements (state management)
+ */
+router.post(
+  '/sync',
+  asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const userId = req.userId!;
+    const localState = req.body;
+
+    logOperation('sync_onboarding_state', userId);
+
+    const onboardingService = new PostgresOnboardingService();
+
+    // Execute with timeout (10 seconds for sync operation)
+    await withTimeout(
+      () => onboardingService.syncLocalState(userId, localState),
+      10000,
+      'sync_onboarding_state'
     );
 
     res.status(204).send();

@@ -15,7 +15,7 @@ export {
   type OnboardingStep,
   type OnboardingTriggerType,
   create as createOnboardingState,
-  update as updateOnboardingState,
+  update as updateOnboardingStateRecord,
   findByUserId as findOnboardingStateByUserId,
   deleteState as deleteOnboardingState,
   markStepComplete,
@@ -79,3 +79,27 @@ export {
 
 // Extended Contact Repository with circle methods
 export { type DunbarCircle as ContactDunbarCircle } from './repository';
+
+// Onboarding State Manager (client-side state management)
+export {
+  OnboardingStateManager,
+  getOnboardingStateManager,
+  type OnboardingState,
+  initializeOnboardingState,
+  loadOnboardingState,
+  saveOnboardingState,
+  updateOnboardingState,
+  dismissOnboarding,
+  resumeOnboarding,
+  checkStepCompletion,
+  markStep1Complete,
+  updateGoogleCalendarConnection,
+  updateGoogleContactsConnection,
+  updateCircleProgress,
+  incrementCircleProgress,
+  updateGroupMappingProgress,
+  incrementGroupMappingProgress,
+  getStepCompletionStatus,
+  getCircleProgress,
+  getGroupMappingProgress,
+} from './onboarding-state-manager';

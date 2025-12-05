@@ -18,6 +18,12 @@
     <!-- App Shell - Sidebar Navigation -->
     <link rel="stylesheet" href="css/app-shell.css">
     
+    <!-- Onboarding Indicator -->
+    <link rel="stylesheet" href="css/onboarding-indicator.css">
+    
+    <!-- Manage Circles Flow -->
+    <link rel="stylesheet" href="css/manage-circles-flow.css">
+    
     <!-- Responsive Layout -->
     <link rel="stylesheet" href="css/responsive.css">
     
@@ -2831,6 +2837,9 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar__brand">CatchUp</div>
             
+            <!-- Onboarding Step Indicator -->
+            <div id="onboarding-indicator-container"></div>
+            
             <nav class="sidebar__nav">
                 <a href="#directory" class="nav-item active" data-page="directory">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3248,6 +3257,10 @@
     <script src="/js/edits-menu-compact.js"></script>
 
     <script src="/js/google-sso.js"></script>
+    <script src="/js/onboarding-step-indicator.js"></script>
+    <script src="/js/step1-integrations-handler.js"></script>
+    <script src="/js/step2-circles-handler.js"></script>
+    <script src="/js/manage-circles-flow.js"></script>
     <script src="/js/circular-visualizer.js"></script>
     <script src="/js/contacts-table.js"></script>
     <script src="/js/groups-table.js"></script>

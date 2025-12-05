@@ -25,6 +25,14 @@ This directory contains SQL migration files for the CatchUp database schema.
 - `019_add_user_id_to_enrichment_items.sql` - Adds user_id column to enrichment_items table
 - `020_add_sms_performance_indexes.sql` - Adds performance indexes for SMS/MMS queries
 - `021_add_google_sso_support.sql` - Adds Google SSO authentication support to users table
+- `022_fix_calendar_events_schema.sql` - Fixes calendar events schema
+- `023_add_contact_google_memberships.sql` - Adds Google Contact group memberships tracking
+- `024_add_excluded_members_to_mappings.sql` - Adds excluded members to group mappings
+- `026_create_chat_edits_tables.sql` - Creates chat edits tables for AI-powered contact enrichment
+- `027_add_pending_edits_deduplication.sql` - Adds deduplication support for pending edits
+- `028_add_frequency_options.sql` - Adds frequency options for contact interactions
+- `029_add_ai_edit_tag_source.sql` - Adds AI edit tag source tracking
+- `030_update_contact_onboarding_for_simplified_circles.sql` - Updates onboarding schema for simplified 4-circle system and adds group mapping suggestions
 
 ## Running Migrations
 

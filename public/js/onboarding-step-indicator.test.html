@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding Step Indicator Test</title>
+    
+    <!-- Stone & Clay Design System -->
+    <link rel="stylesheet" href="../css/stone-clay-theme.css">
+    <link rel="stylesheet" href="../css/onboarding-indicator.css">
+    
+    <style>
+        body {
+            background: var(--bg-app);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 40px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            margin-bottom: 30px;
+            color: var(--text-primary);
+        }
+        
+        .test-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: var(--text-primary);
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 16px;
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background: var(--accent-hover);
+        }
+        
+        button.secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+        }
+        
+        button.secondary:hover {
+            background: var(--bg-hover);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: monospace;
+        }
+    </style>
+
+</head>
+<body>
+    <h1>Onboarding Step Indicator Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Default State (Step 1 Active)</h2>
+        <div id="test-1-container"></div>
+        <div class="controls">
+            <button onclick="test1()">Render Default State</button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Step 1 Complete, Step 2 Active</h2>
+        <div id="test-2-container"></div>
+        <div class="controls">
+            <button onclick="test2()">Render Step 2 Active</button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: All Steps Complete</h2>
+        <div id="test-3-container"></div>
+        <div class="controls">
+            <button onclick="test3()">Render All Complete</button>
+        </div>
+        <div class="status" id="test-3-status">
+            Status: Not rendered (should be hidden when complete)
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 4: Dismissed State (Resume CTA)</h2>
+        <div id="test-4-container"></div>
+        <div class="controls">
+            <button onclick="test4()">Render Dismissed State</button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 5: Interactive Test</h2>
+        <div id="test-5-container"></div>
+        <div class="controls">
+            <button onclick="test5()">Initialize Interactive</button>
+            <button class="secondary" onclick="updateStep1Complete()">Mark Step 1 Complete</button>
+            <button class="secondary" onclick="updateStep2Complete()">Mark Step 2 Complete</button>
+            <button class="secondary" onclick="updateStep3Complete()">Mark Step 3 Complete</button>
+        </div>
+        <div class="status" id="test-5-status">
+            Status: Not initialized
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 6: Theme Toggle</h2>
+        <div id="test-6-container"></div>
+        <div class="controls">
+            <button onclick="test6()">Initialize</button>
+            <button class="secondary" onclick="toggleTheme()">Toggle Theme</button>
+        </div>
+    </div>
+    
+    <script src="onboarding-step-indicator.js"></script>
+    <script>
+        let test5Indicator = null;
+        
+        // Mock functions for navigation
+        window.navigateTo = function(page) {
+            console.log('Navigate to:', page);
+            alert('Would navigate to: ' + page);
+        };
+        
+        window.switchDirectoryTab = function(tab) {
+            console.log('Switch to tab:', tab);
+        };
+        
+        window.showToast = function(message, type) {
+            console.log('Toast:', type, message);
+            alert(type.toUpperCase() + ': ' + message);
+        };
+        
+        // Test 1: Default state
+        function test1() {
+            const indicator = new OnboardingStepIndicator();
+            indicator.mount(document.getElementById('test-1-container'));
+        }
+        
+        // Test 2: Step 2 active
+        function test2() {
+            const state = {
+                isComplete: false,
+                currentStep: 2,
+                steps: {
+                    integrations: {
+                        complete: true,
+                        googleCalendar: true,
+                        googleContacts: true
+                    },
+                    circles: {
+                        complete: false,
+                        contactsCategorized: 25,
+                        totalContacts: 100
+                    },
+                    groups: {
+                        complete: false,
+                        mappingsReviewed: 0,
+                        totalMappings: 5
+                    }
+                }
+            };
+            const indicator = new OnboardingStepIndicator(state);
+            indicator.mount(document.getElementById('test-2-container'));
+        }
+        
+        // Test 3: All complete (should not render)
+        function test3() {
+            const state = {
+                isComplete: true,
+                currentStep: 3,
+                steps: {
+                    integrations: { complete: true, googleCalendar: true, googleContacts: true },
+                    circles: { complete: true, contactsCategorized: 100, totalContacts: 100 },
+                    groups: { complete: true, mappingsReviewed: 5, totalMappings: 5 }
+                }
+            };
+            const indicator = new OnboardingStepIndicator(state);
+            indicator.mount(document.getElementById('test-3-container'));
+            
+            const container = document.getElementById('test-3-container');
+            const status = document.getElementById('test-3-status');
+            if (container.innerHTML.trim() === '') {
+                status.textContent = 'Status: ✓ Correctly hidden (onboarding complete)';
+                status.style.background = 'var(--status-success-bg)';
+                status.style.color = 'var(--status-success-text)';
+            } else {
+                status.textContent = 'Status: ✗ Error - should be hidden';
+                status.style.background = 'var(--status-error-bg)';
+                status.style.color = 'var(--status-error-text)';
+            }
+        }
+        
+        // Test 4: Dismissed state
+        function test4() {
+            const state = {
+                isComplete: false,
+                currentStep: 2,
+                dismissedAt: new Date().toISOString(),
+                steps: {
+                    integrations: { complete: true, googleCalendar: true, googleContacts: true },
+                    circles: { complete: false, contactsCategorized: 25, totalContacts: 100 },
+                    groups: { complete: false, mappingsReviewed: 0, totalMappings: 5 }
+                }
+            };
+            const indicator = new OnboardingStepIndicator(state);
+            indicator.isDismissed = true;
+            indicator.mount(document.getElementById('test-4-container'));
+        }
+        
+        // Test 5: Interactive
+        function test5() {
+            test5Indicator = new OnboardingStepIndicator();
+            test5Indicator.mount(document.getElementById('test-5-container'));
+            updateStatus5();
+        }
+        
+        function updateStep1Complete() {
+            if (!test5Indicator) return;
+            test5Indicator.updateState({
+                currentStep: 2,
+                steps: {
+                    ...test5Indicator.state.steps,
+                    integrations: {
+                        complete: true,
+                        googleCalendar: true,
+                        googleContacts: true
+                    }
+                }
+            });
+            updateStatus5();
+        }
+        
+        function updateStep2Complete() {
+            if (!test5Indicator) return;
+            test5Indicator.updateState({
+                currentStep: 3,
+                steps: {
+                    ...test5Indicator.state.steps,
+                    circles: {
+                        complete: true,
+                        contactsCategorized: 100,
+                        totalContacts: 100
+                    }
+                }
+            });
+            updateStatus5();
+        }
+        
+        function updateStep3Complete() {
+            if (!test5Indicator) return;
+            test5Indicator.updateState({
+                steps: {
+                    ...test5Indicator.state.steps,
+                    groups: {
+                        complete: true,
+                        mappingsReviewed: 5,
+                        totalMappings: 5
+                    }
+                }
+            });
+            updateStatus5();
+        }
+        
+        function updateStatus5() {
+            if (!test5Indicator) return;
+            const state = test5Indicator.state;
+            const status = document.getElementById('test-5-status');
+            status.textContent = `Status: Step ${state.currentStep} | ` +
+                `Step 1: ${state.steps.integrations.complete ? '✓' : '○'} | ` +
+                `Step 2: ${state.steps.circles.complete ? '✓' : '○'} | ` +
+                `Step 3: ${state.steps.groups.complete ? '✓' : '○'} | ` +
+                `Complete: ${state.isComplete ? 'Yes' : 'No'}`;
+        }
+        
+        // Test 6: Theme toggle
+        function test6() {
+            const indicator = new OnboardingStepIndicator();
+            indicator.mount(document.getElementById('test-6-container'));
+        }
+        
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            html.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
+        }
+        
+        // Listen for events
+        window.addEventListener('onboarding-step-clicked', (e) => {
+            console.log('Step clicked:', e.detail.step);
+        });
+        
+        window.addEventListener('onboarding-dismissed', (e) => {
+            console.log('Onboarding dismissed:', e.detail.state);
+        });
+        
+        window.addEventListener('onboarding-resumed', (e) => {
+            console.log('Onboarding resumed:', e.detail.state);
+        });
+    </script>
+</body>
+</html>

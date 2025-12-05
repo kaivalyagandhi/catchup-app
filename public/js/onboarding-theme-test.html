@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding Theme Toggle Test</title>
+  
+  <!-- Stone & Clay Theme -->
+  <link rel="stylesheet" href="../css/stone-clay-theme.css">
+  
+  <!-- Onboarding Styles -->
+  <link rel="stylesheet" href="../css/onboarding.css">
+  
+  <style>
+    body {
+      padding: 20px;
+      font-family: var(--font-body);
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+    }
+    
+    .test-header h1 {
+      margin: 0;
+      color: var(--text-primary);
+    }
+    
+    .theme-toggle-btn {
+      padding: 12px 24px;
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .theme-toggle-btn:hover {
+      background: var(--accent-hover);
+    }
+    
+    .test-section {
+      margin-bottom: 40px;
+    }
+    
+    .test-section h2 {
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+    
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    
+    .sidebar-mock {
+      width: 280px;
+      background: var(--bg-sidebar);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>Onboarding Theme Toggle Test</h1>
+      <button class="theme-toggle-btn" id="themeToggle">
+        Toggle Theme (<span id="currentTheme">Latte</span>)
+      </button>
+    </div>
+    
+    <!-- Test Section 1: Step Indicator -->
+    <div class="test-section">
+      <h2>1. Step Indicator (Sidebar Component)</h2>
+      <div class="sidebar-mock">
+        <div class="onboarding-indicator">
+          <div class="onboarding-indicator__header">
+            <span class="onboarding-indicator__title">Get Started</span>
+            <button class="onboarding-indicator__dismiss" aria-label="Dismiss">
+              ×
+            </button>
+          </div>
+          <div class="onboarding-indicator__steps">
+            <button class="onboarding-step onboarding-step--complete">
+              <span class="onboarding-step__icon">✓</span>
+              <span class="onboarding-step__label">1. Connect Accounts</span>
+            </button>
+            <button class="onboarding-step onboarding-step--active">
+              <span class="onboarding-step__icon">→</span>
+              <span class="onboarding-step__label">2. Organize Circles</span>
+            </button>
+            <button class="onboarding-step onboarding-step--incomplete">
+              <span class="onboarding-step__icon">3</span>
+              <span class="onboarding-step__label">3. Review Groups</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Test Section 2: Educational Tip -->
+    <div class="test-section">
+      <h2>2. Educational Tip</h2>
+      <div class="educational-tip">
+        <div class="educational-tip__icon">💡</div>
+        <div class="educational-tip__content">
+          <h4>Understanding Your Circles</h4>
+          <p>Based on Dunbar's research, most people maintain 10-25 close friendships. Our simplified 4-circle system helps you focus on relationships that matter most.</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Test Section 3: Contact Cards -->
+    <div class="test-section">
+      <h2>3. Contact Cards with Avatar Colors</h2>
+      <div class="test-grid">
+        <div class="contact-card">
+          <div class="contact-card__avatar avatar--sage">JD</div>
+          <div class="contact-card__name">John Doe</div>
+          <select class="contact-card__circle-select">
+            <option value="">Select circle...</option>
+            <option value="inner">Inner Circle</option>
+            <option value="close" selected>Close Friends</option>
+          </select>
+          <div class="ai-suggestion">
+            <span class="ai-suggestion__label">Suggested:</span>
+            <span class="ai-suggestion__circle">Close Friends</span>
+            <span class="ai-suggestion__confidence">85%</span>
+          </div>
+        </div>
+        
+        <div class="contact-card">
+          <div class="contact-card__avatar avatar--sand">SK</div>
+          <div class="contact-card__name">Sarah Kim</div>
+          <select class="contact-card__circle-select">
+            <option value="">Select circle...</option>
+            <option value="inner" selected>Inner Circle</option>
+          </select>
+        </div>
+        
+        <div class="contact-card">
+          <div class="contact-card__avatar avatar--rose">AM</div>
+          <div class="contact-card__name">Alex Martinez</div>
+          <select class="contact-card__circle-select">
+            <option value="">Select circle...</option>
+            <option value="active" selected>Active Friends</option>
+          </select>
+        </div>
+        
+        <div class="contact-card">
+          <div class="contact-card__avatar avatar--stone">LW</div>
+          <div class="contact-card__name">Lisa Wang</div>
+          <select class="contact-card__circle-select">
+            <option value="">Select circle...</option>
+            <option value="casual" selected>Casual Network</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    
+    <!-- Test Section 4: Progress Bar & Circle Capacities -->
+    <div class="test-section">
+      <h2>4. Progress Tracking</h2>
+      <div class="progress-section">
+        <div class="progress-label">Progress: 45/120 contacts categorized</div>
+        <div class="progress-bar">
+          <div class="progress-bar__fill" style="width: 38%"></div>
+        </div>
+        <div class="progress-percentage">38%</div>
+      </div>
+      
+      <div class="circle-capacities">
+        <h4>Circle Capacities:</h4>
+        <ul class="circle-capacities__list">
+          <li class="circle-capacity">
+            <span class="circle-capacity__name">
+              <span class="circle-capacity__emoji">💜</span>
+              Inner Circle
+            </span>
+            <span class="circle-capacity__count">3/10</span>
+          </li>
+          <li class="circle-capacity">
+            <span class="circle-capacity__name">
+              <span class="circle-capacity__emoji">💙</span>
+              Close Friends
+            </span>
+            <span class="circle-capacity__count">12/25</span>
+          </li>
+          <li class="circle-capacity">
+            <span class="circle-capacity__name">
+              <span class="circle-capacity__emoji">💚</span>
+              Active Friends
+            </span>
+            <span class="circle-capacity__count">20/50</span>
+          </li>
+          <li class="circle-capacity">
+            <span class="circle-capacity__name">
+              <span class="circle-capacity__emoji">🧡</span>
+              Casual Network
+            </span>
+            <span class="circle-capacity__count">28/100</span>
+            <span class="circle-capacity__warning">⚠️ Over capacity</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    
+    <!-- Test Section 5: Mapping Card -->
+    <div class="test-section">
+      <h2>5. Group Mapping Suggestion</h2>
+      <div class="mapping-card">
+        <div class="mapping-card__content">
+          <div class="mapping-card__source">
+            <span class="mapping-card__label">Google Group:</span>
+            <span class="mapping-card__name">Work Team</span>
+            <span class="mapping-card__count">15 members</span>
+          </div>
+          <div class="mapping-card__arrow">→</div>
+          <div class="mapping-card__target">
+            <span class="mapping-card__label">CatchUp Group:</span>
+            <select class="mapping-card__select">
+              <option value="">Select group...</option>
+              <option value="1" selected>Colleagues</option>
+              <option value="2">Friends</option>
+            </select>
+          </div>
+          <div class="mapping-card__confidence">
+            <span class="confidence-badge confidence-badge--high">85% match</span>
+          </div>
+        </div>
+        <div class="mapping-card__actions">
+          <button class="btn-accept">Accept</button>
+          <button class="btn-reject">Skip</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Test Section 6: Buttons -->
+    <div class="test-section">
+      <h2>6. Button Styles</h2>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <button class="btn-primary">Primary Button</button>
+        <button class="btn-secondary">Secondary Button</button>
+        <button class="btn-accept">Accept Button</button>
+        <button class="btn-reject">Reject Button</button>
+        <button class="btn-primary" disabled>Disabled Primary</button>
+      </div>
+    </div>
+    
+    <!-- Test Section 7: Confidence Badges -->
+    <div class="test-section">
+      <h2>7. Confidence Badges</h2>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <span class="confidence-badge confidence-badge--high">High Confidence (85%)</span>
+        <span class="confidence-badge confidence-badge--medium">Medium Confidence (65%)</span>
+        <span class="confidence-badge confidence-badge--low">Low Confidence (40%)</span>
+      </div>
+    </div>
+    
+    <!-- Test Section 8: Search Bar -->
+    <div class="test-section">
+      <h2>8. Search Bar</h2>
+      <div class="search-bar">
+        <svg class="search-bar__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <input type="text" class="search-bar__input" placeholder="Search contacts...">
+      </div>
+    </div>
+  </div>
+  
+  <script src="theme-manager.js"></script>
+  <script>
+    // Initialize theme
+    themeManager.initializeTheme();
+    
+    // Set up theme toggle button
+    const toggleBtn = document.getElementById('themeToggle');
+    const currentThemeSpan = document.getElementById('currentTheme');
+    
+    function updateThemeDisplay() {
+      currentThemeSpan.textContent = themeManager.getCurrentThemeName();
+    }
+    
+    toggleBtn.addEventListener('click', () => {
+      themeManager.toggleTheme();
+      updateThemeDisplay();
+    });
+    
+    // Initial display
+    updateThemeDisplay();
+    
+    // Log theme changes for testing
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'data-theme') {
+          const theme = document.documentElement.getAttribute('data-theme');
+          console.log('Theme changed to:', theme || 'light (Latte)');
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+  </script>
+</body>
+</html>

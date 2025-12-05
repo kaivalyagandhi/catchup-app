@@ -1,0 +1,344 @@
+/**
+ * Onboarding Step Indicator Styles
+ * 
+ * Stone & Clay Design System
+ * Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 17.1, 17.2, 17.3, 17.4, 17.5
+ */
+
+/* ============================================
+   Onboarding Indicator Container
+   ============================================ */
+
+.onboarding-indicator {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.onboarding-indicator__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.onboarding-indicator__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.onboarding-indicator__dismiss {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  transition: background 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-indicator__dismiss:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.onboarding-indicator__dismiss:active {
+  background: var(--bg-active);
+}
+
+/* ============================================
+   Onboarding Steps
+   ============================================ */
+
+.onboarding-indicator__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.onboarding-step {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  text-align: left;
+}
+
+.onboarding-step:hover {
+  background: var(--bg-hover);
+}
+
+.onboarding-step:active {
+  background: var(--bg-active);
+}
+
+/* Step Status Variants */
+.onboarding-step--complete {
+  opacity: 0.8;
+}
+
+.onboarding-step--complete .onboarding-step__icon {
+  color: var(--status-success);
+  font-weight: 700;
+}
+
+.onboarding-step--active {
+  background: var(--accent-subtle);
+}
+
+.onboarding-step--active .onboarding-step__icon {
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.onboarding-step--incomplete {
+  opacity: 0.7;
+}
+
+.onboarding-step--incomplete .onboarding-step__icon {
+  color: var(--text-tertiary);
+}
+
+/* Step Icon */
+.onboarding-step__icon {
+  font-size: 16px;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+  transition: color 0.2s ease;
+}
+
+/* Step Label */
+.onboarding-step__label {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  flex: 1;
+}
+
+/* ============================================
+   Resume CTA (when dismissed)
+   ============================================ */
+
+.onboarding-resume-cta {
+  padding: 16px;
+  margin: 16px;
+}
+
+.onboarding-resume-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.onboarding-resume-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.onboarding-resume-btn:active {
+  background: var(--accent-active);
+  transform: translateY(0);
+}
+
+/* ============================================
+   Theme Support (Latte & Espresso)
+   ============================================ */
+
+/* Latte Mode (Light Theme) - Default */
+:root {
+  /* Already defined in stone-clay-theme.css */
+}
+
+/* Espresso Mode (Dark Theme) */
+[data-theme="dark"] .onboarding-indicator {
+  /* Uses CSS custom properties that automatically adjust */
+}
+
+[data-theme="dark"] .onboarding-step--active {
+  /* Accent subtle background adjusts automatically */
+}
+
+/* ============================================
+   Mobile Responsive
+   ============================================ */
+
+@media (max-width: 767px) {
+  .onboarding-indicator {
+    margin: 12px;
+    padding: 12px;
+  }
+  
+  .onboarding-indicator__title {
+    font-size: 13px;
+  }
+  
+  .onboarding-step {
+    padding: 8px 10px;
+  }
+  
+  .onboarding-step__label {
+    font-size: 12px;
+  }
+  
+  .onboarding-resume-cta {
+    margin: 12px;
+    padding: 12px;
+  }
+  
+  .onboarding-resume-btn {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.onboarding-indicator {
+  animation: fadeIn 0.3s ease;
+}
+
+.onboarding-resume-cta {
+  animation: fadeIn 0.3s ease;
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+
+.onboarding-step:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.onboarding-indicator__dismiss:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.onboarding-resume-btn:focus {
+  outline: 2px solid var(--text-inverse);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .onboarding-indicator {
+    border-width: 2px;
+  }
+  
+  .onboarding-step--active {
+    border: 2px solid var(--accent-primary);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-indicator,
+  .onboarding-resume-cta,
+  .onboarding-step,
+  .onboarding-indicator__dismiss,
+  .onboarding-resume-btn {
+    transition: none;
+    animation: none;
+  }
+}
+
+
+/* ============================================
+   STEP 1: INTEGRATION HIGHLIGHT STYLES
+   ============================================ */
+
+/* Pulsing highlight animation for integration sections */
+.onboarding-highlight {
+  position: relative;
+  animation: pulse-highlight 2s ease-in-out infinite;
+}
+
+.onboarding-highlight::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--accent-primary);
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes pulse-highlight {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Highlight tooltip */
+.onboarding-highlight-tooltip {
+  animation: tooltip-fade-in 0.3s ease-out;
+}
+
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Retry button styling */
+.onboarding-retry-btn {
+  animation: button-fade-in 0.3s ease-out;
+}
+
+@keyframes button-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Step 3 Group Mapping Handler Test</title>
+  
+  <!-- Stone & Clay Theme CSS -->
+  <link rel="stylesheet" href="../css/stone-clay-theme.css">
+  <link rel="stylesheet" href="../css/group-mapping-suggestions.css">
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg-app);
+      color: var(--text-primary);
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border-subtle);
+    }
+    
+    .test-header h1 {
+      margin: 0 0 8px 0;
+      color: var(--text-primary);
+    }
+    
+    .test-header p {
+      margin: 0;
+      color: var(--text-secondary);
+    }
+    
+    .test-section {
+      margin-bottom: 40px;
+      padding: 24px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+    }
+    
+    .test-section h2 {
+      margin: 0 0 16px 0;
+      color: var(--text-primary);
+      font-size: 18px;
+    }
+    
+    .test-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .test-btn {
+      padding: 10px 20px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .test-btn:hover {
+      background: var(--accent-hover);
+    }
+    
+    .test-btn.secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+    
+    .test-btn.secondary:hover {
+      background: var(--bg-hover);
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 16px 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      z-index: 10001;
+      animation: slideInRight 0.3s ease;
+    }
+    
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(100px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    .toast.success {
+      border-left: 4px solid #10b981;
+    }
+    
+    .toast.error {
+      border-left: 4px solid #ef4444;
+    }
+    
+    .toast.info {
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .toast.warning {
+      border-left: 4px solid #f59e0b;
+    }
+    
+    #test-output {
+      margin-top: 16px;
+      padding: 16px;
+      background: var(--bg-app);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    
+    .log-time {
+      color: var(--text-tertiary);
+      font-size: 11px;
+    }
+    
+    .log-message {
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>Step 3 Group Mapping Handler Test</h1>
+      <p>Test the group mapping review functionality for onboarding Step 3</p>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test Controls</h2>
+      <div class="test-buttons">
+        <button class="test-btn" onclick="testRenderMappings()">Render Mappings</button>
+        <button class="test-btn" onclick="testEmptyMappings()">Test Empty State</button>
+        <button class="test-btn" onclick="testAcceptMapping()">Test Accept</button>
+        <button class="test-btn" onclick="testRejectMapping()">Test Reject</button>
+        <button class="test-btn" onclick="testCompletion()">Test Completion</button>
+        <button class="test-btn secondary" onclick="clearOutput()">Clear Output</button>
+      </div>
+      <div id="test-output"></div>
+    </div>
+    
+    <div id="group-mappings-container"></div>
+  </div>
+  
+  <!-- Mock OnboardingStateManager -->
+  <script>
+    // Mock state manager
+    class MockOnboardingStateManager {
+      constructor() {
+        this.state = {
+          isComplete: false,
+          currentStep: 3,
+          steps: {
+            integrations: { complete: true, googleCalendar: true, googleContacts: true },
+            circles: { complete: true, contactsCategorized: 50, totalContacts: 100 },
+            groups: { complete: false, mappingsReviewed: 0, totalMappings: 0 }
+          }
+        };
+      }
+      
+      async loadState(userId) {
+        log('Loading state for user: ' + userId);
+        return this.state;
+      }
+      
+      async initializeState(userId) {
+        log('Initializing state for user: ' + userId);
+        return this.state;
+      }
+      
+      async saveState(userId, state) {
+        log('Saving state for user: ' + userId);
+        this.state = state;
+        return true;
+      }
+    }
+    
+    // Mock API
+    window.API_BASE = '/api';
+    
+    // Mock fetch
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+      log('API Call: ' + url);
+      
+      // Mock mapping suggestions
+      if (url.includes('/google-contacts/mapping-suggestions')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            suggestions: [
+              {
+                id: '1',
+                googleGroupId: 'g1',
+                googleGroupName: 'Work Colleagues',
+                memberCount: 25,
+                suggestedGroupId: 'cg1',
+                confidence: 85
+              },
+              {
+                id: '2',
+                googleGroupId: 'g2',
+                googleGroupName: 'College Friends',
+                memberCount: 15,
+                suggestedGroupId: 'cg2',
+                confidence: 92
+              },
+              {
+                id: '3',
+                googleGroupId: 'g3',
+                googleGroupName: 'Family',
+                memberCount: 12,
+                suggestedGroupId: 'cg3',
+                confidence: 65
+              }
+            ]
+          })
+        });
+      }
+      
+      // Mock groups list
+      if (url.includes('/groups')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            { id: 'cg1', name: 'Professional Network' },
+            { id: 'cg2', name: 'Close Friends' },
+            { id: 'cg3', name: 'Family & Relatives' },
+            { id: 'cg4', name: 'Hobby Groups' }
+          ])
+        });
+      }
+      
+      // Mock accept mapping
+      if (url.includes('/accept-mapping')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true })
+        });
+      }
+      
+      // Mock reject mapping
+      if (url.includes('/reject-mapping')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true })
+        });
+      }
+      
+      return originalFetch(url, options);
+    };
+    
+    // Mock localStorage
+    localStorage.setItem('authToken', 'test-token');
+    localStorage.setItem('userId', 'test-user-123');
+    
+    // Mock global functions
+    window.showToast = function(message, type = 'info') {
+      log('Toast: ' + message + ' (' + type + ')');
+      
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + type;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    };
+    
+    window.navigateTo = function(page) {
+      log('Navigate to: ' + page);
+    };
+    
+    window.switchDirectoryTab = function(tab) {
+      log('Switch to tab: ' + tab);
+    };
+    
+    // Logging
+    function log(message) {
+      const output = document.getElementById('test-output');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      
+      const time = document.createElement('span');
+      time.className = 'log-time';
+      time.textContent = new Date().toLocaleTimeString() + ' - ';
+      
+      const msg = document.createElement('span');
+      msg.className = 'log-message';
+      msg.textContent = message;
+      
+      entry.appendChild(time);
+      entry.appendChild(msg);
+      output.appendChild(entry);
+      output.scrollTop = output.scrollHeight;
+    }
+    
+    function clearOutput() {
+      document.getElementById('test-output').innerHTML = '';
+    }
+  </script>
+  
+  <!-- Load the handler -->
+  <script src="./step3-group-mapping-handler.js"></script>
+  
+  <!-- Test functions -->
+  <script>
+    let handler;
+    let stateManager;
+    
+    // Initialize
+    async function init() {
+      stateManager = new MockOnboardingStateManager();
+      handler = new Step3GroupMappingHandler(stateManager, 'test-user-123');
+      await handler.initialize();
+      log('Handler initialized');
+    }
+    
+    // Test: Render mappings
+    async function testRenderMappings() {
+      log('=== Testing Render Mappings ===');
+      await init();
+      await handler.loadMappingSuggestions();
+      log('Mappings rendered successfully');
+    }
+    
+    // Test: Empty state
+    async function testEmptyMappings() {
+      log('=== Testing Empty State ===');
+      await init();
+      handler.mappings = [];
+      handler.handleEmptyMappings();
+      log('Empty state rendered');
+    }
+    
+    // Test: Accept mapping
+    async function testAcceptMapping() {
+      log('=== Testing Accept Mapping ===');
+      if (!handler) {
+        await testRenderMappings();
+      }
+      
+      // Simulate accepting first mapping
+      const firstMapping = handler.mappings[0];
+      if (firstMapping) {
+        await handler.acceptMapping(firstMapping.id);
+        log('Mapping accepted: ' + firstMapping.googleGroupName);
+      } else {
+        log('No mappings available to accept');
+      }
+    }
+    
+    // Test: Reject mapping
+    async function testRejectMapping() {
+      log('=== Testing Reject Mapping ===');
+      if (!handler) {
+        await testRenderMappings();
+      }
+      
+      // Simulate rejecting second mapping
+      const secondMapping = handler.mappings[1];
+      if (secondMapping) {
+        await handler.rejectMapping(secondMapping.id);
+        log('Mapping rejected: ' + secondMapping.googleGroupName);
+      } else {
+        log('No mappings available to reject');
+      }
+    }
+    
+    // Test: Completion
+    async function testCompletion() {
+      log('=== Testing Completion ===');
+      if (!handler) {
+        await init();
+      }
+      
+      handler.showCompletionCelebration();
+      log('Completion celebration shown');
+    }
+    
+    // Auto-initialize on load
+    window.addEventListener('load', () => {
+      log('Page loaded - ready for testing');
+      log('Click "Render Mappings" to start');
+    });
+  </script>
+</body>
+</html>

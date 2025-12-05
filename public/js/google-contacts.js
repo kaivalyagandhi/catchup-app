@@ -38,7 +38,7 @@ function renderGoogleContactsCard(status) {
     const connected = status.connected;
     
     return `
-        <div style="padding: 14px; border: 1px solid var(--border-subtle); border-radius: 10px;">
+        <div data-integration="google-contacts" class="integration-section" style="padding: 14px; border: 1px solid var(--border-subtle); border-radius: 10px;">
             <!-- Connection Status Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -399,6 +399,14 @@ async function handleGoogleContactsOAuthCallback() {
         
         showToast('Google Contacts connected successfully! Starting initial sync...', 'success');
         
+        // Dispatch connection event for onboarding
+        window.dispatchEvent(new CustomEvent('google-contacts-connected', {
+            detail: { 
+                email: result.email,
+                timestamp: new Date()
+            }
+        }));
+        
         // Clear the URL parameters
         window.history.replaceState({}, document.title, window.location.pathname);
         
@@ -410,6 +418,14 @@ async function handleGoogleContactsOAuthCallback() {
     } catch (error) {
         console.error('Error handling OAuth callback:', error);
         showToast('Failed to connect Google Contacts', 'error');
+        
+        // Dispatch error event for onboarding
+        window.dispatchEvent(new CustomEvent('google-contacts-error', {
+            detail: { 
+                integration: 'google-contacts',
+                error: error.message
+            }
+        }));
         
         // Clear the URL parameters
         window.history.replaceState({}, document.title, window.location.pathname);

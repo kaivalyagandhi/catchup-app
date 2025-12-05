@@ -20,6 +20,12 @@ let currentContactGroups = []; // Group IDs being edited in the modal
 let floatingChatIcon = null;
 let chatWindow = null;
 
+// Onboarding components
+let onboardingIndicator = null;
+let step1Handler = null;
+let step2Handler = null;
+let step3Handler = null;
+
 // Request queuing for edit rejection (prevent 429 rate limit errors)
 let rejectQueue = Promise.resolve();
 let isRejectingInProgress = false;
@@ -215,6 +221,9 @@ function showMainApp() {
     // Initialize floating chat icon and chat window
     initializeChatComponents();
     
+    // Initialize onboarding indicator
+    initializeOnboardingIndicator();
+    
     // Restore last visited page from localStorage
     const savedPage = localStorage.getItem('currentPage');
     if (savedPage && ['directory', 'suggestions', 'edits', 'preferences'].includes(savedPage)) {
@@ -323,6 +332,272 @@ function initializeChatComponents() {
     console.log('Chat components initialized');
 }
 
+/**
+ * Initialize the onboarding step indicator
+ * Requirements: 1.1, 1.4
+ */
+function initializeOnboardingIndicator() {
+    // Only initialize if component exists and not already initialized
+    if (onboardingIndicator || typeof OnboardingStepIndicator === 'undefined') {
+        return;
+    }
+    
+    // Load saved onboarding state
+    const savedState = OnboardingStepIndicator.loadState();
+    
+    // Create indicator with saved state or default
+    onboardingIndicator = new OnboardingStepIndicator(savedState);
+    
+    // Mount to sidebar container
+    const container = document.getElementById('onboarding-indicator-container');
+    if (container) {
+        onboardingIndicator.mount(container);
+        console.log('Onboarding indicator initialized');
+    } else {
+        console.error('Onboarding indicator container not found');
+    }
+    
+    // Expose globally for other components
+    window.onboardingIndicator = onboardingIndicator;
+    
+    // Initialize Step 1 handler if on Step 1 and on preferences page
+    initializeStep1Handler();
+    
+    // Initialize Step 2 handler if on Step 2 and on circles page
+    initializeStep2Handler();
+    
+    // Initialize Step 3 handler if on Step 3 and on groups page
+    initializeStep3Handler();
+}
+
+/**
+ * Initialize Step 1 Integration Handler
+ * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5
+ */
+async function initializeStep1Handler() {
+    // Only initialize if we have the handler class and user is authenticated
+    if (typeof Step1IntegrationsHandler === 'undefined' || !window.userId) {
+        return;
+    }
+    
+    // Check if user is on Step 1 of onboarding
+    const savedState = OnboardingStepIndicator.loadState();
+    if (!savedState || savedState.isComplete || savedState.currentStep !== 1) {
+        return;
+    }
+    
+    // Check if user clicked on Step 1 or is on preferences page
+    const isOnPreferences = window.location.hash === '#preferences' || currentView === 'preferences';
+    
+    if (isOnPreferences) {
+        // Create and initialize Step 1 handler
+        if (!step1Handler) {
+            // Get the onboarding state manager (we'll need to create a simple wrapper)
+            const stateManager = getOnboardingStateManagerForUI();
+            step1Handler = new Step1IntegrationsHandler(stateManager, window.userId);
+            await step1Handler.initialize();
+        }
+        
+        // Set up the integration highlights
+        setTimeout(() => {
+            step1Handler.highlightIntegrationSections();
+            step1Handler.setupConnectionListeners();
+        }, 500);
+    }
+}
+
+/**
+ * Initialize Step 2 Circles Handler
+ * Requirements: 3.1, 3.2, 8.1, 8.2, 8.3, 9.3, 9.4, 10.5
+ */
+async function initializeStep2Handler() {
+    // Only initialize if we have the handler class and user is authenticated
+    if (typeof Step2CirclesHandler === 'undefined' || !window.userId) {
+        return;
+    }
+    
+    // Check if user is on Step 2 of onboarding
+    const savedState = OnboardingStepIndicator.loadState();
+    if (!savedState || savedState.isComplete || savedState.currentStep !== 2) {
+        return;
+    }
+    
+    // Check if user clicked on Step 2 or is on directory/circles page
+    const isOnCircles = window.location.hash === '#directory/circles' || 
+                        (currentPage === 'directory' && currentDirectoryTab === 'circles');
+    
+    if (isOnCircles) {
+        // Create and initialize Step 2 handler
+        if (!step2Handler) {
+            step2Handler = new Step2CirclesHandler(savedState);
+        }
+        
+        // Auto-open Manage Circles flow
+        setTimeout(async () => {
+            await step2Handler.openManageCirclesFlow();
+        }, 500);
+    }
+}
+
+/**
+ * Initialize Step 3 handler for group mapping review
+ * Requirements: 5.1, 5.2
+ */
+async function initializeStep3Handler() {
+    // Only initialize if we have the handler class and user is authenticated
+    if (typeof Step3GroupMappingHandler === 'undefined' || !window.userId) {
+        return;
+    }
+    
+    // Check if user is on Step 3 of onboarding
+    const savedState = OnboardingStepIndicator.loadState();
+    if (!savedState || savedState.isComplete || savedState.currentStep !== 3) {
+        return;
+    }
+    
+    // Check if user clicked on Step 3 or is on directory/groups page
+    const isOnGroups = window.location.hash === '#directory/groups' || 
+                       (currentPage === 'directory' && currentDirectoryTab === 'groups');
+    
+    if (isOnGroups) {
+        // Create and initialize Step 3 handler
+        if (!step3Handler) {
+            step3Handler = new Step3GroupMappingHandler(savedState);
+        }
+        
+        // Auto-load group mapping suggestions
+        setTimeout(async () => {
+            await step3Handler.loadMappingSuggestions();
+        }, 500);
+    }
+}
+
+/**
+ * Get a simple onboarding state manager wrapper for UI components
+ * This wraps the localStorage-based state management
+ */
+function getOnboardingStateManagerForUI() {
+    return {
+        async loadState(userId) {
+            const saved = OnboardingStepIndicator.loadState();
+            if (saved && saved.userId === userId) {
+                return saved;
+            }
+            return null;
+        },
+        
+        async initializeState(userId) {
+            const state = {
+                userId,
+                isComplete: false,
+                currentStep: 1,
+                dismissedAt: null,
+                steps: {
+                    integrations: {
+                        complete: false,
+                        googleCalendar: false,
+                        googleContacts: false
+                    },
+                    circles: {
+                        complete: false,
+                        contactsCategorized: 0,
+                        totalContacts: 0
+                    },
+                    groups: {
+                        complete: false,
+                        mappingsReviewed: 0,
+                        totalMappings: 0
+                    }
+                },
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+            
+            // Save to localStorage
+            localStorage.setItem('catchup-onboarding', JSON.stringify(state));
+            
+            // Update indicator if it exists
+            if (window.onboardingIndicator) {
+                window.onboardingIndicator.updateState(state);
+            }
+            
+            return state;
+        },
+        
+        async updateGoogleCalendarConnection(userId, connected) {
+            const state = await this.loadState(userId);
+            if (state) {
+                state.steps.integrations.googleCalendar = connected;
+                state.updatedAt = new Date();
+                localStorage.setItem('catchup-onboarding', JSON.stringify(state));
+                
+                if (window.onboardingIndicator) {
+                    window.onboardingIndicator.updateState(state);
+                }
+            }
+        },
+        
+        async updateGoogleContactsConnection(userId, connected) {
+            const state = await this.loadState(userId);
+            if (state) {
+                state.steps.integrations.googleContacts = connected;
+                state.updatedAt = new Date();
+                localStorage.setItem('catchup-onboarding', JSON.stringify(state));
+                
+                if (window.onboardingIndicator) {
+                    window.onboardingIndicator.updateState(state);
+                }
+            }
+        },
+        
+        async markStep1Complete(userId, googleCalendar, googleContacts) {
+            const state = await this.loadState(userId);
+            if (state) {
+                state.steps.integrations.googleCalendar = googleCalendar;
+                state.steps.integrations.googleContacts = googleContacts;
+                
+                if (googleCalendar && googleContacts) {
+                    state.steps.integrations.complete = true;
+                    state.currentStep = 2;
+                }
+                
+                state.updatedAt = new Date();
+                localStorage.setItem('catchup-onboarding', JSON.stringify(state));
+                
+                if (window.onboardingIndicator) {
+                    window.onboardingIndicator.updateState(state);
+                }
+            }
+        }
+    };
+}
+
+/**
+ * Check onboarding status after contacts are loaded
+ * This is called from loadContacts() to update onboarding state
+ */
+function checkOnboardingStatus() {
+    if (!onboardingIndicator || !window.userId) {
+        return;
+    }
+    
+    // Check if we have contacts loaded
+    if (contacts && contacts.length > 0) {
+        // Update total contacts count
+        const currentState = onboardingIndicator.state;
+        if (currentState.steps.circles.totalContacts === 0) {
+            currentState.steps.circles.totalContacts = contacts.length;
+            
+            // Count categorized contacts (those with a circle assigned)
+            const categorized = contacts.filter(c => c.circle || c.dunbarCircle).length;
+            currentState.steps.circles.contactsCategorized = categorized;
+            
+            // Update the indicator
+            onboardingIndicator.updateState(currentState);
+        }
+    }
+}
+
 function toggleAuthMode() {
     isLoginMode = !isLoginMode;
     
@@ -413,6 +688,12 @@ function logout() {
     if (floatingChatIcon) {
         floatingChatIcon.destroy();
         floatingChatIcon = null;
+    }
+    
+    // Clean up onboarding indicator
+    if (onboardingIndicator) {
+        onboardingIndicator.destroy();
+        onboardingIndicator = null;
     }
     
     showAuthScreen();
@@ -1354,6 +1635,10 @@ async function loadGroupsManagement() {
     if (!contacts || contacts.length === 0) {
         await loadContacts();
     }
+    
+    // Initialize Step 3 handler if on Step 3 of onboarding
+    await initializeStep3Handler();
+    
     await loadGroupsList();
     await loadGroupMappingsSection();
 }
@@ -1379,6 +1664,54 @@ function handleCircleContactClick(data) {
     }
 }
 
+/**
+ * Open Manage Circles flow (post-onboarding)
+ * Requirements: 6.1, 6.2
+ */
+async function openManageCirclesFlow() {
+    try {
+        // Ensure ManageCirclesFlow is available
+        if (typeof ManageCirclesFlow === 'undefined') {
+            showToast('Manage Circles feature is not available', 'error');
+            return;
+        }
+        
+        // Reload contacts to get latest data
+        await loadContacts();
+        
+        // Get current circle assignments
+        const currentAssignments = {};
+        contacts.forEach(contact => {
+            if (contact.circle) {
+                currentAssignments[contact.id] = contact.circle;
+            }
+        });
+        
+        // Create and show Manage Circles flow (not in onboarding mode)
+        const manageCirclesFlow = new ManageCirclesFlow(contacts, currentAssignments, {
+            isOnboarding: false,
+            onSave: async (assignments) => {
+                showToast('Circle assignments saved successfully', 'success');
+                // Reload circles visualization
+                await loadCirclesVisualization();
+            },
+            onSkip: () => {
+                // Just close the modal
+            },
+            onClose: () => {
+                // Reload circles visualization to show any changes
+                loadCirclesVisualization();
+            }
+        });
+        
+        manageCirclesFlow.mount();
+        
+    } catch (error) {
+        console.error('Error opening Manage Circles flow:', error);
+        showToast('Failed to open Manage Circles', 'error');
+    }
+}
+
 // Load Circles visualization
 async function loadCirclesVisualization() {
     const container = document.getElementById('circles-visualizer-container');
@@ -1396,6 +1729,9 @@ async function loadCirclesVisualization() {
         // Always reload contacts to get latest circle assignments
         await loadContacts();
         
+        // Initialize Step 2 handler if on Step 2 of onboarding
+        initializeStep2Handler();
+        
         // Load groups if not already loaded
         if (groups.length === 0) {
             const groupsResponse = await fetch(`${API_BASE}/contacts/groups?userId=${userId}`, {
@@ -1411,6 +1747,23 @@ async function loadCirclesVisualization() {
         if (typeof CircularVisualizer !== 'undefined') {
             // Clear container
             container.innerHTML = '';
+            
+            // Add "Manage Circles" button at the top
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.marginBottom = '20px';
+            buttonContainer.style.display = 'flex';
+            buttonContainer.style.justifyContent = 'flex-end';
+            buttonContainer.innerHTML = `
+                <button 
+                    id="manage-circles-btn" 
+                    class="accent"
+                    onclick="openManageCirclesFlow()"
+                    style="padding: 10px 20px; font-size: 14px;"
+                >
+                    Manage Circles
+                </button>
+            `;
+            container.appendChild(buttonContainer);
             
             // Create visualizer container
             const visualizerDiv = document.createElement('div');
@@ -3566,6 +3919,14 @@ async function handleCalendarOAuthCallback() {
         
         console.log('Calendar connected successfully:', data);
         
+        // Dispatch connection event for onboarding
+        window.dispatchEvent(new CustomEvent('google-calendar-connected', {
+            detail: { 
+                email: data.email,
+                timestamp: new Date()
+            }
+        }));
+        
         // Clear the code from URL
         window.history.replaceState({}, document.title, window.location.pathname);
         
@@ -3580,6 +3941,15 @@ async function handleCalendarOAuthCallback() {
         alert('Google Calendar connected successfully!');
     } catch (error) {
         console.error('Error handling OAuth callback:', error);
+        
+        // Dispatch error event for onboarding
+        window.dispatchEvent(new CustomEvent('google-calendar-error', {
+            detail: { 
+                integration: 'google-calendar',
+                error: error.message
+            }
+        }));
+        
         alert(`Failed to connect calendar: ${error.message}`);
     }
 }
@@ -4847,7 +5217,7 @@ async function loadPreferences() {
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                 <!-- Google Calendar -->
-                <div style="padding: 14px; border: 1px solid var(--border-subtle); border-radius: 10px;">
+                <div data-integration="google-calendar" class="integration-section" style="padding: 14px; border: 1px solid var(--border-subtle); border-radius: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <img src="https://www.gstatic.com/marketing-cms/assets/images/d3/d1/e8596a9246608f8fbd72597729c8/calendar.png" alt="Google Calendar" style="width: 24px; height: 24px;">

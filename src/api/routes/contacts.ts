@@ -302,6 +302,39 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// POST /contacts/:id/circle - Assign contact to circle
+// Requirements: 3.5, 14.1, 14.2
+router.post('/:id/circle', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, circle } = req.body;
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+    if (!circle) {
+      res.status(400).json({ error: 'circle is required' });
+      return;
+    }
+
+    const validCircles = ['inner', 'close', 'active', 'casual'];
+    if (!validCircles.includes(circle)) {
+      res.status(400).json({ 
+        error: `Invalid circle. Must be one of: ${validCircles.join(', ')}` 
+      });
+      return;
+    }
+
+    const { CircleAssignmentServiceImpl } = await import('../../contacts/circle-assignment-service');
+    const circleService = new CircleAssignmentServiceImpl();
+    await circleService.assignToCircle(userId, req.params.id, circle);
+    
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error assigning contact to circle:', error);
+    res.status(500).json({ error: 'Failed to assign contact to circle' });
+  }
+});
+
 // POST /contacts/:id/archive - Archive a contact
 router.post('/:id/archive', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -337,6 +370,78 @@ router.post('/:id/reactivate', async (req: Request, res: Response): Promise<void
   } catch (error) {
     console.error('Error reactivating contact:', error);
     res.status(500).json({ error: 'Failed to reactivate contact' });
+  }
+});
+
+// GET /contacts/circles/counts - Get circle counts
+// Requirements: 3.5, 14.1, 14.2
+router.get('/circles/counts', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
+    }
+
+    const { CircleAssignmentServiceImpl } = await import('../../contacts/circle-assignment-service');
+    const circleService = new CircleAssignmentServiceImpl();
+    const distribution = await circleService.getCircleDistribution(userId as string);
+    
+    res.json(distribution);
+  } catch (error) {
+    console.error('Error fetching circle counts:', error);
+    res.status(500).json({ error: 'Failed to fetch circle counts' });
+  }
+});
+
+// POST /contacts/circles/bulk - Bulk assign contacts
+// Requirements: 3.5, 14.1, 14.2
+router.post('/circles/bulk', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, assignments } = req.body;
+    
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+    
+    if (!assignments || !Array.isArray(assignments)) {
+      res.status(400).json({ error: 'assignments array is required' });
+      return;
+    }
+
+    if (assignments.length === 0) {
+      res.status(400).json({ error: 'assignments array cannot be empty' });
+      return;
+    }
+
+    // Validate each assignment
+    const validCircles = ['inner', 'close', 'active', 'casual'];
+    for (const assignment of assignments) {
+      if (!assignment.contactId) {
+        res.status(400).json({ error: 'Each assignment must have a contactId' });
+        return;
+      }
+      if (!assignment.circle) {
+        res.status(400).json({ error: 'Each assignment must have a circle' });
+        return;
+      }
+      if (!validCircles.includes(assignment.circle)) {
+        res.status(400).json({ 
+          error: `Invalid circle "${assignment.circle}". Must be one of: ${validCircles.join(', ')}` 
+        });
+        return;
+      }
+    }
+
+    const { CircleAssignmentServiceImpl } = await import('../../contacts/circle-assignment-service');
+    const circleService = new CircleAssignmentServiceImpl();
+    await circleService.batchAssign(userId, assignments);
+    
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error bulk assigning contacts to circles:', error);
+    res.status(500).json({ error: 'Failed to bulk assign contacts to circles' });
   }
 });
 

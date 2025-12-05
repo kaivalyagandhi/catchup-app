@@ -1,0 +1,462 @@
+/**
+ * Group Mapping Suggestions Styles
+ * 
+ * Styles for Step 3 of onboarding: Group Mapping Review
+ * Follows Stone & Clay design system with warm, earthy tones
+ * 
+ * Requirements: 16.1, 16.2, 16.3, 16.4, 16.5
+ */
+
+/* Main container */
+.mapping-suggestions {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.mapping-suggestions__header {
+  margin-bottom: 32px;
+}
+
+.mapping-suggestions__header h3 {
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.mapping-suggestions__header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Mapping list */
+.mapping-suggestions__list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+/* Mapping card */
+.mapping-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 20px;
+  transition: opacity 0.3s ease, box-shadow 0.2s ease;
+}
+
+.mapping-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.mapping-card__content {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* Source and target sections */
+.mapping-card__source,
+.mapping-card__target {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mapping-card__label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.mapping-card__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mapping-card__count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Arrow */
+.mapping-card__arrow {
+  font-size: 24px;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+/* Group select dropdown */
+.mapping-card__select {
+  padding: 10px 12px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+
+.mapping-card__select:hover {
+  border-color: var(--border-hover);
+}
+
+.mapping-card__select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+/* Confidence badge */
+.mapping-card__confidence {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confidence-badge {
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.confidence-badge--high {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.confidence-badge--medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.confidence-badge--low {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+/* Card actions */
+.mapping-card__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.btn-accept {
+  padding: 10px 20px;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.btn-accept:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.btn-accept:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-accept:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-reject {
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-reject:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+
+/* Bottom actions */
+.mapping-suggestions__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.btn-secondary {
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+
+.btn-primary {
+  padding: 12px 24px;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-state h3 {
+  margin: 0 0 12px 0;
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.empty-state p {
+  margin: 0 0 24px 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Completion modal */
+.completion-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 25, 23, 0.5);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.completion-modal__content {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 48px 40px;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.completion-modal__icon {
+  font-size: 72px;
+  margin-bottom: 20px;
+  animation: bounce 0.6s ease;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.completion-modal__content h2 {
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.completion-modal__content > p {
+  margin: 0 0 32px 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Completion features list */
+.completion-modal__features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.completion-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.completion-feature__icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.completion-feature__text {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+/* Mobile responsive */
+@media (max-width: 767px) {
+  .mapping-suggestions {
+    padding: 16px;
+  }
+  
+  .mapping-card {
+    padding: 16px;
+  }
+  
+  .mapping-card__content {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .mapping-card__arrow {
+    transform: rotate(90deg);
+    text-align: center;
+    margin: 8px 0;
+  }
+  
+  .mapping-card__actions {
+    flex-direction: column;
+  }
+  
+  .btn-accept,
+  .btn-reject {
+    width: 100%;
+  }
+  
+  .mapping-suggestions__actions {
+    flex-direction: column;
+  }
+  
+  .btn-secondary,
+  .btn-primary {
+    width: 100%;
+  }
+  
+  .completion-modal__content {
+    padding: 32px 24px;
+  }
+  
+  .completion-modal__icon {
+    font-size: 56px;
+  }
+  
+  .completion-modal__content h2 {
+    font-size: 24px;
+  }
+}
+
+/* Tablet responsive */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .mapping-suggestions {
+    padding: 20px;
+  }
+  
+  .mapping-card__content {
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+  }
+  
+  .mapping-card__confidence {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    margin-top: 8px;
+  }
+}
+
+/* Dark mode adjustments (Espresso theme) */
+@media (prefers-color-scheme: dark) {
+  .completion-modal {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  
+  .confidence-badge--high {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+  }
+  
+  .confidence-badge--medium {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fcd34d;
+  }
+}

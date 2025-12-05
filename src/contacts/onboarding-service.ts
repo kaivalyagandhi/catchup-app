@@ -495,6 +495,56 @@ export class PostgresOnboardingService implements OnboardingService {
     // Don't trigger if onboarding is complete
     return false;
   }
+
+  /**
+   * Update onboarding state with partial updates
+   * Requirements: All requirements (state management)
+   */
+  async updateOnboardingState(userId: string, stateUpdate: Partial<OnboardingStateRecord>): Promise<void> {
+    const state = await this.onboardingRepo.findByUserId(userId);
+    if (!state) {
+      throw new Error('Onboarding state not found');
+    }
+
+    await this.onboardingRepo.update(userId, stateUpdate);
+  }
+
+  /**
+   * Sync local state to server
+   * Merges local state with server state, preferring local for most fields
+   * Requirements: All requirements (state management)
+   */
+  async syncLocalState(userId: string, localState: any): Promise<void> {
+    const serverState = await this.onboardingRepo.findByUserId(userId);
+    
+    if (!serverState) {
+      // No server state exists, create from local state
+      await this.initializeOnboarding(userId, {
+        type: localState.triggerType || 'manual',
+        source: 'onboarding_flow',
+      });
+      
+      // Update with local state data
+      await this.onboardingRepo.update(userId, {
+        currentStep: localState.currentStep,
+        completedSteps: localState.completedSteps || [],
+        progressData: localState.progressData || {},
+      });
+      return;
+    }
+
+    // Merge local state with server state
+    const mergedProgressData = {
+      ...serverState.progressData,
+      ...localState.progressData,
+    };
+
+    await this.onboardingRepo.update(userId, {
+      currentStep: localState.currentStep || serverState.currentStep,
+      completedSteps: localState.completedSteps || serverState.completedSteps,
+      progressData: mergedProgressData,
+    });
+  }
 }
 
 // Default instance for backward compatibility

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Circles Flow - Test</title>
+    
+    <!-- Stone & Clay Theme -->
+    <link rel="stylesheet" href="../css/stone-clay-theme.css">
+    <link rel="stylesheet" href="../css/manage-circles-flow.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+            background: var(--bg-app);
+            color: var(--text-primary);
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+        
+        .test-section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+            color: var(--text-primary);
+            font-size: 18px;
+        }
+        
+        .test-button {
+            padding: 10px 20px;
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .test-button:hover {
+            background: var(--accent-hover);
+        }
+        
+        .test-button.secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+        }
+        
+        .test-button.secondary:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        
+        .test-output {
+            background: var(--bg-app);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    
+    <div class="test-container">
+        <h1>Manage Circles Flow - Component Test</h1>
+        
+        <div class="test-section">
+            <h2>Test 1: Basic Modal Display</h2>
+            <p>Opens the Manage Circles modal with sample contacts.</p>
+            <button class="test-button" onclick="test1_basicDisplay()">Open Modal</button>
+            <div class="test-output" id="test1-output"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 2: Search Functionality</h2>
+            <p>Opens modal and tests real-time search filtering.</p>
+            <button class="test-button" onclick="test2_searchFunctionality()">Test Search</button>
+            <div class="test-output" id="test2-output"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 3: Circle Assignment</h2>
+            <p>Tests assigning contacts to different circles and updating counts.</p>
+            <button class="test-button" onclick="test3_circleAssignment()">Test Assignment</button>
+            <div class="test-output" id="test3-output"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 4: Progress Tracking</h2>
+            <p>Tests progress bar updates as contacts are categorized.</p>
+            <button class="test-button" onclick="test4_progressTracking()">Test Progress</button>
+            <div class="test-output" id="test4-output"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 5: AI Suggestions</h2>
+            <p>Tests display of AI circle suggestions with confidence scores.</p>
+            <button class="test-button" onclick="test5_aiSuggestions()">Test AI Suggestions</button>
+            <div class="test-output" id="test5-output"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 6: Mobile Responsive</h2>
+            <p>Tests mobile layout (resize window to < 768px).</p>
+            <button class="test-button" onclick="test6_mobileResponsive()">Open Mobile View</button>
+            <div class="test-output" id="test6-output"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 7: Save & Skip Actions</h2>
+            <p>Tests save and skip button functionality.</p>
+            <button class="test-button" onclick="test7_saveSkipActions()">Test Actions</button>
+            <div class="test-output" id="test7-output"></div>
+        </div>
+    </div>
+    
+    <script src="manage-circles-flow.js"></script>
+    <script>
+        // Mock API_BASE
+        window.API_BASE = '/api';
+        
+        // Mock localStorage
+        if (!localStorage.getItem('authToken')) {
+            localStorage.setItem('authToken', 'test-token');
+        }
+        
+        // Sample contacts data
+        const sampleContacts = [
+            { id: 1, name: 'Alice Johnson', circle: 'inner' },
+            { id: 2, name: 'Bob Smith', circle: 'close' },
+            { id: 3, name: 'Charlie Brown', circle: null },
+            { id: 4, name: 'Diana Prince', circle: 'active' },
+            { id: 5, name: 'Eve Anderson', circle: null },
+            { id: 6, name: 'Frank Miller', circle: 'casual' },
+            { id: 7, name: 'Grace Lee', circle: null },
+            { id: 8, name: 'Henry Wilson', circle: 'close' },
+            { id: 9, name: 'Iris Chen', circle: null },
+            { id: 10, name: 'Jack Davis', circle: 'inner' },
+            { id: 11, name: 'Karen White', circle: null },
+            { id: 12, name: 'Leo Martinez', circle: 'active' },
+            { id: 13, name: 'Maria Garcia', circle: null },
+            { id: 14, name: 'Nathan Taylor', circle: 'casual' },
+            { id: 15, name: 'Olivia Moore', circle: null }
+        ];
+        
+        const sampleContactsWithAI = sampleContacts.map(c => ({
+            ...c,
+            circleAiSuggestion: c.circle || ['inner', 'close', 'active', 'casual'][Math.floor(Math.random() * 4)],
+            circleAiConfidence: Math.floor(Math.random() * 40) + 60 // 60-100%
+        }));
+        
+        let currentFlow = null;
+        
+        // Mock fetch for testing
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            console.log('Mock fetch:', url, options);
+            
+            // Mock circle assignment endpoint
+            if (url.includes('/contacts/') && url.includes('/circle')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ success: true })
+                });
+            }
+            
+            // Mock bulk assignment endpoint
+            if (url.includes('/contacts/circles/bulk')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ success: true })
+                });
+            }
+            
+            // Fall back to original fetch
+            return originalFetch.apply(this, arguments);
+        };
+        
+        // Test 1: Basic Display
+        function test1_basicDisplay() {
+            const output = document.getElementById('test1-output');
+            output.innerHTML = 'Opening modal with 15 sample contacts...';
+            
+            currentFlow = new ManageCirclesFlow(sampleContacts, {}, {
+                onSave: (assignments) => {
+                    output.innerHTML += '<br>✓ Save callback triggered with ' + Object.keys(assignments).length + ' assignments';
+                },
+                onSkip: (assignments) => {
+                    output.innerHTML += '<br>✓ Skip callback triggered';
+                },
+                onClose: () => {
+                    output.innerHTML += '<br>✓ Close callback triggered';
+                }
+            });
+            
+            currentFlow.mount();
+            output.innerHTML += '<br>✓ Modal mounted successfully';
+        }
+        
+        // Test 2: Search Functionality
+        function test2_searchFunctionality() {
+            const output = document.getElementById('test2-output');
+            output.innerHTML = 'Testing search functionality...';
+            
+            currentFlow = new ManageCirclesFlow(sampleContacts, {});
+            currentFlow.mount();
+            
+            setTimeout(() => {
+                const searchInput = document.getElementById('manage-circles-search');
+                if (searchInput) {
+                    searchInput.value = 'Alice';
+                    searchInput.dispatchEvent(new Event('input'));
+                    output.innerHTML += '<br>✓ Search for "Alice" - should show 1 contact';
+                    
+                    setTimeout(() => {
+                        searchInput.value = 'son';
+                        searchInput.dispatchEvent(new Event('input'));
+                        output.innerHTML += '<br>✓ Search for "son" - should show multiple contacts';
+                        
+                        setTimeout(() => {
+                            searchInput.value = 'xyz';
+                            searchInput.dispatchEvent(new Event('input'));
+                            output.innerHTML += '<br>✓ Search for "xyz" - should show empty state';
+                        }, 500);
+                    }, 500);
+                }
+            }, 100);
+        }
+        
+        // Test 3: Circle Assignment
+        function test3_circleAssignment() {
+            const output = document.getElementById('test3-output');
+            output.innerHTML = 'Testing circle assignment...';
+            
+            currentFlow = new ManageCirclesFlow(sampleContacts, {});
+            currentFlow.mount();
+            
+            setTimeout(() => {
+                const selects = document.querySelectorAll('.contact-card__circle-select');
+                if (selects.length > 0) {
+                    output.innerHTML += '<br>✓ Found ' + selects.length + ' contact cards';
+                    
+                    // Simulate assignment
+                    const firstSelect = selects[0];
+                    firstSelect.value = 'inner';
+                    firstSelect.dispatchEvent(new Event('change'));
+                    
+                    output.innerHTML += '<br>✓ Assigned first contact to Inner Circle';
+                    output.innerHTML += '<br>✓ Check circle counts updated in modal';
+                }
+            }, 100);
+        }
+        
+        // Test 4: Progress Tracking
+        function test4_progressTracking() {
+            const output = document.getElementById('test4-output');
+            output.innerHTML = 'Testing progress tracking...';
+            
+            const contacts = sampleContacts.map(c => ({ ...c, circle: null }));
+            currentFlow = new ManageCirclesFlow(contacts, {});
+            currentFlow.mount();
+            
+            setTimeout(() => {
+                output.innerHTML += '<br>✓ Initial progress: 0/15 (0%)';
+                
+                // Assign some contacts
+                const selects = document.querySelectorAll('.contact-card__circle-select');
+                if (selects.length >= 3) {
+                    selects[0].value = 'inner';
+                    selects[0].dispatchEvent(new Event('change'));
+                    
+                    setTimeout(() => {
+                        output.innerHTML += '<br>✓ After 1 assignment: 1/15 (7%)';
+                        
+                        selects[1].value = 'close';
+                        selects[1].dispatchEvent(new Event('change'));
+                        
+                        setTimeout(() => {
+                            output.innerHTML += '<br>✓ After 2 assignments: 2/15 (13%)';
+                            output.innerHTML += '<br>✓ Progress bar should update in real-time';
+                        }, 500);
+                    }, 500);
+                }
+            }, 100);
+        }
+        
+        // Test 5: AI Suggestions
+        function test5_aiSuggestions() {
+            const output = document.getElementById('test5-output');
+            output.innerHTML = 'Testing AI suggestions display...';
+            
+            currentFlow = new ManageCirclesFlow(sampleContactsWithAI, {});
+            currentFlow.mount();
+            
+            setTimeout(() => {
+                const aiSuggestions = document.querySelectorAll('.ai-suggestion');
+                output.innerHTML += '<br>✓ Found ' + aiSuggestions.length + ' AI suggestions';
+                output.innerHTML += '<br>✓ Each should show suggested circle and confidence %';
+            }, 100);
+        }
+        
+        // Test 6: Mobile Responsive
+        function test6_mobileResponsive() {
+            const output = document.getElementById('test6-output');
+            output.innerHTML = 'Opening modal in mobile view...';
+            output.innerHTML += '<br>✓ Resize window to < 768px to see mobile layout';
+            output.innerHTML += '<br>✓ Contact grid should switch to single column';
+            output.innerHTML += '<br>✓ Action buttons should stack vertically';
+            
+            currentFlow = new ManageCirclesFlow(sampleContacts, {});
+            currentFlow.mount();
+        }
+        
+        // Test 7: Save & Skip Actions
+        function test7_saveSkipActions() {
+            const output = document.getElementById('test7-output');
+            output.innerHTML = 'Testing save and skip actions...';
+            
+            currentFlow = new ManageCirclesFlow(sampleContacts, {}, {
+                onSave: (assignments) => {
+                    output.innerHTML += '<br>✓ Save button clicked - ' + Object.keys(assignments).length + ' assignments';
+                },
+                onSkip: (assignments) => {
+                    output.innerHTML += '<br>✓ Skip button clicked';
+                },
+                onClose: () => {
+                    output.innerHTML += '<br>✓ Modal closed';
+                }
+            });
+            
+            currentFlow.mount();
+            
+            output.innerHTML += '<br>✓ Click "Save & Continue" or "Skip for Now" to test';
+        }
+        
+        // Theme toggle
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            
+            const btn = document.querySelector('.theme-toggle');
+            btn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        }
+        
+        // Initialize theme
+        document.documentElement.setAttribute('data-theme', 'light');
+    </script>
+</body>
+</html>

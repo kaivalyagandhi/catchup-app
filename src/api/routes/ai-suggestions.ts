@@ -11,6 +11,74 @@ router.use(authenticate);
 const VALID_CIRCLES = ['inner', 'close', 'active', 'casual', 'acquaintance'];
 
 /**
+ * POST /api/ai/circle-suggestions
+ * Generate circle suggestions for contacts
+ * Analyze communication frequency, recency, calendar co-attendance
+ * Return suggestions with confidence scores and reasons
+ * Handle timeouts and errors gracefully
+ * Requirements: 8.1, 8.2, 8.3, 9.1
+ */
+router.post('/circle-suggestions', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.userId!;
+    const { contactIds } = req.body;
+
+    // If no contactIds provided, generate suggestions for all uncategorized contacts
+    let targetContactIds = contactIds;
+    
+    if (!targetContactIds || !Array.isArray(targetContactIds) || targetContactIds.length === 0) {
+      // Get all uncategorized contacts
+      const { PostgresContactRepository } = await import('../../contacts/repository');
+      const contactRepo = new PostgresContactRepository();
+      const uncategorized = await contactRepo.findUncategorized(userId);
+      targetContactIds = uncategorized.map((c: any) => c.id);
+      
+      if (targetContactIds.length === 0) {
+        res.json({ suggestions: [] });
+        return;
+      }
+    }
+
+    // Limit batch size to prevent overwhelming the system
+    const MAX_BATCH_SIZE = 100;
+    if (targetContactIds.length > MAX_BATCH_SIZE) {
+      res.status(400).json({
+        error: `Batch size cannot exceed ${MAX_BATCH_SIZE} contacts`,
+      });
+      return;
+    }
+
+    const aiService = new PostgresAISuggestionService();
+    
+    // Set a timeout for AI processing (30 seconds)
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('AI suggestion timeout')), 30000);
+    });
+
+    const suggestionsPromise = aiService.batchAnalyze(userId, targetContactIds);
+
+    try {
+      const suggestions = await Promise.race([suggestionsPromise, timeoutPromise]);
+      res.json({ suggestions });
+    } catch (timeoutError) {
+      console.error('AI suggestion timeout:', timeoutError);
+      // Return empty suggestions on timeout
+      res.json({ 
+        suggestions: [],
+        warning: 'AI suggestion service timed out. Please try again with fewer contacts.'
+      });
+    }
+  } catch (error) {
+    console.error('Error generating circle suggestions:', error);
+    // Handle errors gracefully - return empty suggestions instead of failing
+    res.json({ 
+      suggestions: [],
+      error: 'Failed to generate AI suggestions. You can still assign circles manually.'
+    });
+  }
+});
+
+/**
  * POST /api/ai/suggest-circle
  * Get AI suggestion for a single contact's circle assignment
  */

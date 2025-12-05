@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 1 Integrations Handler Test</title>
+    
+    <!-- Stone & Clay Theme -->
+    <link rel="stylesheet" href="../css/stone-clay-theme.css">
+    <link rel="stylesheet" href="../css/onboarding-indicator.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-app);
+            color: var(--text-primary);
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+        }
+        
+        .test-section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+            color: var(--text-primary);
+            font-size: 18px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        button.secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+        }
+        
+        .mock-integration-section {
+            background: var(--bg-app);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .mock-integration-section h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.connected {
+            background: #10b981;
+        }
+        
+        .status-indicator.disconnected {
+            background: #ef4444;
+        }
+        
+        .log {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .log-entry {
+            margin-bottom: 4px;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        
+        .log-entry.success {
+            background: var(--status-success-bg);
+            color: var(--status-success-text);
+        }
+        
+        .log-entry.error {
+            background: var(--status-error-bg);
+            color: var(--status-error-text);
+        }
+        
+        .log-entry.info {
+            background: var(--status-info-bg);
+            color: var(--status-info-text);
+        }
+    </style>
+</head>
+<body>
+    <h1>Step 1 Integrations Handler Test</h1>
+    <p style="color: var(--text-secondary); margin-bottom: 30px;">
+        Test the Step 1 Integration Connection Handler functionality
+    </p>
+    
+    <!-- Test Controls -->
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <div class="button-group">
+            <button onclick="initializeHandler()">Initialize Handler</button>
+            <button onclick="navigateToStep1()">Navigate to Step 1</button>
+            <button onclick="simulateCalendarConnection()">Simulate Calendar Connected</button>
+            <button onclick="simulateContactsConnection()">Simulate Contacts Connected</button>
+            <button onclick="simulateCalendarError()">Simulate Calendar Error</button>
+            <button onclick="simulateContactsError()">Simulate Contacts Error</button>
+            <button class="secondary" onclick="resetState()">Reset State</button>
+        </div>
+    </div>
+    
+    <!-- Mock Integration Sections -->
+    <div class="test-section">
+        <h2>Mock Integration Sections (Preferences Page)</h2>
+        
+        <div class="mock-integration-section" data-integration="google-calendar" id="google-calendar-section">
+            <h3>
+                <span class="status-indicator disconnected" id="calendar-status"></span>
+                Google Calendar
+            </h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                Connect your Google Calendar to enable smart scheduling
+            </p>
+            <button onclick="connectCalendar()">Connect Calendar</button>
+        </div>
+        
+        <div class="mock-integration-section" data-integration="google-contacts" id="google-contacts-section">
+            <h3>
+                <span class="status-indicator disconnected" id="contacts-status"></span>
+                Google Contacts
+            </h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                Connect your Google Contacts to import your network
+            </p>
+            <button onclick="connectContacts()">Connect Contacts</button>
+        </div>
+    </div>
+    
+    <!-- Current State -->
+    <div class="test-section">
+        <h2>Current Onboarding State</h2>
+        <pre id="state-display" style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; overflow-x: auto;"></pre>
+    </div>
+    
+    <!-- Event Log -->
+    <div class="test-section">
+        <h2>Event Log</h2>
+        <div id="event-log" class="log"></div>
+    </div>
+    
+    <!-- Load Scripts -->
+    <script src="onboarding-step-indicator.js"></script>
+    <script src="step1-integrations-handler.js"></script>
+    
+    <script>
+        // Mock global variables
+        window.API_BASE = '/api';
+        window.authToken = 'test-token';
+        window.userId = 'test-user-123';
+        
+        // Mock state manager
+        let mockState = {
+            userId: 'test-user-123',
+            isComplete: false,
+            currentStep: 1,
+            dismissedAt: null,
+            steps: {
+                integrations: {
+                    complete: false,
+                    googleCalendar: false,
+                    googleContacts: false
+                },
+                circles: {
+                    complete: false,
+                    contactsCategorized: 0,
+                    totalContacts: 0
+                },
+                groups: {
+                    complete: false,
+                    mappingsReviewed: 0,
+                    totalMappings: 0
+                }
+            },
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        
+        // Mock state manager
+        const mockStateManager = {
+            async loadState(userId) {
+                logEvent('info', `Loading state for user: ${userId}`);
+                return mockState;
+            },
+            
+            async initializeState(userId) {
+                logEvent('info', `Initializing state for user: ${userId}`);
+                mockState.userId = userId;
+                return mockState;
+            },
+            
+            async updateGoogleCalendarConnection(userId, connected) {
+                logEvent('success', `Calendar connection updated: ${connected}`);
+                mockState.steps.integrations.googleCalendar = connected;
+                mockState.updatedAt = new Date();
+                updateStateDisplay();
+                updateStatusIndicators();
+            },
+            
+            async updateGoogleContactsConnection(userId, connected) {
+                logEvent('success', `Contacts connection updated: ${connected}`);
+                mockState.steps.integrations.googleContacts = connected;
+                mockState.updatedAt = new Date();
+                updateStateDisplay();
+                updateStatusIndicators();
+            },
+            
+            async markStep1Complete(userId, googleCalendar, googleContacts) {
+                logEvent('success', 'Step 1 marked as complete!');
+                mockState.steps.integrations.googleCalendar = googleCalendar;
+                mockState.steps.integrations.googleContacts = googleContacts;
+                
+                if (googleCalendar && googleContacts) {
+                    mockState.steps.integrations.complete = true;
+                    mockState.currentStep = 2;
+                }
+                
+                mockState.updatedAt = new Date();
+                updateStateDisplay();
+            }
+        };
+        
+        let handler = null;
+        
+        // Initialize handler
+        async function initializeHandler() {
+            try {
+                logEvent('info', 'Initializing Step1IntegrationsHandler...');
+                handler = new Step1IntegrationsHandler(mockStateManager, window.userId);
+                await handler.initialize();
+                logEvent('success', 'Handler initialized successfully');
+                updateStateDisplay();
+            } catch (error) {
+                logEvent('error', `Failed to initialize handler: ${error.message}`);
+            }
+        }
+        
+        // Navigate to Step 1
+        function navigateToStep1() {
+            if (!handler) {
+                logEvent('error', 'Handler not initialized. Click "Initialize Handler" first.');
+                return;
+            }
+            
+            logEvent('info', 'Navigating to Step 1...');
+            handler.highlightIntegrationSections();
+            handler.setupConnectionListeners();
+            logEvent('success', 'Step 1 navigation complete - sections highlighted');
+        }
+        
+        // Simulate calendar connection
+        function simulateCalendarConnection() {
+            logEvent('info', 'Simulating Google Calendar connection...');
+            window.dispatchEvent(new CustomEvent('google-calendar-connected', {
+                detail: { 
+                    email: 'test@example.com',
+                    timestamp: new Date()
+                }
+            }));
+        }
+        
+        // Simulate contacts connection
+        function simulateContactsConnection() {
+            logEvent('info', 'Simulating Google Contacts connection...');
+            window.dispatchEvent(new CustomEvent('google-contacts-connected', {
+                detail: { 
+                    email: 'test@example.com',
+                    timestamp: new Date()
+                }
+            }));
+        }
+        
+        // Simulate calendar error
+        function simulateCalendarError() {
+            logEvent('info', 'Simulating Google Calendar error...');
+            window.dispatchEvent(new CustomEvent('google-calendar-error', {
+                detail: { 
+                    integration: 'google-calendar',
+                    error: 'Permission denied by user'
+                }
+            }));
+        }
+        
+        // Simulate contacts error
+        function simulateContactsError() {
+            logEvent('info', 'Simulating Google Contacts error...');
+            window.dispatchEvent(new CustomEvent('google-contacts-error', {
+                detail: { 
+                    integration: 'google-contacts',
+                    error: 'Network connection failed'
+                }
+            }));
+        }
+        
+        // Reset state
+        function resetState() {
+            mockState = {
+                userId: 'test-user-123',
+                isComplete: false,
+                currentStep: 1,
+                dismissedAt: null,
+                steps: {
+                    integrations: {
+                        complete: false,
+                        googleCalendar: false,
+                        googleContacts: false
+                    },
+                    circles: {
+                        complete: false,
+                        contactsCategorized: 0,
+                        totalContacts: 0
+                    },
+                    groups: {
+                        complete: false,
+                        mappingsReviewed: 0,
+                        totalMappings: 0
+                    }
+                },
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+            
+            updateStateDisplay();
+            updateStatusIndicators();
+            logEvent('info', 'State reset to initial values');
+            
+            // Remove highlights
+            document.querySelectorAll('.onboarding-highlight').forEach(el => {
+                el.classList.remove('onboarding-highlight');
+            });
+        }
+        
+        // Mock connect functions
+        function connectCalendar() {
+            logEvent('info', 'Mock: Connecting Google Calendar...');
+            setTimeout(() => {
+                simulateCalendarConnection();
+            }, 1000);
+        }
+        
+        function connectContacts() {
+            logEvent('info', 'Mock: Connecting Google Contacts...');
+            setTimeout(() => {
+                simulateContactsConnection();
+            }, 1000);
+        }
+        
+        // Update state display
+        function updateStateDisplay() {
+            const display = document.getElementById('state-display');
+            display.textContent = JSON.stringify(mockState, null, 2);
+        }
+        
+        // Update status indicators
+        function updateStatusIndicators() {
+            const calendarStatus = document.getElementById('calendar-status');
+            const contactsStatus = document.getElementById('contacts-status');
+            
+            if (mockState.steps.integrations.googleCalendar) {
+                calendarStatus.classList.remove('disconnected');
+                calendarStatus.classList.add('connected');
+            } else {
+                calendarStatus.classList.remove('connected');
+                calendarStatus.classList.add('disconnected');
+            }
+            
+            if (mockState.steps.integrations.googleContacts) {
+                contactsStatus.classList.remove('disconnected');
+                contactsStatus.classList.add('connected');
+            } else {
+                contactsStatus.classList.remove('connected');
+                contactsStatus.classList.add('disconnected');
+            }
+        }
+        
+        // Log event
+        function logEvent(type, message) {
+            const log = document.getElementById('event-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Listen for events
+        window.addEventListener('google-calendar-connected', (e) => {
+            logEvent('success', `Event: google-calendar-connected - ${e.detail.email}`);
+        });
+        
+        window.addEventListener('google-contacts-connected', (e) => {
+            logEvent('success', `Event: google-contacts-connected - ${e.detail.email}`);
+        });
+        
+        window.addEventListener('google-calendar-error', (e) => {
+            logEvent('error', `Event: google-calendar-error - ${e.detail.error}`);
+        });
+        
+        window.addEventListener('google-contacts-error', (e) => {
+            logEvent('error', `Event: google-contacts-error - ${e.detail.error}`);
+        });
+        
+        window.addEventListener('onboarding-step1-complete', (e) => {
+            logEvent('success', `Event: onboarding-step1-complete - User: ${e.detail.userId}`);
+        });
+        
+        // Initialize on load
+        updateStateDisplay();
+        updateStatusIndicators();
+        logEvent('info', 'Test page loaded. Click "Initialize Handler" to begin.');
+    </script>
+</body>
+</html>

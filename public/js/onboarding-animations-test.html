@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding Animations Test</title>
+  <link rel="stylesheet" href="../css/stone-clay-theme.css">
+  <link rel="stylesheet" href="../css/onboarding.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: var(--bg-app);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .test-section h2 {
+      margin: 0 0 16px 0;
+      color: var(--text-primary);
+      font-size: 20px;
+    }
+    
+    .test-section p {
+      margin: 0 0 16px 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    
+    .test-controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    
+    .test-btn {
+      padding: 10px 20px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .test-btn:hover {
+      background: var(--accent-hover);
+    }
+    
+    .test-btn-secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+    
+    .test-btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+    
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    
+    .sidebar-demo {
+      width: 280px;
+      background: var(--bg-sidebar);
+      padding: 16px;
+      border-radius: 12px;
+    }
+    
+    .highlight-demo {
+      padding: 24px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+    
+    .fps-counter {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      z-index: 10000;
+    }
+    
+    .fps-good { color: var(--status-success); }
+    .fps-ok { color: var(--status-warning); }
+    .fps-bad { color: var(--status-error); }
+  </style>
+</head>
+<body>
+  <div class="fps-counter">
+    FPS: <span id="fps-value" class="fps-good">60</span>
+  </div>
+
+  <div class="test-container">
+    <h1 style="color: var(--text-primary); margin-bottom: 32px;">Onboarding Animations Test Suite</h1>
+
+    <!-- Test 1: Step Transitions -->
+    <div class="test-section">
+      <h2>1. Step Transition Animations</h2>
+      <p>Test smooth transitions when navigating between onboarding steps.</p>
+      
+      <div class="test-controls">
+        <button class="test-btn" onclick="testStepTransition(1)">Activate Step 1</button>
+        <button class="test-btn" onclick="testStepTransition(2)">Activate Step 2</button>
+        <button class="test-btn" onclick="testStepTransition(3)">Activate Step 3</button>
+        <button class="test-btn-secondary" onclick="testStepCompletion()">Complete Current Step</button>
+      </div>
+      
+      <div class="sidebar-demo">
+        <div class="onboarding-indicator" id="step-indicator">
+          <div class="onboarding-indicator__header">
+            <span class="onboarding-indicator__title">Get Started</span>
+            <button class="onboarding-indicator__dismiss">×</button>
+          </div>
+          <div class="onboarding-indicator__steps">
+            <button class="onboarding-step onboarding-step--active" data-step="1">
+              <span class="onboarding-step__icon">→</span>
+              <span class="onboarding-step__label">1. Connect Accounts</span>
+            </button>
+            <button class="onboarding-step onboarding-step--incomplete" data-step="2">
+              <span class="onboarding-step__icon">2</span>
+              <span class="onboarding-step__label">2. Organize Circles</span>
+            </button>
+            <button class="onboarding-step onboarding-step--incomplete" data-step="3">
+              <span class="onboarding-step__icon">3</span>
+              <span class="onboarding-step__label">3. Review Groups</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Test 2: Card Removal Animations -->
+    <div class="test-section">
+      <h2>2. Card Removal Animations</h2>
+      <p>Test fade and slide animations when removing contact cards.</p>
+      
+      <div class="test-controls">
+        <button class="test-btn" onclick="removeCard()">Remove Random Card</button>
+        <button class="test-btn" onclick="removeAllCards()">Remove All Cards</button>
+        <button class="test-btn-secondary" onclick="resetCards()">Reset Cards</button>
+      </div>
+      
+      <div class="demo-grid" id="card-grid">
+        <!-- Cards will be generated by JS -->
+      </div>
+    </div>
+
+    <!-- Test 3: Pulsing Highlight Animation -->
+    <div class="test-section">
+      <h2>3. Pulsing Highlight Animation</h2>
+      <p>Test enhanced pulsing animation for Step 1 integration highlights.</p>
+      
+      <div class="test-controls">
+        <button class="test-btn" onclick="toggleHighlight()">Toggle Highlight</button>
+        <button class="test-btn-secondary" onclick="toggleAttentionPulse()">Toggle Attention Pulse</button>
+      </div>
+      
+      <div class="highlight-demo" id="highlight-demo">
+        <h3 style="margin: 0 0 8px 0; color: var(--text-primary);">Google Calendar Integration</h3>
+        <p style="margin: 0; color: var(--text-secondary);">Connect your Google Calendar to enable smart scheduling.</p>
+      </div>
+    </div>
+
+    <!-- Test 4: Progress Bar Animation -->
+    <div class="test-section">
+      <h2>4. Progress Bar Animation</h2>
+      <p>Test smooth width transitions with easing.</p>
+      
+      <div class="test-controls">
+        <button class="test-btn" onclick="animateProgress(25)">25%</button>
+        <button class="test-btn" onclick="animateProgress(50)">50%</button>
+        <button class="test-btn" onclick="animateProgress(75)">75%</button>
+        <button class="test-btn" onclick="animateProgress(100)">100%</button>
+        <button class="test-btn-secondary" onclick="animateProgress(0)">Reset</button>
+      </div>
+      
+      <div class="progress-section">
+        <div class="progress-label">Progress: <span id="progress-text">0/100</span> contacts categorized</div>
+        <div class="progress-bar">
+          <div class="progress-bar__fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="progress-percentage" id="progress-percentage">0%</div>
+      </div>
+    </div>
+
+    <!-- Test 5: Modal Animations -->
+    <div class="test-section">
+      <h2>5. Modal Entrance/Exit Animations</h2>
+      <p>Test smooth modal animations with backdrop blur.</p>
+      
+      <div class="test-controls">
+        <button class="test-btn" onclick="showManageCirclesModal()">Show Manage Circles Modal</button>
+        <button class="test-btn" onclick="showCelebrationModal()">Show Celebration Modal</button>
+      </div>
+    </div>
+
+    <!-- Test 6: Button Hover Animations -->
+    <div class="test-section">
+      <h2>6. Button Hover & Active States</h2>
+      <p>Test smooth button transitions and glow effects.</p>
+      
+      <div class="test-controls">
+        <button class="btn-primary">Primary Button</button>
+        <button class="btn-secondary">Secondary Button</button>
+        <button class="btn-accept">Accept Button</button>
+        <button class="btn-reject">Reject Button</button>
+      </div>
+    </div>
+
+    <!-- Test 7: Staggered Animations -->
+    <div class="test-section">
+      <h2>7. Staggered Card Entrance</h2>
+      <p>Test sequential animations for lists and grids.</p>
+      
+      <div class="test-controls">
+        <button class="test-btn" onclick="showStaggeredCards()">Show Staggered Cards</button>
+        <button class="test-btn-secondary" onclick="hideStaggeredCards()">Hide Cards</button>
+      </div>
+      
+      <div class="demo-grid" id="stagger-grid" style="display: none;">
+        <!-- Cards will be generated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // FPS Counter
+    let lastTime = performance.now();
+    let frames = 0;
+    let fps = 60;
+
+    function updateFPS() {
+      const now = performance.now();
+      frames++;
+      
+      if (now >= lastTime + 1000) {
+        fps = Math.round((frames * 1000) / (now - lastTime));
+        frames = 0;
+        lastTime = now;
+        
+        const fpsElement = document.getElementById('fps-value');
+        fpsElement.textContent = fps;
+        
+        // Color code based on FPS
+        fpsElement.className = fps >= 55 ? 'fps-good' : fps >= 45 ? 'fps-ok' : 'fps-bad';
+      }
+      
+      requestAnimationFrame(updateFPS);
+    }
+    updateFPS();
+
+    // Test 1: Step Transitions
+    let currentStep = 1;
+    
+    function testStepTransition(step) {
+      currentStep = step;
+      const steps = document.querySelectorAll('.onboarding-step');
+      
+      steps.forEach((stepEl, index) => {
+        const stepNum = index + 1;
+        stepEl.classList.remove('onboarding-step--active', 'onboarding-step--complete', 'onboarding-step--incomplete');
+        
+        if (stepNum < step) {
+          stepEl.classList.add('onboarding-step--complete');
+          stepEl.querySelector('.onboarding-step__icon').textContent = '✓';
+        } else if (stepNum === step) {
+          stepEl.classList.add('onboarding-step--active');
+          stepEl.querySelector('.onboarding-step__icon').textContent = '→';
+        } else {
+          stepEl.classList.add('onboarding-step--incomplete');
+          stepEl.querySelector('.onboarding-step__icon').textContent = stepNum;
+        }
+      });
+    }
+    
+    function testStepCompletion() {
+      if (currentStep < 3) {
+        testStepTransition(currentStep + 1);
+      }
+    }
+
+    // Test 2: Card Removal
+    const avatarColors = ['sage', 'sand', 'rose', 'stone'];
+    const names = ['John Doe', 'Sarah Kim', 'Alex Morgan', 'Lisa Wang', 'Mike Chen', 'Emma Davis', 'Ryan Park', 'Nina Patel'];
+    
+    function createCard(name, index) {
+      const color = avatarColors[index % avatarColors.length];
+      const initials = name.split(' ').map(n => n[0]).join('');
+      
+      return `
+        <div class="contact-card" data-card-id="${index}">
+          <div class="contact-card__avatar avatar--${color}">${initials}</div>
+          <div class="contact-card__name">${name}</div>
+          <select class="contact-card__circle-select">
+            <option value="">Select circle...</option>
+            <option value="inner">Inner Circle</option>
+            <option value="close">Close Friends</option>
+          </select>
+        </div>
+      `;
+    }
+    
+    function resetCards() {
+      const grid = document.getElementById('card-grid');
+      grid.innerHTML = names.map((name, i) => createCard(name, i)).join('');
+    }
+    
+    function removeCard() {
+      const cards = document.querySelectorAll('#card-grid .contact-card:not(.removing)');
+      if (cards.length > 0) {
+        const randomCard = cards[Math.floor(Math.random() * cards.length)];
+        randomCard.classList.add('removing');
+        setTimeout(() => randomCard.remove(), 400);
+      }
+    }
+    
+    function removeAllCards() {
+      const cards = document.querySelectorAll('#card-grid .contact-card');
+      cards.forEach((card, index) => {
+        setTimeout(() => {
+          card.classList.add('removing');
+          setTimeout(() => card.remove(), 400);
+        }, index * 100);
+      });
+    }
+    
+    resetCards();
+
+    // Test 3: Pulsing Highlight
+    function toggleHighlight() {
+      const demo = document.getElementById('highlight-demo');
+      demo.classList.toggle('onboarding-highlight');
+    }
+    
+    function toggleAttentionPulse() {
+      const demo = document.getElementById('highlight-demo');
+      demo.classList.toggle('attention-pulse');
+    }
+
+    // Test 4: Progress Bar
+    function animateProgress(percentage) {
+      const fill = document.getElementById('progress-fill');
+      const text = document.getElementById('progress-text');
+      const percentText = document.getElementById('progress-percentage');
+      
+      fill.style.width = percentage + '%';
+      text.textContent = `${percentage}/100`;
+      percentText.textContent = percentage + '%';
+    }
+
+    // Test 5: Modal Animations
+    function showManageCirclesModal() {
+      const overlay = document.createElement('div');
+      overlay.className = 'manage-circles-overlay';
+      overlay.innerHTML = `
+        <div class="manage-circles-modal">
+          <div class="manage-circles__header">
+            <h2>Organize Your Circles</h2>
+            <button class="btn-close" onclick="closeModal(this)">×</button>
+          </div>
+          <div class="educational-tip">
+            <div class="educational-tip__icon">💡</div>
+            <div class="educational-tip__content">
+              <h4>Understanding Your Circles</h4>
+              <p>Based on Dunbar's research, most people maintain 10-25 close friendships.</p>
+            </div>
+          </div>
+          <div class="search-bar">
+            <input type="text" class="search-bar__input" placeholder="Search contacts...">
+          </div>
+          <div class="manage-circles__actions">
+            <button class="btn-secondary" onclick="closeModal(this)">Skip for Now</button>
+            <button class="btn-primary" onclick="closeModal(this)">Save & Continue</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal(overlay);
+      });
+    }
+    
+    function showCelebrationModal() {
+      const overlay = document.createElement('div');
+      overlay.className = 'celebration-overlay';
+      overlay.innerHTML = `
+        <div class="celebration-modal">
+          <div class="celebration-icon">🎉</div>
+          <h2>You're All Set!</h2>
+          <p>Your onboarding is complete. You're ready to start managing your relationships.</p>
+          <button class="btn-primary" onclick="closeModal(this)">Get Started</button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal(overlay);
+      });
+    }
+    
+    function closeModal(element) {
+      const overlay = element.closest('.manage-circles-overlay, .celebration-overlay');
+      const modal = overlay.querySelector('.manage-circles-modal, .celebration-modal');
+      
+      overlay.classList.add('closing');
+      modal.classList.add('closing');
+      
+      setTimeout(() => overlay.remove(), 300);
+    }
+
+    // Test 7: Staggered Animations
+    function showStaggeredCards() {
+      const grid = document.getElementById('stagger-grid');
+      grid.style.display = 'grid';
+      grid.innerHTML = names.map((name, i) => createCard(name, i)).join('');
+    }
+    
+    function hideStaggeredCards() {
+      const grid = document.getElementById('stagger-grid');
+      grid.style.display = 'none';
+    }
+  </script>
+</body>
+</html>

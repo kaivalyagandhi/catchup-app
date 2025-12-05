@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding Responsive Test</title>
+  
+  <!-- Stone & Clay Theme -->
+  <link rel="stylesheet" href="../css/stone-clay-theme.css">
+  
+  <!-- Onboarding Styles -->
+  <link rel="stylesheet" href="../css/onboarding.css">
+  
+  <style>
+    body {
+      padding: 20px;
+      font-family: var(--font-body);
+    }
+    
+    .test-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      margin-bottom: 32px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+    }
+    
+    .test-header h1 {
+      margin: 0 0 16px 0;
+      color: var(--text-primary);
+    }
+    
+    .viewport-info {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    
+    .viewport-badge {
+      padding: 8px 16px;
+      background: var(--accent-subtle);
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    
+    .breakpoint-guide {
+      margin-top: 16px;
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    
+    .breakpoint-guide strong {
+      color: var(--text-primary);
+    }
+    
+    .test-section {
+      margin-bottom: 40px;
+    }
+    
+    .test-section h2 {
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+    
+    .test-description {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+    
+    .sidebar-mock {
+      max-width: 280px;
+      background: var(--bg-sidebar);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+    }
+    
+    .modal-trigger-btn {
+      padding: 12px 24px;
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .modal-trigger-btn:hover {
+      background: var(--accent-hover);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>Onboarding Responsive Test</h1>
+      <p style="color: var(--text-secondary); margin: 0 0 16px 0;">
+        Resize your browser window to test responsive breakpoints
+      </p>
+      
+      <div class="viewport-info">
+        <div class="viewport-badge">
+          Width: <span id="viewportWidth">0</span>px
+        </div>
+        <div class="viewport-badge">
+          Breakpoint: <span id="breakpoint">Desktop</span>
+        </div>
+      </div>
+      
+      <div class="breakpoint-guide">
+        <strong>Breakpoints:</strong><br>
+        • Mobile: &lt; 768px (Touch-friendly sizing, stacked layouts)<br>
+        • Tablet: 768px - 1023px (Optimized grid layouts)<br>
+        • Desktop: ≥ 1024px (Full layouts)
+      </div>
+    </div>
+    
+    <!-- Test Section 1: Step Indicator Responsive -->
+    <div class="test-section">
+      <h2>1. Step Indicator (Sidebar)</h2>
+      <p class="test-description">
+        <strong>Mobile:</strong> Reduced padding, smaller fonts<br>
+        <strong>Tablet/Desktop:</strong> Standard sizing
+      </p>
+      <div class="sidebar-mock">
+        <div class="onboarding-indicator">
+          <div class="onboarding-indicator__header">
+            <span class="onboarding-indicator__title">Get Started</span>
+            <button class="onboarding-indicator__dismiss" aria-label="Dismiss">
+              ×
+            </button>
+          </div>
+          <div class="onboarding-indicator__steps">
+            <button class="onboarding-step onboarding-step--complete">
+              <span class="onboarding-step__icon">✓</span>
+              <span class="onboarding-step__label">1. Connect Accounts</span>
+            </button>
+            <button class="onboarding-step onboarding-step--active">
+              <span class="onboarding-step__icon">→</span>
+              <span class="onboarding-step__label">2. Organize Circles</span>
+            </button>
+            <button class="onboarding-step onboarding-step--incomplete">
+              <span class="onboarding-step__icon">3</span>
+              <span class="onboarding-step__label">3. Review Groups</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Test Section 2: Contact Grid Responsive -->
+    <div class="test-section">
+      <h2>2. Contact Grid</h2>
+      <p class="test-description">
+        <strong>Mobile:</strong> 140px min columns, 12px gap, touch-friendly 44px min-height<br>
+        <strong>Tablet:</strong> 160px min columns<br>
+        <strong>Desktop:</strong> 180px min columns, 16px gap
+      </p>
+      <div class="contact-grid">
+        <div class="contact-card">
+          <div class="contact-card__avatar avatar--sage">JD</div>
+          <div class="contact-card__name">John Doe</div>
+          <select class="contact-card__circle-select">
+            <option value="">Select circle...</option>
+            <option value="inner">Inner Circle</option>
+            <option value="close" selected>Close Friends</option>
+          </select>
+        </div>
+        
+        <div class="contact-card">
+          <div class="contact-card__avatar avatar--sand">SK</div>
+          <div class="contact-card__name">Sarah Kim</div>
+          <select class="contact-card__circle-select">
+            <option value="">Select circle...</option>
+            <option value="inner" selected>Inner Circle</option>
+          </select>
+        </div>
+        
+        <div class="contact-card">
+          <div class="contact-card__avatar avatar--rose">AM</div>
+          <div class="contact-card__name">Alex Martinez</div>
+          <select class="contact-card__circle-select">
+            <option value="">Select circle...</option>
+            <option value="active" selected>Active Friends</option>
+          </select>
+        </div>
+        
+        <div class="contact-card">
+          <div class="contact-card__avatar avatar--stone">LW</div>
+          <div class="contact-card__name">Lisa Wang</div>
+          <select class="contact-card__circle-select">
+            <option value="">Select circle...</option>
+            <option value="casual" selected>Casual Network</option>
+          </select>
+        </div>
+        
+        <div class="contact-card">
+          <div class="contact-card__avatar avatar--sage">MJ</div>
+          <div class="contact-card__name">Mike Johnson</div>
+          <select class="contact-card__circle-select">
+            <option value="">Select circle...</option>
+            <option value="close" selected>Close Friends</option>
+          </select>
+        </div>
+        
+        <div class="contact-card">
+          <div class="contact-card__avatar avatar--sand">EP</div>
+          <div class="contact-card__name">Emma Parker</div>
+          <select class="contact-card__circle-select">
+            <option value="">Select circle...</option>
+            <option value="active" selected>Active Friends</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    
+    <!-- Test Section 3: Mapping Card Responsive -->
+    <div class="test-section">
+      <h2>3. Group Mapping Card</h2>
+      <p class="test-description">
+        <strong>Mobile:</strong> Single column layout, rotated arrow, stacked buttons<br>
+        <strong>Tablet:</strong> 3-column grid, confidence badge on new row<br>
+        <strong>Desktop:</strong> 4-column grid with inline confidence badge
+      </p>
+      <div class="mapping-card">
+        <div class="mapping-card__content">
+          <div class="mapping-card__source">
+            <span class="mapping-card__label">Google Group:</span>
+            <span class="mapping-card__name">Work Team</span>
+            <span class="mapping-card__count">15 members</span>
+          </div>
+          <div class="mapping-card__arrow">→</div>
+          <div class="mapping-card__target">
+            <span class="mapping-card__label">CatchUp Group:</span>
+            <select class="mapping-card__select">
+              <option value="">Select group...</option>
+              <option value="1" selected>Colleagues</option>
+              <option value="2">Friends</option>
+            </select>
+          </div>
+          <div class="mapping-card__confidence">
+            <span class="confidence-badge confidence-badge--high">85% match</span>
+          </div>
+        </div>
+        <div class="mapping-card__actions">
+          <button class="btn-accept">Accept</button>
+          <button class="btn-reject">Skip</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Test Section 4: Button Groups Responsive -->
+    <div class="test-section">
+      <h2>4. Action Button Groups</h2>
+      <p class="test-description">
+        <strong>Mobile:</strong> Stacked vertically, full width, 44px min-height<br>
+        <strong>Tablet/Desktop:</strong> Horizontal layout
+      </p>
+      <div class="manage-circles__actions">
+        <button class="btn-secondary">Skip for Now</button>
+        <button class="btn-primary">Save & Continue</button>
+      </div>
+    </div>
+    
+    <!-- Test Section 5: Educational Tip Responsive -->
+    <div class="test-section">
+      <h2>5. Educational Tip</h2>
+      <p class="test-description">
+        <strong>Mobile:</strong> Stacked layout, reduced padding<br>
+        <strong>Tablet/Desktop:</strong> Horizontal layout with icon
+      </p>
+      <div class="educational-tip">
+        <div class="educational-tip__icon">💡</div>
+        <div class="educational-tip__content">
+          <h4>Understanding Your Circles</h4>
+          <p>Based on Dunbar's research, most people maintain 10-25 close friendships. Our simplified 4-circle system helps you focus on relationships that matter most.</p>
+          <details class="educational-tip__details">
+            <summary>Learn more about the science</summary>
+            <div class="educational-tip__expanded">
+              <p><strong>Inner Circle (up to 10):</strong> Your closest confidants—people you'd call in a crisis.</p>
+              <p><strong>Close Friends (up to 25):</strong> Good friends you regularly share life updates with.</p>
+              <p><strong>Active Friends (up to 50):</strong> People you want to stay connected with regularly.</p>
+              <p><strong>Casual Network (up to 100):</strong> Acquaintances you keep in touch with occasionally.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Test Section 6: Modal Trigger -->
+    <div class="test-section">
+      <h2>6. Manage Circles Modal (Responsive)</h2>
+      <p class="test-description">
+        <strong>Mobile:</strong> Full width, bottom sheet style, 95vh max-height<br>
+        <strong>Tablet/Desktop:</strong> Centered modal, 900px max-width
+      </p>
+      <button class="modal-trigger-btn" onclick="openManageCirclesModal()">
+        Open Manage Circles Modal
+      </button>
+    </div>
+    
+    <!-- Test Section 7: Touch Target Sizes -->
+    <div class="test-section">
+      <h2>7. Touch-Friendly Sizing (Mobile)</h2>
+      <p class="test-description">
+        All interactive elements have minimum 44px height on mobile for accessibility
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 12px; max-width: 300px;">
+        <button class="btn-primary">Primary Button (44px min)</button>
+        <select class="contact-card__circle-select">
+          <option>Dropdown (44px min)</option>
+        </select>
+        <input type="text" class="search-bar__input" placeholder="Input (44px min)">
+      </div>
+    </div>
+  </div>
+  
+  <!-- Hidden Modal Template -->
+  <div id="manageCirclesModal" style="display: none;">
+    <div class="manage-circles-overlay">
+      <div class="manage-circles-modal">
+        <div class="manage-circles__header">
+          <h2>Organize Your Circles</h2>
+          <button class="btn-close" onclick="closeManageCirclesModal()">×</button>
+        </div>
+        
+        <div class="educational-tip">
+          <div class="educational-tip__icon">💡</div>
+          <div class="educational-tip__content">
+            <h4>Understanding Your Circles</h4>
+            <p>Based on Dunbar's research, most people maintain 10-25 close friendships.</p>
+          </div>
+        </div>
+        
+        <div class="search-bar">
+          <svg class="search-bar__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <input type="text" class="search-bar__input" placeholder="Search contacts...">
+        </div>
+        
+        <div class="progress-section">
+          <div class="progress-label">Progress: 6/6 contacts categorized</div>
+          <div class="progress-bar">
+            <div class="progress-bar__fill" style="width: 100%"></div>
+          </div>
+          <div class="progress-percentage">100%</div>
+        </div>
+        
+        <div class="contact-grid">
+          <div class="contact-card">
+            <div class="contact-card__avatar avatar--sage">JD</div>
+            <div class="contact-card__name">John Doe</div>
+            <select class="contact-card__circle-select">
+              <option value="close" selected>Close Friends</option>
+            </select>
+          </div>
+          <div class="contact-card">
+            <div class="contact-card__avatar avatar--sand">SK</div>
+            <div class="contact-card__name">Sarah Kim</div>
+            <select class="contact-card__circle-select">
+              <option value="inner" selected>Inner Circle</option>
+            </select>
+          </div>
+          <div class="contact-card">
+            <div class="contact-card__avatar avatar--rose">AM</div>
+            <div class="contact-card__name">Alex Martinez</div>
+            <select class="contact-card__circle-select">
+              <option value="active" selected>Active Friends</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="manage-circles__actions">
+          <button class="btn-secondary" onclick="closeManageCirclesModal()">Skip for Now</button>
+          <button class="btn-primary" onclick="closeManageCirclesModal()">Save & Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="theme-manager.js"></script>
+  <script>
+    // Initialize theme
+    themeManager.initializeTheme();
+    
+    // Update viewport info
+    function updateViewportInfo() {
+      const width = window.innerWidth;
+      document.getElementById('viewportWidth').textContent = width;
+      
+      let breakpoint = 'Desktop';
+      if (width < 768) {
+        breakpoint = 'Mobile';
+      } else if (width < 1024) {
+        breakpoint = 'Tablet';
+      }
+      document.getElementById('breakpoint').textContent = breakpoint;
+    }
+    
+    // Update on load and resize
+    updateViewportInfo();
+    window.addEventListener('resize', updateViewportInfo);
+    
+    // Modal functions
+    function openManageCirclesModal() {
+      document.getElementById('manageCirclesModal').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+    
+    function closeManageCirclesModal() {
+      document.getElementById('manageCirclesModal').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+    
+    // Close modal on overlay click
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('manage-circles-overlay')) {
+        closeManageCirclesModal();
+      }
+    });
+    
+    // Log breakpoint changes
+    let lastBreakpoint = '';
+    window.addEventListener('resize', () => {
+      const width = window.innerWidth;
+      let breakpoint = 'Desktop';
+      if (width < 768) {
+        breakpoint = 'Mobile';
+      } else if (width < 1024) {
+        breakpoint = 'Tablet';
+      }
+      
+      if (breakpoint !== lastBreakpoint) {
+        console.log('Breakpoint changed to:', breakpoint, `(${width}px)`);
+        lastBreakpoint = breakpoint;
+      }
+    });
+  </script>
+</body>
+</html>

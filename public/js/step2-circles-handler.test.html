@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step2CirclesHandler Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #FDFCF8;
+            color: #44403C;
+            padding: 20px;
+        }
+
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #292524;
+        }
+
+        .test-section {
+            background: white;
+            border: 1px solid #E7E5E4;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            margin-bottom: 16px;
+            color: #292524;
+            font-size: 20px;
+        }
+
+        .test-section p {
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: #D97706;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #B45309;
+        }
+
+        .btn-secondary {
+            background: #E7E5E4;
+            color: #44403C;
+        }
+
+        .btn-secondary:hover {
+            background: #D6D3D1;
+        }
+
+        .status {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+
+        .status-success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .status-error {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .status-info {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .code-block {
+            background: #F5F5F4;
+            border: 1px solid #E7E5E4;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin-bottom: 12px;
+        }
+
+        .test-results {
+            margin-top: 20px;
+        }
+
+        .test-result {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .test-result.pass {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .test-result.fail {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        /* Toast notification styles */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #292524;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 10000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            background: #065F46;
+        }
+
+        .toast.error {
+            background: #991B1B;
+        }
+
+        .toast.warning {
+            background: #92400E;
+        }
+
+        .toast.info {
+            background: #1E40AF;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Step2CirclesHandler Test Suite</h1>
+
+        <div class="test-section">
+            <h2>Test 1: Handler Initialization</h2>
+            <p>Test that the Step2CirclesHandler can be initialized with onboarding state.</p>
+            <button class="btn btn-primary" onclick="testHandlerInitialization()">Run Test</button>
+            <div id="test1-results" class="test-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 2: Fetch Contacts</h2>
+            <p>Test that the handler can fetch contacts from the API (mocked).</p>
+            <button class="btn btn-primary" onclick="testFetchContacts()">Run Test</button>
+            <div id="test2-results" class="test-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 3: AI Suggestions</h2>
+            <p>Test that AI suggestions are fetched and applied to contacts.</p>
+            <button class="btn btn-primary" onclick="testAISuggestions()">Run Test</button>
+            <div id="test3-results" class="test-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 4: Progress Milestones</h2>
+            <p>Test that progress milestones are triggered at 25%, 50%, 75%, and 100%.</p>
+            <button class="btn btn-primary" onclick="testProgressMilestones()">Run Test</button>
+            <div id="test4-results" class="test-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 5: Capacity Warnings</h2>
+            <p>Test that capacity warnings are shown when circles exceed recommended capacity.</p>
+            <button class="btn btn-primary" onclick="testCapacityWarnings()">Run Test</button>
+            <div id="test5-results" class="test-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 6: Open Manage Circles Flow</h2>
+            <p>Test that the Manage Circles flow can be opened (visual test).</p>
+            <button class="btn btn-primary" onclick="testOpenManageCirclesFlow()">Run Test</button>
+            <div id="test6-results" class="test-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Run All Tests</h2>
+            <button class="btn btn-primary" onclick="runAllTests()">Run All Tests</button>
+        </div>
+    </div>
+
+    <!-- Load Dependencies -->
+    <script src="onboarding-step-indicator.js"></script>
+    <script src="manage-circles-flow.js"></script>
+    <script src="step2-circles-handler.js"></script>
+
+    <script>
+        // Mock global variables
+        window.userId = 'test-user-123';
+        window.API_BASE = '/api';
+        localStorage.setItem('authToken', 'test-token');
+
+        // Mock showToast function
+        window.showToast = function(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        };
+
+        // Mock navigateTo function
+        window.navigateTo = function(page) {
+            console.log('Navigate to:', page);
+        };
+
+        // Mock switchDirectoryTab function
+        window.switchDirectoryTab = function(tab) {
+            console.log('Switch to tab:', tab);
+        };
+
+        // Helper function to display test results
+        function displayResult(containerId, passed, message) {
+            const container = document.getElementById(containerId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.textContent = `${passed ? '✓' : '✗'} ${message}`;
+            container.appendChild(resultDiv);
+        }
+
+        // Test 1: Handler Initialization
+        function testHandlerInitialization() {
+            const container = document.getElementById('test1-results');
+            container.innerHTML = '';
+
+            try {
+                const mockState = {
+                    userId: 'test-user-123',
+                    isComplete: false,
+                    currentStep: 2,
+                    steps: {
+                        integrations: { complete: true, googleCalendar: true, googleContacts: true },
+                        circles: { complete: false, contactsCategorized: 0, totalContacts: 0 },
+                        groups: { complete: false, mappingsReviewed: 0, totalMappings: 0 }
+                    }
+                };
+
+                const handler = new Step2CirclesHandler(mockState);
+
+                displayResult('test1-results', handler !== null, 'Handler created successfully');
+                displayResult('test1-results', handler.state === mockState, 'State initialized correctly');
+                displayResult('test1-results', Array.isArray(handler.contacts), 'Contacts array initialized');
+                displayResult('test1-results', typeof handler.currentAssignments === 'object', 'Assignments object initialized');
+            } catch (error) {
+                displayResult('test1-results', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Test 2: Fetch Contacts
+        async function testFetchContacts() {
+            const container = document.getElementById('test2-results');
+            container.innerHTML = '';
+
+            try {
+                // Mock fetch
+                const originalFetch = window.fetch;
+                window.fetch = async (url) => {
+                    if (url.includes('/contacts')) {
+                        return {
+                            ok: true,
+                            json: async () => [
+                                { id: 1, name: 'John Doe', circle: null },
+                                { id: 2, name: 'Jane Smith', circle: 'inner' },
+                                { id: 3, name: 'Bob Johnson', circle: null }
+                            ]
+                        };
+                    }
+                    return { ok: false };
+                };
+
+                const mockState = {
+                    userId: 'test-user-123',
+                    currentStep: 2,
+                    steps: { circles: { contactsCategorized: 0, totalContacts: 0 } }
+                };
+
+                const handler = new Step2CirclesHandler(mockState);
+                await handler.fetchContacts();
+
+                displayResult('test2-results', handler.contacts.length === 3, 'Fetched 3 contacts');
+                displayResult('test2-results', handler.contacts[0].name === 'John Doe', 'Contact data correct');
+
+                // Restore fetch
+                window.fetch = originalFetch;
+            } catch (error) {
+                displayResult('test2-results', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Test 3: AI Suggestions
+        async function testAISuggestions() {
+            const container = document.getElementById('test3-results');
+            container.innerHTML = '';
+
+            try {
+                // Mock fetch
+                const originalFetch = window.fetch;
+                window.fetch = async (url) => {
+                    if (url.includes('/contacts')) {
+                        return {
+                            ok: true,
+                            json: async () => [
+                                { id: 1, name: 'John Doe', circle: null },
+                                { id: 2, name: 'Jane Smith', circle: null }
+                            ]
+                        };
+                    }
+                    if (url.includes('/ai/circle-suggestions')) {
+                        return {
+                            ok: true,
+                            json: async () => ({
+                                suggestions: [
+                                    { contactId: 1, suggestedCircle: 'inner', confidence: 85, reason: 'Frequent contact' },
+                                    { contactId: 2, suggestedCircle: 'close', confidence: 70, reason: 'Regular contact' }
+                                ]
+                            })
+                        };
+                    }
+                    return { ok: false };
+                };
+
+                const mockState = {
+                    userId: 'test-user-123',
+                    currentStep: 2,
+                    steps: { circles: { contactsCategorized: 0, totalContacts: 0 } }
+                };
+
+                const handler = new Step2CirclesHandler(mockState);
+                await handler.fetchContacts();
+                await handler.fetchAISuggestions();
+                handler.applyAISuggestionsToContacts();
+
+                displayResult('test3-results', handler.aiSuggestions.length === 2, 'Fetched 2 AI suggestions');
+                displayResult('test3-results', handler.contacts[0].circle_ai_suggestion === 'inner', 'AI suggestion applied to contact 1');
+                displayResult('test3-results', handler.contacts[0].circle === 'inner', 'High confidence suggestion pre-selected (>= 80%)');
+                displayResult('test3-results', handler.contacts[1].circle_ai_suggestion === 'close', 'AI suggestion applied to contact 2');
+                displayResult('test3-results', handler.contacts[1].circle === null, 'Low confidence suggestion not pre-selected (< 80%)');
+
+                // Restore fetch
+                window.fetch = originalFetch;
+            } catch (error) {
+                displayResult('test3-results', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Test 4: Progress Milestones
+        function testProgressMilestones() {
+            const container = document.getElementById('test4-results');
+            container.innerHTML = '';
+
+            try {
+                const mockState = {
+                    userId: 'test-user-123',
+                    currentStep: 2,
+                    steps: { circles: { contactsCategorized: 0, totalContacts: 0 } }
+                };
+
+                const handler = new Step2CirclesHandler(mockState);
+                
+                // Create 100 test contacts
+                handler.contacts = Array.from({ length: 100 }, (_, i) => ({
+                    id: i + 1,
+                    name: `Contact ${i + 1}`,
+                    circle: null
+                }));
+
+                // Test 25% milestone
+                for (let i = 0; i < 25; i++) {
+                    handler.contacts[i].circle = 'casual';
+                }
+                handler.checkProgressMilestones();
+                displayResult('test4-results', handler.milestone25Shown === true, '25% milestone triggered');
+
+                // Test 50% milestone
+                for (let i = 25; i < 50; i++) {
+                    handler.contacts[i].circle = 'casual';
+                }
+                handler.checkProgressMilestones();
+                displayResult('test4-results', handler.milestone50Shown === true, '50% milestone triggered');
+
+                // Test 75% milestone
+                for (let i = 50; i < 75; i++) {
+                    handler.contacts[i].circle = 'casual';
+                }
+                handler.checkProgressMilestones();
+                displayResult('test4-results', handler.milestone75Shown === true, '75% milestone triggered');
+
+                // Test 100% milestone
+                for (let i = 75; i < 100; i++) {
+                    handler.contacts[i].circle = 'casual';
+                }
+                handler.checkProgressMilestones();
+                displayResult('test4-results', handler.milestone100Shown === true, '100% milestone triggered');
+            } catch (error) {
+                displayResult('test4-results', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Test 5: Capacity Warnings
+        function testCapacityWarnings() {
+            const container = document.getElementById('test5-results');
+            container.innerHTML = '';
+
+            try {
+                const mockState = {
+                    userId: 'test-user-123',
+                    currentStep: 2,
+                    steps: { circles: { contactsCategorized: 0, totalContacts: 0 } }
+                };
+
+                const handler = new Step2CirclesHandler(mockState);
+                
+                // Create contacts that exceed inner circle capacity (10)
+                handler.contacts = Array.from({ length: 15 }, (_, i) => ({
+                    id: i + 1,
+                    name: `Contact ${i + 1}`,
+                    circle: 'inner'
+                }));
+
+                handler.checkCapacityWarnings();
+                displayResult('test5-results', handler.warning_inner_shown === true, 'Inner circle capacity warning triggered');
+
+                // Test close friends capacity (25)
+                handler.contacts = Array.from({ length: 30 }, (_, i) => ({
+                    id: i + 1,
+                    name: `Contact ${i + 1}`,
+                    circle: 'close'
+                }));
+
+                handler.checkCapacityWarnings();
+                displayResult('test5-results', handler.warning_close_shown === true, 'Close friends capacity warning triggered');
+
+                // Test that warning resets when count drops
+                handler.contacts = handler.contacts.slice(0, 20);
+                handler.checkCapacityWarnings();
+                displayResult('test5-results', handler.warning_close_shown === false, 'Capacity warning reset when count drops');
+            } catch (error) {
+                displayResult('test5-results', false, `Error: ${error.message}`);
+            }
+        }
+
+        // Test 6: Open Manage Circles Flow (Visual Test)
+        async function testOpenManageCirclesFlow() {
+            const container = document.getElementById('test6-results');
+            container.innerHTML = '';
+
+            try {
+                // Mock fetch
+                const originalFetch = window.fetch;
+                window.fetch = async (url) => {
+                    if (url.includes('/contacts')) {
+                        return {
+                            ok: true,
+                            json: async () => [
+                                { id: 1, name: 'John Doe', circle: null },
+                                { id: 2, name: 'Jane Smith', circle: 'inner' },
+                                { id: 3, name: 'Bob Johnson', circle: 'close' },
+                                { id: 4, name: 'Alice Williams', circle: null },
+                                { id: 5, name: 'Charlie Brown', circle: 'active' }
+                            ]
+                        };
+                    }
+                    if (url.includes('/ai/circle-suggestions')) {
+                        return {
+                            ok: true,
+                            json: async () => ({
+                                suggestions: [
+                                    { contactId: 1, suggestedCircle: 'inner', confidence: 85, reason: 'Frequent contact' },
+                                    { contactId: 4, suggestedCircle: 'casual', confidence: 60, reason: 'Occasional contact' }
+                                ]
+                            })
+                        };
+                    }
+                    return { ok: false };
+                };
+
+                const mockState = {
+                    userId: 'test-user-123',
+                    isComplete: false,
+                    currentStep: 2,
+                    steps: {
+                        integrations: { complete: true, googleCalendar: true, googleContacts: true },
+                        circles: { complete: false, contactsCategorized: 2, totalContacts: 5 },
+                        groups: { complete: false, mappingsReviewed: 0, totalMappings: 0 }
+                    }
+                };
+
+                const handler = new Step2CirclesHandler(mockState);
+                await handler.openManageCirclesFlow();
+
+                displayResult('test6-results', true, 'Manage Circles flow opened successfully (check visually)');
+                displayResult('test6-results', handler.manageCirclesFlow !== null, 'ManageCirclesFlow instance created');
+
+                // Restore fetch
+                window.fetch = originalFetch;
+            } catch (error) {
+                displayResult('test6-results', false, `Error: ${error.message}`);
+                window.fetch = originalFetch;
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            testHandlerInitialization();
+            await testFetchContacts();
+            await testAISuggestions();
+            testProgressMilestones();
+            testCapacityWarnings();
+            await testOpenManageCirclesFlow();
+        }
+    </script>
+</body>
+</html>

@@ -250,8 +250,38 @@ router.get('/status', authenticate, async (req: AuthenticatedRequest, res: Respo
 });
 
 /**
+ * GET /api/google-contacts/mapping-suggestions
+ * Get mapping suggestions
+ * Requirements: 5.2, 5.3, 5.4
+ */
+router.get(
+  '/mapping-suggestions',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.userId) {
+        res.status(401).json({ error: 'Not authenticated' });
+        return;
+      }
+
+      const { groupSyncService } = await import('../../integrations/group-sync-service');
+      const pendingMappings = await groupSyncService.getPendingMappingSuggestions(req.userId);
+
+      res.json(pendingMappings);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('Error getting mapping suggestions:', errorMsg);
+      res.status(500).json({
+        error: 'Failed to get mapping suggestions',
+        details: errorMsg,
+      });
+    }
+  }
+);
+
+/**
  * GET /api/contacts/groups/mappings/pending
- * Get all pending group mapping suggestions
+ * Get all pending group mapping suggestions (legacy endpoint)
  *
  * Requirements: 6.5
  */
@@ -308,8 +338,60 @@ router.get('/groups/mappings', authenticate, async (req: AuthenticatedRequest, r
 });
 
 /**
+ * POST /api/google-contacts/accept-mapping
+ * Accept a mapping
+ * Requirements: 5.2, 5.3, 5.4
+ */
+router.post(
+  '/accept-mapping',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.userId) {
+        res.status(401).json({ error: 'Not authenticated' });
+        return;
+      }
+
+      const { mappingId, googleGroupId, catchupGroupId, excludedMembers = [] } = req.body;
+
+      if (!mappingId && !googleGroupId) {
+        res.status(400).json({ error: 'mappingId or googleGroupId is required' });
+        return;
+      }
+
+      const { groupSyncService } = await import('../../integrations/group-sync-service');
+
+      // Use mappingId if provided, otherwise find by googleGroupId
+      const targetMappingId = mappingId || googleGroupId;
+
+      // Approve mapping and store excluded members
+      await groupSyncService.approveMappingSuggestion(req.userId, targetMappingId, excludedMembers);
+
+      // Sync members for this specific mapping only, excluding the ones user removed
+      const membershipsUpdated = await groupSyncService.syncMembersForMapping(
+        req.userId,
+        targetMappingId,
+        excludedMembers
+      );
+
+      res.json({
+        message: 'Group mapping accepted successfully',
+        membershipsUpdated,
+      });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('Error accepting mapping:', errorMsg);
+      res.status(500).json({
+        error: 'Failed to accept mapping',
+        details: errorMsg,
+      });
+    }
+  }
+);
+
+/**
  * POST /api/contacts/groups/mappings/:id/approve
- * Approve a group mapping suggestion
+ * Approve a group mapping suggestion (legacy endpoint)
  *
  * Requirements: 6.6
  */
@@ -354,8 +436,51 @@ router.post(
 );
 
 /**
+ * POST /api/google-contacts/reject-mapping
+ * Reject a mapping
+ * Requirements: 5.2, 5.3, 5.4
+ */
+router.post(
+  '/reject-mapping',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.userId) {
+        res.status(401).json({ error: 'Not authenticated' });
+        return;
+      }
+
+      const { mappingId, googleGroupId } = req.body;
+
+      if (!mappingId && !googleGroupId) {
+        res.status(400).json({ error: 'mappingId or googleGroupId is required' });
+        return;
+      }
+
+      const { groupSyncService } = await import('../../integrations/group-sync-service');
+      
+      // Use mappingId if provided, otherwise use googleGroupId
+      const targetMappingId = mappingId || googleGroupId;
+      
+      await groupSyncService.rejectMappingSuggestion(req.userId, targetMappingId);
+
+      res.json({
+        message: 'Group mapping rejected successfully',
+      });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('Error rejecting mapping:', errorMsg);
+      res.status(500).json({
+        error: 'Failed to reject mapping',
+        details: errorMsg,
+      });
+    }
+  }
+);
+
+/**
  * POST /api/contacts/groups/mappings/:id/reject
- * Reject a group mapping suggestion
+ * Reject a group mapping suggestion (legacy endpoint)
  *
  * Requirements: 6.7
  */
