@@ -2475,7 +2475,7 @@ class EnrichmentReview {
         }
       }
       
-      /* Live suggestions during recording */
+      /* Live suggestions during recording - Using Stone & Clay theme */
       .enrichment-live-suggestions {
         margin-top: 12px;
         max-height: 300px;
@@ -2487,9 +2487,9 @@ class EnrichmentReview {
       
       .enrichment-live-suggestion {
         padding: 10px 12px;
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
+        background: var(--bg-secondary, #F5F5F4);
+        border: 1px solid var(--border-subtle, #A8A29E);
+        border-radius: var(--radius-sm, 6px);
         display: flex;
         align-items: center;
         gap: 10px;
@@ -2522,17 +2522,17 @@ class EnrichmentReview {
       
       .live-suggestion-contact {
         font-weight: 600;
-        color: #1f2937;
+        color: var(--text-primary, #1C1917);
         font-size: 12px;
       }
       
       .live-suggestion-type {
-        color: #6b7280;
+        color: var(--text-secondary, #78716C);
         font-size: 11px;
       }
       
       .live-suggestion-value {
-        color: #374151;
+        color: var(--text-primary, #1C1917);
         font-size: 12px;
         margin-top: 2px;
         word-break: break-word;
@@ -2545,14 +2545,14 @@ class EnrichmentReview {
       .confidence-badge {
         display: inline-block;
         padding: 2px 6px;
-        background: #dbeafe;
-        color: #0369a1;
+        background: var(--status-info-bg, #dbeafe);
+        color: var(--status-info, #3b82f6);
         border-radius: 3px;
         font-size: 10px;
         font-weight: 600;
       }
       
-      /* Toast styles for live enrichment suggestions */
+      /* Toast styles for live enrichment suggestions - Using Stone & Clay theme */
       .enrichment-toast-container {
         position: fixed;
         top: 20px;
@@ -2566,9 +2566,10 @@ class EnrichmentReview {
       }
       
       .enrichment-toast {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        background: var(--bg-surface, #FFFFFF);
+        border-radius: var(--radius-md, 8px);
+        box-shadow: var(--shadow-xl, 0 20px 25px rgba(28, 25, 23, 0.15));
+        border: 1px solid var(--border-subtle, #A8A29E);
         overflow: hidden;
         opacity: 0;
         transform: translateX(400px);
@@ -2591,7 +2592,7 @@ class EnrichmentReview {
       .enrichment-toast-message {
         font-size: 14px;
         line-height: 1.5;
-        color: #1f2937;
+        color: var(--text-primary, #1C1917);
       }
       
       .enrichment-toast-actions {
@@ -2603,7 +2604,7 @@ class EnrichmentReview {
         flex: 1;
         padding: 8px 12px;
         border: none;
-        border-radius: 6px;
+        border-radius: var(--radius-sm, 6px);
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
@@ -2611,8 +2612,8 @@ class EnrichmentReview {
       }
       
       .toast-confirm {
-        background: #10b981;
-        color: white;
+        background: var(--status-success, #10b981);
+        color: var(--text-inverse, #FDFCFB);
       }
       
       .toast-confirm:hover {
@@ -2621,17 +2622,17 @@ class EnrichmentReview {
       }
       
       .toast-reject {
-        background: #f3f4f6;
-        color: #374151;
-        border: 1px solid #e5e7eb;
+        background: var(--bg-secondary, #F5F5F4);
+        color: var(--text-primary, #1C1917);
+        border: 1px solid var(--border-subtle, #A8A29E);
       }
       
       .toast-reject:hover {
-        background: #e5e7eb;
+        background: var(--bg-hover, #E7E5E4);
         transform: translateY(-1px);
       }
       
-      /* Contact Modal Styles */
+      /* Contact Modal Styles - Using Stone & Clay theme variables */
       .enrichment-contact-modals-container {
         position: fixed;
         top: 20px;
@@ -2645,9 +2646,10 @@ class EnrichmentReview {
       }
       
       .contact-modal {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        background: var(--bg-surface, #FFFFFF);
+        border-radius: var(--radius-lg, 12px);
+        box-shadow: var(--shadow-xl, 0 20px 25px rgba(28, 25, 23, 0.15));
+        border: 1px solid var(--border-subtle, #A8A29E);
         overflow: hidden;
         opacity: 0;
         transform: translateX(400px);
@@ -2667,16 +2669,16 @@ class EnrichmentReview {
         align-items: center;
         gap: 12px;
         padding: 12px;
-        background: #fafbfc;
-        border-bottom: 1px solid #e5e7eb;
+        background: var(--bg-secondary, #F5F5F4);
+        border-bottom: 1px solid var(--border-subtle, #A8A29E);
       }
       
       .contact-modal-avatar {
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: linear-gradient(135deg, var(--accent-primary, #92400E) 0%, var(--status-warning, #f59e0b) 100%);
+        color: var(--text-inverse, #FDFCFB);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -2694,13 +2696,13 @@ class EnrichmentReview {
         margin: 0;
         font-size: 14px;
         font-weight: 600;
-        color: #1f2937;
+        color: var(--text-primary, #1C1917);
       }
       
       .contact-modal-summary {
         margin: 0;
         font-size: 12px;
-        color: #9ca3af;
+        color: var(--text-secondary, #78716C);
       }
       
       .contact-modal-close {
@@ -2710,21 +2712,21 @@ class EnrichmentReview {
         border: none;
         background: transparent;
         cursor: pointer;
-        border-radius: 4px;
+        border-radius: var(--radius-sm, 6px);
         font-size: 16px;
-        color: #6b7280;
+        color: var(--text-secondary, #78716C);
         transition: all 0.2s;
         flex-shrink: 0;
       }
       
       .contact-modal-close:hover {
-        background: #e5e7eb;
-        color: #1f2937;
+        background: var(--bg-hover, #E7E5E4);
+        color: var(--text-primary, #1C1917);
       }
       
       .contact-modal-countdown-bar {
         height: 3px;
-        background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+        background: var(--accent-primary, #92400E);
         width: 100%;
         transform-origin: left;
         animation: countdownDecrease 10s linear forwards;
@@ -2733,14 +2735,17 @@ class EnrichmentReview {
       @keyframes countdownDecrease {
         0% {
           width: 100%;
-          background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+          background: var(--accent-primary, #92400E);
         }
-        70% {
-          background: linear-gradient(90deg, #f59e0b 0%, #f97316 100%);
+        50% {
+          background: var(--status-warning, #f59e0b);
+        }
+        85% {
+          background: var(--status-error, #ef4444);
         }
         100% {
           width: 0%;
-          background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+          background: var(--status-error, #ef4444);
         }
       }
       
@@ -2751,6 +2756,7 @@ class EnrichmentReview {
         display: flex;
         flex-direction: column;
         gap: 6px;
+        background: var(--bg-surface, #FFFFFF);
       }
       
       .contact-modal-suggestion {
@@ -2758,20 +2764,20 @@ class EnrichmentReview {
         align-items: center;
         gap: 8px;
         padding: 8px 10px;
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
+        background: var(--bg-surface, #FFFFFF);
+        border: 1px solid var(--border-subtle, #A8A29E);
+        border-radius: var(--radius-sm, 6px);
         transition: all 0.2s;
       }
       
       .contact-modal-suggestion.accepted {
-        background: #f0fdf4;
-        border-color: #10b981;
+        background: var(--status-success-bg, #d1fae5);
+        border-color: var(--status-success, #10b981);
       }
       
       .contact-modal-suggestion.rejected {
-        background: #fafafa;
-        border-color: #e5e7eb;
+        background: var(--bg-secondary, #F5F5F4);
+        border-color: var(--border-subtle, #A8A29E);
         opacity: 0.6;
       }
       
@@ -2779,7 +2785,7 @@ class EnrichmentReview {
         width: 16px;
         height: 16px;
         cursor: pointer;
-        accent-color: #10b981;
+        accent-color: var(--status-success, #10b981);
         flex-shrink: 0;
       }
       
@@ -2790,13 +2796,13 @@ class EnrichmentReview {
       
       .suggestion-type {
         font-weight: 500;
-        color: #374151;
+        color: var(--text-secondary, #78716C);
         font-size: 12px;
         flex-shrink: 0;
       }
       
       .suggestion-value {
-        color: #1f2937;
+        color: var(--text-primary, #1C1917);
         font-size: 12px;
         flex: 1;
         min-width: 0;
@@ -2807,26 +2813,27 @@ class EnrichmentReview {
         display: flex;
         gap: 8px;
         padding: 12px;
-        background: #fafbfc;
-        border-top: 1px solid #e5e7eb;
+        background: var(--bg-secondary, #F5F5F4);
+        border-top: 1px solid var(--border-subtle, #A8A29E);
       }
       
       .contact-modal-apply {
         flex: 1;
         padding: 8px 12px;
         border: none;
-        border-radius: 6px;
+        border-radius: var(--radius-sm, 6px);
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
-        background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
-        color: white;
+        background: var(--accent-primary, #92400E);
+        color: var(--text-inverse, #FDFCFB);
       }
       
       .contact-modal-apply:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        background: var(--accent-hover, #78350F);
+        box-shadow: 0 4px 12px var(--accent-glow, rgba(217, 119, 6, 0.3));
       }
       
       .contact-modal-apply:active {
