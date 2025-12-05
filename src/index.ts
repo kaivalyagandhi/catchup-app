@@ -9,11 +9,13 @@ import { testConnection } from './db/connection';
 import { startServer } from './api/server';
 import { validateAndFailFast as validateGoogleSSO } from './api/google-sso-config-validator';
 import { validateAndFailFast as validateEnvVars } from './utils/env-validator';
+import { getVersion, getDisplayVersion } from './utils/version';
 
 let httpServer: Server | null = null;
 
 async function main() {
   console.log('CatchUp Application Starting...');
+  console.log(`Version: ${getDisplayVersion()} (${getVersion()})`);
 
   // Validate environment variables (fail fast if invalid)
   console.log('Validating environment variables...');
@@ -32,6 +34,7 @@ async function main() {
   }
 
   console.log('CatchUp Application Ready');
+  console.log(`Running version: ${getVersion()}`);
 
   // Start background job worker
   const { startWorker } = await import('./jobs/worker');

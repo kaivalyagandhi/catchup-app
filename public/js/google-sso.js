@@ -71,10 +71,19 @@ async function initGoogleSSO() {
 }
 
 /**
- * Check if test mode is enabled on the backend
- * Updates UI to show/hide email/password authentication
+ * Check if test mode is enabled
+ * Uses server-injected value for instant display, falls back to API call
  */
 async function checkTestMode() {
+    // First, check for server-injected test mode status (instant, no network delay)
+    if (typeof window.__TEST_MODE_ENABLED__ !== 'undefined') {
+        googleSSOState.testModeEnabled = window.__TEST_MODE_ENABLED__;
+        applyTestModeUI(googleSSOState.testModeEnabled);
+        console.log('Test mode (server-injected):', googleSSOState.testModeEnabled ? 'enabled' : 'disabled');
+        return;
+    }
+    
+    // Fallback to API call if server injection is not available
     try {
         const response = await fetch('/api/auth/test-mode');
         
@@ -83,32 +92,29 @@ async function checkTestMode() {
         }
         
         const data = await response.json();
-        
         googleSSOState.testModeEnabled = data.enabled || false;
-        
-        // Show/hide email/password form based on test mode
-        const emailAuthForm = document.getElementById('email-auth-form');
-        if (emailAuthForm) {
-            if (googleSSOState.testModeEnabled) {
-                emailAuthForm.style.display = 'block';
-            } else {
-                emailAuthForm.style.display = 'none';
-            }
-        }
-        
-        // Update test mode indicator visibility
-        updateTestModeIndicator(googleSSOState.testModeEnabled);
-        
-        console.log('Test mode:', googleSSOState.testModeEnabled ? 'enabled' : 'disabled');
+        applyTestModeUI(googleSSOState.testModeEnabled);
+        console.log('Test mode (API):', googleSSOState.testModeEnabled ? 'enabled' : 'disabled');
     } catch (error) {
         console.error('Failed to check test mode:', error);
         // Default to hiding email/password form if check fails (production mode)
-        const emailAuthForm = document.getElementById('email-auth-form');
-        if (emailAuthForm) {
-            emailAuthForm.style.display = 'none';
-        }
-        updateTestModeIndicator(false);
+        applyTestModeUI(false);
     }
+}
+
+/**
+ * Apply test mode UI changes
+ * @param {boolean} enabled - Whether test mode is enabled
+ */
+function applyTestModeUI(enabled) {
+    // Show/hide email/password form based on test mode
+    const emailAuthForm = document.getElementById('email-auth-form');
+    if (emailAuthForm) {
+        emailAuthForm.style.display = enabled ? 'block' : 'none';
+    }
+    
+    // Update test mode indicator visibility
+    updateTestModeIndicator(enabled);
 }
 
 /**

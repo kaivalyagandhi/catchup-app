@@ -3254,5 +3254,129 @@
     <script src="/js/tags-table.js"></script>
     <script src="/js/google-mappings-review.js"></script>
     <script src="/js/app.js"></script>
+
+    <!-- Application Version Footer -->
+    <footer id="version-footer" class="version-footer">
+        <span id="version-text" class="version-text">Loading version...</span>
+    </footer>
+
+    <style>
+        /* ============================================
+           VERSION FOOTER STYLES
+           ============================================ */
+        .version-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 11px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-primary);
+            color: var(--text-tertiary);
+            z-index: 1000;
+            user-select: none;
+            transition: opacity 0.2s ease;
+        }
+
+        /* Fade footer on hover for unobtrusive UX */
+        .version-footer:hover {
+            opacity: 0.6;
+        }
+
+        .version-text {
+            display: inline-block;
+            font-weight: 500;
+            letter-spacing: 0.025em;
+        }
+
+        /* Production version styling (blue accent) */
+        .version-footer.production .version-text {
+            color: var(--color-primary);
+        }
+
+        /* Development version styling (warning accent) */
+        .version-footer.development .version-text {
+            color: var(--color-warning);
+        }
+
+        /* Local version styling (secondary accent) */
+        .version-footer.local .version-text {
+            color: var(--color-secondary);
+        }
+
+        /* Responsive: Hide on very small screens */
+        @media (max-width: 480px) {
+            .version-footer {
+                font-size: 10px;
+                padding: 6px 12px;
+            }
+        }
+
+        /* Ensure main content doesn't overlap with footer */
+        body {
+            padding-bottom: 32px; /* Space for footer */
+        }
+    </style>
+
+    <script>
+        // Initialize version footer from injected version info
+        (function() {
+            try {
+                const versionInfo = window.__VERSION_INFO__;
+
+                if (!versionInfo) {
+                    console.warn('Version info not available');
+                    return;
+                }
+
+                const footer = document.getElementById('version-footer');
+                const versionText = document.getElementById('version-text');
+
+                if (!footer || !versionText) {
+                    console.warn('Version footer elements not found');
+                    return;
+                }
+
+                // Format version for display
+                let displayVersion = versionInfo.version;
+                let versionClass = 'development';
+
+                if (versionInfo.isProduction) {
+                    displayVersion = `v${versionInfo.version}`;
+                    versionClass = 'production';
+                } else if (versionInfo.isLocal) {
+                    displayVersion = 'Development (Local)';
+                    versionClass = 'local';
+                } else if (versionInfo.isDevelopment) {
+                    displayVersion = `Dev ${versionInfo.version}`;
+                    versionClass = 'development';
+                }
+
+                // Update footer
+                versionText.textContent = displayVersion;
+                footer.className = `version-footer ${versionClass}`;
+
+                // Optional: Add click handler for detailed info
+                footer.addEventListener('click', function() {
+                    console.log('CatchUp Version Information:', {
+                        version: versionInfo.version,
+                        environment: versionInfo.isProduction ? 'Production' :
+                                   versionInfo.isDevelopment ? 'Development' : 'Local',
+                        timestamp: versionInfo.timestamp,
+                        buildDate: new Date(versionInfo.timestamp).toLocaleString()
+                    });
+
+                    // Show tooltip or modal with version details
+                    alert(`CatchUp Version\n\n${displayVersion}\n\nBuild: ${new Date(versionInfo.timestamp).toLocaleString()}`);
+                });
+
+            } catch (error) {
+                console.error('Failed to initialize version footer:', error);
+            }
+        })();
+    </script>
 </body>
 </html>

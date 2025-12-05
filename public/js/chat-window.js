@@ -335,11 +335,6 @@ class ChatWindow {
     el.className = `chat-message chat-message--${message.type}`;
     el.setAttribute('data-message-id', message.id);
 
-    // Timestamp
-    const time = document.createElement('span');
-    time.className = 'chat-message__time';
-    time.textContent = this.formatTime(message.timestamp);
-
     // Content
     const content = document.createElement('div');
     content.className = 'chat-message__content';
@@ -360,7 +355,29 @@ class ChatWindow {
     }
 
     el.appendChild(content);
-    el.appendChild(time);
+
+    // Footer with timestamp and read receipt (for user messages)
+    const footer = document.createElement('div');
+    footer.className = 'chat-message__footer';
+
+    // Timestamp
+    const time = document.createElement('span');
+    time.className = 'chat-message__time';
+    time.textContent = this.formatTime(message.timestamp);
+    footer.appendChild(time);
+
+    // Add read receipt for user messages
+    if (message.type === 'user') {
+      const receipt = document.createElement('span');
+      receipt.className = 'chat-message__receipt';
+      receipt.setAttribute('data-status', message.status || 'sent');
+      
+      // Set receipt icon based on status
+      receipt.innerHTML = this.getReceiptIcon(message.status || 'sent');
+      footer.appendChild(receipt);
+    }
+
+    el.appendChild(footer);
 
     // Add disambiguation options if present
     if (message.disambiguationOptions && message.disambiguationOptions.length > 0) {
@@ -369,6 +386,60 @@ class ChatWindow {
     }
 
     return el;
+  }
+
+  /**
+   * Get the receipt icon SVG based on status
+   */
+  getReceiptIcon(status) {
+    switch (status) {
+      case 'sent':
+        // Single check - message sent
+        return `<svg class="receipt-icon receipt-icon--sent" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>`;
+      case 'delivered':
+        // Double check - message delivered
+        return `<svg class="receipt-icon receipt-icon--delivered" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="18 6 7 17 2 12"></polyline>
+          <polyline points="22 6 11 17 8 14"></polyline>
+        </svg>`;
+      case 'read':
+        // Double check filled - message read
+        return `<svg class="receipt-icon receipt-icon--read" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="18 6 7 17 2 12"></polyline>
+          <polyline points="22 6 11 17 8 14"></polyline>
+        </svg>`;
+      case 'processing':
+        // Animated dots - processing
+        return `<span class="receipt-dots">
+          <span class="receipt-dot"></span>
+          <span class="receipt-dot"></span>
+          <span class="receipt-dot"></span>
+        </span>`;
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * Update message status (for read receipts)
+   */
+  updateMessageStatus(messageId, status) {
+    const message = this.messages.find(m => m.id === messageId);
+    if (message) {
+      message.status = status;
+      
+      // Update the DOM element
+      const el = this.messagesContainer?.querySelector(`[data-message-id="${messageId}"]`);
+      if (el) {
+        const receipt = el.querySelector('.chat-message__receipt');
+        if (receipt) {
+          receipt.setAttribute('data-status', status);
+          receipt.innerHTML = this.getReceiptIcon(status);
+        }
+      }
+    }
   }
 
   /**

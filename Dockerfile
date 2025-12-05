@@ -2,6 +2,9 @@
 # Stage 1: Build stage - compile TypeScript and run tests
 FROM node:20-alpine AS builder
 
+# Build argument for version (passed from Cloud Build)
+ARG APP_VERSION=dev-local
+
 WORKDIR /app
 
 # Copy package files
@@ -22,6 +25,9 @@ RUN npm run build
 
 # Stage 2: Runtime stage - minimal production image
 FROM node:20-alpine
+
+# Build argument for version
+ARG APP_VERSION=dev-local
 
 WORKDIR /app
 
@@ -50,6 +56,7 @@ EXPOSE 3000
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV APP_VERSION=$APP_VERSION
 
 # Health check - verify application is responsive
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

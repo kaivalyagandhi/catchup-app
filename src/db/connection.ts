@@ -4,15 +4,22 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
+// Check if using Cloud SQL Unix socket (path starts with /cloudsql/)
+const isCloudSqlSocket = (process.env.DATABASE_HOST || '').startsWith('/cloudsql/');
+
 const poolConfig: PoolConfig = {
-  host: process.env.DATABASE_HOST || 'localhost',
-  port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+  // For Cloud SQL Unix socket, use 'host' for the socket path
+  host: isCloudSqlSocket ? process.env.DATABASE_HOST : (process.env.DATABASE_HOST || 'localhost'),
+  // Port is ignored for Unix sockets but required for TCP connections
+  port: isCloudSqlSocket ? undefined : parseInt(process.env.DATABASE_PORT || '5432', 10),
   database: process.env.DATABASE_NAME || 'catchup_db',
   user: process.env.DATABASE_USER || 'postgres',
   password: process.env.DATABASE_PASSWORD,
-  // In production, enforce SSL/TLS for database connections
-  ssl:
-    process.env.NODE_ENV === 'production'
+  // Cloud SQL Unix socket doesn't use SSL - the connection is already secure
+  // For other production connections, enforce SSL
+  ssl: isCloudSqlSocket
+    ? false
+    : process.env.NODE_ENV === 'production'
       ? { rejectUnauthorized: true }
       : process.env.DATABASE_SSL === 'true'
         ? { rejectUnauthorized: false }
@@ -20,7 +27,7 @@ const poolConfig: PoolConfig = {
   min: parseInt(process.env.DATABASE_POOL_MIN || '2', 10),
   max: parseInt(process.env.DATABASE_POOL_MAX || '10', 10),
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 5000,
 };
 
 // Create connection pool
