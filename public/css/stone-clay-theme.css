@@ -262,9 +262,10 @@ html[data-theme-transitioning] * {
 }
 
 /* Typography Hierarchy */
-/* Cabin Sketch for headings and titles */
+/* Cabin Sketch for headings, titles, and navigation */
 h1, h2, h3, h4, h5, h6,
 .sidebar__brand,
+.nav-item,
 .page-title,
 .section-title,
 .modal-title,
@@ -282,7 +283,6 @@ input,
 textarea,
 select,
 label,
-.nav-item,
 .btn,
 .input,
 .badge,

@@ -3703,7 +3703,7 @@ async function disconnectCalendar() {
 async function getCalendarEvents(startTime, endTime) {
     try {
         const response = await fetch(
-            `/api/calendar/api/events?startTime=${startTime}&endTime=${endTime}`,
+            `/api/calendar/events?startTime=${startTime}&endTime=${endTime}`,
             {
                 headers: {
                     'Authorization': `Bearer ${authToken}`

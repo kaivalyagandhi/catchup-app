@@ -74,7 +74,7 @@ async function fetchCalendarEventsForDay(date) {
     endOfDay.setHours(23, 59, 59, 999);
     
     const response = await fetch(
-        `${API_BASE}/calendar/api/events?startTime=${startOfDay.toISOString()}&endTime=${endOfDay.toISOString()}`,
+        `${API_BASE}/calendar/events?startTime=${startOfDay.toISOString()}&endTime=${endOfDay.toISOString()}`,
         {
             headers: { 'Authorization': `Bearer ${authToken}` }
         }
@@ -370,7 +370,7 @@ async function fetchEventCountForDay(date) {
     endOfDay.setHours(23, 59, 59, 999);
     
     const response = await fetch(
-        `${API_BASE}/calendar/api/events?startTime=${startOfDay.toISOString()}&endTime=${endOfDay.toISOString()}`,
+        `${API_BASE}/calendar/events?startTime=${startOfDay.toISOString()}&endTime=${endOfDay.toISOString()}`,
         {
             headers: { 'Authorization': `Bearer ${authToken}` }
         }
