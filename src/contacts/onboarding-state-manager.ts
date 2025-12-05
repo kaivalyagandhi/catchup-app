@@ -7,8 +7,18 @@
  * This class provides a unified interface for state persistence across
  * different storage mechanisms, ensuring state is never lost.
  *
- * Requirements: 1.1, 1.5, 12.2, 12.4
+ * Includes network error handling with offline detection and sync queue.
+ * Includes validation for all state updates to ensure data integrity.
+ *
+ * Requirements: 1.1, 1.5, 12.2, 12.4, All requirements (reliability, data integrity)
  */
+
+import { getOnboardingNetworkManager } from './onboarding-network-manager';
+import {
+  validateOnboardingState,
+  validateStepCompletion,
+  showValidationErrors,
+} from './onboarding-validation';
 
 /**
  * Onboarding state structure matching the simplified 3-step flow
@@ -426,10 +436,24 @@ export class OnboardingStateManager {
   }
 
   /**
-   * Save state to all available storage mechanisms
-   * Requirements: 1.5, 12.2, 12.4
+   * Save state to all available storage mechanisms with validation
+   * Requirements: 1.5, 12.2, 12.4, All requirements (data integrity)
    */
   async saveState(state: OnboardingState): Promise<void> {
+    // Validate state before saving
+    const validationResult = validateOnboardingState(state);
+    if (!validationResult.isValid) {
+      console.error('Invalid onboarding state:', validationResult.errors);
+      showValidationErrors(validationResult);
+      throw new Error(`Invalid onboarding state: ${validationResult.errors.join(', ')}`);
+    }
+
+    // Show warnings if any
+    if (validationResult.warnings.length > 0) {
+      console.warn('Onboarding state warnings:', validationResult.warnings);
+      showValidationErrors(validationResult);
+    }
+
     state.updatedAt = new Date();
     this.currentState = state;
 
@@ -507,6 +531,7 @@ export class OnboardingStateManager {
 
   /**
    * Force sync to database immediately
+   * Requirements: All requirements (reliability)
    */
   async syncToDatabase(): Promise<void> {
     if (!this.currentState) {
@@ -518,17 +543,33 @@ export class OnboardingStateManager {
       this.syncTimeout = null;
     }
 
+    const networkManager = getOnboardingNetworkManager();
+
+    // Check if online
+    if (!networkManager.isNetworkOnline()) {
+      console.warn('Offline: Queueing state update for sync when connection is restored');
+      networkManager.addToQueue('state', this.currentState);
+      return;
+    }
+
     try {
       await this.database.set(this.currentState);
     } catch (e) {
       console.error('Failed to sync state to database:', e);
-      throw e;
+
+      // Queue for retry if it's a network error
+      if (e instanceof Error && (e.message.includes('fetch') || e.message.includes('network'))) {
+        console.log('Network error detected, queueing for retry');
+        networkManager.addToQueue('state', this.currentState);
+      } else {
+        throw e;
+      }
     }
   }
 
   /**
-   * Check and update step completion status
-   * Requirements: 2.5, 3.5, 5.5
+   * Check and update step completion status with validation
+   * Requirements: 2.5, 3.5, 5.5, All requirements (data integrity)
    */
   async checkStepCompletion(userId: string): Promise<void> {
     const state = await this.loadState(userId);
@@ -577,6 +618,19 @@ export class OnboardingStateManager {
     }
 
     if (needsUpdate) {
+      // Validate step completion logic
+      const validationResult = validateStepCompletion(state);
+      if (!validationResult.isValid) {
+        console.error('Step completion validation failed:', validationResult.errors);
+        showValidationErrors(validationResult);
+        return; // Don't save invalid state
+      }
+
+      // Show warnings if any
+      if (validationResult.warnings.length > 0) {
+        console.warn('Step completion warnings:', validationResult.warnings);
+      }
+
       await this.saveState(state);
     }
   }
@@ -828,22 +882,58 @@ export class OnboardingStateManager {
 
   /**
    * Save to local storage with fallback chain
+   * Requirements: 12.2
    */
   private async saveToLocalStorage(state: OnboardingState): Promise<void> {
     const serialized = JSON.stringify(this.serializeStateForLocal(state));
+    let savedSuccessfully = false;
+    const failedStorages: string[] = [];
 
     // Try localStorage
     if (this.localStorage.isAvailable()) {
-      await this.localStorage.set(OnboardingStateManager.STORAGE_KEY, serialized);
+      try {
+        await this.localStorage.set(OnboardingStateManager.STORAGE_KEY, serialized);
+        savedSuccessfully = true;
+      } catch (error) {
+        console.warn('Failed to save to localStorage:', error);
+        failedStorages.push('localStorage');
+      }
+    } else {
+      failedStorages.push('localStorage (unavailable)');
     }
 
     // Also save to sessionStorage as backup
     if (this.sessionStorage.isAvailable()) {
-      await this.sessionStorage.set(OnboardingStateManager.STORAGE_KEY, serialized);
+      try {
+        await this.sessionStorage.set(OnboardingStateManager.STORAGE_KEY, serialized);
+        savedSuccessfully = true;
+      } catch (error) {
+        console.warn('Failed to save to sessionStorage:', error);
+        failedStorages.push('sessionStorage');
+      }
+    } else {
+      failedStorages.push('sessionStorage (unavailable)');
     }
 
     // Always save to memory as final fallback
-    await this.memoryStorage.set(OnboardingStateManager.STORAGE_KEY, serialized);
+    try {
+      await this.memoryStorage.set(OnboardingStateManager.STORAGE_KEY, serialized);
+      savedSuccessfully = true;
+    } catch (error) {
+      console.error('Failed to save to memory storage:', error);
+      failedStorages.push('memory');
+    }
+
+    // Show user message if storage is limited
+    if (failedStorages.length > 0 && failedStorages.includes('localStorage')) {
+      console.warn(
+        'Browser storage is limited. Your progress is saved temporarily but may be lost if you close this tab.'
+      );
+    }
+
+    if (!savedSuccessfully) {
+      throw new Error('Failed to save state to any storage mechanism');
+    }
   }
 
   /**
@@ -890,6 +980,39 @@ export class OnboardingStateManager {
       steps: data.steps as OnboardingState['steps'],
       createdAt: new Date(data.createdAt as string),
       updatedAt: new Date(data.updatedAt as string),
+    };
+  }
+
+  /**
+   * Get storage availability status
+   * Requirements: 12.2
+   */
+  getStorageStatus(): {
+    localStorage: boolean;
+    sessionStorage: boolean;
+    memory: boolean;
+    message: string;
+  } {
+    const localAvailable = this.localStorage.isAvailable();
+    const sessionAvailable = this.sessionStorage.isAvailable();
+    const memoryAvailable = this.memoryStorage.isAvailable();
+
+    let message = '';
+    if (!localAvailable && !sessionAvailable) {
+      message =
+        'Browser storage is disabled. Your progress will only be saved for this session and may be lost if you close this tab.';
+    } else if (!localAvailable) {
+      message =
+        'localStorage is unavailable. Your progress is saved to sessionStorage and will be lost when you close this tab.';
+    } else {
+      message = 'All storage mechanisms are available.';
+    }
+
+    return {
+      localStorage: localAvailable,
+      sessionStorage: sessionAvailable,
+      memory: memoryAvailable,
+      message,
     };
   }
 }

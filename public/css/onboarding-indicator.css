@@ -243,9 +243,33 @@
    Accessibility
    ============================================ */
 
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible styles */
 .onboarding-step:focus {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
+}
+
+.onboarding-step:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.onboarding-step:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--accent-subtle);
 }
 
 .onboarding-indicator__dismiss:focus {
@@ -253,19 +277,65 @@
   outline-offset: 2px;
 }
 
+.onboarding-indicator__dismiss:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.onboarding-indicator__dismiss:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--accent-subtle);
+}
+
 .onboarding-resume-btn:focus {
   outline: 2px solid var(--text-inverse);
   outline-offset: 2px;
+}
+
+.onboarding-resume-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.onboarding-resume-btn:focus-visible {
+  outline: 2px solid var(--text-inverse);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+/* Skip to content link for keyboard users */
+.skip-to-onboarding {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  padding: 8px 16px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 100;
+}
+
+.skip-to-onboarding:focus {
+  top: 0;
 }
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   .onboarding-indicator {
     border-width: 2px;
+    border-color: currentColor;
   }
   
   .onboarding-step--active {
     border: 2px solid var(--accent-primary);
+  }
+  
+  .onboarding-step--complete .onboarding-step__icon {
+    font-weight: 900;
+  }
+  
+  .onboarding-step:focus-visible {
+    outline-width: 3px;
   }
 }
 
@@ -278,6 +348,29 @@
   .onboarding-resume-btn {
     transition: none;
     animation: none;
+  }
+  
+  .onboarding-highlight {
+    animation: none;
+  }
+  
+  .onboarding-highlight::before {
+    opacity: 1;
+  }
+}
+
+/* Forced colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  .onboarding-step--active {
+    border: 2px solid SelectedItem;
+  }
+  
+  .onboarding-step--complete .onboarding-step__icon {
+    color: SelectedItem;
+  }
+  
+  .onboarding-step:focus-visible {
+    outline: 2px solid Highlight;
   }
 }
 

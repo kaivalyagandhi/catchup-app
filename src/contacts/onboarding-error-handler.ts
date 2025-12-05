@@ -1,299 +1,354 @@
 /**
- * Onboarding Service Error Handling Wrapper
+ * Onboarding Error Handler
  *
- * Provides error handling, retry logic, and graceful degradation
- * for onboarding service operations.
+ * Centralized error handling for onboarding API calls.
+ * Handles integration connection failures, AI service timeouts,
+ * group mapping API errors, and provides retry mechanisms.
+ *
+ * Requirements: 13.4
  */
 
-import {
-  OnboardingError,
-  InvalidOnboardingStateError,
-  OnboardingNotFoundError,
-  ContactNotFoundError,
-  CircleAssignmentError,
-  AISuggestionError,
-  ConcurrentModificationError,
-} from './onboarding-errors';
-import {
-  retryWithBackoff,
-  DEFAULT_RETRY_CONFIG,
-  handleDatabaseOperation,
-  circuitBreakers,
-} from '../utils/error-handling';
-import { updateWithOptimisticLock, OptimisticLockError } from '../utils/concurrency';
-
-/**
- * Wrap onboarding operation with error handling
- */
-export async function withOnboardingErrorHandling<T>(
-  operation: () => Promise<T>,
-  operationName: string,
-  fallbackValue?: T
-): Promise<T> {
-  try {
-    return await handleDatabaseOperation(operation);
-  } catch (error: any) {
-    console.error(`Onboarding operation failed: ${operationName}`, {
-      error: error.message,
-      stack: error.stack,
-    });
-
-    // If fallback value provided, return it
-    if (fallbackValue !== undefined) {
-      console.warn(`Using fallback value for ${operationName}`);
-      return fallbackValue;
-    }
-
-    // Re-throw onboarding errors as-is
-    if (error instanceof OnboardingError) {
-      throw error;
-    }
-
-    // Wrap other errors
-    throw new OnboardingError(`Operation failed: ${operationName}`, 'OPERATION_FAILED', 500, {
-      originalError: error.message,
-    });
-  }
+export interface ErrorHandlerOptions {
+  maxRetries?: number;
+  retryDelay?: number;
+  timeout?: number;
+  showToast?: boolean;
 }
 
-/**
- * Wrap AI suggestion operation with graceful degradation
- */
-export async function withAISuggestionHandling<T>(
-  operation: () => Promise<T>,
-  fallbackValue?: T
-): Promise<{ success: boolean; result?: T; error?: string }> {
-  try {
-    // Use circuit breaker for AI service
-    const result = await circuitBreakers.nlp.execute(async () => {
-      return await retryWithBackoff(operation, {
-        ...DEFAULT_RETRY_CONFIG,
-        maxRetries: 2,
-      });
-    });
+export interface RetryableError {
+  isRetryable: boolean;
+  shouldShowRetry: boolean;
+  userMessage: string;
+  technicalMessage: string;
+}
 
-    return { success: true, result };
-  } catch (error: any) {
-    console.error('AI suggestion operation failed:', {
-      error: error.message,
-      circuitState: circuitBreakers.nlp.getState(),
-    });
+export class OnboardingErrorHandler {
+  private static readonly DEFAULT_MAX_RETRIES = 3;
+  private static readonly DEFAULT_RETRY_DELAY = 2000;
+  private static readonly DEFAULT_TIMEOUT = 30000;
 
-    // If fallback value provided, return it
-    if (fallbackValue !== undefined) {
-      return { success: true, result: fallbackValue };
+  /**
+   * Classify an error and determine if it's retryable
+   * Requirements: 13.4
+   */
+  static classifyError(error: unknown): RetryableError {
+    let errorMessage = 'An unknown error occurred';
+    let isRetryable = false;
+    let shouldShowRetry = false;
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+
+      // Network errors - retryable
+      if (
+        errorMessage.includes('fetch') ||
+        errorMessage.includes('network') ||
+        errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('NetworkError')
+      ) {
+        return {
+          isRetryable: true,
+          shouldShowRetry: true,
+          userMessage: 'Network connection issue. Please check your internet and try again.',
+          technicalMessage: errorMessage,
+        };
+      }
+
+      // Timeout errors - retryable
+      if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+        return {
+          isRetryable: true,
+          shouldShowRetry: true,
+          userMessage: 'Request timed out. The server may be busy. Please try again.',
+          technicalMessage: errorMessage,
+        };
+      }
+
+      // HTTP 5xx errors - retryable
+      if (errorMessage.includes('HTTP 5') || errorMessage.includes('500') || errorMessage.includes('503')) {
+        return {
+          isRetryable: true,
+          shouldShowRetry: true,
+          userMessage: 'Server error. Please try again in a moment.',
+          technicalMessage: errorMessage,
+        };
+      }
+
+      // HTTP 429 (rate limit) - retryable with delay
+      if (errorMessage.includes('429') || errorMessage.includes('rate limit')) {
+        return {
+          isRetryable: true,
+          shouldShowRetry: true,
+          userMessage: 'Too many requests. Please wait a moment and try again.',
+          technicalMessage: errorMessage,
+        };
+      }
+
+      // HTTP 401/403 - not retryable, auth issue
+      if (errorMessage.includes('401') || errorMessage.includes('403') || errorMessage.includes('Unauthorized')) {
+        return {
+          isRetryable: false,
+          shouldShowRetry: false,
+          userMessage: 'Authentication failed. Please sign in again.',
+          technicalMessage: errorMessage,
+        };
+      }
+
+      // HTTP 404 - not retryable
+      if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+        return {
+          isRetryable: false,
+          shouldShowRetry: false,
+          userMessage: 'Resource not found. Please refresh the page.',
+          technicalMessage: errorMessage,
+        };
+      }
+
+      // HTTP 400 - not retryable, bad request
+      if (errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
+        return {
+          isRetryable: false,
+          shouldShowRetry: false,
+          userMessage: 'Invalid request. Please check your input and try again.',
+          technicalMessage: errorMessage,
+        };
+      }
     }
 
+    // Default: not retryable
     return {
-      success: false,
-      error: 'AI suggestions temporarily unavailable. Please assign circles manually.',
+      isRetryable: false,
+      shouldShowRetry: false,
+      userMessage: 'An error occurred. Please try again or contact support.',
+      technicalMessage: errorMessage,
     };
   }
-}
 
-/**
- * Wrap concurrent modification with retry logic
- */
-export async function withConcurrencyHandling<T>(
-  operation: (version?: number) => Promise<T>,
-  resourceType: string,
-  resourceId: string,
-  maxRetries: number = 3
-): Promise<T> {
-  let lastError: any;
+  /**
+   * Handle integration connection errors
+   * Requirements: 13.4
+   */
+  static handleIntegrationError(integration: 'google-calendar' | 'google-contacts', error: unknown): RetryableError {
+    const classified = this.classifyError(error);
+    const integrationName = integration === 'google-calendar' ? 'Google Calendar' : 'Google Contacts';
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error: any) {
-      lastError = error;
-
-      // Only retry on optimistic lock errors
-      if (error instanceof OptimisticLockError) {
-        console.warn(
-          `Concurrent modification detected, retry attempt ${attempt + 1}/${maxRetries}`,
-          { resourceType, resourceId }
-        );
-
-        // Wait before retrying (exponential backoff)
-        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 100));
-        continue;
+    // Add integration-specific context
+    if (error instanceof Error) {
+      // OAuth/popup errors
+      if (error.message.includes('popup') || error.message.includes('blocked')) {
+        return {
+          isRetryable: true,
+          shouldShowRetry: true,
+          userMessage: `${integrationName} connection failed. Please allow popups and try again.`,
+          technicalMessage: error.message,
+        };
       }
 
-      // Don't retry other errors
-      throw error;
+      // Permission errors
+      if (error.message.includes('permission') || error.message.includes('scope')) {
+        return {
+          isRetryable: true,
+          shouldShowRetry: true,
+          userMessage: `${integrationName} connection failed. Please grant the required permissions.`,
+          technicalMessage: error.message,
+        };
+      }
+
+      // OAuth state mismatch
+      if (error.message.includes('state') || error.message.includes('CSRF')) {
+        return {
+          isRetryable: true,
+          shouldShowRetry: true,
+          userMessage: `${integrationName} connection failed. Please try again.`,
+          technicalMessage: error.message,
+        };
+      }
+    }
+
+    // Use classified error with integration context
+    return {
+      ...classified,
+      userMessage: `${integrationName}: ${classified.userMessage}`,
+    };
+  }
+
+  /**
+   * Handle AI service errors (timeouts, failures)
+   * Requirements: 13.4
+   */
+  static handleAIServiceError(error: unknown): RetryableError {
+    const classified = this.classifyError(error);
+
+    // AI service timeouts are common and should be handled gracefully
+    if (classified.technicalMessage.includes('timeout')) {
+      return {
+        isRetryable: false, // Don't auto-retry AI, it's optional
+        shouldShowRetry: false,
+        userMessage: 'AI suggestions are temporarily unavailable. You can still organize contacts manually.',
+        technicalMessage: classified.technicalMessage,
+      };
+    }
+
+    // AI service failures should not block the user
+    return {
+      isRetryable: false,
+      shouldShowRetry: false,
+      userMessage: 'AI suggestions are temporarily unavailable. You can still organize contacts manually.',
+      technicalMessage: classified.technicalMessage,
+    };
+  }
+
+  /**
+   * Handle group mapping API errors
+   * Requirements: 13.4
+   */
+  static handleGroupMappingError(error: unknown): RetryableError {
+    const classified = this.classifyError(error);
+
+    // Add group mapping context
+    return {
+      ...classified,
+      userMessage: `Group mapping: ${classified.userMessage}`,
+    };
+  }
+
+  /**
+   * Execute a function with retry logic
+   * Requirements: 13.4
+   */
+  static async withRetry<T>(
+    fn: () => Promise<T>,
+    options: ErrorHandlerOptions = {}
+  ): Promise<T> {
+    const maxRetries = options.maxRetries ?? this.DEFAULT_MAX_RETRIES;
+    const retryDelay = options.retryDelay ?? this.DEFAULT_RETRY_DELAY;
+    const timeout = options.timeout ?? this.DEFAULT_TIMEOUT;
+
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Add timeout wrapper
+        const result = await this.withTimeout(fn(), timeout);
+        return result;
+      } catch (error) {
+        lastError = error;
+        const classified = this.classifyError(error);
+
+        console.error(`Attempt ${attempt + 1}/${maxRetries + 1} failed:`, error);
+
+        // If not retryable or last attempt, throw
+        if (!classified.isRetryable || attempt === maxRetries) {
+          throw error;
+        }
+
+        // Wait before retrying (exponential backoff)
+        const delay = retryDelay * Math.pow(2, attempt);
+        console.log(`Retrying in ${delay}ms...`);
+        await this.sleep(delay);
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Wrap a promise with a timeout
+   */
+  private static withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Request timed out after ${timeoutMs}ms`)), timeoutMs)
+      ),
+    ]);
+  }
+
+  /**
+   * Sleep for a specified duration
+   */
+  private static sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Show error toast to user
+   */
+  static showErrorToast(error: RetryableError): void {
+    if (typeof window !== 'undefined') {
+      const showToast = (window as Window & { showToast?: (msg: string, type: string) => void }).showToast;
+      if (typeof showToast === 'function') {
+        showToast(error.userMessage, 'error');
+      } else {
+        console.error(error.userMessage);
+      }
     }
   }
 
-  // Max retries exceeded
-  throw new ConcurrentModificationError(resourceType, resourceId, {
-    attempts: maxRetries,
-    lastError: lastError.message,
-  });
-}
+  /**
+   * Show retry button in UI
+   */
+  static showRetryButton(
+    containerId: string,
+    retryCallback: () => void,
+    error: RetryableError
+  ): void {
+    if (typeof document === 'undefined') return;
 
-/**
- * Validate and execute operation
- */
-export async function validateAndExecute<T>(
-  validationFn: () => void,
-  operation: () => Promise<T>
-): Promise<T> {
-  // Run validation
-  validationFn();
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
-  // Execute operation with error handling
-  return await withOnboardingErrorHandling(operation, 'validated operation');
-}
+    // Check if retry button already exists
+    if (container.querySelector('.error-retry-btn')) return;
 
-/**
- * Batch operation with partial success handling
- */
-export async function executeBatchOperation<TInput, TResult>(
-  items: TInput[],
-  operation: (item: TInput) => Promise<TResult>,
-  options: {
-    continueOnError?: boolean;
-    maxConcurrent?: number;
-  } = {}
-): Promise<{
-  successful: Array<{ item: TInput; result: TResult }>;
-  failed: Array<{ item: TInput; error: string }>;
-}> {
-  const { continueOnError = true, maxConcurrent = 10 } = options;
+    const retrySection = document.createElement('div');
+    retrySection.className = 'error-retry-section';
+    retrySection.innerHTML = `
+      <div class="error-message">${error.userMessage}</div>
+      <button class="error-retry-btn btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 8px;">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Retry
+      </button>
+    `;
 
-  const successful: Array<{ item: TInput; result: TResult }> = [];
-  const failed: Array<{ item: TInput; error: string }> = [];
+    const retryBtn = retrySection.querySelector('.error-retry-btn');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', () => {
+        retrySection.remove();
+        retryCallback();
+      });
+    }
 
-  // Process in batches to limit concurrency
-  for (let i = 0; i < items.length; i += maxConcurrent) {
-    const batch = items.slice(i, i + maxConcurrent);
-
-    const results = await Promise.allSettled(
-      batch.map(async (item) => {
-        try {
-          const result = await operation(item);
-          return { item, result };
-        } catch (error: any) {
-          if (!continueOnError) {
-            throw error;
-          }
-          return {
-            item,
-            error: error.message || 'Operation failed',
-          };
-        }
-      })
-    );
-
-    results.forEach((result) => {
-      if (result.status === 'fulfilled') {
-        const value = result.value;
-        if ('error' in value) {
-          failed.push(value as { item: TInput; error: string });
-        } else {
-          successful.push(value as { item: TInput; result: TResult });
-        }
-      } else {
-        // This shouldn't happen if continueOnError is true
-        failed.push({
-          item: batch[results.indexOf(result)],
-          error: result.reason?.message || 'Unknown error',
-        });
-      }
-    });
+    container.appendChild(retrySection);
   }
-
-  return { successful, failed };
 }
 
-/**
- * Timeout wrapper for operations
- */
-export async function withTimeout<T>(
-  operation: () => Promise<T>,
-  timeoutMs: number,
-  operationName: string
+// Export convenience functions
+export function classifyError(error: unknown): RetryableError {
+  return OnboardingErrorHandler.classifyError(error);
+}
+
+export function handleIntegrationError(
+  integration: 'google-calendar' | 'google-contacts',
+  error: unknown
+): RetryableError {
+  return OnboardingErrorHandler.handleIntegrationError(integration, error);
+}
+
+export function handleAIServiceError(error: unknown): RetryableError {
+  return OnboardingErrorHandler.handleAIServiceError(error);
+}
+
+export function handleGroupMappingError(error: unknown): RetryableError {
+  return OnboardingErrorHandler.handleGroupMappingError(error);
+}
+
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  options?: ErrorHandlerOptions
 ): Promise<T> {
-  return Promise.race([
-    operation(),
-    new Promise<T>((_, reject) =>
-      setTimeout(
-        () =>
-          reject(
-            new OnboardingError(`Operation timeout: ${operationName}`, 'TIMEOUT', 504, {
-              timeoutMs,
-            })
-          ),
-        timeoutMs
-      )
-    ),
-  ]);
-}
-
-/**
- * Log operation for monitoring
- */
-export function logOperation(operationName: string, userId: string, details?: any): void {
-  console.log('Onboarding operation:', {
-    timestamp: new Date().toISOString(),
-    operation: operationName,
-    userId,
-    ...details,
-  });
-}
-
-/**
- * Log error for monitoring
- */
-export function logOperationError(
-  operationName: string,
-  userId: string,
-  error: any,
-  details?: any
-): void {
-  console.error('Onboarding operation error:', {
-    timestamp: new Date().toISOString(),
-    operation: operationName,
-    userId,
-    error: {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    },
-    ...details,
-  });
-}
-
-/**
- * Measure operation performance
- */
-export async function measurePerformance<T>(
-  operation: () => Promise<T>,
-  operationName: string
-): Promise<{ result: T; durationMs: number }> {
-  const startTime = Date.now();
-
-  try {
-    const result = await operation();
-    const durationMs = Date.now() - startTime;
-
-    console.log(`Performance: ${operationName}`, {
-      durationMs,
-      timestamp: new Date().toISOString(),
-    });
-
-    return { result, durationMs };
-  } catch (error: any) {
-    const durationMs = Date.now() - startTime;
-
-    console.error(`Performance (failed): ${operationName}`, {
-      durationMs,
-      error: error.message,
-      timestamp: new Date().toISOString(),
-    });
-
-    throw error;
-  }
+  return OnboardingErrorHandler.withRetry(fn, options);
 }

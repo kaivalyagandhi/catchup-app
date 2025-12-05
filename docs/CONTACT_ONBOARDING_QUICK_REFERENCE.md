@@ -1,211 +1,233 @@
-# Contact Onboarding Quick Reference Card
+# Contact Onboarding Quick Reference
 
-## The Five Circles at a Glance
+Quick reference guide for the Contact Onboarding feature.
 
-| Circle | Size | Who | Contact Frequency | Examples |
-|--------|------|-----|-------------------|----------|
-| **Inner Circle** | ~5 | Closest relationships | Daily-Weekly | Best friend, partner, immediate family |
-| **Close Friends** | ~15 | Regular friends | Weekly-Biweekly | Good friends, close colleagues |
-| **Active Friends** | ~50 | Occasional friends | Monthly | Friends, regular colleagues |
-| **Casual Network** | ~150 | Acquaintances | Quarterly | Professional contacts, extended family |
-| **Acquaintances** | 500+ | Loose connections | Yearly/Never | People you recognize |
+## For Users
 
----
+### Getting Started
+1. Look for "Get Started" indicator in sidebar
+2. Click "Step 1: Connect Accounts"
+3. Connect Google Calendar and Contacts
+4. Organize contacts into 4 circles
+5. Review group mapping suggestions
 
-## Quick Actions
+### The 4 Circles
+- **Inner Circle (10)**: Closest confidants, call in crisis
+- **Close Friends (25)**: Regular life updates, genuine care
+- **Active Friends (50)**: Stay connected regularly, shared activities
+- **Casual Network (100)**: Occasional contact, professional/contextual
 
-### Starting Onboarding
-1. Click "Begin Onboarding" or "Manage"
-2. Follow the guided flow
-3. Organize contacts by dragging to circles
-4. Set preferences for close contacts
-5. Complete and celebrate!
+### Keyboard Shortcuts
+- `Tab`: Navigate between elements
+- `Arrow Keys`: Navigate between steps
+- `Enter/Space`: Activate buttons
+- `Escape`: Close modals/dismiss
 
-### Drag-and-Drop
-- **Desktop**: Click and hold → Drag → Release
-- **Mobile**: Long-press → Drag → Lift finger
-- **Cancel**: Press Escape or drag outside
+### Need Help?
+- Dismiss anytime with X button
+- Resume with "Resume Setup" button
+- Progress is automatically saved
+- See full [User Guide](./CONTACT_ONBOARDING_USER_GUIDE.md)
 
-### Using AI Suggestions
-- **High confidence (90%+)**: Pre-selected, click "Accept"
-- **Medium confidence (70-89%)**: Suggested, easy to override
-- **Low confidence (<70%)**: Multiple options shown
+## For Developers
 
----
+### Key Components
+- `OnboardingStepIndicator`: Sidebar progress indicator
+- `ManageCirclesFlow`: Circle assignment modal
+- `Step1IntegrationsHandler`: Integration connection
+- `Step2CirclesHandler`: Circle organization
+- `Step3GroupMappingHandler`: Group mapping review
 
-## Common Issues - Quick Fixes
+### State Management
+```javascript
+// Load state
+const state = OnboardingStateManager.loadState(userId);
 
-| Problem | Quick Fix |
-|---------|-----------|
-| Onboarding won't start | Refresh page, check login |
-| Progress not saving | Check internet, wait for save icon |
-| Drag not working | Update browser, try different browser |
-| AI suggestions missing | Normal for new accounts, will improve |
-| Slow performance | Close other tabs, use filters |
-| Mobile issues | Clean screen, try landscape mode |
+// Update state
+await stateManager.updateStepCompletion(userId, 1, true);
 
----
+// Check completion
+const isComplete = await stateManager.isOnboardingComplete(userId);
+```
 
-## Keyboard Shortcuts
+### API Endpoints
+```
+POST   /api/onboarding/init
+GET    /api/onboarding/state?userId=:id
+PUT    /api/onboarding/state
+POST   /api/contacts/:id/circle
+GET    /api/contacts/circles/counts
+POST   /api/ai/circle-suggestions
+GET    /api/google-contacts/mapping-suggestions
+```
 
-| Action | Shortcut |
-|--------|----------|
-| Cancel drag | Escape |
-| Refresh page | Ctrl+R (Cmd+R on Mac) |
-| Open browser console | F12 |
-| Reset zoom | Ctrl+0 (Cmd+0 on Mac) |
-| Full screen | F11 |
+### Events
+```javascript
+// Listen for events
+window.addEventListener('onboarding-state-changed', (e) => {
+  console.log(e.detail.state);
+});
 
----
+// Emit events
+window.dispatchEvent(new CustomEvent('circle-assigned', {
+  detail: { contactId, circle }
+}));
+```
 
-## Circle Capacity Guidelines
+### Analytics
+```javascript
+// Track events
+onboardingAnalytics.trackOnboardingStarted(userId);
+onboardingAnalytics.trackStepCompleted(userId, 1);
+onboardingAnalytics.trackCircleAssigned(userId, contactId, circle, false);
+```
 
-| Circle | Recommended | Maximum | Status |
-|--------|-------------|---------|--------|
-| Inner | 5 | 10 | 🟢 Optimal / 🟡 Over |
-| Close | 15 | 25 | 🟢 Optimal / 🟡 Over |
-| Active | 50 | 75 | 🟢 Optimal / 🟡 Over |
-| Casual | 150 | 200 | 🟢 Optimal / 🟡 Over |
-| Acquaintance | 500+ | No limit | Always 🟢 |
+### Database
+```sql
+-- Main tables
+onboarding_state
+contacts (with circle column)
+group_mapping_suggestions
+onboarding_analytics_events
 
-**Remember**: These are guidelines, not rules!
+-- Quick stats
+SELECT * FROM onboarding_analytics_summary;
+```
 
----
+### Testing
+```bash
+# Unit tests
+npm test src/contacts/onboarding-state-manager.test.ts
 
-## Weekly Catchup
+# Manual tests
+open public/js/onboarding-step-indicator.test.html
+open public/js/manage-circles-flow.test.html
+```
 
-- **Frequency**: Once per week
-- **Contacts**: 10-15 per session
-- **Time**: ~10-15 minutes
-- **Actions**: Categorize, update, archive, or skip
-- **Skip**: Contacts reschedule to next week
+## Accessibility
 
----
+### WCAG Compliance
+- ✅ WCAG 2.1 AA compliant
+- ✅ Keyboard navigable
+- ✅ Screen reader compatible
+- ✅ High contrast support
+- ✅ Reduced motion support
 
-## Contact Preferences
+### Testing Tools
+- Chrome Lighthouse
+- axe DevTools
+- WAVE Browser Extension
+- VoiceOver (macOS)
+- NVDA (Windows)
 
-### When Prompted
-- After assigning to Inner Circle or Close Friends
-- Can skip and set later
+## Common Tasks
 
-### Options
-- **Frequency**: Daily, Weekly, Biweekly, Monthly, Quarterly, Yearly, Flexible, N/A
-- **Methods**: Phone, Text, Email, In-person, Video
-- **Times**: Weekday mornings/evenings, Weekends, Specific days
+### Add New Step
+1. Update `OnboardingState` interface
+2. Create step handler class
+3. Add to step indicator
+4. Create API endpoints
+5. Add analytics tracking
 
----
+### Modify Circle Logic
+1. Update `OnboardingService`
+2. Update `ManageCirclesFlow`
+3. Update database schema
+4. Update AI suggestions
+5. Add tests
 
-## Privacy & Security
+### Add Analytics Event
+1. Add event type to enum
+2. Add tracking method
+3. Update API endpoint
+4. Update documentation
 
-✅ **Private**: Circle assignments are completely private
-✅ **Encrypted**: Sensitive data encrypted at rest
-✅ **No Sharing**: Never shared with third parties
-✅ **Export**: Download all your data anytime
-✅ **Delete**: Complete data removal on account deletion
+## File Locations
 
----
+### Frontend
+```
+public/js/
+├── onboarding-step-indicator.js
+├── manage-circles-flow.js
+├── step1-integrations-handler.js
+├── step2-circles-handler.js
+├── step3-group-mapping-handler.js
+└── onboarding-analytics.js
 
-## Getting Help
+public/css/
+├── onboarding.css
+├── onboarding-indicator.css
+└── manage-circles-flow.css
+```
+
+### Backend
+```
+src/
+├── contacts/
+│   ├── onboarding-state-manager.ts
+│   ├── onboarding-service.ts
+│   └── onboarding-repositories.ts
+├── api/routes/
+│   ├── onboarding.ts
+│   ├── circles.ts
+│   └── analytics.ts
+└── utils/
+    └── onboarding-analytics.ts
+```
 
 ### Documentation
-- **User Guide**: Full walkthrough and tips
-- **Troubleshooting**: Detailed problem solving
-- **API Docs**: For developers
-- **Dunbar's Number**: The science explained
-
-### Support
-- **Email**: support@catchup.app
-- **Live Chat**: In-app (bottom right)
-- **Forum**: community.catchup.app
-- **Status**: status.catchup.app
-
----
-
-## Tips for Success
-
-✅ **Start with Inner Circle** - Assign closest relationships first
-✅ **Trust AI suggestions** - Based on real interaction data
-✅ **Don't overthink** - You can always adjust later
-✅ **Use Weekly Catchup** - Break into manageable chunks
-✅ **Be realistic** - Set achievable contact frequencies
-✅ **Review quarterly** - Relationships evolve over time
-
----
-
-## Common Mistakes to Avoid
-
-❌ **Don't put everyone in Inner Circle** - Defeats the purpose
-❌ **Don't ignore capacity indicators** - Based on research
-❌ **Don't skip preference setting** - Helps with suggestions
-❌ **Don't feel guilty** - Not everyone can be closest
-❌ **Don't rush** - Take time to categorize thoughtfully
-
----
-
-## Mobile Tips
-
-- **Landscape mode** for better visibility
-- **Clean screen** for better touch response
-- **Long-press** to start dragging
-- **Autocomplete** for quick search
-- **Rotate carefully** to avoid layout issues
-
----
-
-## Gamification Features
-
-- **Progress Bar**: Shows completion percentage
-- **Milestones**: Celebrated at 25%, 50%, 75%, 100%
-- **Achievements**: Badges for network health
-- **Streaks**: Track consistent engagement
-- **Health Score**: Based on circle balance and engagement
-
----
-
-## API Quick Reference (Developers)
-
-### Key Endpoints
 ```
-POST   /api/onboarding/initialize
-GET    /api/onboarding/state
-POST   /api/circles/assign
-POST   /api/circles/batch-assign
-GET    /api/circles/distribution
-POST   /api/ai/suggest-circle
+docs/
+├── CONTACT_ONBOARDING_USER_GUIDE.md
+├── CONTACT_ONBOARDING_DEVELOPER_GUIDE.md
+├── CONTACT_ONBOARDING_ACCESSIBILITY.md
+├── CONTACT_ONBOARDING_ANALYTICS.md
+├── CONTACT_ONBOARDING_QUICK_REFERENCE.md
+└── features/onboarding/
 ```
 
-### Authentication
-```
-Authorization: Bearer <your-jwt-token>
-```
+## Troubleshooting
+
+### State Not Persisting
+- Check localStorage quota
+- Verify database connection
+- Check browser console for errors
+
+### AI Suggestions Not Working
+- Verify API key configuration
+- Check network connectivity
+- Review error logs
+
+### Accessibility Issues
+- Run Lighthouse audit
+- Test with screen reader
+- Verify keyboard navigation
+- Check color contrast
+
+### Analytics Not Tracking
+- Check browser console
+- Verify API endpoint
+- Check database connection
+- Verify external service config
+
+## Resources
+
+- [Full User Guide](./CONTACT_ONBOARDING_USER_GUIDE.md)
+- [Developer Guide](./CONTACT_ONBOARDING_DEVELOPER_GUIDE.md)
+- [Accessibility Guide](./CONTACT_ONBOARDING_ACCESSIBILITY.md)
+- [Analytics Guide](./CONTACT_ONBOARDING_ANALYTICS.md)
+- [Troubleshooting](./CONTACT_ONBOARDING_TROUBLESHOOTING.md)
+
+## Support
+
+For questions or issues:
+1. Check documentation
+2. Review error logs
+3. Test in isolation
+4. Contact development team
 
 ---
 
-## Emergency Contacts
-
-| Issue | Contact |
-|-------|---------|
-| Critical bugs | bugs@catchup.app |
-| Account issues | support@catchup.app |
-| Security concerns | security@catchup.app |
-| General questions | hello@catchup.app |
-
----
-
-## Version Information
-
-- **Documentation Version**: 1.0
-- **Last Updated**: November 2025
-- **Feature Status**: Production Ready
-
----
-
-## Print This Card
-
-This quick reference is designed to be printed or saved for easy access. Keep it handy while organizing your contacts!
-
-**Tip**: Save as PDF for offline access or print for desk reference.
-
----
-
-*For complete documentation, visit: docs.catchup.app*
+**Last Updated**: December 2024  
+**Version**: 1.0  
+**Status**: Production Ready

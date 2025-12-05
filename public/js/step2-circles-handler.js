@@ -105,8 +105,8 @@ class Step2CirclesHandler {
   }
   
   /**
-   * Fetch AI circle suggestions from backend
-   * Requirements: 8.1, 8.2, 8.3
+   * Fetch AI circle suggestions from backend with timeout and error handling
+   * Requirements: 8.1, 8.2, 8.3, 13.4
    */
   async fetchAISuggestions() {
     const userId = window.userId || localStorage.getItem('userId');
@@ -117,6 +117,10 @@ class Step2CirclesHandler {
     }
     
     try {
+      // Add timeout to AI request (30 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
       const response = await fetch(`${window.API_BASE || '/api'}/ai/circle-suggestions`, {
         method: 'POST',
         headers: {
@@ -126,25 +130,70 @@ class Step2CirclesHandler {
         body: JSON.stringify({
           userId,
           contactIds: this.contacts.map(c => c.id)
-        })
+        }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         // Handle AI service failures gracefully
-        // Requirements: 9.4
+        // Requirements: 9.4, 13.4
         console.warn('AI suggestions not available:', response.statusText);
         this.aiSuggestions = [];
+        this.showAIServiceWarning('unavailable');
         return;
       }
       
       const data = await response.json();
       this.aiSuggestions = data.suggestions || [];
       
+      if (this.aiSuggestions.length > 0) {
+        if (typeof showToast === 'function') {
+          showToast(`AI generated ${this.aiSuggestions.length} circle suggestions`, 'success');
+        }
+      }
+      
     } catch (error) {
       // Handle AI service failures gracefully
-      // Requirements: 9.4
+      // Requirements: 9.4, 13.4
       console.warn('Failed to fetch AI suggestions:', error);
       this.aiSuggestions = [];
+      
+      // Determine error type
+      if (error.name === 'AbortError') {
+        this.showAIServiceWarning('timeout');
+      } else if (error.message && error.message.includes('network')) {
+        this.showAIServiceWarning('network');
+      } else {
+        this.showAIServiceWarning('error');
+      }
+    }
+  }
+  
+  /**
+   * Show warning about AI service issues
+   * Requirements: 9.4, 13.4
+   */
+  showAIServiceWarning(type) {
+    let message = '';
+    
+    switch (type) {
+      case 'timeout':
+        message = 'AI suggestions timed out. You can still organize contacts manually.';
+        break;
+      case 'network':
+        message = 'Network issue prevented AI suggestions. You can still organize contacts manually.';
+        break;
+      case 'unavailable':
+        message = 'AI suggestions temporarily unavailable. You can still organize contacts manually.';
+        break;
+      default:
+        message = 'AI suggestions unavailable. You can still organize contacts manually.';
+    }
+    
+    if (typeof showToast === 'function') {
+      showToast(message, 'info');
     }
   }
   

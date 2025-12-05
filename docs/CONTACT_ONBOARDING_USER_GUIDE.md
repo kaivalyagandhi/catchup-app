@@ -1,596 +1,276 @@
 # Contact Onboarding User Guide
 
-## Welcome to CatchUp Contact Onboarding
+Welcome to CatchUp's Contact Onboarding! This guide will help you get started with organizing your relationships into meaningful circles based on research-backed principles.
 
-CatchUp helps you organize your relationships into meaningful circles based on Dunbar's number theory. This guide will walk you through the onboarding process and help you make the most of your social network.
+## Overview
 
-## Table of Contents
+The Contact Onboarding feature provides a streamlined 3-step guided experience to help you:
 
-1. [Understanding Dunbar's Number](#understanding-dunbars-number)
-2. [Getting Started](#getting-started)
-3. [The Five Social Circles](#the-five-social-circles)
-4. [Organizing Your Contacts](#organizing-your-contacts)
-5. [AI-Powered Suggestions](#ai-powered-suggestions)
-6. [Setting Contact Preferences](#setting-contact-preferences)
-7. [Weekly Catchup Feature](#weekly-catchup-feature)
-8. [Managing Your Network](#managing-your-network)
-9. [Privacy & Security](#privacy--security)
-10. [Tips & Best Practices](#tips--best-practices)
+1. **Connect your integrations** (Google Calendar & Contacts)
+2. **Organize contacts into circles** based on relationship depth
+3. **Review group mapping suggestions** to sync your existing groups
 
----
+This process is designed to be flexible - you can complete it all at once, or come back to it anytime.
 
-## Understanding Dunbar's Number
+## The Science Behind Circles
 
-### What is Dunbar's Number?
+### Dunbar's Number
 
-Dunbar's number is a suggested cognitive limit to the number of people with whom one can maintain stable social relationships. British anthropologist Robin Dunbar proposed that humans can comfortably maintain:
+British anthropologist Robin Dunbar discovered that humans can maintain stable social relationships with approximately 150 people. His research identified distinct layers within this network:
 
-- **5 people** - Your closest loved ones (Inner Circle)
-- **15 people** - Good friends you see regularly (Close Friends)
-- **50 people** - Friends you see occasionally (Active Friends)
-- **150 people** - Meaningful contacts (Casual Network)
-- **500+ people** - Acquaintances you recognize (Acquaintances)
+- **5 people**: Closest confidants (support clique)
+- **15 people**: Good friends (sympathy group)
+- **50 people**: Friends (band)
+- **150 people**: Meaningful contacts (tribe)
 
-### Why Does This Matter?
+### Simplified 4-Circle System
 
-Understanding these natural relationship tiers helps you:
-- **Prioritize** your time and energy appropriately
-- **Maintain** meaningful connections without feeling overwhelmed
-- **Identify** relationships that need attention
-- **Balance** your social network for optimal well-being
+CatchUp uses a simplified version with 4 circles to reduce cognitive load while maintaining the research-backed structure:
 
-CatchUp uses these circles to help you organize contacts and provide intelligent suggestions for staying in touch.
+#### Inner Circle (up to 10 people)
+Your closest confidants - people you'd call in a crisis. These relationships are built on deep trust, mutual respect, and shared values.
 
----
+**Aristotle's Perspective**: These are "virtue-based friendships" - the highest form of friendship based on mutual admiration of each other's character.
 
-## Getting Started
+**Examples**:
+- Your partner or spouse
+- Your best friend since childhood
+- Family members you're extremely close to
+- The person you call when something major happens
 
-### When Does Onboarding Start?
+#### Close Friends (up to 25 people)
+Good friends you regularly share life updates with. You make time for these relationships and genuinely care about their wellbeing.
 
-Onboarding begins automatically in three scenarios:
+**Aristotle's Perspective**: Mix of virtue and "pleasure-based friendships" - people you enjoy spending time with and who enrich your life.
 
-1. **New User** - When you first create your CatchUp account with no contacts
-2. **After Import** - When you connect Google Contacts or import contacts from another source
-3. **Manual Management** - When you click the "Manage" button on your Contacts page
+**Examples**:
+- College roommates you still talk to regularly
+- Coworkers who became real friends
+- Friends you make plans with monthly
+- People you'd invite to important life events
 
-### The Onboarding Flow
+#### Active Friends (up to 50 people)
+People you want to stay connected with regularly. You enjoy their company and share activities or interests.
 
-The onboarding process consists of several steps:
+**Aristotle's Perspective**: Often "pleasure-based friendships" centered around shared activities, hobbies, or contexts.
 
-1. **Welcome** - Introduction to the feature and Dunbar's number
-2. **Import Contacts** (if needed) - Connect Google Contacts or add manually
-3. **Circle Assignment** - Organize contacts into your five circles
-4. **Preference Setting** - Set contact frequency for your closest circles
-5. **Completion** - Review your network and celebrate!
+**Examples**:
+- Running club members you chat with
+- Friends from a hobby group
+- Former coworkers you grab coffee with occasionally
+- Friends you see at social gatherings
 
-You can exit at any time and resume later - your progress is automatically saved.
+#### Casual Network (up to 100 people)
+Acquaintances you keep in touch with occasionally. These are valuable connections but don't require frequent interaction.
 
----
+**Aristotle's Perspective**: Often "utility-based friendships" - professional contacts or contextual relationships that are mutually beneficial.
 
-## The Five Social Circles
+**Examples**:
+- Professional contacts and colleagues
+- Neighbors you're friendly with
+- Parents from your kids' school
+- People you met at conferences
 
-### Inner Circle (Recommended: 5 people)
+## Step-by-Step Guide
 
-**Who belongs here:**
-- Your closest family members
-- Your best friend(s)
-- Your romantic partner
-- People you talk to almost daily
+### Step 1: Connect Your Integrations
 
-**Characteristics:**
-- Deep emotional bonds
-- Frequent communication (daily or multiple times per week)
-- High trust and vulnerability
-- Long-term relationships
+The first step is connecting your Google Calendar and Google Contacts so CatchUp can help you maintain relationships.
 
-**Default Contact Frequency:** Daily to Weekly
+**What you'll do**:
+1. Click on "Step 1: Connect Accounts" in the onboarding indicator
+2. You'll be taken to the Preferences page
+3. Connect your Google Calendar (for availability and meeting history)
+4. Connect your Google Contacts (to import your contact list)
 
----
+**Why this matters**:
+- Calendar integration helps CatchUp understand when you're available
+- Contact integration brings in your existing relationships
+- Both enable AI-powered suggestions based on your interaction patterns
 
-### Close Friends (Recommended: 15 people)
+**Privacy note**: CatchUp uses read-only access and never shares your data with third parties. See our privacy policy for details.
 
-**Who belongs here:**
-- Good friends you see regularly
-- Close colleagues you socialize with
-- Family members you're close to
-- People you actively maintain relationships with
+### Step 2: Organize Your Circles
 
-**Characteristics:**
-- Strong friendships
-- Regular communication (weekly to biweekly)
-- Shared activities and interests
-- Mutual support
+Once your integrations are connected, you'll organize your contacts into the 4 circles.
 
-**Default Contact Frequency:** Weekly to Biweekly
+**What you'll do**:
+1. Click on "Step 2: Organize Circles" in the onboarding indicator
+2. The Manage Circles flow will open automatically
+3. Review the educational tips about Dunbar's research
+4. Use the search bar to find specific contacts
+5. Assign each contact to a circle using the dropdown
+6. Review AI suggestions (when available) for quick categorization
+7. Track your progress as you go
 
----
+**Tips for success**:
+- **Start with your Inner Circle**: Think about who you'd call in an emergency
+- **Don't overthink it**: Your first instinct is usually right
+- **Use AI suggestions**: The system analyzes your communication patterns to help
+- **It's flexible**: You can always change assignments later
+- **Take breaks**: You don't have to categorize everyone at once
 
-### Active Friends (Recommended: 50 people)
+**Understanding AI suggestions**:
+The system analyzes:
+- Communication frequency (how often you interact)
+- Recency (when you last connected)
+- Calendar co-attendance (shared meetings/events)
 
-**Who belongs here:**
-- Friends you see occasionally
-- Colleagues you work with regularly
-- Extended family
-- People you enjoy spending time with
+High-confidence suggestions (80%+) are pre-selected for one-click acceptance.
 
-**Characteristics:**
-- Genuine friendships
-- Periodic communication (monthly)
-- Shared contexts (work, hobbies, etc.)
-- Positive relationships
+**Progress tracking**:
+- You'll see a progress bar showing how many contacts you've categorized
+- Circle capacity indicators show how many people are in each circle
+- You'll get encouraging messages at 25%, 50%, 75%, and 100%
 
-**Default Contact Frequency:** Monthly
+**Capacity warnings**:
+If a circle exceeds its recommended capacity, you'll see a gentle warning. This is just a suggestion - you can still add more people if it makes sense for your network.
 
----
+### Step 3: Review Group Mappings
 
-### Casual Network (Recommended: 150 people)
+If you have existing Google Contact groups, CatchUp will suggest how to map them to your new circles.
 
-**Who belongs here:**
-- Professional contacts
-- Friends from past contexts (old jobs, school)
-- Neighbors and community members
-- People you know but don't see often
+**What you'll do**:
+1. Click on "Step 3: Review Groups" in the onboarding indicator
+2. Review AI-generated mapping suggestions
+3. Accept mappings that make sense
+4. Skip or modify mappings that don't fit
+5. Complete the onboarding when all mappings are reviewed
 
-**Characteristics:**
-- Meaningful but less frequent contact
-- Quarterly or occasional communication
-- Specific shared contexts
-- Potential for deeper connection
+**Understanding confidence scores**:
+- **High (80%+)**: Strong match based on group names and member overlap
+- **Medium (60-79%)**: Reasonable match but may need review
+- **Low (<60%)**: Uncertain match - review carefully
 
-**Default Contact Frequency:** Quarterly
+**What happens to your groups**:
+- Accepted mappings will sync members to the suggested CatchUp groups
+- Skipped mappings won't affect your contacts
+- You can always manage groups manually later
 
----
+## After Onboarding
 
-### Acquaintances (500+ people)
+### Accessing Manage Circles Anytime
 
-**Who belongs here:**
-- People you've met but don't know well
-- Distant professional contacts
-- Social media connections
-- People you recognize but rarely interact with
+You can update your circle assignments anytime:
 
-**Characteristics:**
-- Minimal active relationship
-- Rare or no communication
-- Loose connections
-- Potential future contacts
+1. Go to the Directory page
+2. Click on the "Circles" tab
+3. Click the "Manage Circles" button
+4. Make your changes and save
 
-**Default Contact Frequency:** Yearly or Never
+### Resuming Incomplete Onboarding
 
----
+If you dismissed the onboarding:
 
-## Organizing Your Contacts
+1. Look for the "Resume Onboarding" button in the sidebar
+2. Click it to continue where you left off
+3. Your progress is automatically saved
 
-### The Circular Visualization
+### Updating Your Circles
 
-When you enter the onboarding interface, you'll see a beautiful circular visualization with five concentric rings representing your social circles.
+Relationships evolve! Update your circles as:
+- Friendships deepen (move someone to a closer circle)
+- Life changes (someone moves away, you change jobs)
+- You reconnect with old friends
+- You make new connections
 
-**Understanding the Visualization:**
-- **Innermost ring** - Inner Circle (smallest, most important)
-- **Second ring** - Close Friends
-- **Third ring** - Active Friends
-- **Fourth ring** - Casual Network
-- **Outermost ring** - Acquaintances (largest)
+## Best Practices
 
-Each contact appears as a colored dot with their initials inside the appropriate circle.
+### For Inner Circle
+- Keep this small and intentional
+- These are your "call at 3am" people
+- Quality over quantity
 
-### Drag-and-Drop Organization
+### For Close Friends
+- Aim for regular contact (monthly or more)
+- These are people you actively maintain relationships with
+- Include people you genuinely care about, not just frequent contacts
 
-**To assign a contact to a circle:**
+### For Active Friends
+- People you want to stay connected with
+- May see less frequently but still value the relationship
+- Shared interests or activities are common
 
-1. **Click and hold** on a contact dot
-2. **Drag** the contact toward the desired circle
-3. The target circle will **highlight** as you hover over it
-4. **Release** to drop the contact into the new circle
-5. The contact is **immediately saved** to that circle
-
-**Tips:**
-- You can drag contacts between any circles
-- Hover over a contact to see their full name
-- The visualization updates in real-time
-- Changes are saved automatically
-
-### Batch Operations
-
-**To move multiple contacts at once:**
-
-1. **Select multiple contacts** by clicking them (they'll highlight)
-2. **Drag any selected contact** to the target circle
-3. **All selected contacts** move together
-4. Confirm the batch operation
-
-This is especially useful when organizing many contacts from an import.
-
-### Circle Capacity Indicators
-
-Each circle shows:
-- **Current count** - How many contacts are in the circle
-- **Recommended size** - The ideal number based on Dunbar's research
-- **Status indicator** - Visual feedback (green = optimal, yellow = over capacity)
-
-**Don't worry about going over!** These are recommendations, not hard limits. Everyone's social network is unique.
-
----
-
-## AI-Powered Suggestions
-
-### How AI Suggestions Work
-
-CatchUp analyzes your interaction patterns to suggest the most appropriate circle for each contact. The AI considers:
-
-- **Communication frequency** - How often you interact
-- **Recency** - When you last communicated
-- **Consistency** - Regular vs. sporadic contact
-- **Calendar events** - Meetings and shared activities
-- **Response time** - How quickly you respond to each other
-- **Multi-channel** - Communication across email, calls, messages
-
-### Understanding Confidence Scores
-
-Each AI suggestion includes a confidence score:
-
-- **90-100%** - Very confident (pre-selected for one-click acceptance)
-- **70-89%** - Confident (suggested but easy to override)
-- **50-69%** - Moderate confidence (multiple options shown)
-- **Below 50%** - Low confidence (manual selection recommended)
-
-### Accepting or Overriding Suggestions
-
-**To accept an AI suggestion:**
-- Simply click the **"Accept"** button next to the suggested circle
-- The contact is immediately assigned
-
-**To override a suggestion:**
-- Drag the contact to a different circle, or
-- Click a different circle option if multiple are shown
-- The AI learns from your choice for future suggestions
-
-### Teaching the AI
-
-The more you use CatchUp, the better the AI becomes at understanding your relationship patterns. When you override suggestions, the system:
-
-- Records your preference
-- Analyzes why you made that choice
-- Adjusts future suggestions for similar contacts
-- Improves accuracy over time
-
----
-
-## Setting Contact Preferences
-
-### When Preferences Are Requested
-
-After assigning contacts to your **Inner Circle** and **Close Friends**, CatchUp will prompt you to set contact frequency preferences.
-
-### Smart Defaults
-
-CatchUp suggests default frequencies based on the circle:
-- **Inner Circle** - Daily to Weekly
-- **Close Friends** - Weekly to Biweekly
-
-You can accept these defaults or customize them for each contact.
-
-### Customizing Preferences
-
-**For each contact, you can set:**
-
-1. **Contact Frequency** - How often you want to stay in touch
-   - Daily
-   - Every 3 days
-   - Weekly
-   - Biweekly
-   - Monthly
-   - Quarterly
-   - Custom (specify days)
-
-2. **Preferred Contact Methods** (optional)
-   - Phone call
-   - Text message
-   - Email
-   - In-person
-   - Video call
-
-3. **Best Times** (optional)
-   - Weekday mornings
-   - Weekday evenings
-   - Weekends
-   - Specific days
-
-### Skipping Preference Setting
-
-You can skip preference setting and CatchUp will:
-- Apply default frequencies based on circle assignment
-- Allow you to set preferences later
-- Still provide contact suggestions
-
----
-
-## Weekly Catchup Feature
-
-### What is Weekly Catchup?
-
-Weekly Catchup breaks contact management into manageable weekly sessions, showing you 10-15 contacts to review each week.
-
-### How It Works
-
-**Every week, CatchUp generates a session with:**
-- Contacts that need categorization
-- Relationships that need attention
-- Suggested actions for each contact
-
-**During a session, you can:**
-- Assign uncategorized contacts to circles
-- Update circle assignments
-- Set or adjust preferences
-- Archive or remove contacts
-- Skip contacts for later review
-
-### Session Progress
-
-The Weekly Catchup interface shows:
-- **Progress bar** - How many contacts you've reviewed
-- **Estimated time** - Approximate time remaining
-- **Completion celebration** - Positive feedback when done
-
-### Skipping Sessions
-
-If you skip a Weekly Catchup session:
-- Unreviewed contacts are rescheduled for next week
-- Your progress is saved
-- No penalty for skipping
-
-### Completion
-
-When all contacts are organized:
-- Weekly Catchup focuses on relationship maintenance
-- Suggests contacts you haven't connected with recently
-- Helps you maintain balanced circles
-
----
-
-## Managing Your Network
-
-### Accessing Management Mode
-
-**From the Contacts page:**
-1. Click the **"Manage"** button
-2. The circular visualization opens with your current contacts
-3. Make any changes you need
-4. Exit to return to the main Contacts page
-
-### Ongoing Management
-
-Use management mode to:
-- **Reassign contacts** as relationships evolve
-- **Add new contacts** and categorize them
-- **Review circle balance** and rebalance if needed
-- **Update preferences** for existing contacts
-- **Archive or remove** contacts
-
-### Uncategorized Contact Tracking
-
-CatchUp tracks contacts that haven't been assigned to circles:
-
-- **Badge indicator** - Shows count of uncategorized contacts
-- **Priority display** - Uncategorized contacts appear first in management mode
-- **Automatic flagging** - New contacts are automatically flagged for categorization
-
-### Contact Pruning
-
-**To archive a contact:**
-- Select the contact in management mode
-- Click **"Archive"**
-- The contact is removed from active circles but data is preserved
-- You can reactivate archived contacts anytime
-
-**To remove a contact:**
-- Select the contact in management mode
-- Click **"Remove"**
-- Confirm the deletion
-- The contact is permanently deleted
-
-**When to prune:**
-- Relationships that have naturally ended
-- Duplicate contacts
-- Contacts you no longer wish to track
-- Outdated professional connections
-
----
-
-## Privacy & Security
-
-### Your Data is Private
-
-CatchUp takes your privacy seriously:
-
-- **Local storage** - All contact organization is stored in your private account
-- **No sharing** - Your circle assignments are never shared with third parties
-- **Encrypted** - Sensitive data is encrypted at rest and in transit
-- **User control** - You own your data and can export or delete it anytime
-
-### AI Analysis
-
-When AI analyzes your contacts:
-- Processing happens on secure servers
-- No data is shared with external AI services
-- Analysis is based only on your interaction patterns
-- Results are stored in your private account
-
-### Data Export
-
-**To export your contact organization data:**
-1. Go to Settings > Privacy
-2. Click **"Export My Data"**
-3. Download a JSON file with all your contacts, circles, and preferences
-
-### Account Deletion
-
-**To delete your account:**
-1. Go to Settings > Account
-2. Click **"Delete Account"**
-3. Confirm deletion
-4. All data is permanently removed within 30 days
-
----
-
-## Tips & Best Practices
-
-### Getting Started
-
-✅ **Start with your closest relationships** - Assign your Inner Circle first
-✅ **Trust the AI suggestions** - They're based on real interaction data
-✅ **Don't overthink it** - You can always adjust circles later
-✅ **Use Weekly Catchup** - Break the task into manageable chunks
-✅ **Set realistic preferences** - Be honest about how often you can stay in touch
-
-### Maintaining Your Network
-
-✅ **Review quarterly** - Relationships evolve, so update circles periodically
-✅ **Rebalance when needed** - If circles feel imbalanced, adjust them
-✅ **Archive inactive contacts** - Keep your active network focused
-✅ **Update preferences** - Adjust contact frequencies as life changes
-✅ **Celebrate milestones** - Acknowledge your progress in maintaining relationships
-
-### Common Mistakes to Avoid
-
-❌ **Don't put everyone in Inner Circle** - This defeats the purpose of prioritization
-❌ **Don't ignore capacity indicators** - They're based on cognitive research
-❌ **Don't skip preference setting** - It helps CatchUp provide better suggestions
-❌ **Don't feel guilty** - Not everyone can be in your closest circles
-❌ **Don't rush** - Take time to thoughtfully categorize relationships
-
-### Dealing with Difficult Decisions
-
-**"I have more than 5 people I'm very close to"**
-- Consider if some belong in Close Friends instead
-- Remember: Inner Circle is for daily/near-daily contact
-- Quality over quantity in the innermost circle
-
-**"I don't know which circle someone belongs in"**
-- Ask: How often do we actually communicate?
-- Consider: How much effort does this relationship require?
-- Trust your gut: Where does it feel right?
-
-**"Someone might be offended if they knew their circle"**
-- Remember: Circle assignments are completely private
-- This is for your benefit, not a judgment of others
-- Different relationships serve different purposes
-
-**"My circles don't match the recommended sizes"**
-- That's okay! Everyone's network is unique
-- Recommendations are guidelines, not rules
-- Focus on what works for your life
-
----
-
-## Mobile Experience
-
-### Touch Gestures
-
-On mobile devices:
-- **Tap** a contact to select it
-- **Long-press** to start dragging
-- **Drag** to move between circles
-- **Tap** outside to deselect
-
-### Mobile-Optimized Features
-
-- **Responsive layout** - Adapts to your screen size
-- **Touch-friendly** - Large tap targets for easy interaction
-- **Autocomplete** - Quick contact search and selection
-- **Orientation support** - Works in portrait or landscape
-
----
-
-## Gamification & Motivation
-
-### Progress Tracking
-
-CatchUp celebrates your progress with:
-- **Progress bars** - Visual feedback on completion
-- **Milestone celebrations** - Animations when you reach goals
-- **Achievement badges** - Rewards for network health
-- **Streak counters** - Track consistent engagement
-
-### Network Health Score
-
-Your network health score is based on:
-- **Circle balance** - How well-distributed your contacts are
-- **Engagement** - How actively you maintain relationships
-- **Maintenance** - How consistently you use CatchUp
-
-A healthy network typically has:
-- Balanced circles (not too many in any one circle)
-- Regular engagement with top circles
-- Consistent relationship maintenance
-
----
-
-## Getting Help
-
-### In-App Help
-
-- **Tooltips** - Hover over any element for quick help
-- **Help button** - Click for detailed explanations
-- **Educational prompts** - First-time user guidance
-
-### Support Resources
-
-- **Documentation** - Visit docs.catchup.app
-- **FAQ** - Common questions and answers
-- **Contact Support** - support@catchup.app
-- **Community Forum** - community.catchup.app
-
----
+### For Casual Network
+- Professional contacts and acquaintances
+- Occasional check-ins are sufficient
+- Still valuable connections worth maintaining
 
 ## Frequently Asked Questions
 
-**Q: Can I change circle assignments later?**
-A: Yes! You can reassign contacts anytime through management mode.
+### Do I have to categorize everyone?
 
-**Q: What if I have more than 5 people in my Inner Circle?**
-A: That's fine! The numbers are recommendations. Use what works for you.
+No! You can categorize as many or as few contacts as you want. The system works best when you've categorized at least 50% of your contacts, but you can always come back to finish later.
 
-**Q: Will contacts know which circle they're in?**
-A: No. Circle assignments are completely private to you.
+### What if someone doesn't fit neatly into a circle?
 
-**Q: Can I skip the onboarding process?**
-A: You can exit anytime, but we recommend completing it for the best experience.
+Go with your gut feeling about the relationship depth. If you're torn between two circles, consider:
+- How often do you actually interact?
+- Would you reach out to them with personal news?
+- How much effort do you put into maintaining the relationship?
 
-**Q: How does the AI learn my preferences?**
-A: It analyzes your interaction patterns and learns from your circle assignments.
+### Can I change circle assignments later?
 
-**Q: Can I use CatchUp without AI suggestions?**
-A: Yes! You can manually assign all contacts if you prefer.
+Absolutely! Relationships evolve, and your circles should too. You can update assignments anytime from the Circles section.
 
-**Q: What happens to archived contacts?**
-A: They're hidden from active circles but data is preserved. You can reactivate them anytime.
+### What if I exceed the recommended capacity?
 
-**Q: How often should I review my circles?**
-A: We recommend quarterly reviews, but you can adjust anytime.
+The capacities are guidelines based on research, not hard limits. You'll see a gentle warning, but you can still add more people if that's right for your network. Just be aware that maintaining more relationships requires more time and energy.
 
-**Q: Is my contact data secure?**
-A: Yes. All data is encrypted and stored privately in your account.
+### How does the AI make suggestions?
 
-**Q: Can I export my contact organization?**
-A: Yes. Go to Settings > Privacy > Export My Data.
+The AI analyzes:
+- **Communication frequency**: How often you email, message, or interact
+- **Recency**: When you last connected
+- **Calendar patterns**: Shared meetings and events
+- **Interaction quality**: Length and depth of communications
 
----
+It uses this data to suggest which circle best fits each relationship.
 
-## Conclusion
+### Is my data private?
 
-Contact Onboarding helps you build and maintain a healthy social network based on proven research. By organizing your relationships into meaningful circles, you can:
+Yes! All your contact data, circle assignments, and interaction history are:
+- Stored securely in your private account
+- Never shared with third parties
+- Processed using secure OAuth flows
+- Encrypted in transit and at rest
 
-- **Prioritize** the relationships that matter most
-- **Maintain** connections without feeling overwhelmed
-- **Balance** your social energy effectively
-- **Strengthen** your overall network health
+You can request data deletion at any time.
 
-Take your time, trust the process, and remember: the goal is to help you stay connected with the people who matter most in your life.
+### What if I don't have Google Calendar or Contacts?
 
-**Ready to get started?** Click "Begin Onboarding" to organize your network!
+Currently, the onboarding flow is optimized for Google integrations. However, you can:
+- Skip Step 1 and manually add contacts
+- Use the Manage Circles flow without AI suggestions
+- Still benefit from the circle organization system
 
----
+Future updates will support additional calendar and contact providers.
 
-*Last updated: November 2025*
-*Version: 1.0*
+### How long does onboarding take?
+
+It depends on your network size:
+- **Small network (< 50 contacts)**: 10-15 minutes
+- **Medium network (50-150 contacts)**: 20-30 minutes
+- **Large network (150+ contacts)**: 30-45 minutes
+
+Remember, you can take breaks and resume anytime!
+
+## Getting Help
+
+If you encounter issues or have questions:
+
+1. Check the troubleshooting section in the app
+2. Review error messages for specific guidance
+3. Contact support through the Help menu
+4. Visit our documentation at [docs link]
+
+## Next Steps
+
+After completing onboarding:
+
+1. **Explore the Directory**: View your organized contacts by circle
+2. **Set up preferences**: Configure how often you want to connect with each circle
+3. **Review suggestions**: CatchUp will start suggesting people to reach out to
+4. **Stay connected**: Use the app to maintain your relationships effortlessly
+
+Welcome to smarter relationship management! 🎉

@@ -239,7 +239,7 @@ class Step1IntegrationsHandler {
   }
   
   /**
-   * Handle connection errors
+   * Handle connection errors with retry logic
    * Requirements: 13.4
    */
   handleConnectionError(event) {
@@ -247,75 +247,136 @@ class Step1IntegrationsHandler {
     
     console.error(`${integration} connection error:`, error);
     
-    // Show error message with troubleshooting guidance
-    const errorMessage = this.getErrorMessage(integration, error);
+    // Classify the error
+    const errorInfo = this.classifyIntegrationError(integration, error);
     
+    // Show error message
     if (typeof showToast === 'function') {
-      showToast(errorMessage, 'error');
+      showToast(errorInfo.userMessage, 'error');
     }
     
-    // Show retry button
-    this.showRetryButton(integration);
+    // Show retry button if error is retryable
+    if (errorInfo.shouldShowRetry) {
+      this.showRetryButton(integration, errorInfo);
+    }
   }
   
   /**
-   * Get user-friendly error message with troubleshooting guidance
+   * Classify integration error and determine retry strategy
    * Requirements: 13.4
    */
-  getErrorMessage(integration, error) {
+  classifyIntegrationError(integration, error) {
     const integrationName = integration === 'google-calendar' ? 'Google Calendar' : 'Google Contacts';
+    let isRetryable = true;
+    let userMessage = '';
     
-    // Check for common error types
-    if (error && error.includes('popup')) {
-      return `${integrationName} connection failed. Please allow popups and try again.`;
+    // Check for specific error types
+    if (error && typeof error === 'string') {
+      // Popup blocked
+      if (error.includes('popup') || error.includes('blocked')) {
+        userMessage = `${integrationName} connection failed. Please allow popups and try again.`;
+        isRetryable = true;
+      }
+      // Permission denied
+      else if (error.includes('permission') || error.includes('denied')) {
+        userMessage = `${integrationName} connection failed. Please grant the required permissions.`;
+        isRetryable = true;
+      }
+      // Network error
+      else if (error.includes('network') || error.includes('fetch') || error.includes('timeout')) {
+        userMessage = `${integrationName} connection failed. Please check your internet connection and try again.`;
+        isRetryable = true;
+      }
+      // OAuth state mismatch
+      else if (error.includes('state') || error.includes('CSRF')) {
+        userMessage = `${integrationName} connection failed due to security check. Please try again.`;
+        isRetryable = true;
+      }
+      // Server error
+      else if (error.includes('500') || error.includes('503')) {
+        userMessage = `${integrationName} server is temporarily unavailable. Please try again in a moment.`;
+        isRetryable = true;
+      }
+      // Generic error
+      else {
+        userMessage = `${integrationName} connection failed. Try: 1) Refresh the page 2) Clear browser cache 3) Try a different browser`;
+        isRetryable = true;
+      }
+    } else {
+      userMessage = `${integrationName} connection failed. Please try again.`;
+      isRetryable = true;
     }
     
-    if (error && error.includes('permission')) {
-      return `${integrationName} connection failed. Please grant the required permissions.`;
-    }
-    
-    if (error && error.includes('network')) {
-      return `${integrationName} connection failed. Please check your internet connection and try again.`;
-    }
-    
-    // Generic error with troubleshooting
-    return `${integrationName} connection failed. Try: 1) Refresh the page 2) Clear browser cache 3) Try a different browser`;
+    return {
+      isRetryable,
+      shouldShowRetry: isRetryable,
+      userMessage,
+      technicalMessage: error || 'Unknown error'
+    };
   }
   
   /**
-   * Show retry button for failed connection
+   * Show retry button for failed connection with error context
    * Requirements: 13.4
    */
-  showRetryButton(integration) {
+  showRetryButton(integration, errorInfo) {
     const section = integration === 'google-calendar' 
       ? document.querySelector('[data-integration="google-calendar"]')
       : document.querySelector('[data-integration="google-contacts"]');
     
     if (!section) return;
     
-    // Check if retry button already exists
-    if (section.querySelector('.onboarding-retry-btn')) return;
+    // Check if retry section already exists
+    if (section.querySelector('.onboarding-retry-section')) {
+      // Update existing error message
+      const existingMsg = section.querySelector('.onboarding-error-message');
+      if (existingMsg) {
+        existingMsg.textContent = errorInfo.userMessage;
+      }
+      return;
+    }
     
-    const retryBtn = document.createElement('button');
-    retryBtn.className = 'onboarding-retry-btn accent';
-    retryBtn.textContent = 'Retry Connection';
-    retryBtn.style.cssText = `
+    // Create retry section with error message
+    const retrySection = document.createElement('div');
+    retrySection.className = 'onboarding-retry-section';
+    retrySection.style.cssText = `
       margin-top: 12px;
-      width: 100%;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      border-left: 3px solid var(--status-error);
     `;
     
+    retrySection.innerHTML = `
+      <div class="onboarding-error-message" style="
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+      ">${errorInfo.userMessage}</div>
+      <button class="onboarding-retry-btn accent" style="width: 100%;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Retry Connection
+      </button>
+    `;
+    
+    const retryBtn = retrySection.querySelector('.onboarding-retry-btn');
     retryBtn.addEventListener('click', () => {
+      // Remove error section
+      retrySection.remove();
+      
       // Trigger the connection flow again
       const connectBtn = section.querySelector('button[onclick*="connect"]');
       if (connectBtn) {
         connectBtn.click();
       }
-      retryBtn.remove();
     });
     
     // Find the button container or add to section
     const buttonContainer = section.querySelector('.card-actions') || section;
-    buttonContainer.appendChild(retryBtn);
+    buttonContainer.appendChild(retrySection);
   }
   
   /**

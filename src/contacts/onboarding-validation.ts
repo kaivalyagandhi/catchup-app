@@ -1,502 +1,350 @@
 /**
- * Onboarding Input Validation
+ * Onboarding Validation
  *
- * Provides comprehensive validation for all onboarding-related inputs
- * including circle assignments, preferences, and state transitions.
+ * Validates circle assignments, onboarding state updates, and other
+ * onboarding-related data to ensure data integrity.
+ *
+ * Requirements: All requirements (data integrity)
  */
 
-import { ValidationError } from './onboarding-errors';
+import { OnboardingState } from './onboarding-state-manager';
 
-/**
- * Valid Dunbar circles
- */
-export const VALID_CIRCLES = ['inner', 'close', 'active', 'casual', 'acquaintance'] as const;
-export type DunbarCircle = (typeof VALID_CIRCLES)[number];
-
-/**
- * Valid onboarding steps
- */
-export const VALID_STEPS = [
-  'welcome',
-  'import_contacts',
-  'circle_assignment',
-  'preference_setting',
-  'group_overlay',
-  'completion',
-] as const;
-export type OnboardingStep = (typeof VALID_STEPS)[number];
-
-/**
- * Valid onboarding triggers
- */
-export const VALID_TRIGGERS = ['new_user', 'post_import', 'manage'] as const;
-export type OnboardingTrigger = (typeof VALID_TRIGGERS)[number];
-
-/**
- * Valid frequency preferences
- */
-export const VALID_FREQUENCIES = [
-  'daily',
-  'weekly',
-  'biweekly',
-  'monthly',
-  'quarterly',
-  'yearly',
-  'flexible',
-  'na',
-] as const;
-export type FrequencyPreference = (typeof VALID_FREQUENCIES)[number];
-
-/**
- * Valid achievement types
- */
-export const VALID_ACHIEVEMENT_TYPES = [
-  'first_contact_categorized',
-  'inner_circle_complete',
-  'all_contacts_categorized',
-  'week_streak_3',
-  'week_streak_10',
-  'balanced_network',
-  'network_health_excellent',
-] as const;
-export type AchievementType = (typeof VALID_ACHIEVEMENT_TYPES)[number];
-
-/**
- * Validation result interface
- */
 export interface ValidationResult {
-  valid: boolean;
-  errors: Record<string, string[]>;
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
 }
 
-/**
- * Validate UUID format
- */
-export function isValidUUID(uuid: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-}
+export class OnboardingValidator {
+  /**
+   * Validate circle assignment
+   * Requirements: All requirements (data integrity)
+   */
+  static validateCircleAssignment(
+    contactId: number,
+    circle: string | null
+  ): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
 
-/**
- * Validate circle name
- */
-export function validateCircle(circle: string): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  if (!circle || typeof circle !== 'string') {
-    errors.circle = ['Circle is required'];
-  } else if (!VALID_CIRCLES.includes(circle as DunbarCircle)) {
-    errors.circle = [`Invalid circle. Must be one of: ${VALID_CIRCLES.join(', ')}`];
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate onboarding step
- */
-export function validateStep(step: string): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  if (!step || typeof step !== 'string') {
-    errors.step = ['Step is required'];
-  } else if (!VALID_STEPS.includes(step as OnboardingStep)) {
-    errors.step = [`Invalid step. Must be one of: ${VALID_STEPS.join(', ')}`];
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate onboarding trigger
- */
-export function validateTrigger(trigger: string): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  if (!trigger || typeof trigger !== 'string') {
-    errors.trigger = ['Trigger is required'];
-  } else if (!VALID_TRIGGERS.includes(trigger as OnboardingTrigger)) {
-    errors.trigger = [`Invalid trigger. Must be one of: ${VALID_TRIGGERS.join(', ')}`];
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate frequency preference
- */
-export function validateFrequency(frequency: string): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  if (!frequency || typeof frequency !== 'string') {
-    errors.frequency = ['Frequency is required'];
-  } else if (!VALID_FREQUENCIES.includes(frequency as FrequencyPreference)) {
-    errors.frequency = [`Invalid frequency. Must be one of: ${VALID_FREQUENCIES.join(', ')}`];
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate achievement type
- */
-export function validateAchievementType(type: string): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  if (!type || typeof type !== 'string') {
-    errors.achievementType = ['Achievement type is required'];
-  } else if (!VALID_ACHIEVEMENT_TYPES.includes(type as AchievementType)) {
-    errors.achievementType = [
-      `Invalid achievement type. Must be one of: ${VALID_ACHIEVEMENT_TYPES.join(', ')}`,
-    ];
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate contact ID
- */
-export function validateContactId(contactId: string): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  if (!contactId || typeof contactId !== 'string') {
-    errors.contactId = ['Contact ID is required'];
-  } else if (!isValidUUID(contactId)) {
-    errors.contactId = ['Contact ID must be a valid UUID'];
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate user ID
- */
-export function validateUserId(userId: string): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  if (!userId || typeof userId !== 'string') {
-    errors.userId = ['User ID is required'];
-  } else if (!isValidUUID(userId)) {
-    errors.userId = ['User ID must be a valid UUID'];
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate circle assignment input
- */
-export interface CircleAssignmentInput {
-  contactId: string;
-  circle: string;
-  confidence?: number;
-  userOverride?: boolean;
-}
-
-export function validateCircleAssignment(input: CircleAssignmentInput): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  // Validate contact ID
-  const contactIdResult = validateContactId(input.contactId);
-  if (!contactIdResult.valid) {
-    Object.assign(errors, contactIdResult.errors);
-  }
-
-  // Validate circle
-  const circleResult = validateCircle(input.circle);
-  if (!circleResult.valid) {
-    Object.assign(errors, circleResult.errors);
-  }
-
-  // Validate confidence if provided
-  if (input.confidence !== undefined) {
-    if (typeof input.confidence !== 'number' || input.confidence < 0 || input.confidence > 1) {
-      errors.confidence = ['Confidence must be a number between 0 and 1'];
+    // Validate contact ID
+    if (!contactId || typeof contactId !== 'number' || contactId <= 0) {
+      errors.push('Invalid contact ID');
     }
-  }
 
-  // Validate userOverride if provided
-  if (input.userOverride !== undefined && typeof input.userOverride !== 'boolean') {
-    errors.userOverride = ['User override must be a boolean'];
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate batch circle assignment input
- */
-export function validateBatchCircleAssignment(
-  assignments: CircleAssignmentInput[]
-): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  if (!Array.isArray(assignments)) {
-    errors.assignments = ['Assignments must be an array'];
-    return { valid: false, errors };
-  }
-
-  if (assignments.length === 0) {
-    errors.assignments = ['At least one assignment is required'];
-    return { valid: false, errors };
-  }
-
-  if (assignments.length > 100) {
-    errors.assignments = ['Maximum 100 assignments per batch'];
-    return { valid: false, errors };
-  }
-
-  // Validate each assignment
-  assignments.forEach((assignment, index) => {
-    const result = validateCircleAssignment(assignment);
-    if (!result.valid) {
-      Object.keys(result.errors).forEach((key) => {
-        const errorKey = `assignments[${index}].${key}`;
-        errors[errorKey] = result.errors[key];
-      });
+    // Validate circle value
+    const validCircles = ['inner', 'close', 'active', 'casual', null];
+    if (circle !== null && !validCircles.includes(circle)) {
+      errors.push(`Invalid circle value: ${circle}. Must be one of: inner, close, active, casual, or null`);
     }
-  });
 
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate preference setting input
- */
-export interface PreferenceInput {
-  contactId: string;
-  frequency: string;
-  customDays?: number;
-}
-
-export function validatePreference(input: PreferenceInput): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  // Validate contact ID
-  const contactIdResult = validateContactId(input.contactId);
-  if (!contactIdResult.valid) {
-    Object.assign(errors, contactIdResult.errors);
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
   }
 
-  // Validate frequency
-  const frequencyResult = validateFrequency(input.frequency);
-  if (!frequencyResult.valid) {
-    Object.assign(errors, frequencyResult.errors);
-  }
+  /**
+   * Validate onboarding state structure
+   * Requirements: All requirements (data integrity)
+   */
+  static validateOnboardingState(state: Partial<OnboardingState>): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
 
-  // Validate custom days if provided
-  if (input.customDays !== undefined) {
-    if (typeof input.customDays !== 'number' || input.customDays < 1 || input.customDays > 365) {
-      errors.customDays = ['Custom days must be between 1 and 365'];
+    // Validate userId
+    if (!state.userId || typeof state.userId !== 'string' || state.userId.trim() === '') {
+      errors.push('userId is required and must be a non-empty string');
     }
-  }
 
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate onboarding initialization input
- */
-export interface OnboardingInitInput {
-  trigger: string;
-  source?: string;
-  contactCount?: number;
-}
-
-export function validateOnboardingInit(input: OnboardingInitInput): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  // Validate trigger
-  const triggerResult = validateTrigger(input.trigger);
-  if (!triggerResult.valid) {
-    Object.assign(errors, triggerResult.errors);
-  }
-
-  // Validate source if provided
-  if (input.source !== undefined) {
-    const validSources = ['google', 'manual', 'import'];
-    if (!validSources.includes(input.source)) {
-      errors.source = [`Invalid source. Must be one of: ${validSources.join(', ')}`];
-    }
-  }
-
-  // Validate contact count if provided
-  if (input.contactCount !== undefined) {
-    if (
-      typeof input.contactCount !== 'number' ||
-      input.contactCount < 0 ||
-      input.contactCount > 10000
-    ) {
-      errors.contactCount = ['Contact count must be between 0 and 10000'];
-    }
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate progress update input
- */
-export interface ProgressUpdateInput {
-  step: string;
-  data?: any;
-}
-
-export function validateProgressUpdate(input: ProgressUpdateInput): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  // Validate step
-  const stepResult = validateStep(input.step);
-  if (!stepResult.valid) {
-    Object.assign(errors, stepResult.errors);
-  }
-
-  // Validate data if provided
-  if (input.data !== undefined && typeof input.data !== 'object') {
-    errors.data = ['Progress data must be an object'];
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Validate weekly catchup review input
- */
-export interface WeeklyCatchupReviewInput {
-  contactId: string;
-  action: string;
-  newCircle?: string;
-  preference?: string;
-}
-
-export function validateWeeklyCatchupReview(input: WeeklyCatchupReviewInput): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  // Validate contact ID
-  const contactIdResult = validateContactId(input.contactId);
-  if (!contactIdResult.valid) {
-    Object.assign(errors, contactIdResult.errors);
-  }
-
-  // Validate action
-  const validActions = ['keep', 'archive', 'update_circle', 'set_preference'];
-  if (!input.action || !validActions.includes(input.action)) {
-    errors.action = [`Invalid action. Must be one of: ${validActions.join(', ')}`];
-  }
-
-  // Validate new circle if provided
-  if (input.newCircle !== undefined) {
-    const circleResult = validateCircle(input.newCircle);
-    if (!circleResult.valid) {
-      Object.assign(errors, circleResult.errors);
-    }
-  }
-
-  // Validate preference if provided
-  if (input.preference !== undefined) {
-    const frequencyResult = validateFrequency(input.preference);
-    if (!frequencyResult.valid) {
-      Object.assign(errors, frequencyResult.errors);
-    }
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
-}
-
-/**
- * Throw validation error if validation fails
- */
-export function throwIfInvalid(result: ValidationResult): void {
-  if (!result.valid) {
-    throw new ValidationError('Validation failed', result.errors);
-  }
-}
-
-/**
- * Sanitize string input
- */
-export function sanitizeString(input: string, maxLength: number = 1000): string {
-  if (!input) return '';
-
-  return input
-    .trim()
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .substring(0, maxLength);
-}
-
-/**
- * Sanitize and validate contact IDs array
- */
-export function validateContactIds(contactIds: string[]): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  if (!Array.isArray(contactIds)) {
-    errors.contactIds = ['Contact IDs must be an array'];
-    return { valid: false, errors };
-  }
-
-  if (contactIds.length === 0) {
-    errors.contactIds = ['At least one contact ID is required'];
-    return { valid: false, errors };
-  }
-
-  if (contactIds.length > 1000) {
-    errors.contactIds = ['Maximum 1000 contact IDs allowed'];
-    return { valid: false, errors };
-  }
-
-  // Validate each contact ID
-  contactIds.forEach((id, index) => {
-    if (!isValidUUID(id)) {
-      if (!errors.contactIds) {
-        errors.contactIds = [];
+    // Validate currentStep
+    if (state.currentStep !== undefined) {
+      if (![1, 2, 3].includes(state.currentStep)) {
+        errors.push('currentStep must be 1, 2, or 3');
       }
-      errors.contactIds.push(`Invalid UUID at index ${index}: ${id}`);
     }
-  });
 
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
+    // Validate isComplete
+    if (state.isComplete !== undefined && typeof state.isComplete !== 'boolean') {
+      errors.push('isComplete must be a boolean');
+    }
+
+    // Validate steps structure
+    if (state.steps) {
+      // Validate integrations step
+      if (state.steps.integrations) {
+        if (typeof state.steps.integrations.complete !== 'boolean') {
+          errors.push('steps.integrations.complete must be a boolean');
+        }
+        if (typeof state.steps.integrations.googleCalendar !== 'boolean') {
+          errors.push('steps.integrations.googleCalendar must be a boolean');
+        }
+        if (typeof state.steps.integrations.googleContacts !== 'boolean') {
+          errors.push('steps.integrations.googleContacts must be a boolean');
+        }
+      }
+
+      // Validate circles step
+      if (state.steps.circles) {
+        if (typeof state.steps.circles.complete !== 'boolean') {
+          errors.push('steps.circles.complete must be a boolean');
+        }
+        if (
+          typeof state.steps.circles.contactsCategorized !== 'number' ||
+          state.steps.circles.contactsCategorized < 0
+        ) {
+          errors.push('steps.circles.contactsCategorized must be a non-negative number');
+        }
+        if (
+          typeof state.steps.circles.totalContacts !== 'number' ||
+          state.steps.circles.totalContacts < 0
+        ) {
+          errors.push('steps.circles.totalContacts must be a non-negative number');
+        }
+
+        // Validate logical consistency
+        if (
+          state.steps.circles.contactsCategorized > state.steps.circles.totalContacts
+        ) {
+          errors.push('contactsCategorized cannot exceed totalContacts');
+        }
+      }
+
+      // Validate groups step
+      if (state.steps.groups) {
+        if (typeof state.steps.groups.complete !== 'boolean') {
+          errors.push('steps.groups.complete must be a boolean');
+        }
+        if (
+          typeof state.steps.groups.mappingsReviewed !== 'number' ||
+          state.steps.groups.mappingsReviewed < 0
+        ) {
+          errors.push('steps.groups.mappingsReviewed must be a non-negative number');
+        }
+        if (
+          typeof state.steps.groups.totalMappings !== 'number' ||
+          state.steps.groups.totalMappings < 0
+        ) {
+          errors.push('steps.groups.totalMappings must be a non-negative number');
+        }
+
+        // Validate logical consistency
+        if (state.steps.groups.mappingsReviewed > state.steps.groups.totalMappings) {
+          errors.push('mappingsReviewed cannot exceed totalMappings');
+        }
+      }
+    }
+
+    // Validate timestamps
+    if (state.createdAt && !(state.createdAt instanceof Date)) {
+      errors.push('createdAt must be a Date object');
+    }
+    if (state.updatedAt && !(state.updatedAt instanceof Date)) {
+      errors.push('updatedAt must be a Date object');
+    }
+    if (state.dismissedAt && !(state.dismissedAt instanceof Date)) {
+      errors.push('dismissedAt must be a Date object');
+    }
+
+    // Validate logical consistency of completion
+    if (state.isComplete && state.steps) {
+      if (
+        !state.steps.integrations?.complete ||
+        !state.steps.circles?.complete ||
+        !state.steps.groups?.complete
+      ) {
+        warnings.push(
+          'isComplete is true but not all steps are marked complete'
+        );
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  /**
+   * Validate circle capacity
+   * Requirements: All requirements (data integrity)
+   */
+  static validateCircleCapacity(
+    circle: 'inner' | 'close' | 'active' | 'casual',
+    currentCount: number
+  ): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    const capacities = {
+      inner: 10,
+      close: 25,
+      active: 50,
+      casual: 100,
+    };
+
+    const capacity = capacities[circle];
+
+    if (currentCount < 0) {
+      errors.push('Circle count cannot be negative');
+    }
+
+    if (currentCount > capacity) {
+      warnings.push(
+        `${circle} circle is over capacity (${currentCount}/${capacity}). Consider rebalancing for better relationship management.`
+      );
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  /**
+   * Validate group mapping
+   * Requirements: All requirements (data integrity)
+   */
+  static validateGroupMapping(
+    googleGroupId: string,
+    catchupGroupId: string
+  ): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (!googleGroupId || typeof googleGroupId !== 'string' || googleGroupId.trim() === '') {
+      errors.push('googleGroupId is required and must be a non-empty string');
+    }
+
+    if (!catchupGroupId || typeof catchupGroupId !== 'string' || catchupGroupId.trim() === '') {
+      errors.push('catchupGroupId is required and must be a non-empty string');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  /**
+   * Validate step completion logic
+   * Requirements: 2.5, 3.5, 5.5
+   */
+  static validateStepCompletion(state: OnboardingState): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Step 1: Both integrations must be connected
+    if (state.steps.integrations.complete) {
+      if (!state.steps.integrations.googleCalendar || !state.steps.integrations.googleContacts) {
+        errors.push('Step 1 marked complete but not all integrations are connected');
+      }
+    }
+
+    // Step 2: At least 50% of contacts must be categorized
+    if (state.steps.circles.complete) {
+      if (state.steps.circles.totalContacts > 0) {
+        const percentCategorized =
+          state.steps.circles.contactsCategorized / state.steps.circles.totalContacts;
+        if (percentCategorized < 0.5) {
+          warnings.push(
+            'Step 2 marked complete but less than 50% of contacts are categorized'
+          );
+        }
+      }
+    }
+
+    // Step 3: All mappings must be reviewed
+    if (state.steps.groups.complete) {
+      if (state.steps.groups.totalMappings > 0) {
+        if (state.steps.groups.mappingsReviewed < state.steps.groups.totalMappings) {
+          warnings.push(
+            'Step 3 marked complete but not all mappings are reviewed'
+          );
+        }
+      }
+    }
+
+    // Overall completion: All steps must be complete
+    if (state.isComplete) {
+      if (
+        !state.steps.integrations.complete ||
+        !state.steps.circles.complete ||
+        !state.steps.groups.complete
+      ) {
+        errors.push('Onboarding marked complete but not all steps are complete');
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  /**
+   * Show validation errors to user
+   */
+  static showValidationErrors(result: ValidationResult): void {
+    if (typeof window === 'undefined') return;
+
+    const showToast = (window as Window & { showToast?: (msg: string, type: string) => void }).showToast;
+
+    if (typeof showToast === 'function') {
+      // Show errors
+      result.errors.forEach((error) => {
+        showToast(error, 'error');
+      });
+
+      // Show warnings
+      result.warnings.forEach((warning) => {
+        showToast(warning, 'warning');
+      });
+    } else {
+      // Fallback to console
+      result.errors.forEach((error) => console.error('Validation error:', error));
+      result.warnings.forEach((warning) => console.warn('Validation warning:', warning));
+    }
+  }
+}
+
+// Export convenience functions
+export function validateCircleAssignment(
+  contactId: number,
+  circle: string | null
+): ValidationResult {
+  return OnboardingValidator.validateCircleAssignment(contactId, circle);
+}
+
+export function validateOnboardingState(
+  state: Partial<OnboardingState>
+): ValidationResult {
+  return OnboardingValidator.validateOnboardingState(state);
+}
+
+export function validateCircleCapacity(
+  circle: 'inner' | 'close' | 'active' | 'casual',
+  currentCount: number
+): ValidationResult {
+  return OnboardingValidator.validateCircleCapacity(circle, currentCount);
+}
+
+export function validateGroupMapping(
+  googleGroupId: string,
+  catchupGroupId: string
+): ValidationResult {
+  return OnboardingValidator.validateGroupMapping(googleGroupId, catchupGroupId);
+}
+
+export function validateStepCompletion(state: OnboardingState): ValidationResult {
+  return OnboardingValidator.validateStepCompletion(state);
+}
+
+export function showValidationErrors(result: ValidationResult): void {
+  return OnboardingValidator.showValidationErrors(result);
 }

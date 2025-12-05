@@ -77,12 +77,27 @@ class ManageCirclesFlow {
    */
   render() {
     const html = `
-      <div class="manage-circles-overlay" id="manage-circles-overlay">
+      <div class="manage-circles-overlay" 
+           id="manage-circles-overlay" 
+           role="dialog" 
+           aria-modal="true" 
+           aria-labelledby="manage-circles-title">
         <div class="manage-circles-modal" id="manage-circles-modal">
           <div class="manage-circles__header">
-            <h2>Organize Your Circles</h2>
-            <button class="btn-close" aria-label="Close" id="manage-circles-close">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px;">
+            <h2 id="manage-circles-title">Organize Your Circles</h2>
+            <button class="btn-close" 
+                    aria-label="Close circle organization dialog" 
+                    id="manage-circles-close"
+                    tabindex="0">
+              <svg xmlns="http://www.w3.org/2000/svg" 
+                   viewBox="0 0 24 24" 
+                   fill="none" 
+                   stroke="currentColor" 
+                   stroke-width="2" 
+                   stroke-linecap="round" 
+                   stroke-linejoin="round" 
+                   style="width: 20px; height: 20px;"
+                   aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
@@ -96,8 +111,12 @@ class ManageCirclesFlow {
           ${this.renderContactGrid()}
           
           <div class="manage-circles__actions">
-            <button class="btn-secondary" id="manage-circles-skip">Skip for Now</button>
-            <button class="btn-primary" id="manage-circles-save">Save & Continue</button>
+            <button class="btn-secondary" 
+                    id="manage-circles-skip"
+                    tabindex="0">Skip for Now</button>
+            <button class="btn-primary" 
+                    id="manage-circles-save"
+                    tabindex="0">Save & Continue</button>
           </div>
         </div>
       </div>
@@ -137,16 +156,27 @@ class ManageCirclesFlow {
    */
   renderSearchBar() {
     return `
-      <div class="search-bar">
-        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="search-bar" role="search">
+        <label for="manage-circles-search" class="sr-only">Search contacts</label>
+        <svg class="search-bar__icon" 
+             xmlns="http://www.w3.org/2000/svg" 
+             viewBox="0 0 24 24" 
+             fill="none" 
+             stroke="currentColor" 
+             stroke-width="2" 
+             stroke-linecap="round" 
+             stroke-linejoin="round"
+             aria-hidden="true">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
         <input 
-          type="text" 
+          type="search" 
           class="search-bar__input"
           id="manage-circles-search"
           placeholder="Search contacts..."
+          aria-label="Search contacts by name"
+          aria-describedby="search-results-count"
           value="${this.escapeHtml(this.searchQuery)}"
         />
       </div>
@@ -445,10 +475,27 @@ class ManageCirclesFlow {
   }
   
   /**
-   * Handle circle assignment for a contact
-   * Requirements: 3.5, 14.1, 14.2
+   * Handle circle assignment for a contact with validation
+   * Requirements: 3.5, 14.1, 14.2, All requirements (data integrity)
    */
   async handleCircleAssignment(contactId, circleId) {
+    // Validate inputs
+    const validationResult = this.validateCircleAssignment(contactId, circleId);
+    if (!validationResult.isValid) {
+      console.error('Invalid circle assignment:', validationResult.errors);
+      if (typeof showToast === 'function') {
+        showToast(validationResult.errors[0], 'error');
+      }
+      return;
+    }
+    
+    // Show warnings if any
+    if (validationResult.warnings.length > 0 && typeof showToast === 'function') {
+      validationResult.warnings.forEach(warning => {
+        showToast(warning, 'warning');
+      });
+    }
+    
     // Update local assignments
     if (circleId) {
       this.assignments[contactId] = circleId;
@@ -685,6 +732,45 @@ class ManageCirclesFlow {
    */
   destroy() {
     this.close();
+  }
+  
+  /**
+   * Validate circle assignment
+   * Requirements: All requirements (data integrity)
+   */
+  validateCircleAssignment(contactId, circle) {
+    const errors = [];
+    const warnings = [];
+    
+    // Validate contact ID
+    if (!contactId || typeof contactId !== 'number' || contactId <= 0) {
+      errors.push('Invalid contact ID');
+    }
+    
+    // Validate circle value
+    const validCircles = ['inner', 'close', 'active', 'casual', null, ''];
+    if (circle && !validCircles.includes(circle)) {
+      errors.push(`Invalid circle: ${circle}`);
+    }
+    
+    // Check capacity warnings
+    if (circle) {
+      const circleObj = this.circles.find(c => c.id === circle);
+      if (circleObj) {
+        const newCount = circleObj.count + 1;
+        if (newCount > circleObj.capacity) {
+          warnings.push(
+            `${circleObj.name} will be over capacity (${newCount}/${circleObj.capacity}). Consider rebalancing.`
+          );
+        }
+      }
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
   }
   
   /**

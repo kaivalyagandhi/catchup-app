@@ -363,8 +363,8 @@ class Step3GroupMappingHandler {
   }
   
   /**
-   * Accept a mapping suggestion
-   * Requirements: 5.4
+   * Accept a mapping suggestion with retry logic
+   * Requirements: 5.4, 13.4
    */
   async acceptMapping(mappingId) {
     const mapping = this.mappings.find(m => m.id === mappingId);
@@ -383,6 +383,13 @@ class Step3GroupMappingHandler {
     
     const authToken = localStorage.getItem('authToken');
     
+    // Disable the accept button during request
+    const acceptBtn = document.querySelector(`.btn-accept[data-mapping-id="${mappingId}"]`);
+    if (acceptBtn) {
+      acceptBtn.disabled = true;
+      acceptBtn.textContent = 'Accepting...';
+    }
+    
     try {
       const response = await fetch(`${window.API_BASE || '/api'}/google-contacts/accept-mapping`, {
         method: 'POST',
@@ -399,7 +406,8 @@ class Step3GroupMappingHandler {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to accept mapping');
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
       }
       
       // Mark as reviewed
@@ -419,10 +427,113 @@ class Step3GroupMappingHandler {
       
     } catch (error) {
       console.error('Failed to accept mapping:', error);
+      
+      // Re-enable button
+      if (acceptBtn) {
+        acceptBtn.disabled = false;
+        acceptBtn.textContent = 'Accept';
+      }
+      
+      // Classify error and show appropriate message
+      const errorInfo = this.classifyMappingError(error);
+      
       if (typeof showToast === 'function') {
-        showToast('Failed to accept mapping. Please try again.', 'error');
+        showToast(errorInfo.userMessage, 'error');
+      }
+      
+      // Show retry button if error is retryable
+      if (errorInfo.shouldShowRetry) {
+        this.showMappingRetryButton(mappingId, () => this.acceptMapping(mappingId));
       }
     }
+  }
+  
+  /**
+   * Classify mapping error
+   * Requirements: 13.4
+   */
+  classifyMappingError(error) {
+    const errorMessage = error.message || String(error);
+    
+    // Network errors
+    if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed to fetch')) {
+      return {
+        isRetryable: true,
+        shouldShowRetry: true,
+        userMessage: 'Network error. Please check your connection and try again.',
+        technicalMessage: errorMessage
+      };
+    }
+    
+    // Timeout
+    if (errorMessage.includes('timeout')) {
+      return {
+        isRetryable: true,
+        shouldShowRetry: true,
+        userMessage: 'Request timed out. Please try again.',
+        technicalMessage: errorMessage
+      };
+    }
+    
+    // Server errors (5xx)
+    if (errorMessage.includes('500') || errorMessage.includes('503')) {
+      return {
+        isRetryable: true,
+        shouldShowRetry: true,
+        userMessage: 'Server error. Please try again in a moment.',
+        technicalMessage: errorMessage
+      };
+    }
+    
+    // Auth errors (401/403)
+    if (errorMessage.includes('401') || errorMessage.includes('403')) {
+      return {
+        isRetryable: false,
+        shouldShowRetry: false,
+        userMessage: 'Authentication failed. Please refresh the page and sign in again.',
+        technicalMessage: errorMessage
+      };
+    }
+    
+    // Default
+    return {
+      isRetryable: true,
+      shouldShowRetry: true,
+      userMessage: 'Failed to accept mapping. Please try again.',
+      technicalMessage: errorMessage
+    };
+  }
+  
+  /**
+   * Show retry button for mapping action
+   * Requirements: 13.4
+   */
+  showMappingRetryButton(mappingId, retryCallback) {
+    const card = document.querySelector(`[data-mapping-id="${mappingId}"]`);
+    if (!card) return;
+    
+    const actionsDiv = card.querySelector('.mapping-card__actions');
+    if (!actionsDiv) return;
+    
+    // Check if retry button already exists
+    if (actionsDiv.querySelector('.btn-retry')) return;
+    
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn-retry';
+    retryBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 4px; vertical-align: middle;">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+      </svg>
+      Retry
+    `;
+    
+    retryBtn.addEventListener('click', () => {
+      retryBtn.remove();
+      retryCallback();
+    });
+    
+    actionsDiv.appendChild(retryBtn);
   }
   
   /**
