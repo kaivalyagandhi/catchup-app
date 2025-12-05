@@ -33,24 +33,25 @@ class EditsMenuCompact {
    */
   render() {
     this.element = document.createElement('div');
-    this.element.className = 'edits-menu';
+    this.element.className = 'edits-menu-wrapper';
 
     this.element.innerHTML = `
-      <div class="edits-menu__header">
-        <h2 class="edits-menu__title">Edits</h2>
+      <h2 style="margin-bottom: 20px;">Edits</h2>
+      <div class="edits-menu">
+        <div class="edits-menu__tabs" role="tablist">
+          <button class="edits-menu__tab edits-menu__tab--active" role="tab" aria-selected="true" data-tab="pending">
+            Pending Edits
+            <span class="edits-menu__tab-count" data-count="pending" style="display: none;">0</span>
+          </button>
+          <button class="edits-menu__tab" role="tab" aria-selected="false" data-tab="history">
+            Edit History
+          </button>
+        </div>
+        <div class="edits-menu__content" role="tabpanel"></div>
       </div>
-      <div class="edits-menu__tabs" role="tablist">
-        <button class="edits-menu__tab edits-menu__tab--active" role="tab" aria-selected="true" data-tab="pending">
-          Pending Edits
-          <span class="edits-menu__tab-count" data-count="pending" style="display: none;">0</span>
-        </button>
-        <button class="edits-menu__tab" role="tab" aria-selected="false" data-tab="history">
-          Edit History
-        </button>
-      </div>
-      <div class="edits-menu__content" role="tabpanel"></div>
     `;
 
+    this.menuElement = this.element.querySelector('.edits-menu');
     this.contentElement = this.element.querySelector('.edits-menu__content');
 
     // Set up tab click handlers

@@ -5324,43 +5324,13 @@ async function loadPreferences() {
         <!-- Notifications Section -->
         <div style="margin-top: 24px;">
             <h3 style="margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; color: var(--text-primary); font-size: 16px;">Notifications</h3>
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label class="pill-switch">
-                    <input type="checkbox" checked>
-                    <span class="pill-switch__track">
-                        <span class="pill-switch__thumb"></span>
-                    </span>
-                    <span class="pill-switch__label">Enable SMS notifications</span>
-                </label>
+            <div style="padding: 20px; background: var(--bg-hover); border-radius: 10px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 12px;">📬</div>
+                <h4 style="margin: 0 0 8px 0; color: var(--text-primary);">Coming Soon</h4>
+                <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">
+                    SMS and email notifications are not yet available. We're working on bringing you smart reminders to stay connected with your contacts.
+                </p>
             </div>
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label class="pill-switch">
-                    <input type="checkbox" checked>
-                    <span class="pill-switch__track">
-                        <span class="pill-switch__thumb"></span>
-                    </span>
-                    <span class="pill-switch__label">Enable email notifications</span>
-                </label>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="batch-day" style="font-size: 13px;">Batch notification day:</label>
-                    <select id="batch-day" style="margin-top: 4px;">
-                        <option value="0" selected>Sunday</option>
-                        <option value="1">Monday</option>
-                        <option value="2">Tuesday</option>
-                        <option value="3">Wednesday</option>
-                        <option value="4">Thursday</option>
-                        <option value="5">Friday</option>
-                        <option value="6">Saturday</option>
-                    </select>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="batch-time" style="font-size: 13px;">Batch notification time:</label>
-                    <input type="time" id="batch-time" value="09:00" style="margin-top: 4px;">
-                </div>
-            </div>
-            <button onclick="savePreferences()" style="padding: 10px 16px;">Save Preferences</button>
         </div>
         
         <!-- Account Section -->
