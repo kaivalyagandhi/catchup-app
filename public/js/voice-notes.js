@@ -989,12 +989,8 @@ class VoiceNoteRecorder {
       this.transcriptManager.finalizeText(voiceNote.transcript, 1.0);
     }
     
-    showToast('Voice note processed successfully!', 'success');
-    
     // Enrichment is now creating pending edits automatically
-    // No need to show enrichment review or apply manually
-    // Just show success and reset UI
-    showToast('Voice note saved! Check pending edits for enrichment.', 'success');
+    // No need to show toast - user sees the 10 second countdown
     
     setTimeout(() => {
       this.resetUI();
@@ -1155,8 +1151,6 @@ class VoiceNoteRecorder {
       if (voiceNote.transcript) {
         this.transcriptManager.finalizeText(voiceNote.transcript, 1.0);
       }
-      
-      showToast('Voice note processed successfully!', 'success');
       
       // Clean up recording resources
       this.cleanup();
