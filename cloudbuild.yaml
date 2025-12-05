@@ -47,8 +47,8 @@ steps:
       - |
         # Check if this is a prod tag trigger
         if [ "$TAG_NAME" = "prod" ]; then
-          # Production version: YYYY.MM.DD.BUILD
-          APP_VERSION=$$(date -u +'%Y.%m.%d').$${BUILD_ID:0:8}
+          # Production version: YYYY.MM.DD.BUILD (use SHORT_SHA for build identifier)
+          APP_VERSION=$$(date -u +'%Y.%m.%d').$$SHORT_SHA
           echo "Production build version: $$APP_VERSION"
         else
           # Development version: dev-YYYY.MM.DD-COMMIT
@@ -115,7 +115,9 @@ steps:
           --service-account=catchup-cloud-run@$PROJECT_ID.iam.gserviceaccount.com \
           --no-allow-unauthenticated \
           --add-cloudsql-instances=$PROJECT_ID:us-central1:catchup-db \
-          --set-env-vars=NODE_ENV=production,LOG_LEVEL=info,TEST_MODE=true,APP_VERSION=$$APP_VERSION \
+          --vpc-connector=catchup-connector \
+          --vpc-egress=private-ranges-only \
+          --set-env-vars=NODE_ENV=production,LOG_LEVEL=info,TEST_MODE=true,APP_VERSION=$$APP_VERSION,REDIS_HOST=10.56.216.227,REDIS_PORT=6379 \
           --update-secrets=DATABASE_HOST=database-host:latest,DATABASE_PORT=database-port:latest,DATABASE_NAME=database-name:latest,DATABASE_USER=database-user:latest,DATABASE_PASSWORD=db-password:latest,GOOGLE_CLIENT_ID=google-oauth-client-id:latest,GOOGLE_CLIENT_SECRET=google-oauth-client-secret:latest,GOOGLE_REDIRECT_URI=google-redirect-uri:latest,JWT_SECRET=jwt-secret:latest,ENCRYPTION_KEY=encryption-key:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,GOOGLE_CLOUD_API_KEY=google-cloud-speech-key:latest,GOOGLE_GEMINI_API_KEY=google-gemini-api-key:latest
     waitFor: ['push-image', 'push-image-latest']
     env:

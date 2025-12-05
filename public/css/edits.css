@@ -220,6 +220,7 @@
 .chat-window__counter {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: 6px 12px;
   border-radius: 16px;
@@ -229,6 +230,7 @@
   font-size: 13px;
   color: white;
   transition: background-color 0.2s, border-color 0.2s;
+  min-width: 90px;
 }
 
 .chat-window__counter:hover {

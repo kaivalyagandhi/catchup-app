@@ -3255,128 +3255,56 @@
     <script src="/js/google-mappings-review.js"></script>
     <script src="/js/app.js"></script>
 
-    <!-- Application Version Footer -->
-    <footer id="version-footer" class="version-footer">
-        <span id="version-text" class="version-text">Loading version...</span>
-    </footer>
-
+    <!-- Version info styles for preferences page -->
     <style>
         /* ============================================
-           VERSION FOOTER STYLES
+           VERSION INFO STYLES (Preferences Page)
            ============================================ */
-        .version-footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 8px 16px;
-            text-align: center;
+        .version-info-card {
+            padding: 16px;
+            background: var(--bg-hover);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+        }
+
+        .version-info-card .version-label {
             font-size: 11px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg-secondary);
-            border-top: 1px solid var(--border-primary);
-            color: var(--text-tertiary);
-            z-index: 1000;
-            user-select: none;
-            transition: opacity 0.2s ease;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
         }
 
-        /* Fade footer on hover for unobtrusive UX */
-        .version-footer:hover {
-            opacity: 0.6;
+        .version-info-card .version-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
         }
 
-        .version-text {
-            display: inline-block;
-            font-weight: 500;
-            letter-spacing: 0.025em;
-        }
-
-        /* Production version styling (blue accent) */
-        .version-footer.production .version-text {
+        .version-info-card .version-value.production {
             color: var(--color-primary);
         }
 
-        /* Development version styling (warning accent) */
-        .version-footer.development .version-text {
+        .version-info-card .version-value.development {
             color: var(--color-warning);
         }
 
-        /* Local version styling (secondary accent) */
-        .version-footer.local .version-text {
+        .version-info-card .version-value.local {
             color: var(--color-secondary);
         }
 
-        /* Responsive: Hide on very small screens */
-        @media (max-width: 480px) {
-            .version-footer {
-                font-size: 10px;
-                padding: 6px 12px;
-            }
+        .version-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
         }
 
-        /* Ensure main content doesn't overlap with footer */
-        body {
-            padding-bottom: 32px; /* Space for footer */
+        .version-info-item {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-surface);
+            border-radius: 8px;
         }
     </style>
-
-    <script>
-        // Initialize version footer from injected version info
-        (function() {
-            try {
-                const versionInfo = window.__VERSION_INFO__;
-
-                if (!versionInfo) {
-                    console.warn('Version info not available');
-                    return;
-                }
-
-                const footer = document.getElementById('version-footer');
-                const versionText = document.getElementById('version-text');
-
-                if (!footer || !versionText) {
-                    console.warn('Version footer elements not found');
-                    return;
-                }
-
-                // Format version for display
-                let displayVersion = versionInfo.version;
-                let versionClass = 'development';
-
-                if (versionInfo.isProduction) {
-                    displayVersion = `v${versionInfo.version}`;
-                    versionClass = 'production';
-                } else if (versionInfo.isLocal) {
-                    displayVersion = 'Development (Local)';
-                    versionClass = 'local';
-                } else if (versionInfo.isDevelopment) {
-                    displayVersion = `Dev ${versionInfo.version}`;
-                    versionClass = 'development';
-                }
-
-                // Update footer
-                versionText.textContent = displayVersion;
-                footer.className = `version-footer ${versionClass}`;
-
-                // Optional: Add click handler for detailed info
-                footer.addEventListener('click', function() {
-                    console.log('CatchUp Version Information:', {
-                        version: versionInfo.version,
-                        environment: versionInfo.isProduction ? 'Production' :
-                                   versionInfo.isDevelopment ? 'Development' : 'Local',
-                        timestamp: versionInfo.timestamp,
-                        buildDate: new Date(versionInfo.timestamp).toLocaleString()
-                    });
-
-                    // Show tooltip or modal with version details
-                    alert(`CatchUp Version\n\n${displayVersion}\n\nBuild: ${new Date(versionInfo.timestamp).toLocaleString()}`);
-                });
-
-            } catch (error) {
-                console.error('Failed to initialize version footer:', error);
-            }
-        })();
-    </script>
 </body>
 </html>
