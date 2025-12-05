@@ -212,6 +212,9 @@ function showMainApp() {
     // Load pending edits count for nav badge
     loadPendingEditsCount();
     
+    // Load pending suggestions count for nav badge
+    loadPendingSuggestionsCount();
+    
     // Initialize floating chat icon and chat window
     initializeChatComponents();
     
@@ -2862,6 +2865,10 @@ async function loadSuggestions(statusFilter) {
         
         allSuggestions = await response.json();
         
+        // Update pending suggestions badge
+        const pendingCount = allSuggestions.filter(s => s.status === 'pending').length;
+        updatePendingSuggestionsCount(pendingCount);
+        
         // Apply the current filter
         filterSuggestions(currentSuggestionFilter);
     } catch (error) {
@@ -4420,7 +4427,7 @@ async function loadPendingEditsCount() {
 }
 
 /**
- * Update pending edit counts in nav badge
+ * Update pending edit counts in nav badge and floating chat icon
  */
 function updatePendingEditCounts(count) {
     // Update sidebar nav badge
@@ -4443,6 +4450,52 @@ function updatePendingEditCounts(count) {
         } else {
             mobileBadge.classList.add('hidden');
         }
+    }
+}
+
+/**
+ * Update pending suggestions count in nav badge
+ */
+function updatePendingSuggestionsCount(count) {
+    // Update sidebar nav badge
+    const badge = document.getElementById('suggestions-badge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+    
+    // Update mobile nav badge
+    const mobileBadge = document.getElementById('mobile-suggestions-badge');
+    if (mobileBadge) {
+        if (count > 0) {
+            mobileBadge.textContent = count > 99 ? '99+' : count;
+            mobileBadge.classList.remove('hidden');
+        } else {
+            mobileBadge.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * Load pending suggestions count on app initialization
+ */
+async function loadPendingSuggestionsCount() {
+    try {
+        const response = await fetch(`${API_BASE}/suggestions/all?userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.ok) {
+            const suggestions = await response.json();
+            const pendingCount = suggestions.filter(s => s.status === 'pending').length;
+            console.log('Loaded pending suggestions count on init:', pendingCount);
+            updatePendingSuggestionsCount(pendingCount);
+        }
+    } catch (error) {
+        console.error('Error loading pending suggestions count:', error);
     }
 }
 
