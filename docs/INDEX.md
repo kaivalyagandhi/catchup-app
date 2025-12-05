@@ -9,6 +9,14 @@ This document provides an organized overview of all documentation in the CatchUp
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Deployment guide
 - [ACCESSIBILITY.md](ACCESSIBILITY.md) - Accessibility guidelines
 
+## 🚀 Deployment
+
+**Location**: `docs/deployment/`
+
+- [GCP_SERVICE_ACCOUNTS_SETUP_GUIDE.md](deployment/GCP_SERVICE_ACCOUNTS_SETUP_GUIDE.md) - GCP service account setup
+- [GCP_SERVICE_ACCOUNTS_DOCUMENTATION.md](deployment/GCP_SERVICE_ACCOUNTS_DOCUMENTATION.md) - GCP service account reference
+- See [docs/deployment/README.md](deployment/README.md) for complete deployment documentation
+
 ## 🎯 Features
 
 ### Directory Page
@@ -233,12 +241,27 @@ This document provides an organized overview of all documentation in the CatchUp
 
 Historical task summaries, checkpoints, and verification documents from the development process. These files document the implementation journey but are not needed for current development.
 
-Files include:
+### Task Archive
+**Location**: `docs/archive/tasks/`
+
+Contains historical task summaries moved from root and tests directories:
+- `TASK_*_SUMMARY.md` - Task completion summaries
+- `TASK_*_VISUAL_REFERENCE.md` - Visual design references
+- `TASK_*_QUICK_REFERENCE.md` - Quick reference guides
+- `CHECKPOINT_*.md` - Development checkpoints
+- See [docs/archive/tasks/README.md](archive/tasks/README.md) for details
+
+### Implementation Archive
+**Location**: `docs/archive/`
+
+Implementation summaries and verification documents:
 - `TASK_*_*.md` - Task implementation summaries (Tasks 1-24)
 - `CHECKPOINT_*.md` - Development checkpoints
 - `FINAL_STATUS.md` - Final status reports
 - `VERIFICATION_COMPLETE.md` - Verification documents
 - `TEST_FAILURES_SUMMARY.md` - Test failure reports
+- `prd draft.md` - Original PRD draft
+- `HANDOFF_NOTES.md` - Project handoff notes
 
 ## 🔍 Finding Documentation
 
