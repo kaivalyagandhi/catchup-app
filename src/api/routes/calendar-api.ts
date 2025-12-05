@@ -190,4 +190,30 @@ router.get('/sync-status', authenticate, async (req: AuthenticatedRequest, res: 
   }
 });
 
+/**
+ * GET /api/calendar/events/count
+ * Get total count of synced calendar events
+ */
+router.get('/events/count', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const pool = (await import('../../db/connection')).default;
+    const result = await pool.query(
+      'SELECT COUNT(*) as count FROM calendar_events WHERE user_id = $1',
+      [req.userId]
+    );
+
+    const count = parseInt(result.rows[0]?.count || '0', 10);
+
+    res.json({ count });
+  } catch (error) {
+    console.error('Error getting calendar events count:', error);
+    res.status(500).json({ error: 'Failed to get calendar events count' });
+  }
+});
+
 export default router;

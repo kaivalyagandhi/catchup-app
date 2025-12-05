@@ -407,6 +407,46 @@ function logout() {
     document.getElementById('auth-form').reset();
 }
 
+async function deleteAccount() {
+    if (!confirm('Are you sure you want to delete your account? This will permanently delete your account and all associated data.')) {
+        return;
+    }
+    
+    if (!confirm('This action cannot be undone. All your contacts, calendar events, suggestions, and voice notes will be permanently deleted. Are you absolutely sure?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/privacy/account`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                confirmation: 'DELETE MY ACCOUNT'
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to delete account');
+        }
+        
+        // Account deleted successfully - log out
+        showToast('Account deleted successfully', 'success');
+        
+        // Wait a moment for the toast to show
+        setTimeout(() => {
+            logout();
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        showToast(`Error deleting account: ${error.message}`, 'error');
+    }
+}
+
 // Theme Toggle
 function toggleTheme() {
     if (typeof themeManager !== 'undefined') {
@@ -4784,54 +4824,14 @@ async function loadPreferences() {
     }
     
     container.innerHTML = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
-            <!-- Notifications Section -->
-            <div>
-                <h3 style="margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; color: var(--text-primary);">Notifications</h3>
-                <div class="form-group">
-                    <label class="pill-switch">
-                        <input type="checkbox" checked>
-                        <span class="pill-switch__track">
-                            <span class="pill-switch__thumb"></span>
-                        </span>
-                        <span class="pill-switch__label">Enable SMS notifications</span>
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label class="pill-switch">
-                        <input type="checkbox" checked>
-                        <span class="pill-switch__track">
-                            <span class="pill-switch__thumb"></span>
-                        </span>
-                        <span class="pill-switch__label">Enable email notifications</span>
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label for="batch-day">Batch notification day:</label>
-                    <select id="batch-day">
-                        <option value="0" selected>Sunday</option>
-                        <option value="1">Monday</option>
-                        <option value="2">Tuesday</option>
-                        <option value="3">Wednesday</option>
-                        <option value="4">Thursday</option>
-                        <option value="5">Friday</option>
-                        <option value="6">Saturday</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="batch-time">Batch notification time:</label>
-                    <input type="time" id="batch-time" value="09:00">
-                </div>
-                <button onclick="savePreferences()">Save Preferences</button>
-            </div>
+        <!-- Integrations Section -->
+        <div style="margin-top: 16px;">
+            <h3 style="margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; color: var(--text-primary); font-size: 16px;">Integrations</h3>
             
-            <!-- Integrations Section -->
-            <div>
-                <h3 style="margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; color: var(--text-primary);">Integrations</h3>
-                
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                 <!-- Google Calendar -->
-                <div class="card" style="margin-bottom: 15px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="padding: 14px; border: 1px solid var(--border-subtle); border-radius: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <img src="https://www.gstatic.com/marketing-cms/assets/images/d3/d1/e8596a9246608f8fbd72597729c8/calendar.png" alt="Google Calendar" style="width: 24px; height: 24px;">
                             <h4 style="margin: 0; color: var(--text-primary);">Google Calendar</h4>
@@ -4843,25 +4843,93 @@ async function loadPreferences() {
                             </span>
                         </div>
                     </div>
-                    <p style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-secondary);">
+                    <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--text-secondary);">
                         Connect your Google Calendar to enable smart scheduling and availability detection.
                     </p>
                     ${calendarConnected ? `
-                        ${calendarStatus.email ? `<p style="margin: 0 0 8px 0; font-size: 12px; padding: 8px; background: var(--status-success-bg); border-radius: 8px; color: var(--text-primary);">Connected as: <strong>${calendarStatus.email}</strong></p>` : ''}
-                        <div style="margin: 0 0 12px 0; font-size: 12px; padding: 8px; background: var(--bg-hover); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="color: var(--text-secondary);">
-                                ${lastSync 
-                                    ? `Last synced: <strong style="color: var(--text-primary);">${formatRelativeTime(new Date(lastSync))}</strong>`
-                                    : `<strong style="color: var(--text-tertiary);">Not synced yet</strong>`
-                                }
-                            </span>
-                            <button onclick="refreshCalendar()" id="refresh-calendar-btn" class="secondary" style="padding: 4px 12px; font-size: 11px; min-width: auto;">
-                                🔄 ${lastSync ? 'Refresh' : 'Sync Now'}
+                        ${calendarStatus.email ? `
+                            <div style="margin-bottom: 12px; padding: 10px; background: var(--status-success-bg); border-radius: 8px; border-left: 3px solid #10b981;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Connected as:</div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${calendarStatus.email}</div>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Sync Status -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                            <div style="padding: 10px; background: var(--bg-hover); border-radius: 8px;">
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">LAST SYNC</div>
+                                <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
+                                    ${lastSync ? formatRelativeTime(new Date(lastSync)) : 'Never'}
+                                </div>
+                            </div>
+                            <div style="padding: 10px; background: var(--bg-hover); border-radius: 8px;">
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">EVENTS SYNCED</div>
+                                <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);" id="calendar-events-count">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Auto-sync Status -->
+                        <div style="margin-bottom: 16px; padding: 10px; background: var(--bg-hover); border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Automatic Sync</div>
+                                <div style="font-size: 11px; color: var(--text-secondary);">Daily synchronization at midnight</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                                <span style="font-size: 12px; font-weight: 500; color: #10b981;">
+                                    Enabled
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Read-Only Sync Notice -->
+                        <div style="background: var(--status-info-bg); color: var(--text-primary); padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid var(--status-info);">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <span style="font-size: 18px;">ℹ️</span>
+                                <h4 style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-primary);">One-Way Sync (Read-Only)</h4>
+                            </div>
+                            <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--text-secondary);">
+                                CatchUp imports your calendar events from Google but <strong>never modifies your Google Calendar</strong>. 
+                                All changes you make in CatchUp stay local and won't affect your Google account.
+                            </p>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <button onclick="refreshCalendar()" id="refresh-calendar-btn" style="width: 100%;">
+                                Sync Now
+                            </button>
+                            <button onclick="disconnectCalendar()" class="secondary" style="width: 100%;">
+                                Disconnect
                             </button>
                         </div>
-                        <button onclick="disconnectCalendar()" class="secondary" style="width: 100%;">Disconnect</button>
                     ` : `
-                        <button onclick="connectCalendar()" style="width: 100%;">Connect Calendar</button>
+                        <!-- Not Connected State -->
+                        <div style="margin-bottom: 16px; padding: 12px; background: var(--bg-hover); border-radius: 8px;">
+                            <div style="font-size: 12px; color: var(--text-primary); margin-bottom: 8px;">
+                                <strong>What you get:</strong>
+                            </div>
+                            <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+                                <li>Automatic import of all your calendar events</li>
+                                <li>Daily synchronization of changes</li>
+                                <li>Smart scheduling and availability detection</li>
+                                <li>100% safe - we never modify your Google Calendar</li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Safety Assurance -->
+                        <div style="margin-bottom: 16px; padding: 10px; background: var(--status-success-bg); border-radius: 8px; border-left: 3px solid #10b981;">
+                            <div style="font-size: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                                <span>✓</span>
+                                <strong>Safe to connect without risk of data loss</strong>
+                            </div>
+                        </div>
+                        
+                        <button onclick="connectCalendar()" style="width: 100%;">
+                            Connect Google Calendar
+                        </button>
                     `}
                 </div>
                 
@@ -4872,163 +4940,63 @@ async function loadPreferences() {
             </div>
         </div>
         
-        <!-- Account Section -->
-        <div style="margin-top: 30px;">
-            <h3 style="margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; color: var(--text-primary);">Account</h3>
-            
-            <div class="card">
-                <div id="account-info-loading" style="text-align: center; padding: 20px;">
-                    <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
-                    <p style="color: var(--text-secondary); font-size: 14px;">Loading account information...</p>
+        <!-- Notifications Section -->
+        <div style="margin-top: 24px;">
+            <h3 style="margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; color: var(--text-primary); font-size: 16px;">Notifications</h3>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="pill-switch">
+                    <input type="checkbox" checked>
+                    <span class="pill-switch__track">
+                        <span class="pill-switch__thumb"></span>
+                    </span>
+                    <span class="pill-switch__label">Enable SMS notifications</span>
+                </label>
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="pill-switch">
+                    <input type="checkbox" checked>
+                    <span class="pill-switch__track">
+                        <span class="pill-switch__thumb"></span>
+                    </span>
+                    <span class="pill-switch__label">Enable email notifications</span>
+                </label>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="batch-day" style="font-size: 13px;">Batch notification day:</label>
+                    <select id="batch-day" style="margin-top: 4px;">
+                        <option value="0" selected>Sunday</option>
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                    </select>
                 </div>
-                <div id="account-info-content" style="display: none;">
-                    <!-- Account info will be populated here -->
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="batch-time" style="font-size: 13px;">Batch notification time:</label>
+                    <input type="time" id="batch-time" value="09:00" style="margin-top: 4px;">
                 </div>
             </div>
+            <button onclick="savePreferences()" style="padding: 10px 16px;">Save Preferences</button>
         </div>
         
-        <!-- Developer Section -->
-        ${testDataStatus ? `
-        <div style="margin-top: 30px;">
-            <h3 style="margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; color: var(--text-primary);">Developer</h3>
+        <!-- Account Section -->
+        <div style="margin-top: 24px;">
+            <h3 style="margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; color: var(--text-primary); font-size: 16px;">Account</h3>
             
-            <!-- Test Data Management -->
-            <div style="margin-bottom: 20px;">
-                <h4 style="margin-bottom: 15px; font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Test Data</h4>
-                
-                <!-- Status Overview -->
-                <div class="card" style="margin-bottom: 15px; background: var(--bg-hover); border: 1px solid var(--border-subtle); border-radius: 12px;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
-                        <div style="padding: 10px; background: var(--bg-surface); border-radius: 8px;" data-test-data-type="contacts">
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">CONTACTS</div>
-                            <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
-                                <span style="color: var(--status-info);">${testDataStatus.contacts.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.contacts.real}</span>
-                            </div>
-                        </div>
-                        <div style="padding: 10px; background: var(--bg-surface); border-radius: 8px;" data-test-data-type="calendarEvents">
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">CALENDAR</div>
-                            <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
-                                <span style="color: var(--status-info);">${testDataStatus.calendarEvents.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.calendarEvents.real}</span>
-                            </div>
-                        </div>
-                        <div style="padding: 10px; background: var(--bg-surface); border-radius: 8px;" data-test-data-type="suggestions">
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">SUGGESTIONS</div>
-                            <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
-                                <span style="color: var(--status-info);">${testDataStatus.suggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.suggestions.real}</span>
-                            </div>
-                        </div>
-                        <div style="padding: 10px; background: var(--bg-surface); border-radius: 8px;" data-test-data-type="groupSuggestions">
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">GROUP SUGG.</div>
-                            <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
-                                <span style="color: var(--status-info);">${testDataStatus.groupSuggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.groupSuggestions.real}</span>
-                            </div>
-                        </div>
-                        <div style="padding: 10px; background: var(--bg-surface); border-radius: 8px;" data-test-data-type="voiceNotes">
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">VOICE NOTES</div>
-                            <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
-                                <span style="color: var(--status-info);">${testDataStatus.voiceNotes.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.voiceNotes.real}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Individual Controls -->
-                <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
-                        <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
-                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Contacts</div>
-                            <button onclick="generateTestData('contacts')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
-                            <button onclick="removeTestData('contacts')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
-                        </div>
-                        <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
-                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Calendar Events</div>
-                            <button onclick="generateTestData('calendarEvents')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
-                            <button onclick="removeTestData('calendarEvents')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
-                        </div>
-                        <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
-                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Suggestions</div>
-                            <button onclick="generateTestData('suggestions')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
-                            <button onclick="removeTestData('suggestions')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
-                        </div>
-                        <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
-                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Group Suggestions</div>
-                            <button onclick="generateTestData('groupSuggestions')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
-                            <button onclick="removeTestData('groupSuggestions')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
-                        </div>
-                        <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
-                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Voice Notes</div>
-                            <button onclick="generateTestData('voiceNotes')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
-                            <button onclick="removeTestData('voiceNotes')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
-                        </div>
-                    </div>
-                </div>
+            <div id="account-info-loading" style="text-align: center; padding: 16px;">
+                <div class="loading-spinner" style="margin: 0 auto 8px;"></div>
+                <p style="color: var(--text-secondary); font-size: 13px;">Loading account information...</p>
             </div>
-
+            <div id="account-info-content" style="display: none;">
+                <!-- Account info will be populated here -->
+            </div>
         </div>
-        ` : ''}
     `;
     
-    // Add Account section after the main template
-    const accountSection = document.createElement('div');
-    accountSection.style.marginTop = '30px';
-    accountSection.innerHTML = `
-        <h4 style="margin-bottom: 15px; font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Account</h4>
-        
-        ${testDataStatus ? `
-        <!-- User Data Overview -->
-        <div style="margin-bottom: 15px; padding: 15px; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--bg-hover);">
-            <div style="margin-bottom: 12px;">
-                <div style="font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">User Data</div>
-                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">
-                    <span style="color: var(--status-info); font-weight: 600;">Blue</span> = Test data | 
-                    <span style="color: var(--text-secondary); font-weight: 600;">Grey</span> = Your data
-                </div>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 12px;">
-                <div style="padding: 8px; background: var(--bg-surface); border-radius: 8px;">
-                    <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">CONTACTS</div>
-                    <div style="font-size: 12px; font-weight: bold;">
-                        <span style="color: var(--status-info);">${testDataStatus.contacts.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.contacts.real}</span>
-                    </div>
-                </div>
-                <div style="padding: 8px; background: var(--bg-surface); border-radius: 8px;">
-                    <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">CALENDAR</div>
-                    <div style="font-size: 12px; font-weight: bold;">
-                        <span style="color: var(--status-info);">${testDataStatus.calendarEvents.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.calendarEvents.real}</span>
-                    </div>
-                </div>
-                <div style="padding: 8px; background: var(--bg-surface); border-radius: 8px;">
-                    <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">SUGGESTIONS</div>
-                    <div style="font-size: 12px; font-weight: bold;">
-                        <span style="color: var(--status-info);">${testDataStatus.suggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.suggestions.real}</span>
-                    </div>
-                </div>
-                <div style="padding: 8px; background: var(--bg-surface); border-radius: 8px;">
-                    <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">VOICE NOTES</div>
-                    <div style="font-size: 12px; font-weight: bold;">
-                        <span style="color: var(--status-info);">${testDataStatus.voiceNotes.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.voiceNotes.real}</span>
-                    </div>
-                </div>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button onclick="bulkAddTestData()" style="flex: 1; padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Generate Test Data</button>
-                <button onclick="clearAllTestData()" style="flex: 1; padding: 10px 20px; background: var(--status-info); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Clear Test Data</button>
-            </div>
-        </div>
-        ` : ''}
-        
-        <!-- Clear All User Data -->
-        <div class="card" style="border: 2px solid #ef4444; background: var(--status-error-bg); border-radius: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
-                <div>
-                    <div style="font-weight: bold; margin-bottom: 5px; color: #ef4444;">Clear All Data</div>
-                    <div style="font-size: 12px; color: var(--text-secondary);">Permanently delete all your data including user-added and test contacts, events, suggestions, and voice notes</div>
-                </div>
-                <button onclick="deleteAllUserData()" style="background: #ef4444; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap; font-weight: bold;">Clear All</button>
-            </div>
-        </div>
-    `;
-    container.appendChild(accountSection);
+    // No additional account section needed - everything is in the main template now
     
     // Render Google Contacts card
     const googleContactsCard = document.getElementById('google-contacts-card');
@@ -5040,6 +5008,38 @@ async function loadPreferences() {
     
     // Load account information
     loadAccountInfo();
+    
+    // Load calendar events count if connected (with small delay to ensure DOM is ready)
+    if (calendarConnected) {
+        setTimeout(() => loadCalendarEventsCount(), 100);
+    }
+}
+
+async function loadCalendarEventsCount() {
+    try {
+        const response = await fetch(`${API_BASE}/calendar/events/count`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const countElement = document.getElementById('calendar-events-count');
+            if (countElement) {
+                countElement.textContent = data.count || 0;
+            }
+        } else {
+            const countElement = document.getElementById('calendar-events-count');
+            if (countElement) {
+                countElement.textContent = '0';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading calendar events count:', error);
+        const countElement = document.getElementById('calendar-events-count');
+        if (countElement) {
+            countElement.textContent = '0';
+        }
+    }
 }
 
 function savePreferences() {
@@ -5112,49 +5112,47 @@ async function loadAccountInfo() {
         
         // Build the account info HTML
         contentDiv.innerHTML = `
-            <div style="display: grid; gap: 15px;">
+            <div style="display: grid; gap: 10px;">
                 <!-- Email -->
-                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-hover); border-radius: 8px;">
-                    <div>
-                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">EMAIL</div>
-                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${escapeHtml(user.email)}</div>
-                    </div>
+                <div class="info-row" style="padding: 10px; background: var(--bg-hover); border-radius: 6px;">
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">Email</div>
+                    <div style="font-size: 13px; color: var(--text-primary); font-weight: 500;">${escapeHtml(user.email)}</div>
                 </div>
                 
                 <!-- Authentication Method -->
-                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-hover); border-radius: 8px;">
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-hover); border-radius: 6px;">
                     <div style="flex: 1;">
-                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">AUTHENTICATION METHOD</div>
-                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${authMethodDisplay}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">Authentication Method</div>
+                        <div style="font-size: 13px; color: var(--text-primary); font-weight: 500;">${authMethodDisplay}</div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
-                        <span style="font-size: 12px; font-weight: 500; color: #10b981;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981;"></span>
+                        <span style="font-size: 11px; font-weight: 500; color: #10b981;">
                             ${connectionStatus}
                         </span>
                     </div>
                 </div>
                 
-                <!-- Account Created -->
-                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-hover); border-radius: 8px;">
-                    <div>
-                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">MEMBER SINCE</div>
-                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${createdDateStr}</div>
+                <!-- Member Since & Last Login (Combined Row) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="info-row" style="padding: 10px; background: var(--bg-hover); border-radius: 6px;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">Member Since</div>
+                        <div style="font-size: 13px; color: var(--text-primary); font-weight: 500;">${createdDateStr}</div>
+                    </div>
+                    
+                    <div class="info-row" style="padding: 10px; background: var(--bg-hover); border-radius: 6px;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">Last Login</div>
+                        <div style="font-size: 13px; color: var(--text-primary); font-weight: 500;">${lastLoginStr}</div>
                     </div>
                 </div>
                 
-                <!-- Last Login -->
-                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-hover); border-radius: 8px;">
-                    <div>
-                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">LAST LOGIN</div>
-                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${lastLoginStr}</div>
-                    </div>
-                </div>
-                
-                <!-- Sign Out Button -->
-                <div style="margin-top: 10px;">
-                    <button onclick="logout()" style="width: 100%; padding: 12px; background: var(--color-danger); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                <!-- Action Buttons -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+                    <button onclick="logout()" style="padding: 10px; background: var(--color-danger); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">
                         Sign Out
+                    </button>
+                    <button onclick="deleteAccount()" style="padding: 10px; background: transparent; color: var(--color-danger); border: 2px solid var(--color-danger); border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">
+                        Delete Account
                     </button>
                 </div>
             </div>

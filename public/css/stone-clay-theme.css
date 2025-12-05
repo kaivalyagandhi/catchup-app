@@ -121,26 +121,22 @@
   --shadow-xl: 0 20px 25px rgba(28, 25, 23, 0.15);
   
   /* Typography */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  --font-heading: 'Cabin Sketch', 'Comic Sans MS', cursive, sans-serif;
+  --font-body: 'Handlee', 'Comic Sans MS', cursive, sans-serif;
   --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
   
   /* Font Sizes */
   --text-xs: 11px;
   --text-sm: 13px;
-  --text-base: 14px;
-  --text-lg: 16px;
-  --text-xl: 18px;
-  --text-2xl: 24px;
-  --text-3xl: 30px;
+  --text-base: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 26px;
+  --text-3xl: 32px;
   
   /* Font Weights */
   --font-normal: 400;
-  --font-medium: 500;
-  --font-semibold: 600;
   --font-bold: 700;
-  
-  /* Handwritten Font for Titles */
-  --font-handwritten: 'Cabin Sketch', sans-serif;
   
   /* Line Heights */
   --leading-tight: 1.25;
@@ -240,7 +236,7 @@
    ============================================================================ */
 
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   color: var(--text-primary);
@@ -265,16 +261,35 @@ html[data-theme-transitioning] * {
   transition: none !important;
 }
 
-/* Handwritten font for titles and labels */
+/* Typography Hierarchy */
+/* Cabin Sketch for headings and titles */
 h1, h2, h3, h4, h5, h6,
 .sidebar__brand,
-.nav-item,
 .page-title,
 .section-title,
-.tab-label,
-label {
-  font-family: var(--font-handwritten);
-  font-weight: 600;
+.modal-title,
+.card-title {
+  font-family: var(--font-heading);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+}
+
+/* Handlee for everything else (body text, buttons, labels, inputs) */
+body,
+p,
+button,
+input,
+textarea,
+select,
+label,
+.nav-item,
+.btn,
+.input,
+.badge,
+.tag,
+.toast {
+  font-family: var(--font-body);
+  font-weight: var(--font-normal);
 }
 
 /* Chat bubble maroon color */

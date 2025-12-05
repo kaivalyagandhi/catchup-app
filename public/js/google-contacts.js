@@ -38,19 +38,7 @@ function renderGoogleContactsCard(status) {
     const connected = status.connected;
     
     return `
-        <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px;">
-            <!-- One-Way Sync Notice -->
-            <div style="background: var(--status-info-bg); color: var(--text-primary); padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid var(--status-info);">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                    <span style="font-size: 24px;">ℹ️</span>
-                    <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-primary);">One-Way Sync (Read-Only)</h4>
-                </div>
-                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-secondary);">
-                    CatchUp imports your contacts from Google but <strong>never modifies your Google Contacts</strong>. 
-                    All edits you make in CatchUp stay local and won't affect your Google account.
-                </p>
-            </div>
-            
+        <div style="padding: 14px; border: 1px solid var(--border-subtle); border-radius: 10px;">
             <!-- Connection Status Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -115,12 +103,16 @@ function renderGoogleContactsCard(status) {
                     </div>
                 </div>
                 
-                <!-- Safety Notice -->
-                <div style="margin-bottom: 16px; padding: 10px; background: var(--status-success-bg); border-radius: 8px; border-left: 3px solid #10b981;">
-                    <div style="font-size: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                        <span>✓</span>
-                        <strong>Your Google Contacts remain unchanged</strong>
+                <!-- One-Way Sync Notice -->
+                <div style="background: var(--status-info-bg); color: var(--text-primary); padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid var(--status-info);">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <span style="font-size: 18px;">ℹ️</span>
+                        <h4 style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-primary);">One-Way Sync (Read-Only)</h4>
                     </div>
+                    <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--text-secondary);">
+                        CatchUp imports your contacts from Google but <strong>never modifies your Google Contacts</strong>. 
+                        All edits you make in CatchUp stay local and won't affect your Google account.
+                    </p>
                 </div>
                 
                 <!-- Action Buttons -->

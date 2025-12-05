@@ -122,9 +122,9 @@ export function createServer(): Express {
   app.use('/api/contacts', contactsRouter);
   app.use('/api/groups-tags', groupsTagsRouter);
   app.use('/api/suggestions', suggestionsRouter);
-  app.use('/api/calendar', calendarRouter);
-  app.use('/api/calendar/api', calendarApiRouter);
   app.use('/api/calendar/oauth', googleCalendarOAuthRouter);
+  app.use('/api/calendar', calendarApiRouter);
+  app.use('/api/calendar', calendarRouter);
   app.use('/api/contacts/oauth', googleContactsOAuthRouter);
   app.use('/api/contacts/sync', googleContactsSyncRouter);
   app.use('/api/voice-notes', voiceNotesRouter);
