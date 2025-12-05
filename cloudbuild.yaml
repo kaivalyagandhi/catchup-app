@@ -73,8 +73,9 @@ steps:
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
 
   # Step 7: Deploy to Cloud Run
-  - name: 'gcr.io/cloud-builders/run'
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     id: 'deploy-cloud-run'
+    entrypoint: 'gcloud'
     args:
       - 'deploy'
       - 'catchup'
