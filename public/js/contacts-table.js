@@ -2191,32 +2191,67 @@ class SearchFilterBar {
         </div>
         <div class="filter-chips-panel">
           <div class="filter-chip-selector" data-filter-type="tag">
-            <span class="filter-chip-icon">🏷️</span>
+            <span class="filter-chip-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/>
+                <path d="M7 7h.01"/>
+              </svg>
+            </span>
             <span class="filter-chip-text">Tag</span>
             <span class="filter-chip-arrow">▼</span>
           </div>
           <div class="filter-chip-selector" data-filter-type="group">
-            <span class="filter-chip-icon">👥</span>
+            <span class="filter-chip-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </span>
             <span class="filter-chip-text">Group</span>
             <span class="filter-chip-arrow">▼</span>
           </div>
           <div class="filter-chip-selector" data-filter-type="circle">
-            <span class="filter-chip-icon">⭕</span>
+            <span class="filter-chip-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="6"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+            </span>
             <span class="filter-chip-text">Circle</span>
             <span class="filter-chip-arrow">▼</span>
           </div>
           <div class="filter-chip-selector" data-filter-type="frequency">
-            <span class="filter-chip-icon">📅</span>
+            <span class="filter-chip-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+                <line x1="16" x2="16" y1="2" y2="6"/>
+                <line x1="8" x2="8" y1="2" y2="6"/>
+                <line x1="3" x2="21" y1="10" y2="10"/>
+              </svg>
+            </span>
             <span class="filter-chip-text">Frequency</span>
             <span class="filter-chip-arrow">▼</span>
           </div>
           <div class="filter-chip-selector" data-filter-type="location">
-            <span class="filter-chip-icon">📍</span>
+            <span class="filter-chip-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </span>
             <span class="filter-chip-text">Location</span>
             <span class="filter-chip-arrow">▼</span>
           </div>
           <div class="filter-chip-selector" data-filter-type="source">
-            <span class="filter-chip-icon">🔗</span>
+            <span class="filter-chip-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+            </span>
             <span class="filter-chip-text">Source</span>
             <span class="filter-chip-arrow">▼</span>
           </div>

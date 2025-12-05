@@ -35,7 +35,15 @@
       ],
       "disabled": false,
       "autoApprove": [
-        "playwright_screenshot"
+        "playwright_screenshot",
+        "playwright_navigate",
+        "playwright_get_visible_text",
+        "playwright_click",
+        "playwright_console_logs",
+        "playwright_fill",
+        "playwright_get_visible_html",
+        "playwright_evaluate",
+        "playwright_close"
       ]
     },
     "Context7": {

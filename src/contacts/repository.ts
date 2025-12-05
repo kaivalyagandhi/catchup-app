@@ -84,6 +84,7 @@ export interface ContactUpdateData {
   customNotes?: string;
   lastContactDate?: Date;
   frequencyPreference?: FrequencyOption;
+  dunbarCircle?: 'inner' | 'close' | 'active' | 'casual' | 'acquaintance';
   // Google metadata fields - only updated during sync operations
   source?: 'manual' | 'google' | 'calendar' | 'voice_note';
   googleResourceName?: string;
@@ -210,6 +211,10 @@ export class PostgresContactRepository implements ContactRepository {
       if (data.frequencyPreference !== undefined) {
         updates.push(`frequency_preference = $${paramCount++}`);
         values.push(data.frequencyPreference || null);
+      }
+      if (data.dunbarCircle !== undefined) {
+        updates.push(`dunbar_circle = $${paramCount++}`);
+        values.push(data.dunbarCircle || null);
       }
       if (data.source !== undefined) {
         updates.push(`source = $${paramCount++}`);

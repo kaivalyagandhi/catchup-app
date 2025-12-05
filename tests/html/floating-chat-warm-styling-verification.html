@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Chat Component - Warm Styling Verification</title>
+    
+    <!-- Stone & Clay Design System -->
+    <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-app);
+            color: var(--text-primary);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+        
+        .demo-area {
+            position: relative;
+            min-height: 400px;
+            background: var(--bg-app);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            z-index: 10000;
+        }
+        
+        /* Floating Chat Icon Styles */
+        .floating-chat-icon {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px var(--accent-glow), 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+            z-index: 1000;
+        }
+        
+        .floating-chat-icon:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px var(--accent-glow), 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .floating-chat-icon__badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 10px;
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .floating-chat-icon--recording {
+            background: var(--status-error);
+        }
+        
+        .floating-chat-icon--glow {
+            animation: glow-pulse 1.5s infinite;
+        }
+        
+        @keyframes glow-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+            70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        
+        /* Chat Window Styles */
+        .chat-window {
+            display: none;
+            position: fixed;
+            bottom: 90px;
+            right: 24px;
+            z-index: 1001;
+        }
+        
+        .chat-window--open {
+            display: block;
+        }
+        
+        .chat-window__container {
+            width: 380px;
+            max-width: calc(100vw - 48px);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-window__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        
+        .chat-window__title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .chat-window__header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .chat-window__counter {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .chat-window__close-btn {
+            width: 32px;
+            height: 32px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+        }
+        
+        .chat-window__close-btn:hover {
+            background: var(--bg-hover);
+        }
+        
+        .chat-window__messages {
+            padding: 16px;
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            background: var(--bg-app);
+        }
+        
+        .chat-message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            max-width: 85%;
+        }
+        
+        .chat-message--user {
+            background: #dbeafe;
+            color: #1e3a8a;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        
+        [data-theme="dark"] .chat-message--user {
+            background: #1e3a5f;
+            color: #93c5fd;
+        }
+        
+        .chat-message--system {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            border-bottom-left-radius: 4px;
+        }
+        
+        .chat-message__content {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .chat-message__time {
+            display: block;
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        
+        .chat-window__audio-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 12px 16px;
+            background: var(--status-error-bg);
+            border-top: 1px solid var(--border-subtle);
+        }
+        
+        .chat-window__audio-indicator.hidden {
+            display: none;
+        }
+        
+        .chat-window__audio-bar {
+            width: 3px;
+            height: 4px;
+            background: var(--status-error);
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+        
+        .chat-window__audio-bar.active {
+            animation: audio-bar-pulse 0.5s ease-in-out infinite;
+        }
+        
+        @keyframes audio-bar-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .chat-window__input-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        
+        .chat-window__text-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            font-size: 14px;
+            background: var(--bg-app);
+            color: var(--text-primary);
+        }
+        
+        .chat-window__text-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+        
+        .chat-window__mic-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .chat-window__mic-btn--recording {
+            background: var(--status-error);
+            animation: mic-pulse 1.5s infinite;
+        }
+        
+        @keyframes mic-pulse {
+            0%, 100% { 
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+            }
+            50% { 
+                opacity: 0.8;
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            }
+        }
+        
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .checklist li {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        
+        .checklist li:last-child {
+            border-bottom: none;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.warm {
+            background: var(--accent-primary);
+        }
+        
+        .status-indicator.error {
+            background: var(--status-error);
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+    
+    <div class="container">
+        <h1>Floating Chat Component - Warm Styling</h1>
+        <p class="subtitle">Task 19: Update Floating Chat Component with Stone & Clay theme</p>
+        
+        <div class="section">
+            <h2 class="section-title">✅ Verification Checklist</h2>
+            <ul class="checklist">
+                <li>
+                    <span class="status-indicator warm"></span>
+                    <strong>19.1:</strong> Floating chat icon uses accent-primary background with warm shadow
+                </li>
+                <li>
+                    <span class="status-indicator warm"></span>
+                    <strong>19.2:</strong> Chat window has warm background (--bg-surface) and subtle borders
+                </li>
+                <li>
+                    <span class="status-indicator warm"></span>
+                    <strong>19.3:</strong> User messages have warm blue tint, system messages use secondary background
+                </li>
+                <li>
+                    <span class="status-indicator error"></span>
+                    <strong>19.4:</strong> Recording indicator has warm red pulsing animation
+                </li>
+                <li>
+                    <span class="status-indicator warm"></span>
+                    <strong>19.5:</strong> Pending edit counter uses accent-primary background
+                </li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">Interactive Demo</h2>
+            <div class="controls">
+                <button class="btn" onclick="toggleChat()">Toggle Chat Window</button>
+                <button class="btn" onclick="toggleRecording()">Toggle Recording</button>
+                <button class="btn" onclick="setBadgeCount()">Set Badge Count (3)</button>
+                <button class="btn btn-secondary" onclick="clearBadge()">Clear Badge</button>
+            </div>
+            
+            <div class="demo-area">
+                <p style="color: var(--text-secondary); text-align: center; margin-top: 100px;">
+                    Click the floating chat icon in the bottom-right corner or use the controls above
+                </p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">Design Tokens Used</h2>
+            <ul class="checklist">
+                <li><code>--accent-primary</code> - Floating icon background, counter badge, mic button</li>
+                <li><code>--accent-glow</code> - Warm shadow on floating icon</li>
+                <li><code>--bg-surface</code> - Chat window background</li>
+                <li><code>--bg-app</code> - Messages area background, input background</li>
+                <li><code>--bg-secondary</code> - System message background</li>
+                <li><code>--border-subtle</code> - All borders</li>
+                <li><code>--status-error</code> - Recording state (warm red)</li>
+                <li><code>--status-error-bg</code> - Audio indicator background</li>
+                <li>Warm blue tint (#dbeafe / #1e3a5f) - User messages</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Floating Chat Icon -->
+    <div class="floating-chat-icon" id="chatIcon" onclick="toggleChat()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span class="floating-chat-icon__badge" id="chatBadge" style="display: none;">0</span>
+    </div>
+    
+    <!-- Chat Window -->
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-window__container">
+            <div class="chat-window__header">
+                <h2 class="chat-window__title">CatchUp</h2>
+                <div class="chat-window__header-actions">
+                    <button class="chat-window__counter">
+                        <span>3</span>
+                        <span style="font-weight: 400; margin-left: 2px;">pending</span>
+                    </button>
+                    <button class="chat-window__close-btn" onclick="toggleChat()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="chat-window__messages">
+                <div class="chat-message chat-message--system">
+                    <div class="chat-message__content">
+                        Hi! I can help you update contact information. Try saying something like "John's email is john@example.com"
+                    </div>
+                    <span class="chat-message__time">2:30 PM</span>
+                </div>
+                
+                <div class="chat-message chat-message--user">
+                    <div class="chat-message__content">
+                        Update Sarah's phone number to 555-1234
+                    </div>
+                    <span class="chat-message__time">2:31 PM</span>
+                </div>
+                
+                <div class="chat-message chat-message--system">
+                    <div class="chat-message__content">
+                        Got it! I've updated Sarah's phone number. You can review this change in the Edits page.
+                    </div>
+                    <span class="chat-message__time">2:31 PM</span>
+                </div>
+            </div>
+            
+            <div class="chat-window__audio-indicator hidden" id="audioIndicator">
+                <div class="chat-window__audio-bar"></div>
+                <div class="chat-window__audio-bar"></div>
+                <div class="chat-window__audio-bar"></div>
+                <div class="chat-window__audio-bar"></div>
+                <div class="chat-window__audio-bar"></div>
+            </div>
+            
+            <div class="chat-window__input-area">
+                <input type="text" class="chat-window__text-input" placeholder="Type a message...">
+                <button class="chat-window__mic-btn" id="micBtn" onclick="toggleRecording()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+        }
+        
+        // Chat window toggle
+        function toggleChat() {
+            const chatWindow = document.getElementById('chatWindow');
+            chatWindow.classList.toggle('chat-window--open');
+        }
+        
+        // Recording toggle
+        let isRecording = false;
+        function toggleRecording() {
+            isRecording = !isRecording;
+            const chatIcon = document.getElementById('chatIcon');
+            const micBtn = document.getElementById('micBtn');
+            const audioIndicator = document.getElementById('audioIndicator');
+            
+            if (isRecording) {
+                chatIcon.classList.add('floating-chat-icon--recording', 'floating-chat-icon--glow');
+                micBtn.classList.add('chat-window__mic-btn--recording');
+                audioIndicator.classList.remove('hidden');
+                animateAudioBars();
+            } else {
+                chatIcon.classList.remove('floating-chat-icon--recording', 'floating-chat-icon--glow');
+                micBtn.classList.remove('chat-window__mic-btn--recording');
+                audioIndicator.classList.add('hidden');
+            }
+        }
+        
+        // Animate audio bars
+        function animateAudioBars() {
+            if (!isRecording) return;
+            
+            const bars = document.querySelectorAll('.chat-window__audio-bar');
+            bars.forEach((bar, index) => {
+                const height = 4 + Math.random() * 16;
+                bar.style.height = `${height}px`;
+                bar.classList.add('active');
+            });
+            
+            setTimeout(animateAudioBars, 100);
+        }
+        
+        // Badge controls
+        function setBadgeCount() {
+            const badge = document.getElementById('chatBadge');
+            badge.textContent = '3';
+            badge.style.display = 'flex';
+        }
+        
+        function clearBadge() {
+            const badge = document.getElementById('chatBadge');
+            badge.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

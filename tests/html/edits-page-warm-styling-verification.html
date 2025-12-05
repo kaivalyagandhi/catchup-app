@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edits Page - Warm Styling Verification</title>
+  <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+  <link rel="stylesheet" href="../../public/css/edits.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: var(--bg-app);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    }
+    
+    .test-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      margin-bottom: 40px;
+    }
+    
+    .test-section h2 {
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      font-size: 18px;
+    }
+    
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      z-index: 1000;
+    }
+    
+    .diff-demo {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+    }
+    
+    .diff-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .diff-label {
+      font-weight: 600;
+      color: var(--text-primary);
+      min-width: 80px;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+  
+  <div class="test-container">
+    <h1 style="color: var(--text-primary); margin-bottom: 32px;">Edits Page - Warm Styling Verification</h1>
+    
+    <!-- Test Section 1: Edits Menu -->
+    <div class="test-section">
+      <h2>1. Edits Menu with Tabs</h2>
+      <div class="edits-menu">
+        <div class="edits-menu__header">
+          <h3 class="edits-menu__title">Pending Edits</h3>
+        </div>
+        <div class="edits-menu__tabs">
+          <button class="edits-menu__tab edits-menu__tab--active">
+            Pending
+            <span class="edits-menu__tab-count">3</span>
+          </button>
+          <button class="edits-menu__tab">
+            History
+          </button>
+        </div>
+        <div class="edits-menu__content">
+          <p style="color: var(--text-secondary); text-align: center;">Tab content goes here</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Test Section 2: Contact Group Header -->
+    <div class="test-section">
+      <h2>2. Contact Group Header with Warm Avatar</h2>
+      <div class="contact-group">
+        <div class="contact-group-header">
+          <div class="contact-group-header__left">
+            <div class="contact-group-header__avatar">JD</div>
+            <span class="contact-group-header__name">John Doe</span>
+            <span class="contact-group-header__count">5 edits</span>
+          </div>
+          <div class="contact-group-header__right">
+            <button class="contact-group-header__toggle">▼</button>
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 16px;">
+        <h3 style="color: var(--text-primary); font-size: 14px; margin-bottom: 8px;">Avatar Variants:</h3>
+        <div style="display: flex; gap: 12px;">
+          <div class="contact-group-header__avatar">AB</div>
+          <div class="contact-group-header__avatar contact-group-header__avatar--sage">CD</div>
+          <div class="contact-group-header__avatar contact-group-header__avatar--sand">EF</div>
+          <div class="contact-group-header__avatar contact-group-header__avatar--rose">GH</div>
+          <div class="contact-group-header__avatar contact-group-header__avatar--stone">IJ</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Test Section 3: Diff Styling -->
+    <div class="test-section">
+      <h2>3. Diff Styling for Old/New Values</h2>
+      <div class="diff-demo">
+        <div class="diff-item">
+          <span class="diff-label">Old Value:</span>
+          <span class="edit-item__value edit-item__value--old">This is the old value</span>
+        </div>
+        <div class="diff-item">
+          <span class="diff-label">New Value:</span>
+          <span class="edit-item__value edit-item__value--new">This is the new value</span>
+        </div>
+        <div style="margin-top: 16px;">
+          <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">Compact variants:</p>
+          <div class="diff-item">
+            <span class="diff-label">Old:</span>
+            <span class="edit-item-compact__value edit-item-compact__value--old">Old compact value</span>
+          </div>
+          <div class="diff-item">
+            <span class="diff-label">New:</span>
+            <span class="edit-item-compact__value edit-item-compact__value--new">New compact value</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Test Section 4: Bulk Action Buttons -->
+    <div class="test-section">
+      <h2>4. Bulk Action Buttons</h2>
+      <div style="display: flex; gap: 12px;">
+        <button class="bulk-action-btn bulk-action-btn--accept">
+          ✓ Accept All
+        </button>
+        <button class="bulk-action-btn bulk-action-btn--reject">
+          ✕ Reject All
+        </button>
+      </div>
+    </div>
+    
+    <!-- Test Section 5: Empty State -->
+    <div class="test-section">
+      <h2>5. Empty State</h2>
+      <div class="edits-menu">
+        <div class="edits-menu__content">
+          <div class="edits-menu__empty">
+            <div class="edits-menu__empty-icon">📝</div>
+            <div class="edits-menu__empty-text">
+              No pending edits. Start a conversation to generate suggestions!
+            </div>
+            <button class="edits-menu__open-chat-btn">
+              💬 Open Chat
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Test Section 6: Edit Item -->
+    <div class="test-section">
+      <h2>6. Edit Item with Actions</h2>
+      <div class="edit-item">
+        <div class="edit-item__header">
+          <span class="edit-item__type edit-item__type--add_tag">Add Tag</span>
+          <div class="edit-item__confidence">
+            <span class="edit-item__confidence-label">Confidence:</span>
+            <span class="edit-item__confidence-value">95%</span>
+          </div>
+          <span class="edit-item__timestamp">2 minutes ago</span>
+        </div>
+        <div class="edit-item__target">
+          Add tag <strong>"hiking"</strong> to <button class="edit-item__entity">John Doe</button>
+        </div>
+        <div class="edit-item__source">
+          <span class="edit-item__source-type">Voice Note</span>
+          <span class="edit-item__source-excerpt">"John loves hiking in the mountains..."</span>
+        </div>
+        <div class="edit-item__actions">
+          <button class="edit-item__action edit-item__action--dismiss">Dismiss</button>
+          <button class="edit-item__action edit-item__action--submit">Accept</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Test Section 7: Contact Group Item -->
+    <div class="test-section">
+      <h2>7. Contact Group with Items</h2>
+      <div class="contact-group expanded">
+        <div class="contact-group-header">
+          <div class="contact-group-header__left">
+            <div class="contact-group-header__avatar contact-group-header__avatar--sage">SM</div>
+            <span class="contact-group-header__name">Sarah Miller</span>
+            <span class="contact-group-header__count">3 edits</span>
+          </div>
+          <div class="contact-group-header__right">
+            <button class="contact-group-header__toggle expanded">▼</button>
+          </div>
+        </div>
+        <div class="contact-group-content">
+          <div class="contact-group-items">
+            <div class="contact-group-item">
+              <div class="edit-item-compact">
+                <span class="edit-item-compact__icon">🏷️</span>
+                <span class="edit-item-compact__type edit-item-compact__type--add">Add</span>
+                <div class="edit-item-compact__content">
+                  <div class="edit-item-compact__field">Tag: "photography"</div>
+                </div>
+                <div class="edit-item-compact__meta">
+                  <span class="confidence-badge confidence-badge--high">92%</span>
+                </div>
+                <div class="edit-item-compact__actions">
+                  <button class="action-btn action-btn--accept">✓</button>
+                  <button class="action-btn action-btn--reject">✕</button>
+                </div>
+              </div>
+            </div>
+            <div class="contact-group-item">
+              <div class="edit-item-compact">
+                <span class="edit-item-compact__icon">👥</span>
+                <span class="edit-item-compact__type edit-item-compact__type--add">Add</span>
+                <div class="edit-item-compact__content">
+                  <div class="edit-item-compact__field">Group: "Creative Friends"</div>
+                </div>
+                <div class="edit-item-compact__meta">
+                  <span class="confidence-badge confidence-badge--mid">68%</span>
+                </div>
+                <div class="edit-item-compact__actions">
+                  <button class="action-btn action-btn--accept">✓</button>
+                  <button class="action-btn action-btn--reject">✕</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="contact-group-footer">
+            <button class="bulk-action-btn bulk-action-btn--accept">✓ Accept All</button>
+            <button class="bulk-action-btn bulk-action-btn--reject">✕ Reject All</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+    }
+  </script>
+</body>
+</html>

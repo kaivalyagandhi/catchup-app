@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circles Tab Warm Styling Verification</title>
+  <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: var(--bg-app);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      background: var(--bg-surface);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 20px;
+    }
+    
+    .test-header h1 {
+      margin: 0 0 10px 0;
+      color: var(--text-primary);
+      font-size: 24px;
+    }
+    
+    .test-header p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    
+    .theme-toggle {
+      margin-top: 15px;
+    }
+    
+    .theme-toggle button {
+      padding: 8px 16px;
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .theme-toggle button:hover {
+      opacity: 0.9;
+    }
+    
+    .visualizer-container {
+      height: 700px;
+      background: var(--bg-surface);
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+    }
+    
+    .checklist {
+      background: var(--bg-surface);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      margin-top: 20px;
+    }
+    
+    .checklist h2 {
+      margin: 0 0 15px 0;
+      color: var(--text-primary);
+      font-size: 18px;
+    }
+    
+    .checklist ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    
+    .checklist li {
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    
+    .checklist code {
+      background: var(--bg-app);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--accent-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>🎨 Circles Tab Warm Styling Verification</h1>
+      <p>Testing Task 10: Update Directory Page - Circles Tab with warm colors and design tokens</p>
+      <div class="theme-toggle">
+        <button onclick="toggleTheme()">Toggle Theme (Current: <span id="current-theme">Latte</span>)</button>
+      </div>
+    </div>
+    
+    <div class="visualizer-container" id="circular-visualizer"></div>
+    
+    <div class="checklist">
+      <h2>✅ Verification Checklist</h2>
+      <ul>
+        <li><strong>Circle Colors (Req 7.2):</strong> Verify warm color variants:
+          <ul>
+            <li>Inner Circle: <code>#8b5cf6</code> (warm purple)</li>
+            <li>Close Friends: <code>#3b82f6</code> (warm blue)</li>
+            <li>Active Friends: <code>#10b981</code> (warm green)</li>
+            <li>Casual Network: <code>#f59e0b</code> (warm amber)</li>
+            <li>Acquaintances: <code>#78716C</code> (warm stone - Stone-500)</li>
+          </ul>
+        </li>
+        <li><strong>Contact Dots (Req 7.3):</strong> Hover over contact dots - should have <code>--bg-surface</code> stroke and subtle shadow</li>
+        <li><strong>Tooltips (Req 7.4):</strong> Hover over contacts to see tooltips with:
+          <ul>
+            <li>Background: <code>--bg-surface</code></li>
+            <li>Text: <code>--text-primary</code> and <code>--text-secondary</code></li>
+            <li>Border: <code>--border-subtle</code></li>
+            <li>Warm styling matching theme</li>
+          </ul>
+        </li>
+        <li><strong>Legend Styles (Req 7.5):</strong> Check legend items use:
+          <ul>
+            <li>Name text: <code>--text-primary</code></li>
+            <li>Size text: <code>--text-secondary</code></li>
+            <li>Background: <code>--bg-app</code></li>
+            <li>Hover: <code>--bg-hover</code></li>
+          </ul>
+        </li>
+        <li><strong>Theme Toggle:</strong> Switch between Latte and Espresso modes - all colors should adapt properly</li>
+        <li><strong>Visual Consistency:</strong> All elements should feel warm and cohesive with the Stone & Clay design system</li>
+      </ul>
+    </div>
+  </div>
+  
+  <script src="../../public/js/circular-visualizer.js"></script>
+  <script>
+    // Initialize theme
+    const savedTheme = localStorage.getItem('catchup-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeLabel();
+    
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('catchup-theme', next);
+      updateThemeLabel();
+    }
+    
+    function updateThemeLabel() {
+      const theme = document.documentElement.getAttribute('data-theme');
+      document.getElementById('current-theme').textContent = theme === 'dark' ? 'Espresso' : 'Latte';
+    }
+    
+    // Generate sample contacts for each circle
+    function generateSampleContacts() {
+      const contacts = [];
+      const circles = ['inner', 'close', 'active', 'casual', 'acquaintance'];
+      const names = [
+        'Alice Johnson', 'Bob Smith', 'Carol Williams', 'David Brown', 'Emma Davis',
+        'Frank Miller', 'Grace Wilson', 'Henry Moore', 'Iris Taylor', 'Jack Anderson',
+        'Kate Thomas', 'Liam Jackson', 'Mia White', 'Noah Harris', 'Olivia Martin',
+        'Peter Thompson', 'Quinn Garcia', 'Rachel Martinez', 'Sam Robinson', 'Tina Clark',
+        'Uma Rodriguez', 'Victor Lewis', 'Wendy Lee', 'Xavier Walker', 'Yara Hall',
+        'Zoe Allen', 'Adam Young', 'Beth King', 'Chris Wright', 'Diana Lopez'
+      ];
+      
+      // Inner circle: 3 contacts
+      for (let i = 0; i < 3; i++) {
+        contacts.push({
+          id: `inner-${i}`,
+          name: names[i],
+          email: `${names[i].toLowerCase().replace(' ', '.')}@example.com`,
+          phone: `+1 555-${String(i).padStart(4, '0')}`,
+          circle: 'inner',
+          groups: i === 0 ? ['family'] : []
+        });
+      }
+      
+      // Close friends: 8 contacts
+      for (let i = 0; i < 8; i++) {
+        contacts.push({
+          id: `close-${i}`,
+          name: names[3 + i],
+          email: `${names[3 + i].toLowerCase().replace(' ', '.')}@example.com`,
+          circle: 'close',
+          groups: i < 3 ? ['work-friends'] : []
+        });
+      }
+      
+      // Active friends: 12 contacts
+      for (let i = 0; i < 12; i++) {
+        contacts.push({
+          id: `active-${i}`,
+          name: names[11 + i],
+          circle: 'active',
+          groups: i < 4 ? ['book-club'] : [],
+          aiSuggestion: i === 0 ? { circle: 'active', confidence: 0.85 } : null
+        });
+      }
+      
+      // Casual network: 5 contacts
+      for (let i = 0; i < 5; i++) {
+        contacts.push({
+          id: `casual-${i}`,
+          name: names[23 + i],
+          circle: 'casual'
+        });
+      }
+      
+      // Acquaintances: 2 contacts
+      for (let i = 0; i < 2; i++) {
+        contacts.push({
+          id: `acquaintance-${i}`,
+          name: names[28 + i],
+          circle: 'acquaintance'
+        });
+      }
+      
+      return contacts;
+    }
+    
+    // Generate sample groups
+    const sampleGroups = [
+      { id: 'family', name: 'Family' },
+      { id: 'work-friends', name: 'Work Friends' },
+      { id: 'book-club', name: 'Book Club' }
+    ];
+    
+    // Initialize visualizer
+    const visualizer = new CircularVisualizer('circular-visualizer');
+    const contacts = generateSampleContacts();
+    visualizer.render(contacts, sampleGroups);
+    
+    // Add click listener
+    visualizer.on('contactClick', (data) => {
+      console.log('Contact clicked:', data);
+      alert(`Clicked: ${data.contact.name}\nCircle: ${data.contact.circle}`);
+    });
+    
+    console.log('Circles Tab Verification loaded');
+    console.log('Sample contacts:', contacts.length);
+    console.log('Circle distribution:', visualizer.getCircleDistribution());
+  </script>
+</body>
+</html>

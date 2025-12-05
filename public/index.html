@@ -6,10 +6,23 @@
     <meta http-equiv="Permissions-Policy" content="microphone=(self)">
     <title>CatchUp - Relationship Manager</title>
     
-    <!-- Google Material Icons -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Stone & Clay Design System -->
+    <link rel="stylesheet" href="css/stone-clay-theme.css">
+    
+    <!-- App Shell - Sidebar Navigation -->
+    <link rel="stylesheet" href="css/app-shell.css">
+    
+    <!-- Responsive Layout -->
+    <link rel="stylesheet" href="css/responsive.css">
     
     <!-- Directory Page Stylesheets -->
+    <link rel="stylesheet" href="css/directory-tabs.css">
     <link rel="stylesheet" href="css/contacts-table.css">
     <link rel="stylesheet" href="css/groups-table.css">
     <link rel="stylesheet" href="css/tags-table.css">
@@ -21,15 +34,22 @@
             try {
                 const THEME_STORAGE_KEY = 'catchup-theme';
                 const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 
-                // Apply dark theme immediately if saved, otherwise default to light
-                if (savedTheme === 'dark') {
-                    document.documentElement.setAttribute('data-theme', 'dark');
+                // Determine theme: saved preference > system preference > default (light)
+                const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+                
+                // Apply theme immediately to prevent FOUC
+                document.documentElement.setAttribute('data-theme', theme);
+                
+                // Save the determined theme if not already saved
+                if (!savedTheme) {
+                    localStorage.setItem(THEME_STORAGE_KEY, theme);
                 }
-                // Light theme is the default (no attribute needed)
             } catch (error) {
-                // Silently fail if localStorage is unavailable
+                // Silently fail if localStorage is unavailable, default to light theme
                 console.warn('Failed to load theme preference:', error);
+                document.documentElement.setAttribute('data-theme', 'light');
             }
         })();
     </script>
@@ -373,15 +393,17 @@
         .auth-container {
             max-width: 400px;
             margin: 100px auto;
-            background: var(--card-bg);
+            background: var(--bg-surface);
             padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px var(--card-shadow);
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
         
         .auth-container h2 {
             margin-bottom: 20px;
-            color: var(--color-primary);
+            color: var(--text-primary);
+            font-weight: 600;
         }
         
         .auth-toggle {
@@ -408,35 +430,38 @@
             justify-content: center;
             gap: 12px;
             padding: 12px 24px;
-            background: #ffffff;
-            color: #3c4043;
-            border: 1px solid #dadce0;
-            border-radius: 4px;
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
             font-size: 14px;
             font-weight: 500;
-            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             margin-bottom: 20px;
         }
         
         .google-sso-button:hover {
-            background: #f8f9fa;
-            border-color: #d2e3fc;
-            box-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.3);
+            background: var(--bg-hover);
+            border-color: var(--border-default);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
         }
         
         .google-sso-button:active {
-            background: #f1f3f4;
-            box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3);
+            background: var(--bg-active);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transform: translateY(0);
         }
         
         .google-sso-button:disabled {
-            background: #f1f3f4;
-            color: #80868b;
+            background: var(--bg-secondary);
+            color: var(--text-tertiary);
             cursor: not-allowed;
-            border-color: #dadce0;
+            border-color: var(--border-subtle);
+            opacity: 0.6;
         }
         
         .google-sso-button.loading {
@@ -451,31 +476,10 @@
             display: inline-block;
             width: 16px;
             height: 16px;
-            border: 2px solid #f3f4f6;
-            border-top-color: #4285f4;
+            border: 2px solid var(--border-subtle);
+            border-top-color: var(--accent-primary);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
-        }
-        
-        /* Dark theme adjustments for Google button */
-        [data-theme="dark"] .google-sso-button {
-            background: #2d2d2d;
-            color: #e5e5e5;
-            border-color: #404040;
-        }
-        
-        [data-theme="dark"] .google-sso-button:hover {
-            background: #404040;
-            border-color: #525252;
-        }
-        
-        [data-theme="dark"] .google-sso-button:active {
-            background: #353535;
-        }
-        
-        [data-theme="dark"] .google-sso-button:disabled {
-            background: #242424;
-            color: #737373;
         }
         
         /* Auth divider */
@@ -491,13 +495,14 @@
         .auth-divider::after {
             content: '';
             flex: 1;
-            border-bottom: 1px solid var(--border-primary);
+            border-bottom: 1px solid var(--border-subtle);
         }
         
         .auth-divider span {
-            padding: 0 10px;
+            padding: 0 12px;
             font-size: 12px;
             font-weight: 500;
+            color: var(--text-secondary);
         }
         
         /* Test mode notice */
@@ -507,19 +512,22 @@
             padding: 8px 12px;
             background: var(--status-info-bg);
             color: var(--status-info-text);
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 12px;
             font-weight: 500;
+            border-left: 4px solid var(--status-info);
         }
         
         /* Info message styling */
         .info-message {
             background: var(--status-info-bg);
             color: var(--status-info-text);
-            padding: 12px;
-            border-radius: 4px;
+            padding: 12px 16px;
+            border-radius: 8px;
             margin-bottom: 15px;
             text-align: center;
+            border-left: 4px solid var(--status-info);
+            font-size: 14px;
         }
         
         .hidden {
@@ -527,42 +535,63 @@
         }
         
         button {
-            background: var(--color-primary);
-            color: var(--text-inverse);
+            background: var(--text-primary);
+            color: var(--bg-surface);
             border: none;
             padding: 10px 20px;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-            transition: background 0.2s;
+            font-weight: 600;
+            transition: opacity 0.2s ease;
         }
         
         button:hover {
-            background: var(--color-primary-hover);
+            opacity: 0.9;
         }
         
         button.secondary {
-            background: var(--color-secondary);
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            font-weight: 500;
         }
         
         button.secondary:hover {
-            background: var(--color-secondary-hover);
+            background: var(--bg-hover);
+            opacity: 1;
+        }
+        
+        button.accent {
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+        }
+        
+        button.accent:hover {
+            background: var(--accent-hover);
+            opacity: 1;
         }
         
         input, textarea, select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid var(--input-border);
-            border-radius: 4px;
+            padding: 12px 16px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
             font-size: 14px;
             margin-bottom: 15px;
-            background: var(--input-bg);
+            background: var(--bg-app);
             color: var(--text-primary);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         
         input:focus, textarea:focus, select:focus {
             outline: none;
-            border-color: var(--input-focus-border);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        
+        input::placeholder, textarea::placeholder {
+            color: var(--text-tertiary);
         }
         
         label {
@@ -654,7 +683,8 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: var(--modal-overlay);
+            background: rgba(28, 25, 23, 0.4);
+            backdrop-filter: blur(4px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -662,9 +692,10 @@
         }
         
         .modal-content {
-            background: var(--modal-bg);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
             padding: 30px;
-            border-radius: 8px;
+            border-radius: 12px;
             max-width: 500px;
             width: 90%;
             max-height: 90vh;
@@ -680,6 +711,8 @@
         
         .modal-header h2 {
             margin: 0;
+            color: var(--text-primary);
+            font-weight: 600;
         }
         
         .close-btn {
@@ -689,26 +722,33 @@
             padding: 0;
             width: 30px;
             height: 30px;
+            border-radius: 6px;
+            transition: background 0.2s ease, color 0.2s ease;
         }
         
         .close-btn:hover {
-            background: var(--bg-secondary);
+            background: var(--bg-hover);
+            color: var(--text-primary);
         }
         
         .error {
             background: var(--status-error-bg);
             color: var(--status-error-text);
-            padding: 12px;
-            border-radius: 4px;
+            padding: 12px 16px;
+            border-radius: 8px;
             margin-bottom: 15px;
+            border-left: 4px solid var(--status-error);
+            font-size: 14px;
         }
         
         .success {
             background: var(--status-success-bg);
             color: var(--status-success-text);
-            padding: 12px;
-            border-radius: 4px;
+            padding: 12px 16px;
+            border-radius: 8px;
             margin-bottom: 15px;
+            border-left: 4px solid var(--status-success);
+            font-size: 14px;
         }
         
         /* Tag and Group Badges */
@@ -1023,25 +1063,25 @@
         .toast-success {
             background: var(--status-success-bg);
             color: var(--status-success-text);
-            border-left: 4px solid var(--color-success);
+            border-left: 4px solid var(--status-success);
         }
         
         .toast-error {
             background: var(--status-error-bg);
             color: var(--status-error-text);
-            border-left: 4px solid var(--color-danger);
+            border-left: 4px solid var(--status-error);
         }
         
         .toast-loading {
             background: var(--status-info-bg);
             color: var(--status-info-text);
-            border-left: 4px solid var(--color-primary);
+            border-left: 4px solid var(--accent-primary);
         }
         
         .toast-info {
             background: var(--status-info-bg);
             color: var(--status-info-text);
-            border-left: 4px solid var(--color-primary);
+            border-left: 4px solid var(--status-info);
         }
         
         .toast-icon {
@@ -1663,38 +1703,47 @@
             display: none;
         }
         
-        /* Directory Tabs */
+        /* Directory Tabs - Segmented Control (Pill-shaped) */
         .directory-tabs {
-            display: flex;
-            gap: 0;
-            border-bottom: 2px solid var(--border-primary);
-            padding-bottom: 0;
+            display: inline-flex;
+            gap: 4px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 4px;
             margin-bottom: 25px;
         }
         
         .directory-tab {
+            display: inline-flex;
+            align-items: center;
             background: transparent;
             border: none;
-            padding: 14px 28px;
-            font-size: 16px;
+            padding: 10px 20px;
+            font-size: 14px;
             font-weight: 500;
             color: var(--text-secondary);
             cursor: pointer;
-            border-bottom: 3px solid transparent;
-            margin-bottom: -2px;
+            border-radius: 8px;
             transition: all 0.2s ease;
             position: relative;
+            white-space: nowrap;
+        }
+        
+        .directory-tab svg {
+            flex-shrink: 0;
         }
         
         .directory-tab:hover {
-            color: var(--color-primary);
-            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            background: var(--bg-hover);
         }
         
         .directory-tab.active {
-            color: var(--color-primary);
-            border-bottom-color: var(--color-primary);
+            background: var(--bg-surface);
+            color: var(--text-primary);
             font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         
         .directory-tab-content {
@@ -1731,6 +1780,8 @@
         /* Mobile responsive for directory tabs */
         @media (max-width: 768px) {
             .directory-tabs {
+                display: flex;
+                width: 100%;
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none; /* Firefox */
@@ -1742,8 +1793,8 @@
             }
             
             .directory-tab {
-                padding: 12px 20px;
-                font-size: 14px;
+                padding: 10px 16px;
+                font-size: 13px;
                 white-space: nowrap;
                 flex-shrink: 0;
             }
@@ -2232,20 +2283,20 @@
             width: 56px;
             height: 56px;
             border-radius: 50%;
-            background: var(--color-primary);
+            background: var(--accent-primary);
             color: var(--text-inverse);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px var(--accent-glow), 0 2px 4px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
             z-index: 1000;
         }
         
         .floating-chat-icon:hover {
             transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 6px 16px var(--accent-glow), 0 4px 8px rgba(0, 0, 0, 0.15);
         }
         
         .floating-chat-icon:active {
@@ -2266,13 +2317,14 @@
             height: 20px;
             padding: 0 6px;
             border-radius: 10px;
-            background: var(--color-danger);
-            color: white;
+            background: var(--accent-primary);
+            color: var(--text-inverse);
             font-size: 11px;
             font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
         .floating-chat-icon__badge--bounce {
@@ -2284,25 +2336,25 @@
             50% { transform: scale(1.2); }
         }
         
-        /* Recording state - red glow */
+        /* Recording state - warm red glow */
         .floating-chat-icon--recording {
-            background: var(--color-danger);
+            background: var(--status-error);
         }
         
         .floating-chat-icon--glow {
-            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
             animation: glow-pulse 1.5s infinite;
         }
         
         @keyframes glow-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
             70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
         
         /* Error state */
         .floating-chat-icon--error {
-            background: var(--color-warning);
+            background: var(--status-warning);
         }
         
         /* Pulse animation for edit detection */
@@ -2313,6 +2365,11 @@
         @keyframes icon-pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.15); }
+        }
+        
+        /* Hidden state */
+        .floating-chat-icon--hidden {
+            display: none;
         }
         
         /* ============================================
@@ -2336,9 +2393,10 @@
             width: 380px;
             max-width: calc(100vw - 48px);
             max-height: calc(100vh - 120px);
-            background: var(--card-bg);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -2349,8 +2407,8 @@
             justify-content: space-between;
             align-items: center;
             padding: 16px;
-            border-bottom: 1px solid var(--border-primary);
-            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-surface);
         }
         
         .chat-window__title {
@@ -2371,12 +2429,18 @@
             align-items: center;
             gap: 4px;
             padding: 4px 10px;
-            background: var(--status-info-bg);
-            color: var(--status-info-text);
+            background: var(--accent-primary);
+            color: var(--text-inverse);
             border: none;
             border-radius: 12px;
             font-size: 12px;
+            font-weight: 500;
             cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .chat-window__counter:hover {
+            opacity: 0.9;
         }
         
         .chat-window__counter--muted {
@@ -2398,16 +2462,18 @@
         
         .chat-window__cancel-btn {
             padding: 6px 12px;
-            background: var(--color-secondary);
-            color: var(--text-inverse);
-            border: none;
-            border-radius: 4px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
             font-size: 12px;
+            font-weight: 500;
             cursor: pointer;
+            transition: background 0.2s;
         }
         
         .chat-window__cancel-btn:hover {
-            background: var(--color-secondary-hover);
+            background: var(--bg-hover);
         }
         
         .chat-window__close-btn {
@@ -2421,11 +2487,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 4px;
+            border-radius: 6px;
+            transition: background 0.2s, color 0.2s;
         }
         
         .chat-window__close-btn:hover {
-            background: var(--bg-secondary);
+            background: var(--bg-hover);
             color: var(--text-primary);
         }
         
@@ -2435,6 +2502,7 @@
             padding: 16px;
             min-height: 200px;
             max-height: 400px;
+            background: var(--bg-app);
         }
         
         .chat-message {
@@ -2445,16 +2513,22 @@
         }
         
         .chat-message--user {
-            background: var(--color-primary);
-            color: var(--text-inverse);
+            background: #dbeafe;
+            color: #1e3a8a;
             margin-left: auto;
             border-bottom-right-radius: 4px;
+        }
+        
+        [data-theme="dark"] .chat-message--user {
+            background: #1e3a5f;
+            color: #93c5fd;
         }
         
         .chat-message--system {
             background: var(--bg-secondary);
             color: var(--text-primary);
             border-bottom-left-radius: 4px;
+            border: 1px solid var(--border-subtle);
         }
         
         .chat-message__content {
@@ -2484,30 +2558,101 @@
             background: rgba(255, 255, 255, 0.3);
         }
         
+        .chat-message__disambiguation {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .chat-message__disambiguation-option {
+            padding: 8px 12px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-align: left;
+        }
+        
+        .chat-message__disambiguation-option:hover {
+            background: var(--bg-hover);
+        }
+        
+        .disambiguation-option__name {
+            display: block;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+        
+        .disambiguation-option__score {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
 
+        .chat-window__audio-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 12px 16px;
+            background: var(--status-error-bg);
+            border-top: 1px solid var(--border-subtle);
+        }
+        
+        .chat-window__audio-indicator.hidden {
+            display: none;
+        }
+        
+        .chat-window__audio-bar {
+            width: 3px;
+            height: 4px;
+            background: var(--status-error);
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+        
+        .chat-window__audio-bar.active {
+            background: var(--status-error);
+            animation: audio-bar-pulse 0.5s ease-in-out infinite;
+        }
+        
+        @keyframes audio-bar-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
         .chat-window__input-area {
             display: flex;
             align-items: center;
             gap: 8px;
             padding: 12px 16px;
-            border-top: 1px solid var(--border-primary);
-            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-subtle);
+            background: var(--bg-surface);
         }
         
         .chat-window__text-input {
             flex: 1;
             padding: 10px 14px;
-            border: 1px solid var(--input-border);
+            border: 1px solid var(--border-subtle);
             border-radius: 20px;
             font-size: 14px;
-            background: var(--input-bg);
+            background: var(--bg-app);
             color: var(--text-primary);
             margin: 0;
+            transition: border-color 0.2s;
         }
         
         .chat-window__text-input:focus {
             outline: none;
-            border-color: var(--input-focus-border);
+            border-color: var(--accent-primary);
+        }
+        
+        .chat-window__text-input::placeholder {
+            color: var(--text-tertiary);
         }
         
         .chat-window__mic-btn,
@@ -2517,7 +2662,7 @@
             padding: 0;
             border: none;
             border-radius: 50%;
-            background: var(--color-primary);
+            background: var(--accent-primary);
             color: var(--text-inverse);
             cursor: pointer;
             display: flex;
@@ -2528,18 +2673,24 @@
         
         .chat-window__mic-btn:hover,
         .chat-window__send-btn:hover {
-            background: var(--color-primary-hover);
+            background: var(--accent-hover);
             transform: scale(1.05);
         }
         
         .chat-window__mic-btn--recording {
-            background: var(--color-danger);
-            animation: mic-pulse 1s infinite;
+            background: var(--status-error);
+            animation: mic-pulse 1.5s infinite;
         }
         
         @keyframes mic-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+            0%, 100% { 
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+            }
+            50% { 
+                opacity: 0.8;
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            }
         }
         
         .chat-window__notification {
@@ -2583,6 +2734,24 @@
     </style>
 </head>
 <body>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <svg class="theme-icon-latte" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg class="theme-icon-espresso" viewBox="0 0 24 24" style="display: none;">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+    </button>
+
     <!-- Loading Screen -->
     <div id="loading-screen" class="loading-screen-overlay">
         <div class="loading-screen-content">
@@ -2645,45 +2814,91 @@
     </div>
     
     <!-- Main App -->
-    <div id="main-app" class="container hidden">
-        <header>
-            <h1>CatchUp</h1>
-            <p>AI-Powered Relationship Manager</p>
-            <nav>
-                <a href="#directory" class="nav-link active" data-page="directory">📁 Directory</a>
-                <a href="#suggestions" class="nav-link" data-page="suggestions">💡 Suggestions</a>
-                <a href="#edits" class="nav-link" data-page="edits">✏️ Edits <span id="edits-badge" class="nav-badge hidden">#</span></a>
+    <div id="main-app" class="app-shell hidden">
+        <!-- Hamburger Menu Button (Tablet only) -->
+        <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle navigation menu">
+            <div class="hamburger-icon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </button>
+        
+        <!-- Sidebar Overlay (Tablet only) -->
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+        
+        <!-- Fixed Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar__brand">CatchUp</div>
+            
+            <nav class="sidebar__nav">
+                <a href="#directory" class="nav-item active" data-page="directory">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                    </svg>
+                    <span>Directory</span>
+                </a>
+                <a href="#suggestions" class="nav-item" data-page="suggestions">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                    </svg>
+                    <span>Suggestions</span>
+                </a>
+                <a href="#edits" class="nav-item" data-page="edits">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+                        <path d="m15 5 4 4"/>
+                    </svg>
+                    <span>Edits</span>
+                    <span id="edits-badge" class="nav-badge hidden">0</span>
+                </a>
             </nav>
-            <div class="user-info">
-                <span class="user-email" id="user-email"></span>
-                <div class="user-actions">
-                    <button class="preferences-btn" onclick="navigateToPage('preferences')">Preferences</button>
-                    <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">
-                        <span class="theme-icon" id="theme-icon">🌙</span>
-                    </button>
-                    <button class="logout-btn" onclick="logout()">Logout</button>
+            
+            <div class="sidebar__footer">
+                <div class="user-pill" onclick="navigateToPage('preferences')">
+                    <div class="user-avatar" id="user-avatar-initials"></div>
+                    <span class="user-name" id="user-name"></span>
                 </div>
             </div>
-        </header>
+        </aside>
         
-        <div class="content">
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div class="main-content__inner">
             <!-- Directory Page -->
             <div id="directory-page" class="page">
                 <h2 style="margin-bottom: 20px;">Directory</h2>
                 
                 <!-- Directory Tab Navigation -->
-                <div class="directory-tabs" style="display: flex; gap: 0; margin-bottom: 25px; border-bottom: 2px solid var(--border-primary);">
+                <div class="directory-tabs">
                     <button class="directory-tab active" data-tab="contacts" onclick="switchDirectoryTab('contacts')">
-                        <span style="margin-right: 6px;">👥</span>Contacts
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>Contacts
                     </button>
                     <button class="directory-tab" data-tab="circles" onclick="switchDirectoryTab('circles')">
-                        <span style="margin-right: 6px;">🎯</span>Circles
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <circle cx="12" cy="12" r="6"/>
+                            <circle cx="12" cy="12" r="2"/>
+                        </svg>Circles
                     </button>
                     <button class="directory-tab" data-tab="groups" onclick="switchDirectoryTab('groups')">
-                        <span style="margin-right: 6px;">👥</span>Groups
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>Groups
                     </button>
                     <button class="directory-tab" data-tab="tags" onclick="switchDirectoryTab('tags')">
-                        <span style="margin-right: 6px;">🏷️</span>Tags
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;">
+                            <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/>
+                            <path d="M7 7h.01"/>
+                        </svg>Tags
                     </button>
                 </div>
                 
@@ -2698,7 +2913,10 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                         <h3 style="margin: 0;">Circles</h3>
                         <button onclick="openOnboardingManagement()" style="background: var(--color-primary); font-weight: 600;">
-                            <span style="margin-right: 6px;">⚙️</span>Manage Circles
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;">
+                                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>Manage Circles
                         </button>
                     </div>
                     
@@ -2736,8 +2954,41 @@
                 <h2 style="margin-bottom: 20px;">Preferences</h2>
                 <div id="preferences-content"></div>
             </div>
-        </div>
-    </div>  <!-- End main-app -->
+            
+            </div> <!-- End main-content__inner -->
+        </main> <!-- End main-content -->
+        
+        <!-- Mobile Bottom Navigation (Mobile only) -->
+        <nav class="mobile-nav" id="mobile-nav">
+            <a href="#directory" class="mobile-nav__item mobile-nav__item--active" data-page="directory" onclick="navigateToPage('directory'); return false;">
+                <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                </svg>
+                <span class="mobile-nav__label">Directory</span>
+            </a>
+            <a href="#suggestions" class="mobile-nav__item" data-page="suggestions" onclick="navigateToPage('suggestions'); return false;">
+                <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                </svg>
+                <span class="mobile-nav__label">Suggestions</span>
+            </a>
+            <a href="#edits" class="mobile-nav__item" data-page="edits" onclick="navigateToPage('edits'); return false;">
+                <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+                    <path d="m15 5 4 4"/>
+                </svg>
+                <span class="mobile-nav__label">Edits</span>
+                <span id="mobile-edits-badge" class="mobile-nav__badge hidden">0</span>
+            </a>
+            <a href="#preferences" class="mobile-nav__item" data-page="preferences" onclick="navigateToPage('preferences'); return false;">
+                <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span class="mobile-nav__label">Settings</span>
+            </a>
+        </nav>
+    </div>  <!-- End app-shell / main-app -->
     
     <!-- Add/Edit Contact Modal -->
     <div id="contact-modal" class="modal hidden">

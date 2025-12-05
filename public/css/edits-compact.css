@@ -10,16 +10,16 @@
    ============================================ */
 
 :root {
-  /* Color Palette - Edit Types */
-  --compact-edit-add: #10b981;      /* Green - Add/Tag */
-  --compact-edit-remove: #ef4444;   /* Red - Remove/Delete */
-  --compact-edit-update: #3b82f6;   /* Blue - Update/Field */
-  --compact-edit-create: #8b5cf6;   /* Purple - Create */
+  /* Color Palette - Edit Types - Warm tones */
+  --compact-edit-add: #10b981;      /* Sage green - Add/Tag */
+  --compact-edit-remove: #ef4444;   /* Warm red - Remove/Delete */
+  --compact-edit-update: #3b82f6;   /* Warm blue - Update/Field */
+  --compact-edit-create: var(--accent-primary);   /* Clay/Amber - Create */
   
   /* Confidence Score Colors */
-  --compact-confidence-low: #ef4444;    /* Red - 0-50% */
-  --compact-confidence-mid: #f59e0b;    /* Yellow - 50-75% */
-  --compact-confidence-high: #10b981;   /* Green - 75-100% */
+  --compact-confidence-low: #ef4444;    /* Warm red - 0-50% */
+  --compact-confidence-mid: #f59e0b;    /* Amber - 50-75% */
+  --compact-confidence-high: #10b981;   /* Sage green - 75-100% */
   
   /* Spacing */
   --compact-spacing-xs: 4px;
@@ -100,11 +100,11 @@
 }
 
 .contact-group-header:hover {
-  background: #f0f0f0;
+  background: var(--bg-hover);
 }
 
 [data-theme="dark"] .contact-group-header:hover {
-  background: #4b5563;
+  background: var(--bg-hover);
 }
 
 .contact-group-header__left {
@@ -119,7 +119,7 @@
   width: var(--compact-avatar-size);
   height: var(--compact-avatar-size);
   border-radius: 50%;
-  background: var(--edits-primary);
+  background: var(--accent-primary);
   color: white;
   display: flex;
   align-items: center;
@@ -127,6 +127,27 @@
   font-size: var(--compact-font-sm);
   font-weight: 600;
   flex-shrink: 0;
+}
+
+/* Warm pastel avatar variants */
+.contact-group-header__avatar--sage {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.contact-group-header__avatar--sand {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.contact-group-header__avatar--rose {
+  background: #fce7f3;
+  color: #9d174d;
+}
+
+.contact-group-header__avatar--stone {
+  background: #e7e5e4;
+  color: #44403c;
 }
 
 .contact-group-header__name {
@@ -220,7 +241,7 @@
 }
 
 .contact-group-item {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-subtle);
   transition: background-color var(--compact-transition-fast);
 }
 
@@ -229,11 +250,11 @@
 }
 
 .contact-group-item:hover {
-  background: #fafafa;
+  background: var(--bg-hover);
 }
 
 [data-theme="dark"] .contact-group-item:hover {
-  background: #374151;
+  background: var(--bg-hover);
 }
 
 .contact-group-item.accepted {
@@ -336,6 +357,33 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Diff styling for old/new values in compact view */
+.edit-item-compact__value--old {
+  text-decoration: line-through;
+  background: rgba(248, 113, 113, 0.1);
+  color: #dc2626;
+  padding: 2px 6px;
+  border-radius: var(--compact-radius-sm);
+}
+
+[data-theme="dark"] .edit-item-compact__value--old {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+.edit-item-compact__value--new {
+  font-weight: 600;
+  background: rgba(74, 222, 128, 0.1);
+  color: #059669;
+  padding: 2px 6px;
+  border-radius: var(--compact-radius-sm);
+}
+
+[data-theme="dark"] .edit-item-compact__value--new {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
 }
 
 .edit-item-compact__value-edit {
@@ -517,23 +565,26 @@
 .bulk-action-btn--accept {
   background: var(--compact-edit-add);
   color: white;
+  border: none;
 }
 
 .bulk-action-btn--accept:hover {
   background: #059669;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
 }
 
 .bulk-action-btn--reject {
-  background: var(--compact-edit-remove);
-  color: white;
+  background: transparent;
+  color: var(--compact-edit-remove);
+  border: 1px solid var(--compact-edit-remove);
 }
 
 .bulk-action-btn--reject:hover {
-  background: #dc2626;
+  background: var(--compact-edit-remove);
+  color: white;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
 }
 
 /* ============================================

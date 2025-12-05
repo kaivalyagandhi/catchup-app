@@ -5,6 +5,7 @@
  */
 
 // Circle definitions based on Dunbar's number
+// Using warm color variants as per Requirement 7.2
 const CIRCLE_DEFINITIONS = {
   inner: {
     id: 'inner',
@@ -13,7 +14,7 @@ const CIRCLE_DEFINITIONS = {
     recommendedSize: 5,
     maxSize: 5,
     defaultFrequency: 'weekly',
-    color: '#8b5cf6',
+    color: '#8b5cf6', // Warm purple
     innerRadius: 0,
     outerRadius: 80
   },
@@ -24,7 +25,7 @@ const CIRCLE_DEFINITIONS = {
     recommendedSize: 15,
     maxSize: 15,
     defaultFrequency: 'biweekly',
-    color: '#3b82f6',
+    color: '#3b82f6', // Warm blue
     innerRadius: 80,
     outerRadius: 160
   },
@@ -35,7 +36,7 @@ const CIRCLE_DEFINITIONS = {
     recommendedSize: 50,
     maxSize: 50,
     defaultFrequency: 'monthly',
-    color: '#10b981',
+    color: '#10b981', // Warm green
     innerRadius: 160,
     outerRadius: 240
   },
@@ -46,7 +47,7 @@ const CIRCLE_DEFINITIONS = {
     recommendedSize: 150,
     maxSize: 150,
     defaultFrequency: 'quarterly',
-    color: '#f59e0b',
+    color: '#f59e0b', // Warm amber
     innerRadius: 240,
     outerRadius: 320
   },
@@ -57,7 +58,7 @@ const CIRCLE_DEFINITIONS = {
     recommendedSize: 500,
     maxSize: 1000,
     defaultFrequency: 'yearly',
-    color: '#6b7280',
+    color: '#78716C', // Warm stone (Stone-500)
     innerRadius: 320,
     outerRadius: 400
   }
@@ -388,11 +389,11 @@ class CircularVisualizer {
     group.setAttribute('data-contact-id', contact.id);
     group.setAttribute('transform', `translate(${x}, ${y})`);
     
-    // Circle background
+    // Circle background with warm styling
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('r', this.contactDotSize / 2);
     circle.setAttribute('fill', contact.color || this.getContactColor(contact));
-    circle.setAttribute('stroke', 'white');
+    circle.setAttribute('stroke', 'var(--bg-surface, white)');
     circle.setAttribute('stroke-width', '3');
     circle.setAttribute('filter', 'url(#contact-shadow)');
     circle.setAttribute('class', 'contact-circle');
@@ -674,15 +675,15 @@ class CircularVisualizer {
         height: 100%;
         display: flex;
         flex-direction: column;
-        background: #f9fafb;
+        background: var(--bg-app);
         border-radius: 12px;
         overflow: hidden;
       }
       
       .visualizer-controls {
         padding: 20px;
-        background: white;
-        border-bottom: 2px solid #e5e7eb;
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border-subtle);
       }
       
       .group-filter-container {
@@ -691,38 +692,38 @@ class CircularVisualizer {
         gap: 10px;
         margin-bottom: 15px;
         padding: 12px;
-        background: #f9fafb;
+        background: var(--bg-app);
         border-radius: 8px;
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--border-subtle);
       }
       
       .group-filter-label {
         font-size: 14px;
         font-weight: 600;
-        color: #374151;
+        color: var(--text-primary);
         white-space: nowrap;
       }
       
       .group-filter-select {
         flex: 1;
         padding: 8px 12px;
-        border: 1px solid #d1d5db;
+        border: 1px solid var(--border-subtle);
         border-radius: 6px;
-        background: white;
+        background: var(--bg-surface);
         font-size: 14px;
-        color: #374151;
+        color: var(--text-primary);
         cursor: pointer;
         transition: all 0.2s;
       }
       
       .group-filter-select:hover {
-        border-color: #9ca3af;
+        border-color: var(--border-default);
       }
       
       .group-filter-select:focus {
         outline: none;
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px var(--accent-glow);
       }
       
       .circle-legend {
@@ -737,13 +738,13 @@ class CircularVisualizer {
         align-items: center;
         gap: 8px;
         padding: 8px 12px;
-        background: #f9fafb;
+        background: var(--bg-app);
         border-radius: 8px;
         transition: all 0.2s;
       }
       
       .legend-item:hover {
-        background: #f3f4f6;
+        background: var(--bg-hover);
         transform: translateY(-2px);
       }
       
@@ -751,7 +752,7 @@ class CircularVisualizer {
         width: 16px;
         height: 16px;
         border-radius: 50%;
-        border: 2px solid white;
+        border: 2px solid var(--bg-surface);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       
@@ -764,13 +765,13 @@ class CircularVisualizer {
       .legend-name {
         font-size: 13px;
         font-weight: 600;
-        color: #374151;
+        color: var(--text-primary);
       }
       
       .legend-size {
         font-size: 11px;
         font-weight: 500;
-        color: #6b7280;
+        color: var(--text-secondary);
       }
       
       .visualizer-canvas {
@@ -803,25 +804,27 @@ class CircularVisualizer {
       
       .contact-tooltip {
         position: fixed;
-        background: rgba(0, 0, 0, 0.9);
-        color: white;
+        background: var(--bg-surface);
+        color: var(--text-primary);
         padding: 12px 16px;
         border-radius: 8px;
+        border: 1px solid var(--border-subtle);
         font-size: 13px;
         pointer-events: none;
         z-index: 10000;
         max-width: 300px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
       
       .tooltip-name {
         font-weight: 600;
         margin-bottom: 4px;
         font-size: 14px;
+        color: var(--text-primary);
       }
       
       .tooltip-detail {
-        color: #d1d5db;
+        color: var(--text-secondary);
         font-size: 12px;
         margin-bottom: 2px;
       }
@@ -829,8 +832,8 @@ class CircularVisualizer {
       .tooltip-groups {
         margin-top: 6px;
         padding-top: 6px;
-        border-top: 1px solid rgba(255, 255, 255, 0.2);
-        color: #a78bfa;
+        border-top: 1px solid var(--border-subtle);
+        color: var(--accent-primary);
         font-size: 12px;
         font-weight: 500;
       }
@@ -838,8 +841,8 @@ class CircularVisualizer {
       .tooltip-suggestion {
         margin-top: 8px;
         padding-top: 8px;
-        border-top: 1px solid rgba(255, 255, 255, 0.2);
-        color: #10b981;
+        border-top: 1px solid var(--border-subtle);
+        color: var(--status-success);
         font-size: 12px;
       }
       

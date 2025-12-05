@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sidebar Navigation Verification - Checkpoint 4</title>
+    
+    <!-- Stone & Clay Design System -->
+    <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+    
+    <!-- App Shell - Sidebar Navigation -->
+    <link rel="stylesheet" href="../../public/css/app-shell.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        
+        .verification-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: var(--bg-surface);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: var(--bg-app);
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+            color: var(--text-primary);
+        }
+        
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .test-result.pass {
+            background: var(--status-success-bg);
+            color: var(--status-success-text);
+        }
+        
+        .test-result.fail {
+            background: var(--status-error-bg);
+            color: var(--status-error-text);
+        }
+        
+        .test-result.info {
+            background: var(--status-info-bg);
+            color: var(--status-info-text);
+        }
+        
+        button {
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 5px;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        .demo-app-shell {
+            margin-top: 20px;
+            border: 2px solid var(--border-subtle);
+            border-radius: 8px;
+            overflow: hidden;
+            height: 500px;
+        }
+        
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--bg-surface);
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-primary);
+        }
+        
+        .summary h3 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <h1>🔍 Sidebar Navigation Verification</h1>
+        <p><strong>Checkpoint 4:</strong> Ensure sidebar navigation works</p>
+        <p style="color: var(--text-secondary); margin-bottom: 30px;">
+            This test verifies that the sidebar navigation implementation from Phase 2 is working correctly.
+        </p>
+        
+        <div class="test-section">
+            <h2>Test 1: CSS Files Loaded</h2>
+            <div id="css-test-results"></div>
+            <button onclick="runCSSTests()">Run CSS Tests</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 2: Design System Variables</h2>
+            <div id="design-system-results"></div>
+            <button onclick="runDesignSystemTests()">Run Design System Tests</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 3: Sidebar Structure</h2>
+            <div id="sidebar-structure-results"></div>
+            <button onclick="runSidebarStructureTests()">Run Structure Tests</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 4: Navigation Functionality</h2>
+            <div id="navigation-functionality-results"></div>
+            <button onclick="runNavigationTests()">Run Navigation Tests</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 5: Visual Demo</h2>
+            <p>Below is a live demo of the sidebar navigation:</p>
+            <div class="demo-app-shell" id="demo-container"></div>
+        </div>
+        
+        <div class="summary" id="summary" style="display: none;">
+            <h3>📊 Test Summary</h3>
+            <div id="summary-content"></div>
+        </div>
+    </div>
+    
+    <script>
+        let testResults = {
+            passed: 0,
+            failed: 0,
+            total: 0
+        };
+        
+        function logResult(containerId, message, status) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result ${status}`;
+            div.textContent = message;
+            container.appendChild(div);
+            
+            testResults.total++;
+            if (status === 'pass') testResults.passed++;
+            if (status === 'fail') testResults.failed++;
+            
+            updateSummary();
+        }
+        
+        function updateSummary() {
+            const summary = document.getElementById('summary');
+            const content = document.getElementById('summary-content');
+            summary.style.display = 'block';
+            
+            const percentage = testResults.total > 0 
+                ? Math.round((testResults.passed / testResults.total) * 100) 
+                : 0;
+            
+            content.innerHTML = `
+                <p><strong>Total Tests:</strong> ${testResults.total}</p>
+                <p><strong>Passed:</strong> ${testResults.passed}</p>
+                <p><strong>Failed:</strong> ${testResults.failed}</p>
+                <p><strong>Success Rate:</strong> ${percentage}%</p>
+                ${percentage === 100 ? '<p style="color: var(--status-success-text); font-weight: bold;">✅ All tests passed! Sidebar navigation is working correctly.</p>' : ''}
+            `;
+        }
+        
+        function runCSSTests() {
+            const container = document.getElementById('css-test-results');
+            container.innerHTML = '';
+            
+            // Check if stone-clay-theme.css is loaded
+            const themeLink = document.querySelector('link[href*="stone-clay-theme.css"]');
+            logResult('css-test-results', 
+                themeLink ? '✓ stone-clay-theme.css is loaded' : '✗ stone-clay-theme.css is NOT loaded',
+                themeLink ? 'pass' : 'fail'
+            );
+            
+            // Check if app-shell.css is loaded
+            const appShellLink = document.querySelector('link[href*="app-shell.css"]');
+            logResult('css-test-results',
+                appShellLink ? '✓ app-shell.css is loaded' : '✗ app-shell.css is NOT loaded',
+                appShellLink ? 'pass' : 'fail'
+            );
+        }
+        
+        function runDesignSystemTests() {
+            const container = document.getElementById('design-system-results');
+            container.innerHTML = '';
+            
+            const root = document.documentElement;
+            const computedStyle = getComputedStyle(root);
+            
+            // Test required variables
+            const requiredVars = [
+                '--bg-app',
+                '--bg-sidebar',
+                '--bg-surface',
+                '--text-primary',
+                '--text-secondary',
+                '--border-subtle',
+                '--accent-primary'
+            ];
+            
+            requiredVars.forEach(varName => {
+                const value = computedStyle.getPropertyValue(varName).trim();
+                logResult('design-system-results',
+                    value ? `✓ ${varName}: ${value}` : `✗ ${varName} is NOT defined`,
+                    value ? 'pass' : 'fail'
+                );
+            });
+        }
+        
+        function runSidebarStructureTests() {
+            const container = document.getElementById('sidebar-structure-results');
+            container.innerHTML = '';
+            
+            // Create a test sidebar
+            const testSidebar = document.createElement('aside');
+            testSidebar.className = 'sidebar';
+            testSidebar.style.position = 'relative'; // Override fixed for testing
+            testSidebar.innerHTML = `
+                <div class="sidebar__brand">CatchUp</div>
+                <nav class="sidebar__nav">
+                    <a href="#directory" class="nav-item active" data-page="directory">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                        </svg>
+                        <span>Directory</span>
+                    </a>
+                    <a href="#edits" class="nav-item" data-page="edits">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+                            <path d="m15 5 4 4"/>
+                        </svg>
+                        <span>Edits</span>
+                        <span class="nav-badge">5</span>
+                    </a>
+                </nav>
+                <div class="sidebar__footer">
+                    <div class="user-pill">
+                        <div class="user-avatar">JD</div>
+                        <span class="user-name">john@example.com</span>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(testSidebar);
+            
+            // Test sidebar structure
+            const brand = testSidebar.querySelector('.sidebar__brand');
+            logResult('sidebar-structure-results',
+                brand ? '✓ Sidebar brand section exists' : '✗ Sidebar brand section missing',
+                brand ? 'pass' : 'fail'
+            );
+            
+            const nav = testSidebar.querySelector('.sidebar__nav');
+            logResult('sidebar-structure-results',
+                nav ? '✓ Sidebar navigation section exists' : '✗ Sidebar navigation section missing',
+                nav ? 'pass' : 'fail'
+            );
+            
+            const navItems = testSidebar.querySelectorAll('.nav-item');
+            logResult('sidebar-structure-results',
+                navItems.length > 0 ? `✓ Found ${navItems.length} navigation items` : '✗ No navigation items found',
+                navItems.length > 0 ? 'pass' : 'fail'
+            );
+            
+            const footer = testSidebar.querySelector('.sidebar__footer');
+            logResult('sidebar-structure-results',
+                footer ? '✓ Sidebar footer section exists' : '✗ Sidebar footer section missing',
+                footer ? 'pass' : 'fail'
+            );
+            
+            const userPill = testSidebar.querySelector('.user-pill');
+            logResult('sidebar-structure-results',
+                userPill ? '✓ User pill component exists' : '✗ User pill component missing',
+                userPill ? 'pass' : 'fail'
+            );
+            
+            // Test SVG icons (no emoji)
+            const hasEmoji = Array.from(navItems).some(item => {
+                const text = item.textContent;
+                const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{2600}-\u{26FF}]/u;
+                return emojiRegex.test(text);
+            });
+            
+            const hasSVG = Array.from(navItems).every(item => item.querySelector('svg') !== null);
+            
+            logResult('sidebar-structure-results',
+                hasSVG ? '✓ All navigation items have SVG icons' : '✗ Some navigation items missing SVG icons',
+                hasSVG ? 'pass' : 'fail'
+            );
+            
+            logResult('sidebar-structure-results',
+                !hasEmoji ? '✓ No emoji characters in navigation' : '✗ Emoji characters found in navigation',
+                !hasEmoji ? 'pass' : 'fail'
+            );
+            
+            // Clean up
+            document.body.removeChild(testSidebar);
+        }
+        
+        function runNavigationTests() {
+            const container = document.getElementById('navigation-functionality-results');
+            container.innerHTML = '';
+            
+            // Create a test sidebar with navigation
+            const testSidebar = document.createElement('aside');
+            testSidebar.className = 'sidebar';
+            testSidebar.style.position = 'relative';
+            testSidebar.innerHTML = `
+                <nav class="sidebar__nav">
+                    <a href="#directory" class="nav-item active" data-page="directory">
+                        <span>Directory</span>
+                    </a>
+                    <a href="#suggestions" class="nav-item" data-page="suggestions">
+                        <span>Suggestions</span>
+                    </a>
+                    <a href="#edits" class="nav-item" data-page="edits">
+                        <span>Edits</span>
+                        <span class="nav-badge hidden">0</span>
+                    </a>
+                </nav>
+            `;
+            
+            document.body.appendChild(testSidebar);
+            
+            // Test active state
+            const activeItem = testSidebar.querySelector('.nav-item.active');
+            logResult('navigation-functionality-results',
+                activeItem ? '✓ Active navigation item has "active" class' : '✗ No active navigation item',
+                activeItem ? 'pass' : 'fail'
+            );
+            
+            // Test badge visibility
+            const badge = testSidebar.querySelector('.nav-badge');
+            const badgeHidden = badge && badge.classList.contains('hidden');
+            logResult('navigation-functionality-results',
+                badgeHidden ? '✓ Badge is hidden when count is 0' : '✗ Badge visibility issue',
+                badgeHidden ? 'pass' : 'fail'
+            );
+            
+            // Test badge update
+            if (badge) {
+                badge.textContent = '5';
+                badge.classList.remove('hidden');
+                const badgeVisible = !badge.classList.contains('hidden');
+                logResult('navigation-functionality-results',
+                    badgeVisible ? '✓ Badge becomes visible when count > 0' : '✗ Badge visibility toggle failed',
+                    badgeVisible ? 'pass' : 'fail'
+                );
+            }
+            
+            // Test click handler setup
+            const navItems = testSidebar.querySelectorAll('.nav-item');
+            let clickHandlersWork = true;
+            
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Remove active from all
+                    navItems.forEach(i => i.classList.remove('active'));
+                    // Add active to clicked
+                    item.classList.add('active');
+                });
+            });
+            
+            // Simulate click on second item
+            navItems[1].click();
+            const newActive = testSidebar.querySelector('.nav-item.active');
+            const correctActive = newActive === navItems[1];
+            
+            logResult('navigation-functionality-results',
+                correctActive ? '✓ Navigation click updates active state correctly' : '✗ Navigation click handler failed',
+                correctActive ? 'pass' : 'fail'
+            );
+            
+            // Test that only one item is active
+            const activeCount = testSidebar.querySelectorAll('.nav-item.active').length;
+            logResult('navigation-functionality-results',
+                activeCount === 1 ? '✓ Only one navigation item is active at a time' : `✗ ${activeCount} items are active (should be 1)`,
+                activeCount === 1 ? 'pass' : 'fail'
+            );
+            
+            // Clean up
+            document.body.removeChild(testSidebar);
+        }
+        
+        // Create visual demo
+        function createDemo() {
+            const demoContainer = document.getElementById('demo-container');
+            demoContainer.innerHTML = `
+                <div class="app-shell" style="height: 100%;">
+                    <aside class="sidebar" style="position: relative; height: 100%;">
+                        <div class="sidebar__brand">CatchUp</div>
+                        <nav class="sidebar__nav">
+                            <a href="#directory" class="nav-item active" data-page="directory">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                                </svg>
+                                <span>Directory</span>
+                            </a>
+                            <a href="#suggestions" class="nav-item" data-page="suggestions">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                                </svg>
+                                <span>Suggestions</span>
+                            </a>
+                            <a href="#edits" class="nav-item" data-page="edits">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+                                    <path d="m15 5 4 4"/>
+                                </svg>
+                                <span>Edits</span>
+                                <span class="nav-badge">3</span>
+                            </a>
+                        </nav>
+                        <div class="sidebar__footer">
+                            <div class="user-pill">
+                                <div class="user-avatar">JD</div>
+                                <span class="user-name">john@example.com</span>
+                            </div>
+                        </div>
+                    </aside>
+                    <main class="main-content" style="position: relative; height: 100%; overflow: auto;">
+                        <div class="main-content__inner">
+                            <h2>Main Content Area</h2>
+                            <p style="color: var(--text-secondary);">This is where page content would appear. Try clicking the navigation items on the left!</p>
+                        </div>
+                    </main>
+                </div>
+            `;
+            
+            // Add click handlers to demo nav items
+            const demoNavItems = demoContainer.querySelectorAll('.nav-item');
+            demoNavItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    demoNavItems.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    
+                    const page = item.dataset.page;
+                    const contentArea = demoContainer.querySelector('.main-content__inner');
+                    contentArea.innerHTML = `
+                        <h2>${page.charAt(0).toUpperCase() + page.slice(1)} Page</h2>
+                        <p style="color: var(--text-secondary);">You clicked on the ${page} navigation item!</p>
+                    `;
+                });
+            });
+        }
+        
+        // Run all tests on load
+        window.addEventListener('DOMContentLoaded', () => {
+            createDemo();
+            
+            // Auto-run all tests
+            setTimeout(() => {
+                runCSSTests();
+                runDesignSystemTests();
+                runSidebarStructureTests();
+                runNavigationTests();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

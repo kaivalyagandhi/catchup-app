@@ -1,415 +1,391 @@
 # Implementation Plan
 
-- [x] 1. Set up database schema and core data models
-  - Create database migrations for onboarding tables (onboarding_state, circle_assignments, ai_circle_overrides, weekly_catchup_sessions, onboarding_achievements, network_health_scores)
-  - Add circle-related columns to contacts table (dunbar_circle, circle_assigned_at, circle_confidence, ai_suggested_circle)
-  - Create indexes for performance optimization
-  - Write database migration scripts
-  - _Requirements: 1.1, 1.5, 2.2, 3.3, 7.1, 8.3, 8.5, 15.2_
-
-- [ ]* 1.1 Write property test for database schema integrity
-  - **Feature: contact-onboarding, Property 2: Onboarding state persistence**
-  - **Validates: Requirements 1.5**
-
-- [x] 2. Implement backend repositories
-  - Create OnboardingRepository with CRUD operations for onboarding state
-  - Extend ContactRepository with circle assignment methods
-  - Create CircleAssignmentRepository for assignment history
-  - Create WeeklyCatchupRepository for session management
-  - Create AchievementRepository for gamification data
-  - _Requirements: 1.5, 3.3, 7.1, 8.3, 12.2, 12.5_
-
-- [ ]* 2.1 Write property test for contact metadata preservation
-  - **Feature: contact-onboarding, Property 1: Contact metadata preservation during import**
-  - **Validates: Requirements 2.2**
-
-- [ ]* 2.2 Write property test for archive data preservation
-  - **Feature: contact-onboarding, Property 13: Archive data preservation**
-  - **Validates: Requirements 12.2**
-
-- [ ]* 2.3 Write property test for archive-reactivate round trip
-  - **Feature: contact-onboarding, Property 14: Archive-reactivate round trip**
-  - **Validates: Requirements 12.5**
-
-- [x] 3. Implement CircleAssignmentService
-  - Create service for assigning contacts to circles
-  - Implement circle capacity validation logic
-  - Add circle distribution calculation methods
-  - Implement batch assignment with transaction support
-  - Add rebalancing suggestion generation
-  - _Requirements: 3.3, 4.3, 5.3, 5.5, 14.4_
-
-- [ ]* 3.1 Write property test for circle assignment immediacy
-  - **Feature: contact-onboarding, Property 3: Circle assignment immediacy**
-  - **Validates: Requirements 3.3, 5.3**
-
-- [ ]* 3.2 Write property test for batch operation atomicity
-  - **Feature: contact-onboarding, Property 5: Batch operation atomicity**
-  - **Validates: Requirements 5.5**
-
-- [ ]* 3.3 Write property test for circle count consistency
-  - **Feature: contact-onboarding, Property 15: Circle count consistency**
-  - **Validates: Requirements 12.4**
-
-- [ ]* 3.4 Write property test for imbalance detection
-  - **Feature: contact-onboarding, Property 22: Imbalance detection and suggestion**
-  - **Validates: Requirements 14.4**
-
-- [x] 4. Implement AISuggestionService
-  - Create service for analyzing contacts and generating circle suggestions
-  - Implement communication pattern analysis (frequency, recency, consistency)
-  - Add confidence score calculation logic
-  - Implement user override recording and learning
-  - Add suggestion caching for performance
-  - _Requirements: 1.3, 2.3, 2.5, 9.1, 9.2, 9.5_
-
-- [ ]* 4.1 Write property test for AI suggestion generation
-  - **Feature: contact-onboarding, Property 9: AI suggestion generation completeness**
-  - **Validates: Requirements 1.3, 9.1, 9.2**
-
-- [ ]* 4.2 Write property test for AI learning from corrections
-  - **Feature: contact-onboarding, Property 10: AI learning from corrections**
-  - **Validates: Requirements 2.5, 9.5**
-
-- [x] 5. Implement OnboardingService
-  - Create service for managing onboarding flow and state
-  - Implement onboarding initialization for different triggers (new_user, post_import, manage)
-  - Add progress tracking and milestone detection
-  - Implement state persistence and resumption logic
-  - Add completion handling and cleanup
-  - _Requirements: 1.1, 1.4, 1.5, 2.1, 3.2, 11.1, 11.5_
-
-- [ ]* 5.1 Write property test for onboarding state persistence
-  - **Feature: contact-onboarding, Property 2: Onboarding state persistence**
-  - **Validates: Requirements 1.5**
-
-- [ ]* 5.2 Write property test for new contact flagging
-  - **Feature: contact-onboarding, Property 17: New contact flagging**
-  - **Validates: Requirements 11.5**
-
-- [x] 6. Implement backend API routes
-  - Create POST /api/onboarding/initialize endpoint
-  - Create GET /api/onboarding/state endpoint
-  - Create PUT /api/onboarding/progress endpoint
-  - Create POST /api/onboarding/complete endpoint
-  - Create POST /api/circles/assign endpoint
-  - Create POST /api/circles/batch-assign endpoint
-  - Create GET /api/circles/distribution endpoint
-  - Create POST /api/ai/suggest-circle endpoint
-  - Create POST /api/ai/batch-suggest endpoint
-  - Add authentication and authorization middleware
-  - _Requirements: 1.1, 1.5, 3.3, 5.3, 9.1_
-
-- [ ]* 6.1 Write integration tests for API endpoints
-  - Test authentication and authorization
-  - Test error responses and status codes
-  - Test concurrent requests
-  - _Requirements: 1.1, 3.3, 5.3_
-
-- [x] 7. Implement frontend OnboardingController
-  - Create state management for onboarding flow
-  - Implement step navigation (next, previous, skip)
-  - Add progress tracking and calculation
-  - Implement state persistence to backend
-  - Add exit and resume functionality
-  - _Requirements: 1.1, 1.4, 1.5, 8.1_
-
-- [ ]* 7.1 Write unit tests for OnboardingController
-  - Test state transitions
-  - Test progress calculations
-  - Test navigation logic
-  - _Requirements: 1.1, 1.5, 8.1_
-
-- [x] 8. Implement CircularVisualizer component
-  - Create SVG-based circular visualization with concentric circles
-  - Implement contact dot rendering with initials and colors
-  - Add circle labels and capacity indicators
-  - Implement responsive sizing for different screen sizes
-  - Add smooth animations for transitions
-  - _Requirements: 4.1, 4.2, 4.3, 4.4, 13.3_
-
-- [ ]* 8.1 Write unit tests for CircularVisualizer
-  - Test rendering with various contact counts
-  - Test circle capacity calculations
-  - Test responsive behavior
-  - _Requirements: 4.1, 4.2, 4.3_
-
-- [x] 9. Implement drag-and-drop functionality
-  - Add drag event handlers to contact dots
-  - Implement drop zone highlighting
-  - Add drag preview and ghost element
-  - Implement drop handling and circle assignment
-  - Add cancel handling with state restoration
-  - Support batch drag for multiple selected contacts
-  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
-
-- [ ]* 9.1 Write property test for drag operation cancellation
-  - **Feature: contact-onboarding, Property 4: Drag operation cancellation**
-  - **Validates: Requirements 5.4**
-
-- [ ]* 9.2 Write integration tests for drag-and-drop
-  - Test single contact drag
-  - Test batch drag operations
-  - Test cancel behavior
-  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
-
-- [x] 10. Implement group overlay and filtering
-  - Add group filter UI controls
-  - Implement group-based contact filtering
-  - Add visual indicators for group membership
-  - Implement group distribution display
-  - Add toggle for group view on/off
-  - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
-
-- [ ]* 10.1 Write property test for group filter correctness
-  - **Feature: contact-onboarding, Property 6: Group filter correctness**
-  - **Validates: Requirements 6.2**
-
-- [ ]* 10.2 Write property test for UI state round-trip
-  - **Feature: contact-onboarding, Property 7: UI state round-trip preservation**
-  - **Validates: Requirements 6.4**
-
-- [x] 11. Implement AI suggestion UI
-  - Display AI-suggested circles with confidence indicators
-  - Add one-click acceptance buttons
-  - Implement override tracking
-  - Show alternative suggestions
-  - Add explanation tooltips for suggestions
-  - _Requirements: 2.3, 2.4, 2.5, 9.2, 9.3, 9.4_
-
-- [ ]* 11.1 Write unit tests for AI suggestion UI
-  - Test confidence indicator display
-  - Test acceptance flow
-  - Test override tracking
-  - _Requirements: 2.3, 2.4, 9.2_
-
-- [x] 12. Implement preference setting UI
-  - Create preference prompts for Inner Circle and Close Friends
-  - Add smart default suggestions based on circle
-  - Implement preference save functionality
-  - Add skip option with default application
-  - Allow later completion of incomplete preferences
-  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
-
-- [ ]* 12.1 Write property test for preference inheritance
-  - **Feature: contact-onboarding, Property 11: Preference inheritance from circle assignment**
-  - **Validates: Requirements 10.2, 10.4**
-
-- [ ]* 12.2 Write property test for preference influence
-  - **Feature: contact-onboarding, Property 12: Preference influence on suggestions**
-  - **Validates: Requirements 10.3**
-
-- [x] 13. Implement gamification features
-  - Create progress bar component with animations
-  - Implement milestone detection and celebration
-  - Add achievement badge system
-  - Create streak tracking functionality
-  - Implement network health score calculation and display
-  - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
-
-- [ ]* 13.1 Write property test for gamification metric consistency
-  - **Feature: contact-onboarding, Property 18: Gamification metric consistency**
-  - **Validates: Requirements 8.1, 8.2, 8.4, 8.5**
-
-- [ ]* 13.2 Write unit tests for gamification components
-  - Test progress calculations
-  - Test milestone detection
-  - Test achievement awarding
-  - Test streak tracking
-  - _Requirements: 8.1, 8.2, 8.3, 8.4_
-
-- [x] 14. Implement Weekly Catchup feature
-  - Create WeeklyCatchupManager service
-  - Implement session generation logic (10-15 contacts per week)
-  - Add contact review UI with progress tracking
-  - Implement session completion and celebration
-  - Add skip functionality with contact rescheduling
-  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
-
-- [ ]* 14.1 Write property test for contact rescheduling
-  - **Feature: contact-onboarding, Property 8: Weekly catchup contact rescheduling**
-  - **Validates: Requirements 7.4**
-
-- [ ]* 14.2 Write unit tests for Weekly Catchup
-  - Test session generation
-  - Test progress tracking
-  - Test completion flow
-  - Test skip behavior
-  - _Requirements: 7.1, 7.2, 7.3, 7.4_
-
-- [x] 15. Implement uncategorized contact tracking
-  - Add uncategorized contact count display
-  - Create visual indicator for incomplete onboarding
-  - Implement prioritization of uncategorized contacts in management mode
-  - Add completion status display
-  - Implement automatic flagging of new contacts
-  - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
-
-- [ ]* 15.1 Write property test for uncategorized contact prioritization
-  - **Feature: contact-onboarding, Property 16: Uncategorized contact prioritization**
-  - **Validates: Requirements 11.3**
-
-- [x] 16. Implement contact pruning features
-  - Add archive and remove options to contact review UI
-  - Implement archive functionality with data preservation
-  - Add confirmation dialog for contact removal
-  - Implement circle count updates after pruning
-  - Add reactivation functionality for archived contacts
-  - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
-
-- [ ]* 16.1 Write unit tests for contact pruning
-  - Test archive flow
-  - Test removal flow
-  - Test reactivation flow
-  - Test count updates
-  - _Requirements: 12.1, 12.2, 12.3, 12.4_
-
-- [x] 17. Implement mobile-responsive design
-  - Create touch-optimized circular visualization
-  - Implement touch gesture support (tap, long-press, drag)
-  - Add responsive layout for small screens
-  - Implement autocomplete for mobile text input
-  - Add orientation change handling with state preservation
-  - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5_
-
-- [ ]* 17.1 Write property test for mobile touch gestures
-  - **Feature: contact-onboarding, Property 19: Mobile touch gesture support**
-  - **Validates: Requirements 13.2**
-
-- [ ]* 17.2 Write property test for orientation change preservation
-  - **Feature: contact-onboarding, Property 20: Orientation change state preservation**
-  - **Validates: Requirements 13.5**
-
-- [ ]* 17.3 Write integration tests for mobile features
-  - Test touch interactions
-  - Test responsive layouts
-  - Test orientation changes
-  - _Requirements: 13.1, 13.2, 13.3, 13.5_
-
-- [x] 18. Implement educational features
-  - Add educational tooltips for first-time users
-  - Create circle information display on hover/tap
-  - Add help button with detailed explanations
-  - Implement gentle suggestions for imbalanced circles
-  - Create network structure summary for completion
-  - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5_
-
-- [ ]* 18.1 Write property test for circle information display
-  - **Feature: contact-onboarding, Property 21: Circle information display**
-  - **Validates: Requirements 14.2**
-
-- [ ]* 18.2 Write unit tests for educational features
-  - Test tooltip display
-  - Test help content
-  - Test suggestion generation
-  - _Requirements: 14.1, 14.2, 14.3, 14.4_
-
-- [x] 19. Implement privacy and security features
-  - Add privacy notice display at onboarding start
-  - Implement data isolation with user_id filtering
-  - Add data export functionality
-  - Implement account deletion with complete data removal
-  - Add audit logging for sensitive operations
-  - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5_
-
-- [ ]* 19.1 Write property test for data privacy isolation
-  - **Feature: contact-onboarding, Property 23: Data privacy isolation**
-  - **Validates: Requirements 15.2**
-
-- [ ]* 19.2 Write property test for data export completeness
-  - **Feature: contact-onboarding, Property 24: Data export completeness**
-  - **Validates: Requirements 15.4**
-
-- [ ]* 19.3 Write property test for account deletion completeness
-  - **Feature: contact-onboarding, Property 25: Account deletion completeness**
-  - **Validates: Requirements 15.5**
-
-- [x] 20. Integrate with existing contact management
-  - Add "Manage" button to Contacts page
-  - Implement onboarding trigger on Google Contacts sync
-  - Add automatic onboarding for new users with zero contacts
-  - Integrate circle data with contact display
-  - Update contact list to show circle assignments
-  - _Requirements: 1.1, 2.1, 3.1, 3.2, 3.4_
-
-- [ ]* 20.1 Write integration tests for contact management
-  - Test "Manage" button flow
-  - Test sync trigger
-  - Test new user trigger
-  - Test data integration
-  - _Requirements: 1.1, 2.1, 3.1, 3.2_
-
-- [x] 21. Implement error handling and validation
-  - Add input validation for all API endpoints
-  - Implement graceful degradation for AI service failures
-  - Add conflict resolution for concurrent modifications
-  - Implement timeout handling with retry logic
-  - Add error logging and monitoring
-  - _Requirements: All requirements (error handling is cross-cutting)_
-
-- [ ]* 21.1 Write unit tests for error handling
-  - Test validation logic
-  - Test AI service fallbacks
-  - Test conflict resolution
-  - Test timeout handling
-  - _Requirements: All requirements_
-
-- [x] 22. Performance optimization
-  - Implement pagination for large contact lists
-  - Add virtual scrolling for circular visualization
-  - Optimize AI batch analysis requests
-  - Add caching for frequently accessed data
-  - Implement lazy loading for onboarding steps
-  - _Requirements: 4.2, 9.1, 11.1_
-
-- [ ]* 22.1 Write performance tests
-  - Test with 10, 50, 100, 500, 1000 contacts
-  - Measure render times
-  - Measure API response times
-  - Identify bottlenecks
-  - _Requirements: 4.2, 9.1_
-
-- [x] 23. Accessibility improvements
-  - Add ARIA labels to all interactive elements
-  - Implement keyboard navigation for circular visualization
-  - Add screen reader support
-  - Ensure color contrast meets WCAG standards
-  - Add focus indicators for keyboard users
-  - _Requirements: All UI requirements (accessibility is cross-cutting)_
-
-- [ ]* 23.1 Write accessibility tests
-  - Test keyboard navigation
-  - Test screen reader compatibility
-  - Test color contrast
-  - Test focus management
-  - _Requirements: All UI requirements_
-
-- [x] 24. Documentation and user guides
-  - Create user guide for onboarding feature
-  - Document API endpoints
-  - Add inline code documentation
-  - Create troubleshooting guide
-  - Document Dunbar's number theory for users
-  - _Requirements: 14.1, 14.2, 14.3_
-
-- [ ]* 25. Checkpoint - Ensure all tests pass
+- [ ] 1. Database schema updates and migrations
+  - Create onboarding_state table with user_id, step completion flags, and progress tracking
+  - Add circle column to contacts table (inner, close, active, casual)
+  - Add AI suggestion columns (circle_ai_suggestion, circle_ai_confidence, circle_assigned_by)
+  - Create group_mapping_suggestions table for Step 3
+  - _Requirements: All requirements (data foundation)_
+
+- [ ] 2. Onboarding state management service
+  - [ ] 2.1 Create OnboardingStateManager class
+    - Implement state initialization for new users
+    - Implement state persistence to localStorage and database
+    - Implement state loading with fallback chain (localStorage → sessionStorage → memory)
+    - _Requirements: 1.1, 1.5, 12.2, 12.4_
+  
+  - [ ]* 2.2 Write property test for state persistence
+    - **Property 4: Dismiss and Resume Round-Trip**
+    - **Validates: Requirements 1.5, 12.2, 12.4**
+  
+  - [ ] 2.3 Implement step completion logic
+    - Create methods to check and update step completion
+    - Implement Step 1 completion (both integrations connected)
+    - Implement Step 2 completion (50%+ contacts categorized)
+    - Implement Step 3 completion (all mappings reviewed)
+    - _Requirements: 2.5, 3.5, 5.5_
+  
+  - [ ]* 2.4 Write property test for integration completion
+    - **Property 5: Integration Completion Logic**
+    - **Validates: Requirements 2.5**
+  
+  - [ ]* 2.5 Write property test for circle progress
+    - **Property 6: Circle Progress Calculation**
+    - **Validates: Requirements 3.5**
+
+- [ ] 3. Sidebar Step Indicator component
+  - [ ] 3.1 Create OnboardingStepIndicator component
+    - Implement render method with 3 steps
+    - Implement step status rendering (complete, active, incomplete)
+    - Add visual icons (✓ for complete, → for active, number for incomplete)
+    - Apply Stone & Clay theme styling
+    - _Requirements: 1.1, 1.2, 16.1, 17.1_
+  
+  - [ ]* 3.2 Write property test for indicator visibility
+    - **Property 1: Onboarding Indicator Visibility**
+    - **Validates: Requirements 1.1**
+  
+  - [ ]* 3.3 Write property test for step status rendering
+    - **Property 2: Step Status Rendering**
+    - **Validates: Requirements 1.2**
+  
+  - [ ] 3.4 Implement step navigation
+    - Add click handlers for each step
+    - Navigate to correct page/section (Step 1 → Preferences, Step 2 → Circles, Step 3 → Groups)
+    - _Requirements: 1.3, 2.1_
+  
+  - [ ]* 3.5 Write property test for step navigation
+    - **Property 3: Step Navigation**
+    - **Validates: Requirements 1.3**
+  
+  - [ ] 3.6 Implement dismiss functionality
+    - Add dismiss button with X icon
+    - Save state on dismiss
+    - Show resume CTA button when dismissed
+    - _Requirements: 1.5, 12.1_
+  
+  - [ ] 3.7 Integrate indicator into sidebar
+    - Add indicator below title section in app.js
+    - Show/hide based on onboarding completion
+    - _Requirements: 1.1, 1.4_
+
+- [ ] 4. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ]* 26. End-to-end testing
-  - Test complete onboarding flow from start to finish
-  - Test resuming interrupted onboarding
-  - Test management mode modifications
-  - Test Weekly Catchup flow
-  - Test mobile experience
-  - _Requirements: All requirements_
 
-- [ ]* 26.1 Write end-to-end test suite
-  - Test new user onboarding
-  - Test post-import onboarding
-  - Test management mode
-  - Test Weekly Catchup
-  - Test mobile flows
-  - _Requirements: All requirements_
+- [ ] 5. Manage Circles Flow component
+  - [ ] 5.1 Create ManageCirclesFlow class
+    - Implement modal structure with header, content, and actions
+    - Implement educational tips panel with Dunbar & Aristotle content
+    - Add collapsible "Learn more" section
+    - Apply Stone & Clay theme styling with warm colors
+    - _Requirements: 3.1, 3.4, 7.1, 7.4, 16.1, 18.1_
+  
+  - [ ] 5.2 Implement search bar
+    - Create search input with icon
+    - Implement real-time filtering of contact grid
+    - Show "no results" message when empty
+    - _Requirements: 4.1, 4.2, 4.5_
+  
+  - [ ]* 5.3 Write property test for contact search
+    - **Property 7: Contact Search Filtering**
+    - **Validates: Requirements 4.2**
+  
+  - [ ] 5.3 Implement progress tracking
+    - Display "X/Y contacts categorized" label
+    - Render progress bar with percentage
+    - Update in real-time as contacts are assigned
+    - _Requirements: 9.1, 9.2_
+  
+  - [ ] 5.4 Implement circle capacities display
+    - Show 4 circles with names and capacities (10, 25, 50, 100)
+    - Display current count vs. capacity for each circle
+    - Show warning icon when over capacity
+    - _Requirements: 3.3, 10.1, 10.2, 10.3, 10.4, 10.5_
+  
+  - [ ] 5.5 Implement contact grid
+    - Create grid layout with responsive columns
+    - Render contact cards with avatars (warm pastel colors)
+    - Add circle selection dropdown for each contact
+    - Display AI suggestions with confidence scores
+    - _Requirements: 4.3, 4.4, 6.1, 8.1, 8.2, 8.3, 18.1, 18.2_
+  
+  - [ ] 5.6 Implement circle assignment logic
+    - Handle dropdown selection changes
+    - Update contact circle in state and database
+    - Update circle counts immediately
+    - Emit events for progress tracking
+    - _Requirements: 3.5, 14.1, 14.2_
+  
+  - [ ]* 5.7 Write property test for circle counts
+    - **Property 12: Circle Count Accuracy**
+    - **Validates: Requirements 14.1, 14.2**
+  
+  - [ ] 5.8 Implement save and skip actions
+    - Add "Save & Continue" button to complete Step 2
+    - Add "Skip for Now" button to save progress
+    - Show success toast and prompt for Step 3
+    - _Requirements: 6.3, 6.4, 12.1_
+  
+  - [ ] 5.9 Implement mobile responsive layout
+    - Switch to single-column grid on mobile (<768px)
+    - Stack action buttons vertically
+    - Adjust spacing and sizing for touch
+    - _Requirements: 11.1, 11.2, 11.3, 11.4, 16.4_
+  
+  - [ ]* 5.10 Write property test for mobile layout
+    - **Property 15: Mobile Responsive Layout**
+    - **Validates: Requirements 11.3**
 
-- [ ] 27. Final checkpoint - Ensure all tests pass
+- [ ] 6. Step 1: Integration Connection Handler
+  - [ ] 6.1 Create Step1IntegrationsHandler class
+    - Implement navigation to Preferences page
+    - Highlight Google Calendar and Contacts sections
+    - Add pulsing border animation for highlights
+    - _Requirements: 2.1, 2.2_
+  
+  - [ ] 6.2 Implement connection listeners
+    - Listen for google-calendar-connected event
+    - Listen for google-contacts-connected event
+    - Update onboarding state on successful connections
+    - _Requirements: 2.3, 2.4, 13.1, 13.2_
+  
+  - [ ] 6.3 Implement step completion check
+    - Check if both integrations are connected
+    - Mark Step 1 complete when both are done
+    - Enable Step 2 in the indicator
+    - Show success message and prompt for Step 2
+    - _Requirements: 2.5, 13.3, 13.5_
+  
+  - [ ] 6.4 Implement error handling
+    - Handle OAuth failures with clear messages
+    - Provide retry buttons for failed connections
+    - Show troubleshooting guidance
+    - _Requirements: 13.4_
+
+- [ ] 7. Step 2: Circles Organization Handler
+  - [ ] 7.1 Create Step2CirclesHandler class
+    - Implement navigation to Directory > Circles tab
+    - Auto-trigger Manage Circles flow on arrival
+    - _Requirements: 3.1, 3.2_
+  
+  - [ ] 7.2 Implement AI circle suggestions
+    - Fetch AI suggestions from backend
+    - Display suggestions with confidence scores
+    - Pre-select high-confidence suggestions
+    - Handle AI service failures gracefully
+    - _Requirements: 8.1, 8.2, 8.3, 9.4_
+  
+  - [ ]* 7.3 Write property test for AI suggestion structure
+    - **Property 10: AI Suggestion Structure**
+    - **Validates: Requirements 8.2**
+  
+  - [ ] 7.4 Implement capacity warnings
+    - Show visual warning when circle exceeds capacity
+    - Allow assignments to continue despite warning
+    - Provide gentle suggestions to rebalance
+    - _Requirements: 9.3, 10.5_
+  
+  - [ ]* 7.5 Write property test for capacity warnings
+    - **Property 11: Circle Capacity Warning**
+    - **Validates: Requirements 9.3**
+  
+  - [ ] 7.6 Implement progress milestones
+    - Show encouraging messages at 25%, 50%, 75%
+    - Display completion celebration at 100%
+    - _Requirements: 9.4_
+
+- [ ] 8. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
+
+
+- [ ] 9. Step 3: Group Mapping Review Handler
+  - [ ] 9.1 Create Step3GroupMappingHandler class
+    - Implement navigation to Directory > Groups tab
+    - Fetch group mapping suggestions from API
+    - Handle empty mappings gracefully
+    - _Requirements: 5.1, 5.2_
+  
+  - [ ] 9.2 Implement mapping suggestions UI
+    - Render mapping cards with source and target groups
+    - Display confidence badges (high/medium/low)
+    - Show member counts for each group
+    - Add group selection dropdowns
+    - Apply Stone & Clay theme styling
+    - _Requirements: 5.3, 16.1_
+  
+  - [ ] 9.3 Implement mapping actions
+    - Add "Accept" button to apply mapping
+    - Add "Skip" button to reject mapping
+    - Update state when mapping is reviewed
+    - Remove card with fade animation
+    - _Requirements: 5.4_
+  
+  - [ ]* 9.4 Write property test for mapping completion
+    - **Property 8: Mapping Review Completion**
+    - **Validates: Requirements 5.5**
+  
+  - [ ] 9.5 Implement completion logic
+    - Check if all mappings are reviewed
+    - Mark Step 3 complete when done
+    - Mark onboarding as complete
+    - Hide onboarding indicator
+    - _Requirements: 5.5_
+  
+  - [ ] 9.6 Implement completion celebration
+    - Show modal with 🎉 icon
+    - Display "You're All Set!" message
+    - Explain what happens next
+    - Add "Get Started" button
+    - _Requirements: 8.1_
+
+- [ ] 10. Backend API endpoints
+  - [ ] 10.1 Create onboarding state endpoints
+    - POST /api/onboarding/init - Initialize onboarding for new user
+    - GET /api/onboarding/state - Get current onboarding state
+    - PUT /api/onboarding/state - Update onboarding state
+    - POST /api/onboarding/sync - Sync local state to server
+    - _Requirements: All requirements (state management)_
+  
+  - [ ] 10.2 Create circle assignment endpoints
+    - POST /api/contacts/:id/circle - Assign contact to circle
+    - GET /api/contacts/circles/counts - Get circle counts
+    - POST /api/contacts/circles/bulk - Bulk assign contacts
+    - _Requirements: 3.5, 14.1, 14.2_
+  
+  - [ ] 10.3 Create AI suggestion endpoint
+    - POST /api/ai/circle-suggestions - Generate circle suggestions
+    - Analyze communication frequency, recency, calendar co-attendance
+    - Return suggestions with confidence scores and reasons
+    - Handle timeouts and errors gracefully
+    - _Requirements: 8.1, 8.2, 8.3, 9.1_
+  
+  - [ ] 10.4 Create group mapping endpoints
+    - GET /api/google-contacts/mapping-suggestions - Get mapping suggestions
+    - POST /api/google-contacts/accept-mapping - Accept a mapping
+    - POST /api/google-contacts/reject-mapping - Reject a mapping
+    - _Requirements: 5.2, 5.3, 5.4_
+
+- [ ] 11. Integration with existing features
+  - [ ] 11.1 Update Preferences page
+    - Add data attributes for integration sections
+    - Emit events on successful connections
+    - Support onboarding highlight styling
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+  
+  - [ ] 11.2 Update Directory page Circles tab
+    - Add "Manage Circles" button
+    - Trigger Manage Circles flow on button click
+    - Reuse same flow as Step 2
+    - _Requirements: 6.1, 6.2_
+  
+  - [ ]* 11.3 Write property test for component reuse
+    - **Property 9: Manage Circles Component Reuse**
+    - **Validates: Requirements 6.2**
+  
+  - [ ] 11.4 Update Directory page Groups tab
+    - Add container for group mapping suggestions
+    - Integrate with Step 3 handler
+    - _Requirements: 5.1, 5.2_
+  
+  - [ ] 11.5 Update app.js initialization
+    - Check onboarding state on app load
+    - Show/hide indicator based on completion
+    - Initialize appropriate step handler
+    - _Requirements: 1.1, 1.4_
+
+- [ ] 12. Theme integration and styling
+  - [ ] 12.1 Create onboarding CSS file
+    - Define styles for step indicator
+    - Define styles for Manage Circles modal
+    - Define styles for educational tips
+    - Define styles for mapping suggestions
+    - Use Stone & Clay CSS custom properties throughout
+    - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
+  
+  - [ ]* 12.2 Write property test for design system compliance
+    - **Property 14: Design System Compliance**
+    - **Validates: Requirements 16.1, 18.1**
+  
+  - [ ] 12.3 Implement theme toggle support
+    - Ensure all onboarding elements update on theme change
+    - Test Latte and Espresso modes
+    - Verify warm color palette in both modes
+    - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5_
+  
+  - [ ]* 12.4 Write property test for theme propagation
+    - **Property 13: Theme Propagation**
+    - **Validates: Requirements 17.1**
+  
+  - [ ] 12.5 Implement responsive styles
+    - Add mobile breakpoints (<768px)
+    - Add tablet breakpoints (768-1023px)
+    - Ensure touch-friendly sizing
+    - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 16.4_
+
+- [ ] 13. Error handling and edge cases
+  - [ ] 13.1 Implement localStorage fallbacks
+    - Try localStorage first
+    - Fall back to sessionStorage
+    - Fall back to memory storage
+    - Show appropriate user messages
+    - _Requirements: 12.2_
+  
+  - [ ] 13.2 Implement network error handling
+    - Detect offline status
+    - Queue state updates for sync
+    - Sync when back online
+    - Show offline indicators
+    - _Requirements: All requirements (reliability)_
+  
+  - [ ] 13.3 Implement API error handling
+    - Handle integration connection failures
+    - Handle AI service timeouts
+    - Handle group mapping API errors
+    - Provide retry mechanisms
+    - _Requirements: 13.4_
+  
+  - [ ] 13.4 Implement validation
+    - Validate circle assignments
+    - Validate onboarding state updates
+    - Show validation errors clearly
+    - _Requirements: All requirements (data integrity)_
+
+- [ ] 14. Final checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 15. Documentation and polish
+  - [ ] 15.1 Create user-facing documentation
+    - Write guide explaining the 3-step onboarding
+    - Document circle definitions and Dunbar's research
+    - Explain Aristotle's friendship types
+    - Add screenshots and examples
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
+  
+  - [ ] 15.2 Create developer documentation
+    - Document OnboardingStateManager API
+    - Document component interfaces
+    - Document backend API endpoints
+    - Add code examples
+    - _Requirements: All requirements (maintainability)_
+  
+  - [ ] 15.3 Add accessibility features
+    - Ensure keyboard navigation works
+    - Add ARIA labels and roles
+    - Test with screen readers
+    - Verify color contrast ratios
+    - _Requirements: All requirements (accessibility)_
+  
+  - [ ] 15.4 Polish animations and transitions
+    - Add smooth transitions for step changes
+    - Add fade animations for card removal
+    - Add pulsing animation for highlights
+    - Ensure 60fps performance
+    - _Requirements: 1.2, 3.5, 9.4_
+  
+  - [ ] 15.5 Add analytics tracking
+    - Track onboarding start
+    - Track step completions
+    - Track dismissals and resumes
+    - Track completion rate
+    - _Requirements: All requirements (product insights)_

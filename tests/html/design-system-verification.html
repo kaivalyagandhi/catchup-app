@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design System Verification - Stone & Clay Theme</title>
+    
+    <!-- Stone & Clay Design System -->
+    <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+    
+    <!-- Theme Initialization Script - Same as in index.html -->
+    <script>
+        (function() {
+            try {
+                const THEME_STORAGE_KEY = 'catchup-theme';
+                const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                
+                // Determine theme: saved preference > system preference > default (light)
+                const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+                
+                // Apply theme immediately to prevent FOUC
+                document.documentElement.setAttribute('data-theme', theme);
+                
+                // Save the determined theme if not already saved
+                if (!savedTheme) {
+                    localStorage.setItem(THEME_STORAGE_KEY, theme);
+                }
+            } catch (error) {
+                // Silently fail if localStorage is unavailable, default to light theme
+                console.warn('Failed to load theme preference:', error);
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    <style>
+        body {
+            font-family: var(--font-sans);
+            padding: var(--space-8);
+            background: var(--bg-app);
+            color: var(--text-primary);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: var(--space-6);
+        }
+        
+        .section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            margin-bottom: var(--space-6);
+        }
+        
+        .section h2 {
+            color: var(--text-primary);
+            margin-bottom: var(--space-4);
+            font-size: var(--text-xl);
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: var(--space-4);
+            margin-top: var(--space-4);
+        }
+        
+        .color-swatch {
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+        }
+        
+        .color-box {
+            height: 60px;
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--space-2);
+        }
+        
+        .color-label {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: var(--space-4);
+            right: var(--space-4);
+            padding: var(--space-3) var(--space-5);
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: var(--font-semibold);
+            transition: background var(--transition-base);
+        }
+        
+        .theme-toggle:hover {
+            background: var(--accent-hover);
+        }
+        
+        .test-results {
+            background: var(--status-success-bg);
+            color: var(--status-success);
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-6);
+            border-left: 4px solid var(--status-success);
+        }
+        
+        .test-results.error {
+            background: var(--status-error-bg);
+            color: var(--status-error);
+            border-left-color: var(--status-error);
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-2);
+        }
+        
+        .test-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .test-icon {
+            font-size: var(--text-lg);
+        }
+        
+        .component-demo {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-4);
+            margin-top: var(--space-4);
+        }
+        
+        .btn {
+            padding: var(--space-3) var(--space-5);
+            border-radius: var(--radius-md);
+            border: none;
+            cursor: pointer;
+            font-weight: var(--font-medium);
+            transition: all var(--transition-base);
+        }
+        
+        .btn-primary {
+            background: var(--text-primary);
+            color: var(--bg-surface);
+        }
+        
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-accent {
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+        }
+        
+        .btn-accent:hover {
+            background: var(--accent-hover);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: var(--space-1) var(--space-3);
+            border-radius: var(--radius-full);
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+        }
+        
+        .badge-success {
+            background: var(--status-success-bg);
+            color: var(--status-success);
+        }
+        
+        .badge-error {
+            background: var(--status-error-bg);
+            color: var(--status-error);
+        }
+        
+        .badge-info {
+            background: var(--status-info-bg);
+            color: var(--status-info);
+        }
+        
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-semibold);
+            font-size: var(--text-sm);
+        }
+        
+        .avatar-sage {
+            background: var(--avatar-sage-bg);
+            color: var(--avatar-sage-text);
+        }
+        
+        .avatar-sand {
+            background: var(--avatar-sand-bg);
+            color: var(--avatar-sand-text);
+        }
+        
+        .avatar-rose {
+            background: var(--avatar-rose-bg);
+            color: var(--avatar-rose-text);
+        }
+        
+        .avatar-stone {
+            background: var(--avatar-stone-bg);
+            color: var(--avatar-stone-text);
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">
+        Toggle Theme
+    </button>
+    
+    <div class="container">
+        <h1>Stone & Clay Design System Verification</h1>
+        
+        <div id="test-results" class="test-results">
+            <h3 style="margin-bottom: var(--space-3);">Design System Tests</h3>
+            <div id="test-list"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Stone Scale (Warm Gray)</h2>
+            <div class="color-grid">
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--stone-1);"></div>
+                    <div class="color-label">--stone-1 (App BG)</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--stone-2);"></div>
+                    <div class="color-label">--stone-2 (Sidebar)</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--stone-3);"></div>
+                    <div class="color-label">--stone-3 (UI Element)</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--stone-6);"></div>
+                    <div class="color-label">--stone-6 (Borders)</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--stone-9);"></div>
+                    <div class="color-label">--stone-9 (Solid)</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--stone-12); color: var(--stone-1); display: flex; align-items: center; justify-content: center;">Text</div>
+                    <div class="color-label">--stone-12 (Text)</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Amber Scale (Accent)</h2>
+            <div class="color-grid">
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--amber-3);"></div>
+                    <div class="color-label">--amber-3 (Subtle)</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--amber-6);"></div>
+                    <div class="color-label">--amber-6</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--amber-9);"></div>
+                    <div class="color-label">--amber-9 (Primary)</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Semantic Tokens</h2>
+            <div class="color-grid">
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--bg-app);"></div>
+                    <div class="color-label">--bg-app</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--bg-surface);"></div>
+                    <div class="color-label">--bg-surface</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--accent-primary);"></div>
+                    <div class="color-label">--accent-primary</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: var(--text-primary); color: var(--text-inverse); display: flex; align-items: center; justify-content: center;">Text</div>
+                    <div class="color-label">--text-primary</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Component Examples</h2>
+            <div class="component-demo">
+                <button class="btn btn-primary">Primary Button</button>
+                <button class="btn btn-accent">Accent Button</button>
+                <span class="badge badge-success">Success</span>
+                <span class="badge badge-error">Error</span>
+                <span class="badge badge-info">Info</span>
+                <div class="avatar avatar-sage">JD</div>
+                <div class="avatar avatar-sand">AS</div>
+                <div class="avatar avatar-rose">MK</div>
+                <div class="avatar avatar-stone">TW</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Theme toggle function
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('catchup-theme', next);
+            runTests();
+        }
+        
+        // Test functions
+        function runTests() {
+            const tests = [
+                testCSSVariablesExist(),
+                testThemeAttribute(),
+                testColorValues(),
+                testSemanticTokens(),
+                testThemeToggle()
+            ];
+            
+            const allPassed = tests.every(t => t.passed);
+            const resultsDiv = document.getElementById('test-results');
+            const testList = document.getElementById('test-list');
+            
+            resultsDiv.className = allPassed ? 'test-results' : 'test-results error';
+            
+            testList.innerHTML = tests.map(test => `
+                <div class="test-item">
+                    <span class="test-icon">${test.passed ? '✅' : '❌'}</span>
+                    <span>${test.name}: ${test.message}</span>
+                </div>
+            `).join('');
+        }
+        
+        function testCSSVariablesExist() {
+            const root = getComputedStyle(document.documentElement);
+            const requiredVars = [
+                '--stone-1', '--stone-2', '--stone-6', '--stone-9', '--stone-12',
+                '--amber-3', '--amber-6', '--amber-9',
+                '--bg-app', '--bg-surface', '--text-primary', '--accent-primary'
+            ];
+            
+            const missing = requiredVars.filter(v => !root.getPropertyValue(v));
+            
+            return {
+                name: 'CSS Variables Exist',
+                passed: missing.length === 0,
+                message: missing.length === 0 
+                    ? 'All required CSS variables are defined' 
+                    : `Missing variables: ${missing.join(', ')}`
+            };
+        }
+        
+        function testThemeAttribute() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            const isValid = theme === 'light' || theme === 'dark';
+            
+            return {
+                name: 'Theme Attribute',
+                passed: isValid,
+                message: isValid 
+                    ? `Theme is set to "${theme}"` 
+                    : 'Theme attribute is not set correctly'
+            };
+        }
+        
+        function testColorValues() {
+            const root = getComputedStyle(document.documentElement);
+            const theme = document.documentElement.getAttribute('data-theme');
+            
+            // Test that colors are different between light and dark mode
+            const bgApp = root.getPropertyValue('--bg-app').trim();
+            const textPrimary = root.getPropertyValue('--text-primary').trim();
+            
+            const hasValues = bgApp && textPrimary;
+            const areDifferent = bgApp !== textPrimary;
+            
+            return {
+                name: 'Color Values',
+                passed: hasValues && areDifferent,
+                message: hasValues && areDifferent
+                    ? `Colors are properly defined for ${theme} mode`
+                    : 'Color values are not properly set'
+            };
+        }
+        
+        function testSemanticTokens() {
+            const root = getComputedStyle(document.documentElement);
+            const semanticTokens = [
+                '--bg-app', '--bg-surface', '--bg-hover',
+                '--text-primary', '--text-secondary',
+                '--border-subtle', '--accent-primary'
+            ];
+            
+            const allDefined = semanticTokens.every(token => 
+                root.getPropertyValue(token).trim() !== ''
+            );
+            
+            return {
+                name: 'Semantic Tokens',
+                passed: allDefined,
+                message: allDefined
+                    ? 'All semantic tokens are mapped correctly'
+                    : 'Some semantic tokens are missing'
+            };
+        }
+        
+        function testThemeToggle() {
+            const stored = localStorage.getItem('catchup-theme');
+            const current = document.documentElement.getAttribute('data-theme');
+            
+            return {
+                name: 'Theme Persistence',
+                passed: stored === current,
+                message: stored === current
+                    ? 'Theme preference is persisted in localStorage'
+                    : 'Theme persistence may not be working'
+            };
+        }
+        
+        // Run tests on page load
+        window.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>

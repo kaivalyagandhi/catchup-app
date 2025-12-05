@@ -1,0 +1,357 @@
+/* Stone & Clay Design System - Following Radix Colors 12-step scale */
+
+/* ============================================================================
+   LATTE MODE (Light Theme)
+   ============================================================================ */
+
+:root {
+  /* ----------------------------------------------------------------------------
+     Stone Scale (Warm Gray) - 12 steps
+     Following Radix Colors methodology for semantic color usage
+     ---------------------------------------------------------------------------- */
+  --stone-1: #FDFCFB;   /* Step 1: App background */
+  --stone-2: #F5F5F4;   /* Step 2: Subtle background */
+  --stone-3: #E7E5E4;   /* Step 3: UI element background */
+  --stone-4: #D6D3D1;   /* Step 4: Hovered UI element background */
+  --stone-5: #C4C0BD;   /* Step 5: Active/Selected UI element background */
+  --stone-6: #A8A29E;   /* Step 6: Subtle borders and separators */
+  --stone-7: #78716C;   /* Step 7: UI element border and focus rings */
+  --stone-8: #57534E;   /* Step 8: Hovered UI element border */
+  --stone-9: #44403C;   /* Step 9: Solid backgrounds */
+  --stone-10: #292524;  /* Step 10: Hovered solid backgrounds */
+  --stone-11: #78716C;  /* Step 11: Low-contrast text */
+  --stone-12: #1C1917;  /* Step 12: High-contrast text */
+  
+  /* ----------------------------------------------------------------------------
+     Amber Scale (Accent) - 12 steps
+     ---------------------------------------------------------------------------- */
+  --amber-1: #FEFDFB;
+  --amber-2: #FEF3C7;
+  --amber-3: #FDE68A;
+  --amber-4: #FCD34D;
+  --amber-5: #FBBF24;
+  --amber-6: #F59E0B;
+  --amber-7: #D97706;
+  --amber-8: #B45309;
+  --amber-9: #92400E;
+  --amber-10: #78350F;
+  --amber-11: #92400E;
+  --amber-12: #451A03;
+  
+  /* ----------------------------------------------------------------------------
+     Semantic Tokens - Mapped to scale steps
+     These tokens provide semantic meaning and make it easy to maintain consistency
+     ---------------------------------------------------------------------------- */
+  
+  /* Background Tokens */
+  --bg-app: var(--stone-1);           /* Step 1: Main app background */
+  --bg-sidebar: var(--stone-2);       /* Step 2: Sidebar subtle background */
+  --bg-surface: #FFFFFF;              /* White for cards to create depth */
+  --bg-hover: var(--stone-3);         /* Step 3: Hover state background */
+  --bg-active: var(--stone-4);        /* Step 4: Active state background */
+  --bg-secondary: var(--stone-2);     /* Step 2: Secondary background */
+  
+  /* Text Tokens */
+  --text-primary: var(--stone-12);    /* Step 12: High-contrast text */
+  --text-secondary: var(--stone-11);  /* Step 11: Low-contrast text */
+  --text-tertiary: var(--stone-6);    /* Step 6: Muted text */
+  --text-inverse: var(--stone-1);     /* Inverse text for dark backgrounds */
+  
+  /* Border Tokens */
+  --border-subtle: var(--stone-6);    /* Step 6: Subtle borders */
+  --border-default: var(--stone-7);   /* Step 7: Default borders */
+  --border-strong: var(--stone-8);    /* Step 8: Strong borders */
+  
+  /* Accent Tokens */
+  --accent-primary: var(--amber-9);   /* Step 9: Primary accent color */
+  --accent-hover: var(--amber-10);    /* Step 10: Hover accent color */
+  --accent-subtle: var(--amber-3);    /* Step 3: Subtle accent background */
+  --accent-glow: rgba(217, 119, 6, 0.1); /* Subtle glow effect */
+  
+  /* Status Colors - Warm variants for Latte mode */
+  --status-success: #10b981;
+  --status-success-bg: #d1fae5;
+  --status-error: #ef4444;
+  --status-error-bg: #fee2e2;
+  --status-info: #3b82f6;
+  --status-info-bg: #dbeafe;
+  --status-warning: #f59e0b;
+  --status-warning-bg: #fef3c7;
+  
+  /* Circle Colors - Warm variants for Dunbar's circles */
+  --circle-inner: #8b5cf6;      /* Purple - Inner circle */
+  --circle-close: #3b82f6;      /* Blue - Close friends */
+  --circle-active: #10b981;     /* Green - Active friends */
+  --circle-casual: #f59e0b;     /* Amber - Casual friends */
+  --circle-acquaintance: #78716C; /* Stone - Acquaintances */
+  
+  /* Avatar Colors - Warm pastels */
+  --avatar-sage-bg: #d1fae5;
+  --avatar-sage-text: #065f46;
+  --avatar-sand-bg: #fef3c7;
+  --avatar-sand-text: #92400e;
+  --avatar-rose-bg: #fce7f3;
+  --avatar-rose-text: #9d174d;
+  --avatar-stone-bg: #e7e5e4;
+  --avatar-stone-text: #44403c;
+  
+  /* Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+  
+  /* Shadows - Subtle, warm shadows */
+  --shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.05);
+  --shadow-md: 0 4px 6px rgba(28, 25, 23, 0.07);
+  --shadow-lg: 0 10px 15px rgba(28, 25, 23, 0.1);
+  --shadow-xl: 0 20px 25px rgba(28, 25, 23, 0.15);
+  
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+  
+  /* Font Sizes */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  
+  /* Font Weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  
+  /* Handwritten Font for Titles */
+  --font-handwritten: 'Cabin Sketch', sans-serif;
+  
+  /* Line Heights */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+  
+  /* Z-Index Scale */
+  --z-base: 0;
+  --z-dropdown: 50;
+  --z-sticky: 100;
+  --z-overlay: 500;
+  --z-modal: 1000;
+  --z-toast: 2000;
+}
+
+/* ============================================================================
+   ESPRESSO MODE (Dark Theme)
+   Inverted Stone scale for dark backgrounds with warm tones
+   ============================================================================ */
+
+[data-theme="dark"] {
+  /* ----------------------------------------------------------------------------
+     Stone Scale - Inverted for dark mode
+     ---------------------------------------------------------------------------- */
+  --stone-1: #0C0A09;   /* Step 1: App background (deep coffee) */
+  --stone-2: #1C1917;   /* Step 2: Subtle background */
+  --stone-3: #292524;   /* Step 3: UI element background */
+  --stone-4: #44403C;   /* Step 4: Hovered UI element background */
+  --stone-5: #57534E;   /* Step 5: Active/Selected UI element background */
+  --stone-6: #78716C;   /* Step 6: Subtle borders and separators */
+  --stone-7: #A8A29E;   /* Step 7: UI element border and focus rings */
+  --stone-8: #D6D3D1;   /* Step 8: Hovered UI element border */
+  --stone-9: #E7E5E4;   /* Step 9: Solid backgrounds */
+  --stone-10: #F5F5F4;  /* Step 10: Hovered solid backgrounds */
+  --stone-11: #A8A29E;  /* Step 11: Low-contrast text */
+  --stone-12: #FAFAF9;  /* Step 12: High-contrast text */
+  
+  /* ----------------------------------------------------------------------------
+     Amber Scale - Adjusted for dark mode visibility
+     ---------------------------------------------------------------------------- */
+  --amber-9: #F59E0B;   /* Brighter amber for dark backgrounds */
+  --amber-10: #FBBF24;  /* Even brighter for hover states */
+  --amber-3: rgba(245, 158, 11, 0.15); /* Subtle amber background */
+  
+  /* ----------------------------------------------------------------------------
+     Semantic Tokens - Auto-update via CSS variables
+     ---------------------------------------------------------------------------- */
+  
+  /* Background Tokens */
+  --bg-surface: var(--stone-3);       /* Cards on dark background */
+  
+  /* Accent Tokens */
+  --accent-glow: rgba(245, 158, 11, 0.15); /* Warm glow for dark mode */
+  
+  /* Status Colors - Dark mode variants */
+  --status-success: #10b981;
+  --status-success-bg: #064e3b;
+  --status-error: #ef4444;
+  --status-error-bg: #7f1d1d;
+  --status-info: #3b82f6;
+  --status-info-bg: #1e3a5f;
+  --status-warning: #f59e0b;
+  --status-warning-bg: #78350f;
+  
+  /* Circle Colors - Adjusted for dark mode */
+  --circle-inner: #a78bfa;      /* Lighter purple for visibility */
+  --circle-close: #60a5fa;      /* Lighter blue */
+  --circle-active: #34d399;     /* Lighter green */
+  --circle-casual: #fbbf24;     /* Lighter amber */
+  --circle-acquaintance: #a8a29e; /* Lighter stone */
+  
+  /* Avatar Colors - Dark mode variants */
+  --avatar-sage-bg: rgba(16, 185, 129, 0.2);
+  --avatar-sage-text: #6ee7b7;
+  --avatar-sand-bg: rgba(251, 191, 36, 0.2);
+  --avatar-sand-text: #fcd34d;
+  --avatar-rose-bg: rgba(244, 114, 182, 0.2);
+  --avatar-rose-text: #f9a8d4;
+  --avatar-stone-bg: rgba(168, 162, 158, 0.2);
+  --avatar-stone-text: #d6d3d1;
+  
+  /* Shadows - Darker, more subtle for dark mode */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================================================
+   BASE STYLES
+   Apply design system to common elements
+   ============================================================================ */
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--bg-app);
+  transition: background-color var(--transition-base), color var(--transition-base);
+  /* Dotted pattern overlay - more visible */
+  background-image: 
+    radial-gradient(circle, var(--stone-7) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+  background-attachment: fixed;
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: var(--transition-base);
+  transition-timing-function: ease;
+}
+
+/* Disable transitions on theme change to prevent flash */
+html[data-theme-transitioning] * {
+  transition: none !important;
+}
+
+/* Handwritten font for titles and labels */
+h1, h2, h3, h4, h5, h6,
+.sidebar__brand,
+.nav-item,
+.page-title,
+.section-title,
+.tab-label,
+label {
+  font-family: var(--font-handwritten);
+  font-weight: 600;
+}
+
+/* Chat bubble maroon color */
+:root {
+  --chat-bubble-bg: #8B6F5C;
+  --chat-bubble-hover: #7A5E4D;
+}
+
+[data-theme="dark"] {
+  --chat-bubble-bg: #9B7F6C;
+  --chat-bubble-hover: #8A6E5B;
+}
+
+/* ============================================================================
+   PILL SWITCH COMPONENT
+   Toggle switches with warm styling for preferences
+   ============================================================================ */
+
+.pill-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pill-switch input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.pill-switch__track {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--border-subtle);
+  border-radius: var(--radius-full);
+  transition: background-color var(--transition-base);
+}
+
+.pill-switch input[type="checkbox"]:checked + .pill-switch__track {
+  background: var(--accent-primary);
+}
+
+.pill-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.pill-switch input[type="checkbox"]:checked + .pill-switch__track .pill-switch__thumb {
+  transform: translateX(20px);
+}
+
+.pill-switch__label {
+  margin-left: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: var(--font-medium);
+}
+
+/* Focus state for accessibility */
+.pill-switch input[type="checkbox"]:focus + .pill-switch__track {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Disabled state */
+.pill-switch input[type="checkbox"]:disabled + .pill-switch__track {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Styles Verification - Cozy Productivity UI</title>
+    
+    <!-- Stone & Clay Design System -->
+    <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-app);
+            color: var(--text-primary);
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            z-index: 10001;
+        }
+        
+        .test-section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .test-section h2 {
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+        
+        .test-section p {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: var(--text-primary);
+            color: var(--bg-surface);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: opacity 0.2s ease;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        button.secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            font-weight: 500;
+        }
+        
+        button.secondary:hover {
+            background: var(--bg-hover);
+            opacity: 1;
+        }
+        
+        button.accent {
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+        }
+        
+        button.accent:hover {
+            background: var(--accent-hover);
+            opacity: 1;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(28, 25, 23, 0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .close-btn {
+            background: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        
+        .close-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--bg-app);
+            color: var(--text-primary);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        
+        input::placeholder, textarea::placeholder {
+            color: var(--text-tertiary);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+        
+        .checklist {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+        
+        .checklist h3 {
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            color: var(--text-secondary);
+        }
+        
+        .checklist-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 Toggle Theme</button>
+    
+    <div class="container">
+        <h1>Modal Styles Verification</h1>
+        <p class="subtitle">Testing warm modal styling with Stone & Clay design system</p>
+        
+        <div class="test-section">
+            <h2>✅ Task 18.1: Modal Overlay</h2>
+            <p><strong>Requirements 13.1:</strong> Backdrop blur effect and warm overlay color</p>
+            <div class="button-group">
+                <button onclick="openModal('basicModal')">Open Basic Modal</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>✅ Task 18.2: Modal Content</h2>
+            <p><strong>Requirements 13.2:</strong> Warm background, borders, and 12px border radius</p>
+            <div class="button-group">
+                <button onclick="openModal('contentModal')">Open Content Modal</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>✅ Task 18.3: Modal Header</h2>
+            <p><strong>Requirements 13.3:</strong> Text and close button styling</p>
+            <div class="button-group">
+                <button onclick="openModal('headerModal')">Open Header Modal</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>✅ Task 18.4: Modal Form Inputs</h2>
+            <p><strong>Requirements 13.4:</strong> Warm backgrounds and focus states</p>
+            <div class="button-group">
+                <button onclick="openModal('formModal')">Open Form Modal</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>✅ Task 18.5: Modal Action Buttons</h2>
+            <p><strong>Requirements 13.5:</strong> Primary and secondary button styling</p>
+            <div class="button-group">
+                <button onclick="openModal('actionsModal')">Open Actions Modal</button>
+            </div>
+        </div>
+        
+        <div class="checklist">
+            <h3>Verification Checklist</h3>
+            <div class="checklist-item">
+                <input type="checkbox" id="check1">
+                <label for="check1">Modal overlay has backdrop blur effect (4px)</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check2">
+                <label for="check2">Modal overlay has warm color (rgba(28, 25, 23, 0.4))</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check3">
+                <label for="check3">Modal content has --bg-surface background</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check4">
+                <label for="check4">Modal content has 1px --border-subtle border</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check5">
+                <label for="check5">Modal content has 12px border radius</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check6">
+                <label for="check6">Modal header title uses --text-primary color</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check7">
+                <label for="check7">Close button has warm hover state (--bg-hover)</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check8">
+                <label for="check8">Form inputs have --bg-app background</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check9">
+                <label for="check9">Form inputs have --accent-primary focus border</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check10">
+                <label for="check10">Form inputs have --accent-glow focus shadow</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check11">
+                <label for="check11">Primary buttons use --text-primary background</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check12">
+                <label for="check12">Secondary buttons have transparent background with border</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check13">
+                <label for="check13">Accent buttons use --accent-primary background</label>
+            </div>
+            <div class="checklist-item">
+                <input type="checkbox" id="check14">
+                <label for="check14">All styles work correctly in Espresso (dark) mode</label>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Basic Modal -->
+    <div id="basicModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Basic Modal</h2>
+                <button class="close-btn" onclick="closeModal('basicModal')">×</button>
+            </div>
+            <p style="color: var(--text-secondary); line-height: 1.6;">
+                This modal demonstrates the warm overlay with backdrop blur effect. 
+                Notice the subtle warm tint and the blur effect on the background content.
+            </p>
+            <div class="modal-actions">
+                <button class="secondary" onclick="closeModal('basicModal')">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Content Modal -->
+    <div id="contentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Modal Content Styling</h2>
+                <button class="close-btn" onclick="closeModal('contentModal')">×</button>
+            </div>
+            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">
+                This modal showcases the warm background color (--bg-surface), 
+                subtle border (--border-subtle), and smooth 12px border radius.
+            </p>
+            <p style="color: var(--text-secondary); line-height: 1.6;">
+                The content area should feel warm and inviting, with proper contrast 
+                for readability in both Latte and Espresso modes.
+            </p>
+            <div class="modal-actions">
+                <button class="secondary" onclick="closeModal('contentModal')">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Header Modal -->
+    <div id="headerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Modal Header Styling</h2>
+                <button class="close-btn" onclick="closeModal('headerModal')">×</button>
+            </div>
+            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">
+                The header title uses --text-primary color with 600 font weight for clear hierarchy.
+            </p>
+            <p style="color: var(--text-secondary); line-height: 1.6;">
+                Hover over the close button (×) to see the warm hover state with --bg-hover background 
+                and --text-primary color transition.
+            </p>
+            <div class="modal-actions">
+                <button class="secondary" onclick="closeModal('headerModal')">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Form Modal -->
+    <div id="formModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Contact</h2>
+                <button class="close-btn" onclick="closeModal('formModal')">×</button>
+            </div>
+            <form onsubmit="event.preventDefault(); closeModal('formModal');">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" placeholder="Enter contact name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="contact@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" rows="4" placeholder="Add notes about this contact..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="circle">Circle</label>
+                    <select id="circle">
+                        <option value="">Select a circle</option>
+                        <option value="inner">Inner Circle</option>
+                        <option value="close">Close Friends</option>
+                        <option value="active">Active Contacts</option>
+                        <option value="casual">Casual Contacts</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="secondary" onclick="closeModal('formModal')">Cancel</button>
+                    <button type="submit">Save Contact</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Actions Modal -->
+    <div id="actionsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Modal Action Buttons</h2>
+                <button class="close-btn" onclick="closeModal('actionsModal')">×</button>
+            </div>
+            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;">
+                This modal demonstrates the three button styles: primary (high contrast), 
+                secondary (ghost), and accent (warm terracotta/amber).
+            </p>
+            <div class="modal-actions" style="justify-content: flex-start; flex-wrap: wrap;">
+                <button>Primary Button</button>
+                <button class="secondary">Secondary Button</button>
+                <button class="accent">Accent Button</button>
+            </div>
+            <div class="modal-actions" style="margin-top: 24px;">
+                <button class="secondary" onclick="closeModal('actionsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            
+            const btn = document.querySelector('.theme-toggle');
+            btn.textContent = newTheme === 'light' ? '🌙 Toggle Theme' : '☀️ Toggle Theme';
+        }
+        
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
+        // Close modal when clicking outside
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+        
+        // Initialize theme from localStorage
+        const savedTheme = localStorage.getItem('catchup-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        const btn = document.querySelector('.theme-toggle');
+        btn.textContent = savedTheme === 'light' ? '🌙 Toggle Theme' : '☀️ Toggle Theme';
+    </script>
+</body>
+</html>

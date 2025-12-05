@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groups Tab Warm Styling Verification</title>
+    
+    <!-- Stone & Clay Theme -->
+    <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+    <link rel="stylesheet" href="../../public/css/groups-table.css">
+    <link rel="stylesheet" href="../../public/css/google-mappings-review.css">
+    
+    <style>
+        body {
+            background: var(--bg-app);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+            padding: 40px;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: var(--text-primary);
+            color: var(--bg-surface);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            z-index: 1000;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+        
+        .checklist {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .checklist h3 {
+            margin-top: 0;
+            color: var(--text-primary);
+        }
+        
+        .checklist ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .checklist li {
+            padding: 8px 0;
+            color: var(--text-secondary);
+        }
+        
+        .checklist li::before {
+            content: "☐ ";
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+    
+    <div class="container">
+        <h1>Groups Tab - Warm Styling Verification</h1>
+        <p class="subtitle">Task 11: Update Directory Page - Groups Tab with Stone & Clay theme</p>
+        
+        <!-- Verification Checklist -->
+        <div class="checklist">
+            <h3>Verification Checklist - Requirements 8.1, 8.2, 8.3, 8.4</h3>
+            <ul>
+                <li>Groups table uses warm stone backgrounds (--bg-surface)</li>
+                <li>Table headers use warm secondary background (--bg-secondary)</li>
+                <li>Borders use subtle warm tones (--border-subtle)</li>
+                <li>Add Group button uses high contrast (--text-primary bg)</li>
+                <li>Count badges use warm amber accent (--accent-primary)</li>
+                <li>Expand toggles use warm amber tint (#fef3c7)</li>
+                <li>Action buttons have warm hover states</li>
+                <li>Google mappings review section uses warm styling</li>
+                <li>Status indicators use warm accent colors</li>
+                <li>Modal overlays have warm backdrop blur</li>
+                <li>Dark mode (Espresso) maintains warm palette</li>
+            </ul>
+        </div>
+        
+        <!-- Section 1: Groups Table -->
+        <div class="section">
+            <div class="section-title">Groups Table with Warm Styling</div>
+            
+            <div class="groups-table-controls">
+                <button class="btn-add-group">
+                    <span>+</span>
+                    <span>Add Group</span>
+                </button>
+            </div>
+            
+            <div class="groups-table-wrapper">
+                <table class="groups-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable">Group Name</th>
+                            <th class="sortable">Description</th>
+                            <th class="sortable">Members</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="group-row">
+                            <td class="group-name">Close Friends</td>
+                            <td class="group-description">My closest circle of friends</td>
+                            <td class="group-contact-count">
+                                <button class="expand-toggle">
+                                    <span class="count-badge">5</span>
+                                    <span class="expand-icon">▼</span>
+                                </button>
+                            </td>
+                            <td class="group-actions">
+                                <button class="btn-delete">🗑️</button>
+                            </td>
+                        </tr>
+                        <tr class="group-row">
+                            <td class="group-name">Work Colleagues</td>
+                            <td class="group-description">People I work with regularly</td>
+                            <td class="group-contact-count">
+                                <button class="expand-toggle">
+                                    <span class="count-badge">12</span>
+                                    <span class="expand-icon">▼</span>
+                                </button>
+                            </td>
+                            <td class="group-actions">
+                                <button class="btn-delete">🗑️</button>
+                            </td>
+                        </tr>
+                        <tr class="group-row">
+                            <td class="group-name">Family</td>
+                            <td class="group-description">Extended family members</td>
+                            <td class="group-contact-count">
+                                <button class="expand-toggle">
+                                    <span class="count-badge">8</span>
+                                    <span class="expand-icon">▼</span>
+                                </button>
+                            </td>
+                            <td class="group-actions">
+                                <button class="btn-delete">🗑️</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Section 2: Google Mappings Review -->
+        <div class="section">
+            <div class="section-title">Google Mappings Review with Warm Status Indicators</div>
+            
+            <div class="google-mappings-review">
+                <div class="mappings-header">
+                    <h3>
+                        Google Contact Group Mappings
+                        <span class="pending-badge" style="margin-left: 10px;">2 Pending</span>
+                    </h3>
+                </div>
+                
+                <p class="mappings-description">
+                    Review suggested mappings between your Google Contact groups and CatchUp groups.
+                </p>
+                
+                <div class="mappings-list">
+                    <div class="mapping-card">
+                        <div class="mapping-header">
+                            <div class="mapping-info">
+                                <h4 class="mapping-title">Work Team → Work Colleagues</h4>
+                                <div class="mapping-meta">
+                                    <span class="member-count">12 members</span>
+                                    <span class="confidence-score">95% confidence</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="suggested-action">
+                            <div class="action-label">Suggested Action</div>
+                            <div class="action-value">Map to existing group</div>
+                            <div class="action-detail">This will sync 12 contacts to "Work Colleagues"</div>
+                        </div>
+                        
+                        <div class="suggestion-reason">
+                            <div class="reason-label">Why this suggestion?</div>
+                            <div class="reason-text">
+                                High name similarity and overlapping members detected
+                            </div>
+                        </div>
+                        
+                        <div class="mapping-actions">
+                            <button class="btn-approve">Approve</button>
+                            <button class="btn-reject">Reject</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mapping-card">
+                        <div class="mapping-header">
+                            <div class="mapping-info">
+                                <h4 class="mapping-title">College Friends → Create New Group</h4>
+                                <div class="mapping-meta">
+                                    <span class="member-count">8 members</span>
+                                    <span class="confidence-score">No match found</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="suggested-action">
+                            <div class="action-label">Suggested Action</div>
+                            <div class="action-value">Create new group</div>
+                            <div class="action-detail">This will create a new "College Friends" group</div>
+                        </div>
+                        
+                        <div class="mapping-actions">
+                            <button class="btn-approve">Approve</button>
+                            <button class="btn-reject">Reject</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 3: Modal Preview -->
+        <div class="section">
+            <div class="section-title">Modal with Warm Styling</div>
+            <button onclick="showModal()" style="padding: 10px 20px; background: var(--text-primary); color: var(--bg-surface); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                Show Add Contact Modal
+            </button>
+        </div>
+    </div>
+    
+    <!-- Modal -->
+    <div id="test-modal" class="contact-search-modal" style="display: none;">
+        <div class="modal-overlay" onclick="hideModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Contact to Group</h3>
+                <button class="modal-close" onclick="hideModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="contact-search-input" placeholder="Search contacts...">
+                
+                <div class="contact-search-results">
+                    <div class="contact-result-item">
+                        <div class="contact-result-info">
+                            <div class="contact-result-name">John Smith</div>
+                            <div class="contact-result-details">john@example.com • Inner Circle</div>
+                        </div>
+                        <button class="btn-select-contact">Add</button>
+                    </div>
+                    
+                    <div class="contact-result-item">
+                        <div class="contact-result-info">
+                            <div class="contact-result-name">Sarah Johnson</div>
+                            <div class="contact-result-details">sarah@example.com • Close Friends</div>
+                        </div>
+                        <button class="btn-select-contact">Add</button>
+                    </div>
+                    
+                    <div class="contact-result-item">
+                        <div class="contact-result-info">
+                            <div class="contact-result-name">Mike Davis</div>
+                            <div class="contact-result-details">mike@example.com • Active</div>
+                        </div>
+                        <button class="btn-select-contact">Add</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('catchup-theme', newTheme);
+        }
+        
+        // Initialize theme
+        const savedTheme = localStorage.getItem('catchup-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        // Modal functions
+        function showModal() {
+            document.getElementById('test-modal').style.display = 'flex';
+        }
+        
+        function hideModal() {
+            document.getElementById('test-modal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

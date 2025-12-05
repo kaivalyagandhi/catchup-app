@@ -38,14 +38,14 @@ function renderGoogleContactsCard(status) {
     const connected = status.connected;
     
     return `
-        <div class="card">
+        <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px;">
             <!-- One-Way Sync Notice -->
-            <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 16px; border-radius: 6px; margin-bottom: 16px;">
+            <div style="background: var(--status-info-bg); color: var(--text-primary); padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid var(--status-info);">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                     <span style="font-size: 24px;">ℹ️</span>
-                    <h4 style="margin: 0; font-size: 16px; font-weight: 600;">One-Way Sync (Read-Only)</h4>
+                    <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-primary);">One-Way Sync (Read-Only)</h4>
                 </div>
-                <p style="margin: 0; font-size: 13px; line-height: 1.5; opacity: 0.95;">
+                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-secondary);">
                     CatchUp imports your contacts from Google but <strong>never modifies your Google Contacts</strong>. 
                     All edits you make in CatchUp stay local and won't affect your Google account.
                 </p>
@@ -55,11 +55,14 @@ function renderGoogleContactsCard(status) {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <img src="https://www.gstatic.com/marketing-cms/assets/images/ff/21/95f22bf94e35bea3ec097d3f4720/contacts.png" alt="Google Contacts" style="width: 24px; height: 24px;">
-                    <h4 style="margin: 0;">Google Contacts</h4>
+                    <h4 style="margin: 0; color: var(--text-primary);">Google Contacts</h4>
                 </div>
-                <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; ${connected ? 'background: var(--status-success-bg); color: var(--status-success-text);' : 'background: var(--status-error-bg); color: var(--status-error-text);'}">
-                    ${connected ? '✓ Connected (Read-Only)' : 'Not Connected'}
-                </span>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${connected ? '#10b981' : '#ef4444'};"></span>
+                    <span style="font-size: 12px; font-weight: 500; color: ${connected ? '#10b981' : '#ef4444'};">
+                        ${connected ? 'Connected (Read-Only)' : 'Not Connected'}
+                    </span>
+                </div>
             </div>
             
             <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--text-secondary);">
@@ -69,7 +72,7 @@ function renderGoogleContactsCard(status) {
             ${connected ? `
                 <!-- Connected State -->
                 ${status.email ? `
-                    <div style="margin-bottom: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 4px; border-left: 3px solid var(--status-success-text);">
+                    <div style="margin-bottom: 12px; padding: 10px; background: var(--status-success-bg); border-radius: 8px; border-left: 3px solid #10b981;">
                         <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Connected as:</div>
                         <div style="font-weight: 600; color: var(--text-primary);">${status.email}</div>
                     </div>
@@ -77,13 +80,13 @@ function renderGoogleContactsCard(status) {
                 
                 <!-- Sync Status -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-                    <div style="padding: 10px; background: var(--bg-secondary); border-radius: 4px;">
+                    <div style="padding: 10px; background: var(--bg-hover); border-radius: 8px;">
                         <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">LAST SYNC</div>
                         <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
                             ${status.lastSyncAt ? formatRelativeTime(new Date(status.lastSyncAt)) : 'Never'}
                         </div>
                     </div>
-                    <div style="padding: 10px; background: var(--bg-secondary); border-radius: 4px;">
+                    <div style="padding: 10px; background: var(--bg-hover); border-radius: 8px;">
                         <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">CONTACTS SYNCED</div>
                         <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">
                             ${status.totalContactsSynced || 0}
@@ -92,25 +95,28 @@ function renderGoogleContactsCard(status) {
                 </div>
                 
                 ${status.lastSyncError ? `
-                    <div style="margin-bottom: 12px; padding: 10px; background: var(--status-error-bg); border-radius: 4px; border-left: 3px solid var(--status-error-text);">
-                        <div style="font-size: 12px; font-weight: 600; color: var(--status-error-text); margin-bottom: 4px;">Sync Error</div>
+                    <div style="margin-bottom: 12px; padding: 10px; background: var(--status-error-bg); border-radius: 8px; border-left: 3px solid #ef4444;">
+                        <div style="font-size: 12px; font-weight: 600; color: #ef4444; margin-bottom: 4px;">Sync Error</div>
                         <div style="font-size: 12px; color: var(--text-secondary);">${status.lastSyncError}</div>
                     </div>
                 ` : ''}
                 
                 <!-- Auto-sync Status -->
-                <div style="margin-bottom: 16px; padding: 10px; background: var(--bg-secondary); border-radius: 4px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="margin-bottom: 16px; padding: 10px; background: var(--bg-hover); border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
                     <div>
                         <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Automatic Sync</div>
                         <div style="font-size: 11px; color: var(--text-secondary);">Daily synchronization at midnight</div>
                     </div>
-                    <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; ${status.autoSyncEnabled ? 'background: var(--status-success-bg); color: var(--status-success-text);' : 'background: var(--status-warning-bg); color: var(--status-warning-text);'}">
-                        ${status.autoSyncEnabled ? 'Enabled' : 'Disabled'}
-                    </span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: ${status.autoSyncEnabled ? '#10b981' : '#f59e0b'};"></span>
+                        <span style="font-size: 12px; font-weight: 500; color: ${status.autoSyncEnabled ? '#10b981' : '#f59e0b'};">
+                            ${status.autoSyncEnabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                    </div>
                 </div>
                 
                 <!-- Safety Notice -->
-                <div style="margin-bottom: 16px; padding: 10px; background: rgba(34, 197, 94, 0.1); border-radius: 4px; border-left: 3px solid var(--status-success-text);">
+                <div style="margin-bottom: 16px; padding: 10px; background: var(--status-success-bg); border-radius: 8px; border-left: 3px solid #10b981;">
                     <div style="font-size: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                         <span>✓</span>
                         <strong>Your Google Contacts remain unchanged</strong>
@@ -128,8 +134,8 @@ function renderGoogleContactsCard(status) {
                 </div>
             ` : `
                 <!-- Not Connected State -->
-                <div style="margin-bottom: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 4px;">
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--bg-hover); border-radius: 8px;">
+                    <div style="font-size: 12px; color: var(--text-primary); margin-bottom: 8px;">
                         <strong>What you get:</strong>
                     </div>
                     <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
@@ -141,7 +147,7 @@ function renderGoogleContactsCard(status) {
                 </div>
                 
                 <!-- Safety Assurance -->
-                <div style="margin-bottom: 16px; padding: 10px; background: rgba(34, 197, 94, 0.1); border-radius: 4px; border-left: 3px solid var(--status-success-text);">
+                <div style="margin-bottom: 16px; padding: 10px; background: var(--status-success-bg); border-radius: 8px; border-left: 3px solid #10b981;">
                     <div style="font-size: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                         <span>✓</span>
                         <strong>Safe to connect without risk of data loss</strong>

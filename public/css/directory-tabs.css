@@ -1,0 +1,93 @@
+/* ============================================
+   DIRECTORY TABS - SEGMENTED CONTROL
+   ============================================ */
+
+/* Directory Tabs Container */
+.directory-tabs {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 4px;
+    background: var(--bg-secondary);
+    padding: 4px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    width: fit-content;
+}
+
+/* Individual Tab Button */
+.directory-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.directory-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.directory-tab.active {
+    background: var(--bg-surface);
+    color: var(--accent-primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Tab Icons */
+.directory-tab svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+}
+
+/* Tab Content */
+.directory-tab-content {
+    display: block;
+}
+
+.directory-tab-content.hidden {
+    display: none;
+}
+
+/* Mobile Responsive - Keep horizontal but allow scrolling */
+@media (max-width: 767px) {
+    .directory-tabs {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        width: 100%;
+        overflow-x: auto;
+        gap: 4px;
+        padding: 4px;
+        margin-bottom: 16px;
+        /* Hide scrollbar but keep functionality */
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .directory-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .directory-tab {
+        display: inline-flex !important;
+        flex-shrink: 0;
+        flex-grow: 0;
+        width: auto !important;
+        min-width: fit-content;
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+}

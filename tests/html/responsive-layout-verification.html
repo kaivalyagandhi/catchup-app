@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Layout Verification - CatchUp</title>
+    
+    <!-- Stone & Clay Design System -->
+    <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+    
+    <!-- App Shell -->
+    <link rel="stylesheet" href="../../public/css/app-shell.css">
+    
+    <!-- Responsive Layout -->
+    <link rel="stylesheet" href="../../public/css/responsive.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-app);
+            color: var(--text-primary);
+        }
+        
+        .test-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-header {
+            background: var(--bg-surface);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-subtle);
+        }
+        
+        .test-header h1 {
+            margin: 0 0 10px 0;
+            color: var(--accent-primary);
+        }
+        
+        .test-header p {
+            margin: 0;
+            color: var(--text-secondary);
+        }
+        
+        .test-section {
+            background: var(--bg-surface);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-subtle);
+        }
+        
+        .test-section h2 {
+            margin: 0 0 15px 0;
+            color: var(--text-primary);
+            font-size: 20px;
+        }
+        
+        .test-result {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .test-result.pass {
+            background: var(--status-success-bg);
+            color: var(--status-success-text);
+        }
+        
+        .test-result.fail {
+            background: var(--status-error-bg);
+            color: var(--status-error-text);
+        }
+        
+        .test-result.info {
+            background: var(--status-info-bg);
+            color: var(--status-info-text);
+        }
+        
+        .viewport-simulator {
+            border: 2px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+            background: var(--bg-app);
+        }
+        
+        .viewport-controls {
+            background: var(--bg-secondary);
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        
+        .viewport-btn {
+            padding: 8px 16px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+        
+        .viewport-btn:hover {
+            background: var(--bg-hover);
+        }
+        
+        .viewport-btn.active {
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border-color: var(--accent-primary);
+        }
+        
+        .viewport-frame {
+            transition: width 0.3s ease;
+            margin: 0 auto;
+            background: white;
+            min-height: 500px;
+        }
+        
+        .demo-app {
+            height: 100%;
+            position: relative;
+        }
+        
+        .instructions {
+            background: var(--status-info-bg);
+            color: var(--status-info-text);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        
+        .instructions ul {
+            margin: 10px 0 0 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🎨 Responsive Layout Verification</h1>
+            <p>Testing responsive breakpoints, mobile navigation, and hamburger menu</p>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Test Instructions</h3>
+            <ul>
+                <li><strong>Desktop (≥1024px):</strong> Sidebar should be fixed and visible, mobile nav hidden</li>
+                <li><strong>Tablet (768-1023px):</strong> Hamburger button visible, sidebar collapsible with overlay</li>
+                <li><strong>Mobile (&lt;768px):</strong> Sidebar hidden, mobile bottom navigation visible</li>
+                <li>Click the viewport buttons below to test different screen sizes</li>
+                <li>Try the hamburger menu on tablet view</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h2>Automated Tests</h2>
+            <div id="test-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Interactive Viewport Simulator</h2>
+            <div class="viewport-simulator">
+                <div class="viewport-controls">
+                    <button class="viewport-btn" onclick="setViewport(375, 'Mobile (375px)')">📱 Mobile</button>
+                    <button class="viewport-btn" onclick="setViewport(768, 'Tablet (768px)')">📱 Tablet</button>
+                    <button class="viewport-btn" onclick="setViewport(1024, 'Desktop (1024px)')">💻 Desktop</button>
+                    <button class="viewport-btn active" onclick="setViewport('100%', 'Full Width')">🖥️ Full Width</button>
+                    <span id="viewport-label" style="margin-left: auto; align-self: center; color: var(--text-secondary); font-size: 14px;">Current: Full Width</span>
+                </div>
+                <div class="viewport-frame" id="viewport-frame" style="width: 100%;">
+                    <div class="demo-app" id="demo-app">
+                        <!-- Demo content will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Test results logger
+        function logResult(message, pass) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${pass ? 'pass' : 'fail'}`;
+            resultDiv.textContent = `${pass ? '✓' : '✗'} ${message}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function logInfo(message) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'test-result info';
+            resultDiv.textContent = `ℹ ${message}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        // Viewport simulator
+        function setViewport(width, label) {
+            const frame = document.getElementById('viewport-frame');
+            const labelEl = document.getElementById('viewport-label');
+            
+            frame.style.width = typeof width === 'number' ? `${width}px` : width;
+            labelEl.textContent = `Current: ${label}`;
+            
+            // Update active button
+            document.querySelectorAll('.viewport-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Re-run tests after viewport change
+            setTimeout(runTests, 500);
+        }
+        
+        // Initialize demo app
+        function initDemoApp() {
+            const demoApp = document.getElementById('demo-app');
+            demoApp.innerHTML = `
+                <div class="app-shell" style="height: 100%; position: relative;">
+                    <!-- Hamburger Button -->
+                    <button class="hamburger-btn" id="demo-hamburger" onclick="toggleDemoSidebar()">
+                        <div class="hamburger-icon">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </button>
+                    
+                    <!-- Sidebar Overlay -->
+                    <div class="sidebar-overlay" id="demo-overlay" onclick="closeDemoSidebar()"></div>
+                    
+                    <!-- Sidebar -->
+                    <aside class="sidebar" id="demo-sidebar" style="position: absolute;">
+                        <div class="sidebar__brand">CatchUp</div>
+                        <nav class="sidebar__nav">
+                            <a href="#" class="nav-item active">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                                </svg>
+                                <span>Directory</span>
+                            </a>
+                            <a href="#" class="nav-item">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                                </svg>
+                                <span>Suggestions</span>
+                            </a>
+                            <a href="#" class="nav-item">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+                                </svg>
+                                <span>Edits</span>
+                                <span class="nav-badge">3</span>
+                            </a>
+                        </nav>
+                        <div class="sidebar__footer">
+                            <div class="user-pill">
+                                <div class="user-avatar">JD</div>
+                                <span class="user-name">John Doe</span>
+                            </div>
+                        </div>
+                    </aside>
+                    
+                    <!-- Main Content -->
+                    <main class="main-content" style="min-height: 500px; padding: 20px;">
+                        <h2 style="margin-top: 0;">Welcome to CatchUp</h2>
+                        <p style="color: var(--text-secondary);">This is a demo of the responsive layout.</p>
+                        <div style="background: var(--bg-surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border-subtle); margin-top: 20px;">
+                            <h3>Sample Content</h3>
+                            <p>Resize the viewport using the buttons above to see how the layout adapts.</p>
+                        </div>
+                    </main>
+                    
+                    <!-- Mobile Navigation -->
+                    <nav class="mobile-nav">
+                        <a href="#" class="mobile-nav__item mobile-nav__item--active">
+                            <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                            </svg>
+                            <span class="mobile-nav__label">Directory</span>
+                        </a>
+                        <a href="#" class="mobile-nav__item">
+                            <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                            </svg>
+                            <span class="mobile-nav__label">Suggestions</span>
+                        </a>
+                        <a href="#" class="mobile-nav__item">
+                            <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+                            </svg>
+                            <span class="mobile-nav__label">Edits</span>
+                            <span class="mobile-nav__badge">3</span>
+                        </a>
+                        <a href="#" class="mobile-nav__item">
+                            <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M12 1v6m0 6v6"/>
+                            </svg>
+                            <span class="mobile-nav__label">Settings</span>
+                        </a>
+                    </nav>
+                </div>
+            `;
+        }
+        
+        // Demo sidebar toggle functions
+        function toggleDemoSidebar() {
+            const sidebar = document.getElementById('demo-sidebar');
+            const overlay = document.getElementById('demo-overlay');
+            const hamburger = document.getElementById('demo-hamburger');
+            
+            if (sidebar.classList.contains('open')) {
+                closeDemoSidebar();
+            } else {
+                sidebar.classList.add('open');
+                overlay.classList.add('visible');
+                hamburger.classList.add('open');
+            }
+        }
+        
+        function closeDemoSidebar() {
+            const sidebar = document.getElementById('demo-sidebar');
+            const overlay = document.getElementById('demo-overlay');
+            const hamburger = document.getElementById('demo-hamburger');
+            
+            sidebar.classList.remove('open');
+            overlay.classList.remove('visible');
+            hamburger.classList.remove('open');
+        }
+        
+        // Run tests
+        function runTests() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '';
+            
+            logInfo('Running responsive layout tests...');
+            
+            // Test 1: CSS file exists
+            const responsiveCss = Array.from(document.styleSheets).some(sheet => 
+                sheet.href && sheet.href.includes('responsive.css')
+            );
+            logResult('responsive.css file loaded', responsiveCss);
+            
+            // Test 2: Check breakpoint variables
+            const root = document.documentElement;
+            const breakpointMobile = getComputedStyle(root).getPropertyValue('--breakpoint-mobile');
+            logResult('Breakpoint variables defined', breakpointMobile.trim() !== '');
+            
+            // Test 3: Sidebar exists
+            const sidebar = document.getElementById('demo-sidebar');
+            logResult('Sidebar element exists', sidebar !== null);
+            
+            // Test 4: Mobile nav exists
+            const mobileNav = document.querySelector('.mobile-nav');
+            logResult('Mobile navigation exists', mobileNav !== null);
+            
+            // Test 5: Hamburger button exists
+            const hamburger = document.getElementById('demo-hamburger');
+            logResult('Hamburger button exists', hamburger !== null);
+            
+            // Test 6: Sidebar overlay exists
+            const overlay = document.getElementById('demo-overlay');
+            logResult('Sidebar overlay exists', overlay !== null);
+            
+            // Test 7: Check responsive behavior based on current viewport
+            const frameWidth = document.getElementById('viewport-frame').offsetWidth;
+            
+            if (frameWidth < 768) {
+                // Mobile
+                const sidebarDisplay = window.getComputedStyle(sidebar).display;
+                const mobileNavDisplay = window.getComputedStyle(mobileNav).display;
+                logResult('Mobile: Sidebar hidden', sidebarDisplay === 'none');
+                logResult('Mobile: Mobile nav visible', mobileNavDisplay === 'flex');
+            } else if (frameWidth < 1024) {
+                // Tablet
+                const hamburgerDisplay = window.getComputedStyle(hamburger).display;
+                logResult('Tablet: Hamburger button visible', hamburgerDisplay === 'flex');
+            } else {
+                // Desktop
+                const sidebarDisplay = window.getComputedStyle(sidebar).display;
+                const mobileNavDisplay = window.getComputedStyle(mobileNav).display;
+                logResult('Desktop: Sidebar visible', sidebarDisplay === 'flex');
+                logResult('Desktop: Mobile nav hidden', mobileNavDisplay === 'none');
+            }
+            
+            // Test 8: Hamburger icon structure
+            const hamburgerIcon = hamburger.querySelector('.hamburger-icon');
+            const hamburgerSpans = hamburgerIcon ? hamburgerIcon.querySelectorAll('span') : [];
+            logResult('Hamburger icon has 3 spans', hamburgerSpans.length === 3);
+            
+            // Test 9: Mobile nav items
+            const mobileNavItems = mobileNav.querySelectorAll('.mobile-nav__item');
+            logResult('Mobile nav has 4 items', mobileNavItems.length === 4);
+            
+            // Test 10: Mobile nav icons
+            const mobileNavIcons = mobileNav.querySelectorAll('.mobile-nav__icon');
+            logResult('Mobile nav items have icons', mobileNavIcons.length === 4);
+            
+            logInfo('Tests complete!');
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            initDemoApp();
+            runTests();
+        });
+    </script>
+</body>
+</html>

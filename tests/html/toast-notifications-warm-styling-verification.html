@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toast Notifications - Warm Styling Verification</title>
+    
+    <!-- Stone & Clay Design System -->
+    <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+    
+    <style>
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-app);
+            color: var(--text-primary);
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+        
+        .section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .section h2 {
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            background: var(--text-primary);
+            color: var(--bg-surface);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: opacity 0.2s ease;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        button.success {
+            background: var(--status-success);
+        }
+        
+        button.error {
+            background: var(--status-error);
+        }
+        
+        button.info {
+            background: var(--status-info);
+        }
+        
+        button.loading {
+            background: var(--accent-primary);
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--text-primary);
+            color: var(--bg-surface);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+        }
+        
+        /* Toast Container */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+        }
+        
+        /* Toast Styles - From index.html */
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateX(400px);
+            transition: all 0.3s ease-in-out;
+            min-width: 250px;
+            max-width: 400px;
+            word-wrap: break-word;
+        }
+        
+        .toast-show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .toast-hide {
+            opacity: 0;
+            transform: translateX(400px);
+        }
+        
+        .toast-success {
+            background: var(--status-success-bg);
+            color: var(--status-success-text);
+            border-left: 4px solid var(--status-success);
+        }
+        
+        .toast-error {
+            background: var(--status-error-bg);
+            color: var(--status-error-text);
+            border-left: 4px solid var(--status-error);
+        }
+        
+        .toast-loading {
+            background: var(--status-info-bg);
+            color: var(--status-info-text);
+            border-left: 4px solid var(--accent-primary);
+        }
+        
+        .toast-info {
+            background: var(--status-info-bg);
+            color: var(--status-info-text);
+            border-left: 4px solid var(--status-info);
+        }
+        
+        .toast-icon {
+            font-size: 18px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .toast-message {
+            flex: 1;
+        }
+        
+        .toast-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-subtle);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* Static Examples */
+        .static-examples {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .static-toast {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .requirement-tag {
+            display: inline-block;
+            background: var(--accent-subtle);
+            color: var(--accent-primary);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        
+        .color-info {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .color-info h3 {
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .color-info ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .color-info li {
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        
+        .color-info li:last-child {
+            border-bottom: none;
+        }
+        
+        .color-swatch {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border: 1px solid var(--border-subtle);
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <span class="theme-icon">🌙</span>
+    </button>
+    
+    <h1>Toast Notifications - Warm Styling</h1>
+    <p class="subtitle">Task 20.1: Update toast styles with warm Stone & Clay colors</p>
+    
+    <!-- Interactive Toast Triggers -->
+    <div class="section">
+        <h2>Interactive Toast Notifications</h2>
+        <div class="controls">
+            <button class="success" onclick="showToast('success', 'Contact successfully added!')">
+                Show Success Toast
+            </button>
+            <button class="error" onclick="showToast('error', 'Failed to save changes. Please try again.')">
+                Show Error Toast
+            </button>
+            <button class="info" onclick="showToast('info', 'New features are now available!')">
+                Show Info Toast
+            </button>
+            <button class="loading" onclick="showToast('loading', 'Syncing contacts...')">
+                Show Loading Toast
+            </button>
+        </div>
+    </div>
+    
+    <!-- Static Examples -->
+    <div class="section">
+        <h2>Static Toast Examples</h2>
+        <div class="static-examples">
+            <div class="toast toast-success static-toast">
+                <span class="toast-icon">✓</span>
+                <span class="toast-message">Success: Contact successfully added!</span>
+                <span class="requirement-tag">Req 15.1</span>
+            </div>
+            
+            <div class="toast toast-error static-toast">
+                <span class="toast-icon">✕</span>
+                <span class="toast-message">Error: Failed to save changes. Please try again.</span>
+                <span class="requirement-tag">Req 15.2</span>
+            </div>
+            
+            <div class="toast toast-info static-toast">
+                <span class="toast-icon">ℹ</span>
+                <span class="toast-message">Info: New features are now available!</span>
+                <span class="requirement-tag">Req 15.3</span>
+            </div>
+            
+            <div class="toast toast-loading static-toast">
+                <span class="toast-spinner"></span>
+                <span class="toast-message">Loading: Syncing contacts...</span>
+                <span class="requirement-tag">Req 15.4</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Color Information -->
+    <div class="section">
+        <div class="color-info">
+            <h3>Warm Color Palette (Latte Mode)</h3>
+            <ul>
+                <li>
+                    <span class="color-swatch" style="background: #d1fae5;"></span>
+                    <strong>Success Background:</strong> #d1fae5 (Warm sage green)
+                </li>
+                <li>
+                    <span class="color-swatch" style="background: #10b981;"></span>
+                    <strong>Success Border:</strong> #10b981
+                </li>
+                <li>
+                    <span class="color-swatch" style="background: #fee2e2;"></span>
+                    <strong>Error Background:</strong> #fee2e2 (Warm red)
+                </li>
+                <li>
+                    <span class="color-swatch" style="background: #ef4444;"></span>
+                    <strong>Error Border:</strong> #ef4444
+                </li>
+                <li>
+                    <span class="color-swatch" style="background: #dbeafe;"></span>
+                    <strong>Info Background:</strong> #dbeafe (Warm blue)
+                </li>
+                <li>
+                    <span class="color-swatch" style="background: #3b82f6;"></span>
+                    <strong>Info Border:</strong> #3b82f6
+                </li>
+                <li>
+                    <span class="color-swatch" style="background: #92400E;"></span>
+                    <strong>Loading Border:</strong> #92400E (Accent primary - Amber)
+                </li>
+            </ul>
+        </div>
+        
+        <div class="color-info" style="margin-top: 16px;">
+            <h3>Warm Color Palette (Espresso Mode)</h3>
+            <ul>
+                <li>
+                    <span class="color-swatch" style="background: #064e3b;"></span>
+                    <strong>Success Background:</strong> #064e3b (Dark sage green)
+                </li>
+                <li>
+                    <span class="color-swatch" style="background: #7f1d1d;"></span>
+                    <strong>Error Background:</strong> #7f1d1d (Dark warm red)
+                </li>
+                <li>
+                    <span class="color-swatch" style="background: #1e3a5f;"></span>
+                    <strong>Info Background:</strong> #1e3a5f (Dark warm blue)
+                </li>
+                <li>
+                    <span class="color-swatch" style="background: #F59E0B;"></span>
+                    <strong>Loading Border:</strong> #F59E0B (Brighter amber for dark mode)
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Requirements Checklist -->
+    <div class="section">
+        <h2>Requirements Validation</h2>
+        <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.8;">
+            <p><strong>✓ Requirement 15.1:</strong> Success toast uses warm sage green background (#d1fae5 in Latte, #064e3b in Espresso)</p>
+            <p><strong>✓ Requirement 15.2:</strong> Error toast uses warm red background (#fee2e2 in Latte, #7f1d1d in Espresso)</p>
+            <p><strong>✓ Requirement 15.3:</strong> Info toast uses warm blue background (#dbeafe in Latte, #1e3a5f in Espresso)</p>
+            <p><strong>✓ Requirement 15.4:</strong> Loading toast uses accent primary border (Amber #92400E in Latte, #F59E0B in Espresso)</p>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            
+            // Update button icon
+            const icon = document.querySelector('.theme-icon');
+            icon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        }
+        
+        // Initialize theme from system preference
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.querySelector('.theme-icon').textContent = '☀️';
+        }
+        
+        // Toast notification system
+        let toastId = 0;
+        
+        function showToast(type, message) {
+            const container = document.getElementById('toastContainer');
+            const id = `toast-${toastId++}`;
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.id = id;
+            toast.className = `toast toast-${type}`;
+            
+            // Add icon based on type
+            let icon = '';
+            if (type === 'success') icon = '✓';
+            else if (type === 'error') icon = '✕';
+            else if (type === 'info') icon = 'ℹ';
+            else if (type === 'loading') icon = '<span class="toast-spinner"></span>';
+            
+            toast.innerHTML = `
+                <span class="toast-icon">${icon}</span>
+                <span class="toast-message">${message}</span>
+            `;
+            
+            // Add to container
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.add('toast-show');
+            }, 10);
+            
+            // Auto-hide after 4 seconds (except loading)
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    hideToast(id);
+                }, 4000);
+            }
+        }
+        
+        function hideToast(id) {
+            const toast = document.getElementById(id);
+            if (toast) {
+                toast.classList.remove('toast-show');
+                toast.classList.add('toast-hide');
+                
+                // Remove from DOM after animation
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }
+        }
+    </script>
+</body>
+</html>

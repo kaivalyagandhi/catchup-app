@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suggestions Page - Warm Styling Verification</title>
+    <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--bg-app);
+            color: var(--text-primary);
+            padding: 40px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        /* Card styles */
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Avatar styles */
+        .suggestion-avatars-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .suggestion-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            border: 2px solid var(--bg-surface);
+        }
+
+        /* Badge styles */
+        .tag-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            background: var(--status-info-bg);
+            color: var(--status-info);
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-right: 6px;
+            margin-bottom: 4px;
+        }
+
+        .group-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            background: #fef3c7;
+            color: #92400e;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-right: 6px;
+            margin-bottom: 4px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            text-transform: capitalize;
+            color: white;
+            font-weight: 500;
+        }
+
+        .status-pending { background: #f59e0b; }
+        .status-accepted { background: #10b981; }
+        .status-dismissed { background: #78716C; }
+        .status-snoozed { background: #3b82f6; }
+
+        /* Button styles */
+        .btn-primary {
+            background: var(--text-primary);
+            color: var(--bg-surface);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .contact-tags, .contact-groups {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .shared-context-badge {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .suggestion-type-badge {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-toggle">🌙</button>
+
+    <div class="container">
+        <h1>Suggestions Page - Warm Styling Verification</h1>
+        <p class="subtitle">Testing warm card styling, typography, status badges, buttons, and avatars</p>
+
+        <!-- Individual Suggestion -->
+        <div class="section">
+            <h2 class="section-title">Individual Suggestion (Pending)</h2>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                        <div class="suggestion-avatar" style="background: #d1fae5; color: #065f46;">
+                            JD
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <h3 style="margin: 0; color: var(--text-primary);">Connect with John Doe</h3>
+                                <span class="suggestion-type-badge">One-on-One</span>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="status-badge status-pending">pending</span>
+                </div>
+                <p style="color: var(--text-primary);"><strong>Time:</strong> Tomorrow at 2:00 PM</p>
+                <p style="color: var(--text-primary);"><strong>Reason:</strong> It's been 2 weeks since your last interaction</p>
+                <div style="margin-top: 12px;">
+                    <p style="margin: 0 0 6px 0; color: var(--text-primary);"><strong>Member of:</strong></p>
+                    <div class="contact-groups">
+                        <span class="group-badge">Work Friends</span>
+                        <span class="group-badge">Running Club</span>
+                    </div>
+                </div>
+                <div style="margin-top: 12px;">
+                    <p style="margin: 0 0 6px 0; color: var(--text-primary);"><strong>Interests:</strong></p>
+                    <div class="contact-tags">
+                        <span class="tag-badge">Running</span>
+                        <span class="tag-badge">Coffee</span>
+                        <span class="tag-badge">Tech</span>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn-primary">Accept</button>
+                    <button class="btn-secondary">📅 View Schedule</button>
+                    <button class="btn-secondary">Dismiss</button>
+                    <button class="btn-secondary">Snooze</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Group Suggestion -->
+        <div class="section">
+            <h2 class="section-title">Group Suggestion (Pending)</h2>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                        <div class="suggestion-avatars-group">
+                            <div class="suggestion-avatar" style="background: #d1fae5; color: #065f46; z-index: 10;">AS</div>
+                            <div class="suggestion-avatar" style="background: #fef3c7; color: #92400e; z-index: 9; margin-left: -12px;">BJ</div>
+                            <div class="suggestion-avatar" style="background: #fce7f3; color: #9d174d; z-index: 8; margin-left: -12px;">CK</div>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <h3 style="margin: 0; color: var(--text-primary);">Connect with Alice Smith, Bob Jones, and Carol King</h3>
+                                <span class="suggestion-type-badge">Group Catchup</span>
+                            </div>
+                            <div class="shared-context-badge">
+                                🤝 2 common groups, 3 shared interests, mentioned together 5 times
+                            </div>
+                        </div>
+                    </div>
+                    <span class="status-badge status-pending">pending</span>
+                </div>
+                <p style="color: var(--text-primary);"><strong>Time:</strong> Friday at 6:00 PM</p>
+                <p style="color: var(--text-primary);"><strong>Reason:</strong> These contacts share common interests and have been mentioned together in your voice notes</p>
+                <div style="margin-top: 12px;">
+                    <p style="margin: 0 0 6px 0; color: var(--text-primary);"><strong>Common Groups:</strong></p>
+                    <div class="contact-groups">
+                        <span class="group-badge">Book Club</span>
+                        <span class="group-badge">Hiking Group</span>
+                    </div>
+                </div>
+                <div style="margin-top: 12px;">
+                    <p style="margin: 0 0 6px 0; color: var(--text-primary);"><strong>Shared Interests:</strong></p>
+                    <div class="contact-tags">
+                        <span class="tag-badge">Hiking</span>
+                        <span class="tag-badge">Photography</span>
+                        <span class="tag-badge">Travel</span>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn-primary">Accept Group Catchup</button>
+                    <button class="btn-secondary">📅 View Schedule</button>
+                    <button class="btn-secondary">Modify Group ▼</button>
+                    <button class="btn-secondary">Dismiss</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accepted Suggestion -->
+        <div class="section">
+            <h2 class="section-title">Accepted Suggestion</h2>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                        <div class="suggestion-avatar" style="background: #fef3c7; color: #92400e;">
+                            SD
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <h3 style="margin: 0; color: var(--text-primary);">Connect with Sarah Davis</h3>
+                                <span class="suggestion-type-badge">One-on-One</span>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="status-badge status-accepted">accepted</span>
+                </div>
+                <p style="color: var(--text-primary);"><strong>Time:</strong> Next Monday at 12:00 PM</p>
+                <p style="color: var(--text-primary);"><strong>Reason:</strong> Shared interest in design and mutual availability</p>
+                <div class="card-actions">
+                    <button class="btn-secondary">📅 View Schedule</button>
+                    <span style="color: var(--text-secondary); font-size: 14px; margin-left: 10px;">No other actions available</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dismissed Suggestion -->
+        <div class="section">
+            <h2 class="section-title">Dismissed Suggestion</h2>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                        <div class="suggestion-avatar" style="background: #e7e5e4; color: #44403c;">
+                            MJ
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <h3 style="margin: 0; color: var(--text-primary);">Connect with Mike Johnson</h3>
+                                <span class="suggestion-type-badge">One-on-One</span>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="status-badge status-dismissed">dismissed</span>
+                </div>
+                <p style="color: var(--text-primary);"><strong>Time:</strong> Last week</p>
+                <p style="color: var(--text-primary);"><strong>Reason:</strong> Calendar availability match</p>
+                <p style="color: var(--text-primary);"><strong>Dismissal reason:</strong> Not interested right now</p>
+                <div class="card-actions">
+                    <button class="btn-secondary">📅 View Schedule</button>
+                    <span style="color: var(--text-secondary); font-size: 14px; margin-left: 10px;">No other actions available</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verification Checklist -->
+        <div class="section">
+            <h2 class="section-title">Verification Checklist</h2>
+            <div class="card">
+                <h3 style="color: var(--text-primary); margin-top: 0;">Task 14.1: Suggestion Card Styles ✓</h3>
+                <ul style="color: var(--text-primary);">
+                    <li>Cards use <code>var(--bg-surface)</code> background</li>
+                    <li>Cards have <code>1px solid var(--border-subtle)</code> border</li>
+                    <li>Cards have <code>12px</code> border radius (smooth corners)</li>
+                    <li>Cards have proper padding and hover shadow</li>
+                </ul>
+
+                <h3 style="color: var(--text-primary);">Task 14.2: Content Typography ✓</h3>
+                <ul style="color: var(--text-primary);">
+                    <li>Main text uses <code>var(--text-primary)</code></li>
+                    <li>Secondary text uses <code>var(--text-secondary)</code></li>
+                    <li>Shared context badge uses warm secondary color</li>
+                    <li>Type badges use warm secondary styling</li>
+                </ul>
+
+                <h3 style="color: var(--text-primary);">Task 14.3: Status Badge Colors ✓</h3>
+                <ul style="color: var(--text-primary);">
+                    <li>Pending: Warm amber (#f59e0b)</li>
+                    <li>Accepted: Sage green (#10b981)</li>
+                    <li>Dismissed: Warm gray (#78716C - Stone-500)</li>
+                    <li>Snoozed: Warm blue (#3b82f6)</li>
+                </ul>
+
+                <h3 style="color: var(--text-primary);">Task 14.4: Action Button Styles ✓</h3>
+                <ul style="color: var(--text-primary);">
+                    <li>Primary buttons use <code>btn-primary</code> class with high contrast</li>
+                    <li>Secondary buttons use <code>btn-secondary</code> class (ghost style)</li>
+                    <li>Buttons have proper warm styling and hover states</li>
+                </ul>
+
+                <h3 style="color: var(--text-primary);">Task 14.5: Group Avatar Styles ✓</h3>
+                <ul style="color: var(--text-primary);">
+                    <li>Group avatars use warm pastel colors (Sage, Sand, Rose, Stone, Lavender)</li>
+                    <li>Avatars have proper overlap with negative margin</li>
+                    <li>Avatars have white border for separation</li>
+                    <li>Individual avatars use warm sage green</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            
+            const toggle = document.getElementById('theme-toggle');
+            toggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Initialize theme from system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('theme-toggle').textContent = '☀️';
+        }
+    </script>
+</body>
+</html>

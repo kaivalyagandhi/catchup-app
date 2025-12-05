@@ -60,8 +60,8 @@
     
     <div class="test-section">
         <h2>Manual Tests</h2>
-        <button onclick="testSetLight()">Set Light Theme</button>
-        <button onclick="testSetDark()">Set Dark Theme</button>
+        <button onclick="testSetLatte()">Set Latte Theme (Light)</button>
+        <button onclick="testSetEspresso()">Set Espresso Theme (Dark)</button>
         <button onclick="testToggle()">Toggle Theme</button>
         <button onclick="testInitialize()">Initialize Theme</button>
         <button onclick="clearStorage()">Clear Storage</button>
@@ -86,16 +86,16 @@
         }
         
         // Manual test functions
-        function testSetLight() {
+        function testSetLatte() {
             themeManager.setTheme('light');
             updateDisplay();
-            console.log('Set to light theme');
+            console.log('Set to Latte theme (light)');
         }
         
-        function testSetDark() {
+        function testSetEspresso() {
             themeManager.setTheme('dark');
             updateDisplay();
-            console.log('Set to dark theme');
+            console.log('Set to Espresso theme (dark)');
         }
         
         function testToggle() {
@@ -140,7 +140,7 @@
                 });
             }
             
-            // Test 2: setTheme to dark
+            // Test 2: setTheme to Espresso (dark)
             try {
                 themeManager.setTheme('dark');
                 const isDark = themeManager.getCurrentTheme() === 'dark';
@@ -148,20 +148,20 @@
                 const inStorage = localStorage.getItem('catchup-theme') === 'dark';
                 const pass = isDark && hasAttr && inStorage;
                 results.push({
-                    name: 'setTheme to dark updates all state',
+                    name: 'setTheme to Espresso (dark) updates all state',
                     pass: pass,
                     message: pass ? 'All checks passed' : 
                         `Theme: ${isDark}, Attr: ${hasAttr}, Storage: ${inStorage}`
                 });
             } catch (error) {
                 results.push({
-                    name: 'setTheme to dark updates all state',
+                    name: 'setTheme to Espresso (dark) updates all state',
                     pass: false,
                     message: `Error: ${error.message}`
                 });
             }
             
-            // Test 3: setTheme to light
+            // Test 3: setTheme to Latte (light)
             try {
                 themeManager.setTheme('light');
                 const isLight = themeManager.getCurrentTheme() === 'light';
@@ -169,14 +169,14 @@
                 const inStorage = localStorage.getItem('catchup-theme') === 'light';
                 const pass = isLight && noAttr && inStorage;
                 results.push({
-                    name: 'setTheme to light updates all state',
+                    name: 'setTheme to Latte (light) updates all state',
                     pass: pass,
                     message: pass ? 'All checks passed' : 
                         `Theme: ${isLight}, No Attr: ${noAttr}, Storage: ${inStorage}`
                 });
             } catch (error) {
                 results.push({
-                    name: 'setTheme to light updates all state',
+                    name: 'setTheme to Latte (light) updates all state',
                     pass: false,
                     message: `Error: ${error.message}`
                 });
@@ -231,20 +231,20 @@
                 const hasAttr = document.documentElement.getAttribute('data-theme') === 'dark';
                 const pass = isDark && hasAttr;
                 results.push({
-                    name: 'initializeTheme loads saved preference',
+                    name: 'initializeTheme loads saved preference (Espresso)',
                     pass: pass,
                     message: pass ? 'Initialized with saved theme' : 
                         `Theme: ${isDark}, Attr: ${hasAttr}`
                 });
             } catch (error) {
                 results.push({
-                    name: 'initializeTheme loads saved preference',
+                    name: 'initializeTheme loads saved preference (Espresso)',
                     pass: false,
                     message: `Error: ${error.message}`
                 });
             }
             
-            // Test 7: initializeTheme defaults to light when no preference
+            // Test 7: initializeTheme defaults to Latte when no preference
             try {
                 localStorage.removeItem('catchup-theme');
                 themeManager.initializeTheme();
@@ -252,14 +252,14 @@
                 const noAttr = !document.documentElement.getAttribute('data-theme');
                 const pass = isLight && noAttr;
                 results.push({
-                    name: 'initializeTheme defaults to light',
+                    name: 'initializeTheme defaults to Latte (light)',
                     pass: pass,
-                    message: pass ? 'Defaulted to light theme' : 
+                    message: pass ? 'Defaulted to Latte theme' : 
                         `Theme: ${isLight}, No Attr: ${noAttr}`
                 });
             } catch (error) {
                 results.push({
-                    name: 'initializeTheme defaults to light',
+                    name: 'initializeTheme defaults to Latte (light)',
                     pass: false,
                     message: `Error: ${error.message}`
                 });
@@ -270,14 +270,14 @@
                 themeManager.setTheme('invalid');
                 const isLight = themeManager.getCurrentTheme() === 'light';
                 results.push({
-                    name: 'Invalid theme defaults to light',
+                    name: 'Invalid theme defaults to Latte (light)',
                     pass: isLight,
-                    message: isLight ? 'Correctly defaulted to light' : 
+                    message: isLight ? 'Correctly defaulted to Latte' : 
                         `Expected 'light', got '${themeManager.getCurrentTheme()}'`
                 });
             } catch (error) {
                 results.push({
-                    name: 'Invalid theme defaults to light',
+                    name: 'Invalid theme defaults to Latte (light)',
                     pass: false,
                     message: `Error: ${error.message}`
                 });

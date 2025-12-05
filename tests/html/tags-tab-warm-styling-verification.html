@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tags Tab Warm Styling Verification</title>
+  <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+  <link rel="stylesheet" href="../../public/css/tags-table.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      background: var(--bg-app);
+      color: var(--text-primary);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .theme-toggle {
+      padding: 8px 16px;
+      background: var(--text-primary);
+      color: var(--bg-surface);
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .theme-toggle:hover {
+      opacity: 0.9;
+    }
+    .verification-section {
+      margin-bottom: 32px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+    }
+    .verification-section h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 16px 0;
+    }
+    .checklist {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .checklist li {
+      padding: 8px 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    .checklist li::before {
+      content: "☐ ";
+      margin-right: 8px;
+      color: var(--accent-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Tags Tab Warm Styling Verification</h1>
+      <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+    </div>
+
+    <div class="verification-section">
+      <h2>Requirements Checklist</h2>
+      <ul class="checklist">
+        <li><strong>9.1:</strong> Tags displayed with --bg-surface background and --border-subtle border</li>
+        <li><strong>9.2:</strong> Tag badges use warm blue-tinted backgrounds (Latte: --status-info-bg, Espresso: warm dark blue)</li>
+        <li><strong>9.3:</strong> Tag member counts display with --text-secondary color</li>
+        <li><strong>9.4:</strong> Modal displays with warm styling matching the theme</li>
+      </ul>
+    </div>
+
+    <div class="tags-table-controls">
+      <button class="btn-add-tag">
+        <span>➕</span>
+        <span>Add Tag</span>
+      </button>
+    </div>
+
+    <div class="tags-table-wrapper">
+      <table class="tags-table">
+        <thead>
+          <tr>
+            <th class="sortable">Tag Name <span class="sort-indicator">▼</span></th>
+            <th class="sortable">Contacts <span class="sort-indicator"></span></th>
+            <th>Source</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="tag-name">Work Colleagues</td>
+            <td class="tag-contact-count">12</td>
+            <td class="tag-source">
+              <span class="badge-automated">✨ AI</span>
+            </td>
+            <td class="tag-actions">
+              <button class="btn-delete" title="Delete tag">🗑️</button>
+            </td>
+          </tr>
+          <tr>
+            <td class="tag-name">Family</td>
+            <td class="tag-contact-count">8</td>
+            <td class="tag-source">Manual</td>
+            <td class="tag-actions">
+              <button class="btn-delete" title="Delete tag">🗑️</button>
+            </td>
+          </tr>
+          <tr>
+            <td class="tag-name">Coffee Enthusiasts</td>
+            <td class="tag-contact-count">5</td>
+            <td class="tag-source">
+              <span class="badge-automated">✨ AI</span>
+            </td>
+            <td class="tag-actions">
+              <button class="btn-delete" title="Delete tag">🗑️</button>
+            </td>
+          </tr>
+          <tr>
+            <td class="tag-name">Book Club</td>
+            <td class="tag-contact-count">15</td>
+            <td class="tag-source">Manual</td>
+            <td class="tag-actions">
+              <button class="btn-delete" title="Delete tag">🗑️</button>
+            </td>
+          </tr>
+          <tr>
+            <td class="tag-name">Tech Community</td>
+            <td class="tag-contact-count">23</td>
+            <td class="tag-source">
+              <span class="badge-automated">✨ AI</span>
+            </td>
+            <td class="tag-actions">
+              <button class="btn-delete" title="Delete tag">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="verification-section" style="margin-top: 32px;">
+      <h2>Visual Verification Points</h2>
+      <ul class="checklist">
+        <li>Table wrapper has warm --bg-surface background with subtle border</li>
+        <li>Table header uses --bg-secondary background</li>
+        <li>Header text uses --text-secondary color</li>
+        <li>Row hover shows warm --bg-hover background</li>
+        <li>Tag names use --text-primary color</li>
+        <li>Contact counts use --text-secondary color (Requirement 9.3)</li>
+        <li>AI badges have warm blue tint (Requirement 9.2)</li>
+        <li>Delete buttons show warm red on hover</li>
+        <li>Add Tag button uses --text-primary background</li>
+        <li>Sort indicators use --accent-primary when active</li>
+        <li>All colors transition smoothly between Latte and Espresso modes</li>
+      </ul>
+    </div>
+
+    <!-- Modal Example -->
+    <div class="verification-section">
+      <h2>Modal Styling (Requirement 9.4)</h2>
+      <button onclick="showModal()" style="padding: 10px 20px; background: var(--text-primary); color: var(--bg-surface); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+        Show Modal Example
+      </button>
+    </div>
+
+    <!-- Modal Structure -->
+    <div id="testModal" class="contact-search-modal" style="display: none;">
+      <div class="modal-overlay" onclick="hideModal()"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add Contact to Tag</h3>
+          <button class="modal-close" onclick="hideModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <input type="text" class="contact-search-input" placeholder="Search contacts...">
+          <div class="contact-search-results">
+            <div class="contact-result-item">
+              <div class="contact-result-info">
+                <div class="contact-result-name">Alice Johnson</div>
+                <div class="contact-result-details">alice@example.com</div>
+              </div>
+              <button class="btn-select-contact">Select</button>
+            </div>
+            <div class="contact-result-item">
+              <div class="contact-result-info">
+                <div class="contact-result-name">Bob Smith</div>
+                <div class="contact-result-details">bob@example.com</div>
+              </div>
+              <button class="btn-select-contact">Select</button>
+            </div>
+            <div class="contact-result-item">
+              <div class="contact-result-info">
+                <div class="contact-result-name">Carol Williams</div>
+                <div class="contact-result-details">carol@example.com</div>
+              </div>
+              <button class="btn-select-contact">Select</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize theme
+    const savedTheme = localStorage.getItem('catchup-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('catchup-theme', next);
+    }
+
+    function showModal() {
+      document.getElementById('testModal').style.display = 'flex';
+    }
+
+    function hideModal() {
+      document.getElementById('testModal').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

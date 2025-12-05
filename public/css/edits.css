@@ -8,38 +8,30 @@
 @import url('./edits-compact.css');
 
 /* ============================================
-   CSS Variables
+   CSS Variables - Stone & Clay Theme
    ============================================ */
 :root {
-  --edits-primary: #7c3aed;
-  --edits-primary-hover: #6d28d9;
-  --edits-primary-light: #ede9fe;
+  /* Use design system tokens */
+  --edits-primary: var(--accent-primary);
+  --edits-primary-hover: var(--accent-hover);
+  --edits-primary-light: var(--accent-subtle);
   --edits-danger: #ef4444;
   --edits-danger-hover: #dc2626;
-  --edits-success: #22c55e;
+  --edits-success: #10b981;
   --edits-warning: #f59e0b;
-  --edits-muted: #9ca3af;
-  --edits-bg: #ffffff;
-  --edits-bg-secondary: #f3f4f6;
-  --edits-border: #e5e7eb;
-  --edits-text: #1f2937;
-  --edits-text-secondary: #6b7280;
-  --edits-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --edits-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-[data-theme="dark"] {
-  --edits-bg: #1f2937;
-  --edits-bg-secondary: #374151;
-  --edits-border: #4b5563;
-  --edits-text: #f9fafb;
-  --edits-text-secondary: #9ca3af;
-  --edits-primary-light: #5b21b6;
+  --edits-muted: var(--text-tertiary);
+  --edits-bg: var(--bg-surface);
+  --edits-bg-secondary: var(--bg-secondary);
+  --edits-border: var(--border-subtle);
+  --edits-text: var(--text-primary);
+  --edits-text-secondary: var(--text-secondary);
+  --edits-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --edits-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="dark"] .chat-message--system {
-  background: #374151;
-  border-color: #5b21b6;
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
 }
 
 /* ============================================
@@ -543,6 +535,7 @@
 .edits-menu {
   background: var(--edits-bg);
   border-radius: 12px;
+  border: 1px solid var(--edits-border);
   box-shadow: var(--edits-shadow);
   overflow: hidden;
 }
@@ -588,6 +581,7 @@
 .edits-menu__tab--active {
   color: var(--edits-primary);
   border-bottom-color: var(--edits-primary);
+  background: rgba(163, 105, 82, 0.05);
 }
 
 .edits-menu__tab-count {
@@ -629,6 +623,17 @@
   color: var(--edits-text-secondary);
 }
 
+.edits-menu__empty-icon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.edits-menu__empty-text {
+  font-size: 14px;
+  text-align: center;
+  max-width: 300px;
+}
+
 .edits-menu__open-chat-btn {
   display: flex;
   align-items: center;
@@ -641,11 +646,14 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .edits-menu__open-chat-btn:hover {
   background: var(--edits-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .edits-menu__list {
@@ -766,6 +774,33 @@
   border-radius: 6px;
 }
 
+/* Diff styling for old/new values */
+.edit-item__value--old,
+.edit-old {
+  text-decoration: line-through;
+  background: rgba(248, 113, 113, 0.1);
+  color: #dc2626;
+}
+
+[data-theme="dark"] .edit-item__value--old,
+[data-theme="dark"] .edit-old {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+.edit-item__value--new,
+.edit-new {
+  font-weight: 600;
+  background: rgba(74, 222, 128, 0.1);
+  color: #059669;
+}
+
+[data-theme="dark"] .edit-item__value--new,
+[data-theme="dark"] .edit-new {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+}
+
 .edit-item__source {
   display: flex;
   align-items: center;
@@ -855,10 +890,12 @@
   background: var(--edits-primary);
   border: none;
   color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .edit-item__action--submit:hover {
   background: var(--edits-primary-hover);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 /* Contact search */
@@ -952,7 +989,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--edits-primary);
+  background: var(--accent-primary);
   color: white;
   display: flex;
   align-items: center;
@@ -960,6 +997,27 @@
   font-size: 12px;
   font-weight: 600;
   flex-shrink: 0;
+}
+
+/* Warm pastel avatar variants */
+.edit-item-compact__contact-avatar--sage {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.edit-item-compact__contact-avatar--sand {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.edit-item-compact__contact-avatar--rose {
+  background: #fce7f3;
+  color: #9d174d;
+}
+
+.edit-item-compact__contact-avatar--stone {
+  background: #e7e5e4;
+  color: #44403c;
 }
 
 .edit-item-compact__contact-name {
@@ -975,13 +1033,14 @@
 /* ============================================
    Responsive
    ============================================ */
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .floating-chat-icon {
-    bottom: 16px;
+    bottom: 80px; /* Position above mobile nav bar */
     right: 16px;
     width: 48px;
     height: 48px;
   }
+}
 
   .chat-window__container {
     bottom: 16px;

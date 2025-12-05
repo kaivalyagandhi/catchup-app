@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contacts Tab Warm Styling Verification</title>
+  <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+  <link rel="stylesheet" href="../../public/css/contacts-table.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: var(--bg-app);
+      color: var(--text-primary);
+    }
+    
+    .verification-header {
+      max-width: 1200px;
+      margin: 0 auto 30px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+    }
+    
+    .verification-header h1 {
+      margin: 0 0 10px 0;
+      color: var(--text-primary);
+    }
+    
+    .verification-header p {
+      margin: 5px 0;
+      color: var(--text-secondary);
+    }
+    
+    .theme-toggle {
+      margin-top: 15px;
+    }
+    
+    .theme-toggle button {
+      padding: 10px 20px;
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    
+    .verification-section {
+      max-width: 1200px;
+      margin: 0 auto 30px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+    }
+    
+    .verification-section h2 {
+      margin: 0 0 15px 0;
+      color: var(--text-primary);
+      font-size: 18px;
+    }
+    
+    .sample-table {
+      width: 100%;
+      margin-top: 20px;
+    }
+    
+    .badge-samples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .avatar-samples {
+      display: flex;
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .checklist {
+      list-style: none;
+      padding: 0;
+      margin: 15px 0;
+    }
+    
+    .checklist li {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    
+    .checklist li:last-child {
+      border-bottom: none;
+    }
+    
+    .checklist input[type="checkbox"] {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="verification-header">
+    <h1>Task 9: Contacts Tab Warm Styling Verification</h1>
+    <p><strong>Requirements:</strong> 6.3, 6.4, 6.5, 6.6, 6.7</p>
+    <p>This page verifies that the Contacts tab uses warm Stone & Clay design tokens for cards, text, avatars, and badges.</p>
+    <div class="theme-toggle">
+      <button onclick="toggleTheme()">Toggle Theme (Latte ↔ Espresso)</button>
+    </div>
+  </div>
+
+  <div class="verification-section">
+    <h2>✓ Verification Checklist</h2>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check1">
+        <label for="check1"><strong>Requirement 6.3:</strong> Contact cards use --bg-surface background</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check2">
+        <label for="check2"><strong>Requirement 6.4:</strong> Contact name uses --text-primary, metadata uses --text-secondary</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check3">
+        <label for="check3"><strong>Requirement 6.5:</strong> Avatars use warm pastel colors (Sage, Sand, Rose, Stone)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check4">
+        <label for="check4"><strong>Requirement 6.6:</strong> Tag badges have warm blue-tinted backgrounds</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check5">
+        <label for="check5"><strong>Requirement 6.7:</strong> Group badges have warm amber/clay tones</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check6">
+        <label for="check6">Table borders use --border-subtle (warm, not cool gray)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check7">
+        <label for="check7">Hover states use warm backgrounds (not stark white/gray)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check8">
+        <label for="check8">Dark mode (Espresso) maintains warm tones</label>
+      </li>
+    </ul>
+  </div>
+
+  <div class="verification-section">
+    <h2>Avatar Samples (Requirement 6.5)</h2>
+    <p>Warm pastel placeholder colors for contacts without images:</p>
+    <div class="avatar-samples">
+      <div>
+        <div class="avatar avatar--sage">JD</div>
+        <p style="text-align: center; margin-top: 5px; font-size: 12px;">Sage</p>
+      </div>
+      <div>
+        <div class="avatar avatar--sand">AS</div>
+        <p style="text-align: center; margin-top: 5px; font-size: 12px;">Sand</p>
+      </div>
+      <div>
+        <div class="avatar avatar--rose">MK</div>
+        <p style="text-align: center; margin-top: 5px; font-size: 12px;">Rose</p>
+      </div>
+      <div>
+        <div class="avatar avatar--stone">TW</div>
+        <p style="text-align: center; margin-top: 5px; font-size: 12px;">Stone</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="verification-section">
+    <h2>Badge Samples (Requirements 6.6, 6.7)</h2>
+    <p>Tag badges (warm blue) and Group badges (warm amber/clay):</p>
+    <div class="badge-samples">
+      <span class="badge badge-tag">Work</span>
+      <span class="badge badge-tag">Family</span>
+      <span class="badge badge-tag">Friends</span>
+      <span class="badge badge-group">Book Club</span>
+      <span class="badge badge-group">Running Group</span>
+      <span class="badge badge-group">Team</span>
+    </div>
+  </div>
+
+  <div class="verification-section">
+    <h2>Sample Contact Table (Requirements 6.3, 6.4)</h2>
+    <div class="contacts-table-wrapper sample-table">
+      <table class="contacts-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Tags</th>
+            <th>Groups</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="contact-name">John Doe</td>
+            <td class="contact-phone">555-0123</td>
+            <td class="contact-email">john@example.com</td>
+            <td class="contact-tags">
+              <span class="badge badge-tag">Work</span>
+              <span class="badge badge-tag">Tech</span>
+            </td>
+            <td class="contact-groups">
+              <span class="badge badge-group">Team Alpha</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="contact-name">Jane Smith</td>
+            <td class="contact-phone">555-0456</td>
+            <td class="contact-email">jane@example.com</td>
+            <td class="contact-tags">
+              <span class="badge badge-tag">Friends</span>
+            </td>
+            <td class="contact-groups">
+              <span class="badge badge-group">Book Club</span>
+              <span class="badge badge-group">Running</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="contact-name">Mike Johnson</td>
+            <td class="contact-phone">555-0789</td>
+            <td class="contact-email">mike@example.com</td>
+            <td class="contact-tags">
+              <span class="badge badge-tag">Family</span>
+            </td>
+            <td class="contact-groups">
+              <span class="badge badge-group">Family Group</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="verification-section">
+    <h2>Visual Inspection Guide</h2>
+    <p><strong>What to look for:</strong></p>
+    <ul>
+      <li><strong>Warm backgrounds:</strong> Cards should have a warm alabaster/cream feel in Latte mode, not stark white</li>
+      <li><strong>Warm borders:</strong> Borders should be warm gray (Stone), not cool blue-gray</li>
+      <li><strong>Text hierarchy:</strong> Primary text (names) should be deep stone, secondary text (email/phone) should be lighter stone</li>
+      <li><strong>Avatar colors:</strong> Should feel earthy and organic (sage green, sandy beige, dusty rose, warm stone)</li>
+      <li><strong>Tag badges:</strong> Warm blue tint, not stark blue</li>
+      <li><strong>Group badges:</strong> Warm amber/terracotta tones, not bright green</li>
+      <li><strong>Hover states:</strong> Should subtly highlight with warm tones</li>
+      <li><strong>Dark mode:</strong> Should maintain warmth with deep coffee backgrounds, not pure black</li>
+    </ul>
+  </div>
+
+  <script>
+    // Theme toggle functionality
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('catchup-theme', newTheme);
+    }
+
+    // Initialize theme from localStorage or system preference
+    (function() {
+      const theme = localStorage.getItem('catchup-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+</body>
+</html>

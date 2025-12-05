@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preferences Page - Warm Styling Verification</title>
+    <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: var(--font-sans);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 30px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        select, input[type="time"] {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-app);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: var(--text-primary);
+            color: var(--bg-surface);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button.secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .status-connected {
+            background: #10b981;
+        }
+
+        .status-disconnected {
+            background: #ef4444;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-hover);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .test-data-card {
+            padding: 10px;
+            background: var(--bg-surface);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .test-data-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .test-data-count {
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .section-header {
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 10px;
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+
+    <div class="container">
+        <h1>Preferences Page - Warm Styling Verification</h1>
+
+        <div class="grid-2">
+            <!-- Notifications Section -->
+            <div>
+                <h3 class="section-header">Notifications</h3>
+                <div class="form-group">
+                    <label class="pill-switch">
+                        <input type="checkbox" checked>
+                        <span class="pill-switch__track">
+                            <span class="pill-switch__thumb"></span>
+                        </span>
+                        <span class="pill-switch__label">Enable SMS notifications</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="pill-switch">
+                        <input type="checkbox" checked>
+                        <span class="pill-switch__track">
+                            <span class="pill-switch__thumb"></span>
+                        </span>
+                        <span class="pill-switch__label">Enable email notifications</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="batch-day">Batch notification day:</label>
+                    <select id="batch-day">
+                        <option value="0" selected>Sunday</option>
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="batch-time">Batch notification time:</label>
+                    <input type="time" id="batch-time" value="09:00">
+                </div>
+                <button>Save Preferences</button>
+            </div>
+
+            <!-- Integrations Section -->
+            <div>
+                <h3 class="section-header">Integrations</h3>
+
+                <!-- Google Calendar Card -->
+                <div class="card" style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="https://www.gstatic.com/marketing-cms/assets/images/d3/d1/e8596a9246608f8fbd72597729c8/calendar.png" alt="Google Calendar" style="width: 24px; height: 24px;">
+                            <h4 style="margin: 0; color: var(--text-primary);">Google Calendar</h4>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="status-dot status-connected"></span>
+                            <span style="font-size: 12px; font-weight: 500; color: #10b981;">Connected</span>
+                        </div>
+                    </div>
+                    <p style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-secondary);">
+                        Connect your Google Calendar to enable smart scheduling and availability detection.
+                    </p>
+                    <p style="margin: 0 0 8px 0; font-size: 12px; padding: 8px; background: var(--status-success-bg); border-radius: 8px; color: var(--text-primary);">
+                        Connected as: <strong>user@example.com</strong>
+                    </p>
+                    <div style="margin: 0 0 12px 0; font-size: 12px; padding: 8px; background: var(--bg-hover); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--text-secondary);">
+                            Last synced: <strong style="color: var(--text-primary);">2 hours ago</strong>
+                        </span>
+                        <button class="secondary" style="padding: 4px 12px; font-size: 11px; min-width: auto;">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <button class="secondary" style="width: 100%;">Disconnect</button>
+                </div>
+
+                <!-- Google Contacts Card -->
+                <div class="card">
+                    <div style="background: var(--status-info-bg); color: var(--text-primary); padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid var(--status-info);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 24px;">ℹ️</span>
+                            <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-primary);">One-Way Sync (Read-Only)</h4>
+                        </div>
+                        <p style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-secondary);">
+                            CatchUp imports your contacts from Google but <strong>never modifies your Google Contacts</strong>.
+                        </p>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="https://www.gstatic.com/marketing-cms/assets/images/ff/21/95f22bf94e35bea3ec097d3f4720/contacts.png" alt="Google Contacts" style="width: 24px; height: 24px;">
+                            <h4 style="margin: 0; color: var(--text-primary);">Google Contacts</h4>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="status-dot status-disconnected"></span>
+                            <span style="font-size: 12px; font-weight: 500; color: #ef4444;">Not Connected</span>
+                        </div>
+                    </div>
+                    <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--text-secondary);">
+                        Sync your Google Contacts to automatically import and manage your relationships.
+                    </p>
+                    <button style="width: 100%;">Connect Contacts</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Section -->
+        <div style="margin-top: 30px;">
+            <h3 class="section-header">Account</h3>
+            <div class="card">
+                <div style="display: grid; gap: 15px;">
+                    <div class="info-row">
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">EMAIL</div>
+                            <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">user@example.com</div>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">AUTHENTICATION METHOD</div>
+                            <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">Email/Password</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="status-dot status-connected"></span>
+                            <span style="font-size: 12px; font-weight: 500; color: #10b981;">Connected</span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">MEMBER SINCE</div>
+                            <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">January 15, 2024</div>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">LAST LOGIN</div>
+                            <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">2 hours ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Developer Section -->
+        <div style="margin-top: 30px;">
+            <h3 class="section-header">Developer</h3>
+
+            <!-- Test Data Status -->
+            <div class="card" style="margin-bottom: 15px; background: var(--bg-hover);">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+                    <div class="test-data-card">
+                        <div class="test-data-label">CONTACTS</div>
+                        <div class="test-data-count">
+                            <span style="color: var(--status-info);">25</span> / <span style="color: var(--text-secondary);">10</span>
+                        </div>
+                    </div>
+                    <div class="test-data-card">
+                        <div class="test-data-label">CALENDAR</div>
+                        <div class="test-data-count">
+                            <span style="color: var(--status-info);">15</span> / <span style="color: var(--text-secondary);">5</span>
+                        </div>
+                    </div>
+                    <div class="test-data-card">
+                        <div class="test-data-label">SUGGESTIONS</div>
+                        <div class="test-data-count">
+                            <span style="color: var(--status-info);">8</span> / <span style="color: var(--text-secondary);">3</span>
+                        </div>
+                    </div>
+                    <div class="test-data-card">
+                        <div class="test-data-label">VOICE NOTES</div>
+                        <div class="test-data-count">
+                            <span style="color: var(--status-info);">12</span> / <span style="color: var(--text-secondary);">4</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Individual Controls -->
+            <div class="card">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                    <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
+                        <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Contacts</div>
+                        <button style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
+                        <button class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
+                    </div>
+                    <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
+                        <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Calendar Events</div>
+                        <button style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
+                        <button class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
+                    </div>
+                    <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
+                        <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Suggestions</div>
+                        <button style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
+                        <button class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clear All Data -->
+            <div class="card" style="border: 2px solid #ef4444; background: var(--status-error-bg); margin-top: 15px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
+                    <div>
+                        <div style="font-weight: bold; margin-bottom: 5px; color: #ef4444;">Clear All Data</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Permanently delete all your data including user-added and test contacts</div>
+                    </div>
+                    <button style="background: #ef4444; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap; font-weight: bold;">Clear All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+        }
+    </script>
+</body>
+</html>

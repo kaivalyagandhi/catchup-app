@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Final Integration Testing - Cozy Productivity UI Refactor</title>
+  <link rel="stylesheet" href="../../public/css/stone-clay-theme.css">
+  <link rel="stylesheet" href="../../public/css/app-shell.css">
+  <link rel="stylesheet" href="../../public/css/responsive.css">
+  <link rel="stylesheet" href="../../public/css/contacts-table.css">
+  <link rel="stylesheet" href="../../public/css/groups-table.css">
+  <link rel="stylesheet" href="../../public/css/tags-table.css">
+  <link rel="stylesheet" href="../../public/css/edits.css">
+  <link rel="stylesheet" href="../../public/css/edits-compact.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: var(--bg-app);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .test-header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--border-subtle);
+    }
+
+    .test-header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .test-header p {
+      font-size: 16px;
+      color: var(--text-secondary);
+    }
+
+    .theme-controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 40px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+    }
+
+    .theme-btn {
+      padding: 12px 24px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .theme-btn:hover {
+      background: var(--bg-active);
+    }
+
+    .theme-btn.active {
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      border-color: var(--accent-primary);
+    }
+
+    .test-section {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .test-section h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .test-section h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 16px 0 12px 0;
+      color: var(--text-primary);
+    }
+
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+
+    .checklist li {
+      padding: 12px;
+      margin-bottom: 8px;
+      background: var(--bg-app);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .checklist input[type="checkbox"] {
+      margin-top: 4px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .checklist label {
+      flex: 1;
+      cursor: pointer;
+      color: var(--text-primary);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-badge.pending {
+      background: var(--accent-subtle);
+      color: var(--accent-primary);
+    }
+
+    .status-badge.pass {
+      background: var(--status-success-bg);
+      color: var(--status-success);
+    }
+
+    .status-badge.fail {
+      background: var(--status-error-bg);
+      color: var(--status-error);
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .demo-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .demo-card h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .demo-card p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .color-swatch {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 1px solid var(--border-subtle);
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    .viewport-indicator {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-hover);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 20px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent-primary);
+      transition: width 0.3s ease;
+    }
+
+    .summary-stats {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--accent-primary);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    @media (max-width: 767px) {
+      .test-container {
+        padding: 20px 12px;
+      }
+
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="viewport-indicator" id="viewportIndicator">
+    Viewport: <span id="viewportSize"></span>
+  </div>
+
+  <div class="test-container">
+    <div class="test-header">
+      <h1>🎨 Final Integration Testing</h1>
+      <p>Comprehensive verification of the Cozy Productivity UI Refactor</p>
+      <div class="summary-stats">
+        <div class="stat">
+          <div class="stat-value" id="totalTests">0</div>
+          <div class="stat-label">Total Tests</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="passedTests">0</div>
+          <div class="stat-label">Passed</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="progressPercent">0%</div>
+          <div class="stat-label">Progress</div>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <div class="theme-controls">
+      <button class="theme-btn active" id="latteBtn" onclick="setTheme('light')">
+        ☀️ Latte Mode
+      </button>
+      <button class="theme-btn" id="espressoBtn" onclick="setTheme('dark')">
+        🌙 Espresso Mode
+      </button>
+      <button class="theme-btn" onclick="testThemeToggle()">
+        🔄 Test Toggle
+      </button>
+    </div>
+
+    <!-- Task 24.1: Latte Mode Verification -->
+    <div class="test-section">
+      <h2>
+        <span class="status-badge pending" id="status-24-1">Pending</span>
+        24.1 Verify All Pages Render Correctly in Latte Mode
+      </h2>
+      
+      <h3>Design System Colors</h3>
+      <ul class="checklist">
+        <li>
+          <input type="checkbox" id="check-latte-bg-app" onchange="updateProgress()">
+          <label for="check-latte-bg-app">
+            <span class="color-swatch" style="background: #FDFCFB;"></span>
+            --bg-app uses warm alabaster (#FDFCFB)
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-latte-bg-sidebar" onchange="updateProgress()">
+          <label for="check-latte-bg-sidebar">
+            <span class="color-swatch" style="background: #F5F5F4;"></span>
+            --bg-sidebar uses Stone-100 (#F5F5F4)
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-latte-bg-surface" onchange="updateProgress()">
+          <label for="check-latte-bg-surface">
+            <span class="color-swatch" style="background: #FFFFFF;"></span>
+            --bg-surface uses white (#FFFFFF)
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-latte-text-primary" onchange="updateProgress()">
+          <label for="check-latte-text-primary">
+            <span class="color-swatch" style="background: #1C1917;"></span>
+            --text-primary uses Stone-12 (#1C1917)
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-latte-accent" onchange="updateProgress()">
+          <label for="check-latte-accent">
+            <span class="color-swatch" style="background: #92400E;"></span>
+            --accent-primary uses Amber-9 (#92400E)
+          </label>
+        </li>
+      </ul>
+
+      <h3>Page Rendering</h3>
+      <ul class="checklist">
+        <li>
+          <input type="checkbox" id="check-latte-directory" onchange="updateProgress()">
+          <label for="check-latte-directory">Directory page renders with warm styling</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-latte-suggestions" onchange="updateProgress()">
+          <label for="check-latte-suggestions">Suggestions page renders with warm styling</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-latte-edits" onchange="updateProgress()">
+          <label for="check-latte-edits">Edits page renders with warm styling</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-latte-preferences" onchange="updateProgress()">
+          <label for="check-latte-preferences">Preferences page renders with warm styling</label>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Task 24.2: Espresso Mode Verification -->
+    <div class="test-section">
+      <h2>
+        <span class="status-badge pending" id="status-24-2">Pending</span>
+        24.2 Verify All Pages Render Correctly in Espresso Mode
+      </h2>
+      
+      <h3>Design System Colors</h3>
+      <ul class="checklist">
+        <li>
+          <input type="checkbox" id="check-espresso-bg-app" onchange="updateProgress()">
+          <label for="check-espresso-bg-app">
+            <span class="color-swatch" style="background: #0C0A09;"></span>
+            --bg-app uses deep coffee (#0C0A09)
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-espresso-bg-sidebar" onchange="updateProgress()">
+          <label for="check-espresso-bg-sidebar">
+            <span class="color-swatch" style="background: #1C1917;"></span>
+            --bg-sidebar uses Stone-2 dark (#1C1917)
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-espresso-bg-surface" onchange="updateProgress()">
+          <label for="check-espresso-bg-surface">
+            <span class="color-swatch" style="background: #292524;"></span>
+            --bg-surface uses Stone-3 dark (#292524)
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-espresso-text-primary" onchange="updateProgress()">
+          <label for="check-espresso-text-primary">
+            <span class="color-swatch" style="background: #FAFAF9;"></span>
+            --text-primary uses Stone-12 dark (#FAFAF9)
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-espresso-accent" onchange="updateProgress()">
+          <label for="check-espresso-accent">
+            <span class="color-swatch" style="background: #F59E0B;"></span>
+            --accent-primary uses Amber-9 dark (#F59E0B)
+          </label>
+        </li>
+      </ul>
+
+      <h3>Page Rendering</h3>
+      <ul class="checklist">
+        <li>
+          <input type="checkbox" id="check-espresso-directory" onchange="updateProgress()">
+          <label for="check-espresso-directory">Directory page renders with dark warm styling</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-espresso-suggestions" onchange="updateProgress()">
+          <label for="check-espresso-suggestions">Suggestions page renders with dark warm styling</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-espresso-edits" onchange="updateProgress()">
+          <label for="check-espresso-edits">Edits page renders with dark warm styling</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-espresso-preferences" onchange="updateProgress()">
+          <label for="check-espresso-preferences">Preferences page renders with dark warm styling</label>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Task 24.3: Responsive Behavior -->
+    <div class="test-section">
+      <h2>
+        <span class="status-badge pending" id="status-24-3">Pending</span>
+        24.3 Verify Responsive Behavior at All Breakpoints
+      </h2>
+      
+      <h3>Desktop (>= 1024px)</h3>
+      <ul class="checklist">
+        <li>
+          <input type="checkbox" id="check-desktop-sidebar" onchange="updateProgress()">
+          <label for="check-desktop-sidebar">Fixed sidebar visible (240px width)</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-desktop-mobile-nav" onchange="updateProgress()">
+          <label for="check-desktop-mobile-nav">Mobile navigation hidden</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-desktop-content" onchange="updateProgress()">
+          <label for="check-desktop-content">Main content has left margin for sidebar</label>
+        </li>
+      </ul>
+
+      <h3>Tablet (768px - 1023px)</h3>
+      <ul class="checklist">
+        <li>
+          <input type="checkbox" id="check-tablet-sidebar" onchange="updateProgress()">
+          <label for="check-tablet-sidebar">Sidebar collapsible/toggleable</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-tablet-hamburger" onchange="updateProgress()">
+          <label for="check-tablet-hamburger">Hamburger menu button visible</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-tablet-overlay" onchange="updateProgress()">
+          <label for="check-tablet-overlay">Sidebar overlay backdrop works</label>
+        </li>
+      </ul>
+
+      <h3>Mobile (< 768px)</h3>
+      <ul class="checklist">
+        <li>
+          <input type="checkbox" id="check-mobile-sidebar" onchange="updateProgress()">
+          <label for="check-mobile-sidebar">Sidebar hidden</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-mobile-nav" onchange="updateProgress()">
+          <label for="check-mobile-nav">Bottom navigation bar visible</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-mobile-content" onchange="updateProgress()">
+          <label for="check-mobile-content">Content full width (no left margin)</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-mobile-cards" onchange="updateProgress()">
+          <label for="check-mobile-cards">Cards stack vertically</label>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Task 24.4: Modal Verification -->
+    <div class="test-section">
+      <h2>
+        <span class="status-badge pending" id="status-24-4">Pending</span>
+        24.4 Verify All Modals Display Correctly
+      </h2>
+      
+      <ul class="checklist">
+        <li>
+          <input type="checkbox" id="check-modal-backdrop" onchange="updateProgress()">
+          <label for="check-modal-backdrop">Modal backdrop has blur effect (backdrop-filter: blur(4px))</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-modal-bg" onchange="updateProgress()">
+          <label for="check-modal-bg">Modal uses --bg-surface background</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-modal-border" onchange="updateProgress()">
+          <label for="check-modal-border">Modal has --border-subtle border and 12px radius</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-modal-header" onchange="updateProgress()">
+          <label for="check-modal-header">Modal header uses --text-primary</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-modal-inputs" onchange="updateProgress()">
+          <label for="check-modal-inputs">Form inputs have warm styling and focus states</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-modal-buttons" onchange="updateProgress()">
+          <label for="check-modal-buttons">Primary and secondary buttons have warm styling</label>
+        </li>
+      </ul>
+
+      <button class="theme-btn" onclick="showTestModal()" style="margin-top: 16px;">
+        Open Test Modal
+      </button>
+    </div>
+
+    <!-- Task 24.5: Theme Persistence -->
+    <div class="test-section">
+      <h2>
+        <span class="status-badge pending" id="status-24-5">Pending</span>
+        24.5 Verify Theme Toggle Persists Across Page Refreshes
+      </h2>
+      
+      <ul class="checklist">
+        <li>
+          <input type="checkbox" id="check-theme-localstorage" onchange="updateProgress()">
+          <label for="check-theme-localstorage">Theme preference saved to localStorage</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-theme-load" onchange="updateProgress()">
+          <label for="check-theme-load">Theme loads correctly on page load</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-theme-toggle" onchange="updateProgress()">
+          <label for="check-theme-toggle">Theme toggle updates data-theme attribute</label>
+        </li>
+        <li>
+          <input type="checkbox" id="check-theme-refresh" onchange="updateProgress()">
+          <label for="check-theme-refresh">Theme persists after page refresh (manual test)</label>
+        </li>
+      </ul>
+
+      <div style="margin-top: 16px; padding: 16px; background: var(--bg-app); border: 1px solid var(--border-subtle); border-radius: 8px;">
+        <p style="margin-bottom: 8px;"><strong>Current Theme:</strong> <span id="currentTheme"></span></p>
+        <p style="margin-bottom: 8px;"><strong>localStorage Value:</strong> <span id="localStorageValue"></span></p>
+        <p><strong>data-theme Attribute:</strong> <span id="dataThemeValue"></span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test Modal -->
+  <div id="testModal" style="display: none; position: fixed; inset: 0; background: rgba(28, 25, 23, 0.4); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; max-width: 500px; width: 90%; padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: var(--text-primary); font-size: 18px; font-weight: 600;">Test Modal</h3>
+        <button onclick="hideTestModal()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 24px;">&times;</button>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: 20px;">This is a test modal to verify warm styling, backdrop blur, and proper theming.</p>
+      <input type="text" placeholder="Test input field" style="width: 100%; padding: 12px 16px; background: var(--bg-app); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); margin-bottom: 16px;">
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button onclick="hideTestModal()" style="padding: 10px 20px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer;">Cancel</button>
+        <button onclick="hideTestModal()" style="padding: 10px 20px; background: var(--text-primary); color: var(--bg-surface); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Theme management
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('catchup-theme', theme);
+      updateThemeButtons();
+      updateThemeInfo();
+    }
+
+    function updateThemeButtons() {
+      const theme = document.documentElement.getAttribute('data-theme') || 'light';
+      document.getElementById('latteBtn').classList.toggle('active', theme === 'light');
+      document.getElementById('espressoBtn').classList.toggle('active', theme === 'dark');
+    }
+
+    function testThemeToggle() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      setTheme(next);
+    }
+
+    function updateThemeInfo() {
+      const theme = document.documentElement.getAttribute('data-theme') || 'light';
+      const stored = localStorage.getItem('catchup-theme') || 'not set';
+      document.getElementById('currentTheme').textContent = theme === 'light' ? 'Latte ☀️' : 'Espresso 🌙';
+      document.getElementById('localStorageValue').textContent = stored;
+      document.getElementById('dataThemeValue').textContent = theme;
+    }
+
+    // Modal management
+    function showTestModal() {
+      document.getElementById('testModal').style.display = 'flex';
+    }
+
+    function hideTestModal() {
+      document.getElementById('testModal').style.display = 'none';
+    }
+
+    // Viewport indicator
+    function updateViewportIndicator() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      let breakpoint = '';
+      
+      if (width >= 1024) {
+        breakpoint = 'Desktop';
+      } else if (width >= 768) {
+        breakpoint = 'Tablet';
+      } else {
+        breakpoint = 'Mobile';
+      }
+      
+      document.getElementById('viewportSize').textContent = `${width}x${height}px (${breakpoint})`;
+    }
+
+    // Progress tracking
+    function updateProgress() {
+      const checkboxes = document.querySelectorAll('.checklist input[type="checkbox"]');
+      const total = checkboxes.length;
+      const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
+      const percent = Math.round((checked / total) * 100);
+      
+      document.getElementById('totalTests').textContent = total;
+      document.getElementById('passedTests').textContent = checked;
+      document.getElementById('progressPercent').textContent = percent + '%';
+      document.getElementById('progressFill').style.width = percent + '%';
+      
+      // Update section statuses
+      updateSectionStatus('24-1', ['check-latte-bg-app', 'check-latte-bg-sidebar', 'check-latte-bg-surface', 'check-latte-text-primary', 'check-latte-accent', 'check-latte-directory', 'check-latte-suggestions', 'check-latte-edits', 'check-latte-preferences']);
+      updateSectionStatus('24-2', ['check-espresso-bg-app', 'check-espresso-bg-sidebar', 'check-espresso-bg-surface', 'check-espresso-text-primary', 'check-espresso-accent', 'check-espresso-directory', 'check-espresso-suggestions', 'check-espresso-edits', 'check-espresso-preferences']);
+      updateSectionStatus('24-3', ['check-desktop-sidebar', 'check-desktop-mobile-nav', 'check-desktop-content', 'check-tablet-sidebar', 'check-tablet-hamburger', 'check-tablet-overlay', 'check-mobile-sidebar', 'check-mobile-nav', 'check-mobile-content', 'check-mobile-cards']);
+      updateSectionStatus('24-4', ['check-modal-backdrop', 'check-modal-bg', 'check-modal-border', 'check-modal-header', 'check-modal-inputs', 'check-modal-buttons']);
+      updateSectionStatus('24-5', ['check-theme-localstorage', 'check-theme-load', 'check-theme-toggle', 'check-theme-refresh']);
+    }
+
+    function updateSectionStatus(sectionId, checkIds) {
+      const badge = document.getElementById('status-' + sectionId);
+      const allChecked = checkIds.every(id => document.getElementById(id)?.checked);
+      const someChecked = checkIds.some(id => document.getElementById(id)?.checked);
+      
+      if (allChecked) {
+        badge.textContent = 'Pass';
+        badge.className = 'status-badge pass';
+      } else if (someChecked) {
+        badge.textContent = 'In Progress';
+        badge.className = 'status-badge pending';
+      } else {
+        badge.textContent = 'Pending';
+        badge.className = 'status-badge pending';
+      }
+    }
+
+    // Initialize
+    window.addEventListener('load', () => {
+      updateThemeButtons();
+      updateThemeInfo();
+      updateViewportIndicator();
+      updateProgress();
+    });
+
+    window.addEventListener('resize', updateViewportIndicator);
+  </script>
+</body>
+</html>

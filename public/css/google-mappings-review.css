@@ -1,13 +1,13 @@
 /**
- * Google Mappings Review Component Styles
- * Minimalist, modern design matching groups table aesthetic
- * Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7, 15.8
+ * Google Mappings Review Component Styles - Stone & Clay Theme
+ * Warm, cozy design with earth tones
+ * Requirements: 8.4
  */
 
 .google-mappings-review {
-  background: var(--bg-primary, white);
-  border: 1px solid var(--border-primary, #e5e7eb);
-  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
   animation: slideDown 0.3s ease-out;
@@ -31,12 +31,12 @@
   align-items: center;
   margin-bottom: 8px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-secondary, #f3f4f6);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .mappings-header h3 {
   margin: 0;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 600;
   display: flex;
@@ -44,8 +44,8 @@
 }
 
 .pending-badge {
-  background: var(--color-primary, #3b82f6);
-  color: white;
+  background: var(--accent-primary);
+  color: var(--text-inverse);
   padding: 3px 10px;
   border-radius: 12px;
   font-size: 11px;
@@ -54,7 +54,7 @@
 }
 
 .mappings-description {
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   font-size: 13px;
   margin: 0 0 16px 0;
   line-height: 1.5;
@@ -66,15 +66,15 @@
 }
 
 .mapping-card {
-  background: var(--bg-secondary, #f9fafb);
-  border: 1px solid var(--border-secondary, #e5e7eb);
-  border-radius: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
   padding: 16px;
   transition: all 0.2s ease;
 }
 
 .mapping-card:hover {
-  border-color: var(--border-primary, #d1d5db);
+  border-color: var(--border-default);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -91,7 +91,7 @@
 
 .mapping-title {
   margin: 0 0 6px 0;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 600;
 }
@@ -100,12 +100,12 @@
   display: flex;
   gap: 12px;
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
 }
 
 .member-count {
   cursor: pointer;
-  color: var(--color-primary, #3b82f6);
+  color: var(--accent-primary);
   font-weight: 500;
 }
 
@@ -120,9 +120,9 @@
 .mapping-members {
   margin-top: 12px;
   padding: 12px;
-  background: var(--bg-primary, white);
-  border-radius: 4px;
-  border: 1px solid var(--border-secondary, #e5e7eb);
+  background: var(--bg-surface);
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
   max-height: 300px;
   overflow-y: auto;
 }
@@ -133,12 +133,12 @@
   align-items: center;
   margin-bottom: 10px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-secondary, #e5e7eb);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .members-title {
   font-size: 11px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -152,7 +152,7 @@
 .btn-select-all,
 .btn-deselect-all {
   font-size: 11px;
-  color: var(--color-primary, #3b82f6);
+  color: var(--accent-primary);
   background: none;
   border: none;
   cursor: pointer;
@@ -163,7 +163,7 @@
 
 .btn-select-all:hover,
 .btn-deselect-all:hover {
-  background: var(--bg-secondary, #f3f4f6);
+  background: var(--bg-hover);
 }
 
 .members-list {
@@ -177,35 +177,35 @@
   align-items: center;
   gap: 10px;
   padding: 8px;
-  background: var(--bg-secondary, #f9fafb);
-  border-radius: 4px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
   border: 1px solid transparent;
   transition: all 0.15s ease;
 }
 
 .member-card:hover {
-  border-color: var(--border-primary, #e5e7eb);
-  background: var(--bg-primary, white);
+  border-color: var(--border-subtle);
+  background: var(--bg-hover);
 }
 
 .member-card.deselected {
   opacity: 0.5;
-  background: var(--bg-tertiary, #f3f4f6);
+  background: var(--bg-hover);
 }
 
 .member-checkbox {
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: var(--color-primary, #3b82f6);
+  accent-color: var(--accent-primary);
 }
 
 .member-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--color-primary, #3b82f6);
-  color: white;
+  background: var(--accent-primary);
+  color: var(--text-inverse);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -222,7 +222,7 @@
 .member-name {
   font-weight: 500;
   font-size: 13px;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -230,7 +230,7 @@
 
 .member-contact {
   font-size: 11px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -239,14 +239,14 @@
 .suggested-action {
   margin-bottom: 10px;
   padding: 10px 12px;
-  background: var(--bg-tertiary, #f3f4f6);
-  border-radius: 4px;
-  border-left: 3px solid var(--color-primary, #3b82f6);
+  background: var(--accent-subtle);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-primary);
 }
 
 .action-label {
   font-size: 10px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   margin-bottom: 3px;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -255,28 +255,28 @@
 
 .action-value {
   font-size: 13px;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
   font-weight: 600;
   margin-bottom: 3px;
 }
 
 .action-detail {
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   margin-top: 3px;
 }
 
 .suggestion-reason {
   margin-bottom: 10px;
   padding: 10px 12px;
-  background: var(--bg-tertiary, #f3f4f6);
-  border-radius: 4px;
-  border-left: 3px solid var(--text-secondary, #9ca3af);
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  border-left: 3px solid var(--border-default);
 }
 
 .reason-label {
   font-size: 10px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   margin-bottom: 3px;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -285,7 +285,7 @@
 
 .reason-text {
   font-size: 12px;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
   line-height: 1.5;
 }
 
@@ -308,14 +308,14 @@
 }
 
 .btn-approve {
-  background: var(--color-primary, #3b82f6);
-  color: white;
+  background: var(--text-primary);
+  color: var(--bg-surface);
 }
 
 .btn-approve:hover {
-  background: var(--color-primary-dark, #2563eb);
+  opacity: 0.9;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 2px 4px rgba(68, 64, 60, 0.2);
 }
 
 .btn-approve:active {
@@ -324,14 +324,14 @@
 
 .btn-reject {
   background: transparent;
-  color: var(--text-secondary, #6b7280);
-  border-color: var(--border-primary, #e5e7eb);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
 }
 
 .btn-reject:hover {
-  background: var(--bg-secondary, #f9fafb);
-  color: var(--text-primary, #374151);
-  border-color: var(--border-primary, #d1d5db);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-default);
 }
 
 .btn-reject:active {
@@ -378,91 +378,4 @@
   }
 }
 
-/* Dark mode support */
-[data-theme="dark"] .google-mappings-review {
-  background: var(--bg-elevated, #1f2937);
-  border-color: var(--border-primary, #374151);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme="dark"] .mappings-header {
-  border-bottom-color: var(--border-primary, #374151);
-}
-
-[data-theme="dark"] .mappings-header h3 {
-  color: var(--text-primary, #f3f4f6);
-}
-
-[data-theme="dark"] .mappings-description {
-  color: var(--text-secondary, #9ca3af);
-}
-
-[data-theme="dark"] .mapping-card {
-  background: var(--bg-secondary, #111827);
-  border-color: var(--border-primary, #374151);
-}
-
-[data-theme="dark"] .mapping-card:hover {
-  border-color: var(--border-primary, #4b5563);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme="dark"] .mapping-title {
-  color: var(--text-primary, #f9fafb);
-}
-
-[data-theme="dark"] .mapping-meta {
-  color: var(--text-secondary, #9ca3af);
-}
-
-[data-theme="dark"] .mapping-members {
-  background: var(--bg-primary, #1f2937);
-  border-color: var(--border-primary, #374151);
-}
-
-[data-theme="dark"] .members-header {
-  border-bottom-color: var(--border-primary, #374151);
-}
-
-[data-theme="dark"] .member-card {
-  background: var(--bg-tertiary, #374151);
-}
-
-[data-theme="dark"] .member-card:hover {
-  background: var(--bg-secondary, #1f2937);
-  border-color: var(--border-primary, #4b5563);
-}
-
-[data-theme="dark"] .member-card.deselected {
-  background: var(--bg-quaternary, #4b5563);
-}
-
-[data-theme="dark"] .member-name {
-  color: var(--text-primary, #f3f4f6);
-}
-
-[data-theme="dark"] .member-contact {
-  color: var(--text-secondary, #9ca3af);
-}
-
-[data-theme="dark"] .suggested-action,
-[data-theme="dark"] .suggestion-reason {
-  background: var(--bg-tertiary, #374151);
-}
-
-[data-theme="dark"] .action-value,
-[data-theme="dark"] .reason-text {
-  color: var(--text-primary, #f3f4f6);
-}
-
-[data-theme="dark"] .btn-reject {
-  background: transparent;
-  color: var(--text-secondary, #9ca3af);
-  border-color: var(--border-primary, #4b5563);
-}
-
-[data-theme="dark"] .btn-reject:hover {
-  background: var(--bg-tertiary, #374151);
-  color: var(--text-primary, #d1d5db);
-  border-color: var(--border-primary, #6b7280);
-}
+/* Dark mode support - Espresso theme uses CSS variables automatically */

@@ -184,7 +184,21 @@ function showMainApp() {
     document.getElementById('loading-screen').classList.add('hidden');
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('main-app').classList.remove('hidden');
-    document.getElementById('user-email').textContent = userEmail;
+    
+    // Update user info in sidebar footer
+    const userNameEl = document.getElementById('user-name');
+    const userAvatarEl = document.getElementById('user-avatar-initials');
+    
+    if (userNameEl && userEmail) {
+        userNameEl.textContent = userEmail;
+    }
+    
+    if (userAvatarEl && userEmail) {
+        // Get initials from email (first letter)
+        const initials = userEmail.charAt(0).toUpperCase();
+        userAvatarEl.textContent = initials;
+    }
+    
     updateThemeIcon();
     
     // Load pending edits count for nav badge
@@ -414,7 +428,7 @@ function updateThemeIcon() {
 
 // Navigation
 function setupNavigation() {
-    document.querySelectorAll('.nav-link').forEach(link => {
+    document.querySelectorAll('.nav-item').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const page = link.dataset.page;
@@ -434,10 +448,61 @@ function setupNavigation() {
     });
 }
 
+// Responsive Navigation Functions
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    
+    if (sidebar && overlay && hamburgerBtn) {
+        const isOpen = sidebar.classList.contains('open');
+        
+        if (isOpen) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    }
+}
+
+function openSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    
+    if (sidebar && overlay && hamburgerBtn) {
+        sidebar.classList.add('open');
+        overlay.classList.add('visible');
+        hamburgerBtn.classList.add('open');
+    }
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    
+    if (sidebar && overlay && hamburgerBtn) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('visible');
+        hamburgerBtn.classList.remove('open');
+    }
+}
+
+// Helper function for mobile navigation
+function navigateToPage(page) {
+    navigateTo(page);
+}
+
 function navigateTo(page) {
-    // Update active nav link
-    document.querySelectorAll('.nav-link').forEach(link => {
+    // Update active nav item in sidebar
+    document.querySelectorAll('.nav-item').forEach(link => {
         link.classList.toggle('active', link.dataset.page === page);
+    });
+    
+    // Update active nav item in mobile navigation
+    document.querySelectorAll('.mobile-nav__item').forEach(link => {
+        link.classList.toggle('mobile-nav__item--active', link.dataset.page === page);
     });
     
     // Hide all pages
@@ -451,6 +516,9 @@ function navigateTo(page) {
     
     // Save current page to localStorage for persistence across page refreshes
     localStorage.setItem('currentPage', page);
+    
+    // Close sidebar on tablet after navigation
+    closeSidebar();
     
     // Load page data
     switch(page) {
@@ -1272,10 +1340,8 @@ async function loadCirclesVisualization() {
     `;
     
     try {
-        // Load contacts if not already loaded
-        if (contacts.length === 0) {
-            await loadContacts();
-        }
+        // Always reload contacts to get latest circle assignments
+        await loadContacts();
         
         // Load groups if not already loaded
         if (groups.length === 0) {
@@ -2825,14 +2891,14 @@ function renderSuggestions(suggestionsList) {
             suggestionContacts = [{ id: 'unknown', name: 'Unknown', groups: [], tags: [] }];
         }
         
-        // Status badge styling
+        // Status badge styling - warm tones
         const statusColors = {
-            pending: '#f59e0b',
-            accepted: '#10b981',
-            dismissed: '#6b7280',
-            snoozed: '#3b82f6'
+            pending: '#f59e0b',      // Warm amber
+            accepted: '#10b981',     // Sage green
+            dismissed: '#78716C',    // Warm gray (Stone-500)
+            snoozed: '#3b82f6'       // Warm blue
         };
-        const statusColor = statusColors[suggestion.status] || '#6b7280';
+        const statusColor = statusColors[suggestion.status] || '#78716C';
         
         // Build contact names display
         let contactNamesHtml = '';
@@ -2849,19 +2915,26 @@ function renderSuggestions(suggestionsList) {
             contactNamesHtml = escapeHtml(suggestionContacts[0].name);
         }
         
-        // Build avatars display
+        // Build avatars display with warm pastel colors
         let avatarsHtml = '';
         if (isGroup) {
-            // Overlapping avatar circles for group
+            // Overlapping avatar circles for group - warm pastel palette
             avatarsHtml = `
-                <div class="suggestion-avatars-group">
+                <div class="suggestion-avatars-group" style="display: flex; align-items: center;">
                     ${suggestionContacts.map((contact, idx) => {
                         const initials = contact.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-                        const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                        const bgColor = colors[idx % colors.length];
+                        // Warm pastel colors: Sage, Sand, Rose, Stone, Lavender
+                        const warmColors = [
+                            { bg: '#d1fae5', text: '#065f46' },  // Sage green
+                            { bg: '#fef3c7', text: '#92400e' },  // Sand/amber
+                            { bg: '#fce7f3', text: '#9d174d' },  // Dusty rose
+                            { bg: '#e7e5e4', text: '#44403c' },  // Stone
+                            { bg: '#e9d5ff', text: '#6b21a8' }   // Lavender
+                        ];
+                        const colorPair = warmColors[idx % warmColors.length];
                         return `
                             <div class="suggestion-avatar" 
-                                 style="background: ${bgColor}; z-index: ${10 - idx}; margin-left: ${idx > 0 ? '-12px' : '0'};"
+                                 style="background: ${colorPair.bg}; color: ${colorPair.text}; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; border: 2px solid var(--bg-surface); z-index: ${10 - idx}; margin-left: ${idx > 0 ? '-12px' : '0'};"
                                  data-contact-id="${contact.id}"
                                  title="${escapeHtml(contact.name)}">
                                 ${initials}
@@ -2871,11 +2944,11 @@ function renderSuggestions(suggestionsList) {
                 </div>
             `;
         } else {
-            // Single avatar for individual
+            // Single avatar for individual - warm sage green
             const initials = suggestionContacts[0].name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
             avatarsHtml = `
                 <div class="suggestion-avatar" 
-                     style="background: #3b82f6;"
+                     style="background: #d1fae5; color: #065f46; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px;"
                      data-contact-id="${suggestionContacts[0].id}"
                      title="${escapeHtml(suggestionContacts[0].name)}">
                     ${initials}
@@ -2905,7 +2978,7 @@ function renderSuggestions(suggestionsList) {
             }
             
             sharedContextBadge = `
-                <div class="shared-context-badge" title="Shared context score: ${context.score}">
+                <div class="shared-context-badge" style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;" title="Shared context score: ${context.score}">
                     ${badgeText}
                 </div>
             `;
@@ -2913,34 +2986,34 @@ function renderSuggestions(suggestionsList) {
         
         // Type badge
         const typeBadge = isGroup ? 
-            '<span class="suggestion-type-badge group-badge-type">Group Catchup</span>' : 
-            '<span class="suggestion-type-badge individual-badge-type">One-on-One</span>';
+            '<span class="suggestion-type-badge group-badge-type" style="color: var(--text-secondary); font-size: 12px; font-weight: 500;">Group Catchup</span>' : 
+            '<span class="suggestion-type-badge individual-badge-type" style="color: var(--text-secondary); font-size: 12px; font-weight: 500;">One-on-One</span>';
         
         // Show different actions based on status
         let actions = '';
         // View Schedule button is always available
-        const viewScheduleBtn = `<button class="secondary" onclick="openSchedulePreview('${suggestion.id}')" title="View your calendar for this day">📅 View Schedule</button>`;
+        const viewScheduleBtn = `<button class="btn-secondary" onclick="openSchedulePreview('${suggestion.id}')" title="View your calendar for this day">📅 View Schedule</button>`;
         
         if (suggestion.status === 'pending') {
             if (isGroup) {
                 actions = `
-                    <button onclick="acceptSuggestion('${suggestion.id}')">Accept Group Catchup</button>
+                    <button class="btn-primary" onclick="acceptSuggestion('${suggestion.id}')">Accept Group Catchup</button>
                     ${viewScheduleBtn}
-                    <button class="secondary" onclick="showGroupModifyMenu('${suggestion.id}', event)">Modify Group ▼</button>
-                    <button class="secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
+                    <button class="btn-secondary" onclick="showGroupModifyMenu('${suggestion.id}', event)">Modify Group ▼</button>
+                    <button class="btn-secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
                 `;
             } else {
                 actions = `
-                    <button onclick="acceptSuggestion('${suggestion.id}')">Accept</button>
+                    <button class="btn-primary" onclick="acceptSuggestion('${suggestion.id}')">Accept</button>
                     ${viewScheduleBtn}
-                    <button class="secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
-                    <button class="secondary" onclick="snoozeSuggestion('${suggestion.id}')">Snooze</button>
+                    <button class="btn-secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
+                    <button class="btn-secondary" onclick="snoozeSuggestion('${suggestion.id}')">Snooze</button>
                 `;
             }
         } else {
             actions = `
                 ${viewScheduleBtn}
-                <span style="color: #6b7280; font-size: 14px; margin-left: 10px;">No other actions available</span>
+                <span style="color: var(--text-secondary); font-size: 14px; margin-left: 10px;">No other actions available</span>
             `;
         }
         
@@ -2952,7 +3025,7 @@ function renderSuggestions(suggestionsList) {
             if (context.factors.commonGroups && context.factors.commonGroups.length > 0) {
                 commonInfoHtml += `
                     <div style="margin-top: 12px;">
-                        <p style="margin: 0 0 6px 0;"><strong>Common Groups:</strong></p>
+                        <p style="margin: 0 0 6px 0; color: var(--text-primary);"><strong>Common Groups:</strong></p>
                         <div class="contact-groups">
                             ${context.factors.commonGroups.map(name => `<span class="group-badge">${escapeHtml(name)}</span>`).join('')}
                         </div>
@@ -2963,7 +3036,7 @@ function renderSuggestions(suggestionsList) {
             if (context.factors.sharedTags && context.factors.sharedTags.length > 0) {
                 commonInfoHtml += `
                     <div style="margin-top: 12px;">
-                        <p style="margin: 0 0 6px 0;"><strong>Shared Interests:</strong></p>
+                        <p style="margin: 0 0 6px 0; color: var(--text-primary);"><strong>Shared Interests:</strong></p>
                         <div class="contact-tags">
                             ${context.factors.sharedTags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join('')}
                         </div>
@@ -2985,7 +3058,7 @@ function renderSuggestions(suggestionsList) {
                 if (groupNames.length > 0) {
                     commonInfoHtml += `
                         <div style="margin-top: 12px;">
-                            <p style="margin: 0 0 6px 0;"><strong>Member of:</strong></p>
+                            <p style="margin: 0 0 6px 0; color: var(--text-primary);"><strong>Member of:</strong></p>
                             <div class="contact-groups">
                                 ${groupNames.map(name => `<span class="group-badge">${escapeHtml(name)}</span>`).join('')}
                             </div>
@@ -2997,7 +3070,7 @@ function renderSuggestions(suggestionsList) {
             if (contact.tags && contact.tags.length > 0) {
                 commonInfoHtml += `
                     <div style="margin-top: 12px;">
-                        <p style="margin: 0 0 6px 0;"><strong>Interests:</strong></p>
+                        <p style="margin: 0 0 6px 0; color: var(--text-primary);"><strong>Interests:</strong></p>
                         <div class="contact-tags">
                             ${contact.tags.map(tag => `<span class="tag-badge">${escapeHtml(tag.text)}</span>`).join('')}
                         </div>
@@ -3007,13 +3080,13 @@ function renderSuggestions(suggestionsList) {
         }
         
         return `
-            <div class="card suggestion-card ${isGroup ? 'suggestion-card-group' : 'suggestion-card-individual'}">
+            <div class="card suggestion-card ${isGroup ? 'suggestion-card-group' : 'suggestion-card-individual'}" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px;">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                     <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
                         ${avatarsHtml}
                         <div style="flex: 1;">
                             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                <h3 style="margin: 0;">Connect with ${contactNamesHtml}</h3>
+                                <h3 style="margin: 0; color: var(--text-primary);">Connect with ${contactNamesHtml}</h3>
                                 ${typeBadge}
                             </div>
                             ${sharedContextBadge}
@@ -3023,11 +3096,11 @@ function renderSuggestions(suggestionsList) {
                         ${suggestion.status}
                     </span>
                 </div>
-                <p><strong>Time:</strong> ${formatDateTime(suggestion.proposedTimeslot.start)} <span id="calendar-count-${suggestion.id}" class="calendar-day-count"></span></p>
-                <p><strong>Reason:</strong> ${escapeHtml(suggestion.reasoning)}</p>
+                <p style="color: var(--text-primary);"><strong>Time:</strong> ${formatDateTime(suggestion.proposedTimeslot.start)} <span id="calendar-count-${suggestion.id}" class="calendar-day-count"></span></p>
+                <p style="color: var(--text-primary);"><strong>Reason:</strong> ${escapeHtml(suggestion.reasoning)}</p>
                 ${commonInfoHtml}
-                ${suggestion.snoozedUntil ? `<p><strong>Snoozed until:</strong> ${formatDateTime(suggestion.snoozedUntil)}</p>` : ''}
-                ${suggestion.dismissalReason ? `<p><strong>Dismissal reason:</strong> ${escapeHtml(suggestion.dismissalReason)}</p>` : ''}
+                ${suggestion.snoozedUntil ? `<p style="color: var(--text-primary);"><strong>Snoozed until:</strong> ${formatDateTime(suggestion.snoozedUntil)}</p>` : ''}
+                ${suggestion.dismissalReason ? `<p style="color: var(--text-primary);"><strong>Dismissal reason:</strong> ${escapeHtml(suggestion.dismissalReason)}</p>` : ''}
                 <div class="card-actions">
                     ${actions}
                 </div>
@@ -4312,7 +4385,7 @@ function updatePendingEditCounts(count) {
         floatingChatIcon.setPendingEditCount(count);
     }
     
-    // Update nav badge
+    // Update sidebar nav badge
     const badge = document.getElementById('edits-badge');
     if (badge) {
         if (count > 0) {
@@ -4320,6 +4393,17 @@ function updatePendingEditCounts(count) {
             badge.classList.remove('hidden');
         } else {
             badge.classList.add('hidden');
+        }
+    }
+    
+    // Update mobile nav badge
+    const mobileBadge = document.getElementById('mobile-edits-badge');
+    if (mobileBadge) {
+        if (count > 0) {
+            mobileBadge.textContent = count > 99 ? '99+' : count;
+            mobileBadge.classList.remove('hidden');
+        } else {
+            mobileBadge.classList.add('hidden');
         }
     }
 }
@@ -4683,15 +4767,23 @@ async function loadPreferences() {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
             <!-- Notifications Section -->
             <div>
-                <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--border-primary); padding-bottom: 10px;">Notifications</h3>
+                <h3 style="margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; color: var(--text-primary);">Notifications</h3>
                 <div class="form-group">
-                    <label>
-                        <input type="checkbox" checked> Enable SMS notifications
+                    <label class="pill-switch">
+                        <input type="checkbox" checked>
+                        <span class="pill-switch__track">
+                            <span class="pill-switch__thumb"></span>
+                        </span>
+                        <span class="pill-switch__label">Enable SMS notifications</span>
                     </label>
                 </div>
                 <div class="form-group">
-                    <label>
-                        <input type="checkbox" checked> Enable email notifications
+                    <label class="pill-switch">
+                        <input type="checkbox" checked>
+                        <span class="pill-switch__track">
+                            <span class="pill-switch__thumb"></span>
+                        </span>
+                        <span class="pill-switch__label">Enable email notifications</span>
                     </label>
                 </div>
                 <div class="form-group">
@@ -4715,25 +4807,28 @@ async function loadPreferences() {
             
             <!-- Integrations Section -->
             <div>
-                <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--border-primary); padding-bottom: 10px;">Integrations</h3>
+                <h3 style="margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; color: var(--text-primary);">Integrations</h3>
                 
                 <!-- Google Calendar -->
-                <div class="card" style="margin-bottom: 15px;">
+                <div class="card" style="margin-bottom: 15px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <img src="https://www.gstatic.com/marketing-cms/assets/images/d3/d1/e8596a9246608f8fbd72597729c8/calendar.png" alt="Google Calendar" style="width: 24px; height: 24px;">
-                            <h4 style="margin: 0;">Google Calendar</h4>
+                            <h4 style="margin: 0; color: var(--text-primary);">Google Calendar</h4>
                         </div>
-                        <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; ${calendarConnected ? 'background: var(--status-success-bg); color: var(--status-success-text);' : 'background: var(--status-error-bg); color: var(--status-error-text);'}">
-                            ${calendarConnected ? 'Connected' : 'Not Connected'}
-                        </span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${calendarConnected ? '#10b981' : '#ef4444'};"></span>
+                            <span style="font-size: 12px; font-weight: 500; color: ${calendarConnected ? '#10b981' : '#ef4444'};">
+                                ${calendarConnected ? 'Connected' : 'Not Connected'}
+                            </span>
+                        </div>
                     </div>
                     <p style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-secondary);">
                         Connect your Google Calendar to enable smart scheduling and availability detection.
                     </p>
                     ${calendarConnected ? `
-                        ${calendarStatus.email ? `<p style="margin: 0 0 8px 0; font-size: 12px; padding: 8px; background: rgba(34, 197, 94, 0.1); border-radius: 4px;">Connected as: <strong>${calendarStatus.email}</strong></p>` : ''}
-                        <div style="margin: 0 0 12px 0; font-size: 12px; padding: 8px; background: var(--bg-secondary); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                        ${calendarStatus.email ? `<p style="margin: 0 0 8px 0; font-size: 12px; padding: 8px; background: var(--status-success-bg); border-radius: 8px; color: var(--text-primary);">Connected as: <strong>${calendarStatus.email}</strong></p>` : ''}
+                        <div style="margin: 0 0 12px 0; font-size: 12px; padding: 8px; background: var(--bg-hover); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: var(--text-secondary);">
                                 ${lastSync 
                                     ? `Last synced: <strong style="color: var(--text-primary);">${formatRelativeTime(new Date(lastSync))}</strong>`
@@ -4759,7 +4854,7 @@ async function loadPreferences() {
         
         <!-- Account Section -->
         <div style="margin-top: 30px;">
-            <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--border-primary); padding-bottom: 10px;">Account</h3>
+            <h3 style="margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; color: var(--text-primary);">Account</h3>
             
             <div class="card">
                 <div id="account-info-loading" style="text-align: center; padding: 20px;">
@@ -4775,73 +4870,73 @@ async function loadPreferences() {
         <!-- Developer Section -->
         ${testDataStatus ? `
         <div style="margin-top: 30px;">
-            <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--border-primary); padding-bottom: 10px;">Developer</h3>
+            <h3 style="margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; color: var(--text-primary);">Developer</h3>
             
             <!-- Test Data Management -->
             <div style="margin-bottom: 20px;">
                 <h4 style="margin-bottom: 15px; font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Test Data</h4>
                 
                 <!-- Status Overview -->
-                <div class="card" style="margin-bottom: 15px; background: var(--bg-secondary);">
+                <div class="card" style="margin-bottom: 15px; background: var(--bg-hover); border: 1px solid var(--border-subtle); border-radius: 12px;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
-                        <div style="padding: 10px; background: var(--bg-primary); border-radius: 4px;" data-test-data-type="contacts">
+                        <div style="padding: 10px; background: var(--bg-surface); border-radius: 8px;" data-test-data-type="contacts">
                             <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">CONTACTS</div>
                             <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
-                                <span style="color: var(--status-info-text);">${testDataStatus.contacts.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.contacts.real}</span>
+                                <span style="color: var(--status-info);">${testDataStatus.contacts.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.contacts.real}</span>
                             </div>
                         </div>
-                        <div style="padding: 10px; background: var(--bg-primary); border-radius: 4px;" data-test-data-type="calendarEvents">
+                        <div style="padding: 10px; background: var(--bg-surface); border-radius: 8px;" data-test-data-type="calendarEvents">
                             <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">CALENDAR</div>
                             <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
-                                <span style="color: var(--status-info-text);">${testDataStatus.calendarEvents.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.calendarEvents.real}</span>
+                                <span style="color: var(--status-info);">${testDataStatus.calendarEvents.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.calendarEvents.real}</span>
                             </div>
                         </div>
-                        <div style="padding: 10px; background: var(--bg-primary); border-radius: 4px;" data-test-data-type="suggestions">
+                        <div style="padding: 10px; background: var(--bg-surface); border-radius: 8px;" data-test-data-type="suggestions">
                             <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">SUGGESTIONS</div>
                             <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
-                                <span style="color: var(--status-info-text);">${testDataStatus.suggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.suggestions.real}</span>
+                                <span style="color: var(--status-info);">${testDataStatus.suggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.suggestions.real}</span>
                             </div>
                         </div>
-                        <div style="padding: 10px; background: var(--bg-primary); border-radius: 4px;" data-test-data-type="groupSuggestions">
+                        <div style="padding: 10px; background: var(--bg-surface); border-radius: 8px;" data-test-data-type="groupSuggestions">
                             <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">GROUP SUGG.</div>
                             <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
-                                <span style="color: var(--status-info-text);">${testDataStatus.groupSuggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.groupSuggestions.real}</span>
+                                <span style="color: var(--status-info);">${testDataStatus.groupSuggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.groupSuggestions.real}</span>
                             </div>
                         </div>
-                        <div style="padding: 10px; background: var(--bg-primary); border-radius: 4px;" data-test-data-type="voiceNotes">
+                        <div style="padding: 10px; background: var(--bg-surface); border-radius: 8px;" data-test-data-type="voiceNotes">
                             <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 600;">VOICE NOTES</div>
                             <div style="font-size: 13px; font-weight: bold;" data-test-data-counts>
-                                <span style="color: var(--status-info-text);">${testDataStatus.voiceNotes.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.voiceNotes.real}</span>
+                                <span style="color: var(--status-info);">${testDataStatus.voiceNotes.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.voiceNotes.real}</span>
                             </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Individual Controls -->
-                <div class="card">
+                <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
-                        <div style="padding: 10px; border: 1px solid var(--border-primary); border-radius: 4px;">
-                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Contacts</div>
+                        <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Contacts</div>
                             <button onclick="generateTestData('contacts')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
                             <button onclick="removeTestData('contacts')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
                         </div>
-                        <div style="padding: 10px; border: 1px solid var(--border-primary); border-radius: 4px;">
-                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Calendar Events</div>
+                        <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Calendar Events</div>
                             <button onclick="generateTestData('calendarEvents')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
                             <button onclick="removeTestData('calendarEvents')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
                         </div>
-                        <div style="padding: 10px; border: 1px solid var(--border-primary); border-radius: 4px;">
-                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Suggestions</div>
+                        <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Suggestions</div>
                             <button onclick="generateTestData('suggestions')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
                             <button onclick="removeTestData('suggestions')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
                         </div>
-                        <div style="padding: 10px; border: 1px solid var(--border-primary); border-radius: 4px;">
-                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Group Suggestions</div>
+                        <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Group Suggestions</div>
                             <button onclick="generateTestData('groupSuggestions')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
                             <button onclick="removeTestData('groupSuggestions')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
                         </div>
-                        <div style="padding: 10px; border: 1px solid var(--border-primary); border-radius: 4px;">
-                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">Voice Notes</div>
+                        <div style="padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">Voice Notes</div>
                             <button onclick="generateTestData('voiceNotes')" style="width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px;">Generate</button>
                             <button onclick="removeTestData('voiceNotes')" class="secondary" style="width: 100%; padding: 6px; font-size: 12px;">Remove</button>
                         </div>
@@ -4861,55 +4956,55 @@ async function loadPreferences() {
         
         ${testDataStatus ? `
         <!-- User Data Overview -->
-        <div style="margin-bottom: 15px; padding: 15px; border: 1px solid var(--border-primary); border-radius: 6px; background: var(--bg-secondary);">
+        <div style="margin-bottom: 15px; padding: 15px; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--bg-hover);">
             <div style="margin-bottom: 12px;">
                 <div style="font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">User Data</div>
                 <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">
-                    <span style="color: var(--status-info-text); font-weight: 600;">Blue</span> = Test data | 
+                    <span style="color: var(--status-info); font-weight: 600;">Blue</span> = Test data | 
                     <span style="color: var(--text-secondary); font-weight: 600;">Grey</span> = Your data
                 </div>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 12px;">
-                <div style="padding: 8px; background: var(--bg-primary); border-radius: 4px;">
+                <div style="padding: 8px; background: var(--bg-surface); border-radius: 8px;">
                     <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">CONTACTS</div>
                     <div style="font-size: 12px; font-weight: bold;">
-                        <span style="color: var(--status-info-text);">${testDataStatus.contacts.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.contacts.real}</span>
+                        <span style="color: var(--status-info);">${testDataStatus.contacts.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.contacts.real}</span>
                     </div>
                 </div>
-                <div style="padding: 8px; background: var(--bg-primary); border-radius: 4px;">
+                <div style="padding: 8px; background: var(--bg-surface); border-radius: 8px;">
                     <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">CALENDAR</div>
                     <div style="font-size: 12px; font-weight: bold;">
-                        <span style="color: var(--status-info-text);">${testDataStatus.calendarEvents.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.calendarEvents.real}</span>
+                        <span style="color: var(--status-info);">${testDataStatus.calendarEvents.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.calendarEvents.real}</span>
                     </div>
                 </div>
-                <div style="padding: 8px; background: var(--bg-primary); border-radius: 4px;">
+                <div style="padding: 8px; background: var(--bg-surface); border-radius: 8px;">
                     <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">SUGGESTIONS</div>
                     <div style="font-size: 12px; font-weight: bold;">
-                        <span style="color: var(--status-info-text);">${testDataStatus.suggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.suggestions.real}</span>
+                        <span style="color: var(--status-info);">${testDataStatus.suggestions.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.suggestions.real}</span>
                     </div>
                 </div>
-                <div style="padding: 8px; background: var(--bg-primary); border-radius: 4px;">
+                <div style="padding: 8px; background: var(--bg-surface); border-radius: 8px;">
                     <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">VOICE NOTES</div>
                     <div style="font-size: 12px; font-weight: bold;">
-                        <span style="color: var(--status-info-text);">${testDataStatus.voiceNotes.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.voiceNotes.real}</span>
+                        <span style="color: var(--status-info);">${testDataStatus.voiceNotes.test}</span> / <span style="color: var(--text-secondary);">${testDataStatus.voiceNotes.real}</span>
                     </div>
                 </div>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button onclick="bulkAddTestData()" style="flex: 1; padding: 10px 20px; background: var(--status-success-text); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Generate Test Data</button>
-                <button onclick="clearAllTestData()" style="flex: 1; padding: 10px 20px; background: var(--status-info-text); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Clear Test Data</button>
+                <button onclick="bulkAddTestData()" style="flex: 1; padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Generate Test Data</button>
+                <button onclick="clearAllTestData()" style="flex: 1; padding: 10px 20px; background: var(--status-info); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Clear Test Data</button>
             </div>
         </div>
         ` : ''}
         
         <!-- Clear All User Data -->
-        <div class="card" style="border: 2px solid var(--status-error-text); background: rgba(239, 68, 68, 0.05);">
+        <div class="card" style="border: 2px solid #ef4444; background: var(--status-error-bg); border-radius: 12px;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
                 <div>
-                    <div style="font-weight: bold; margin-bottom: 5px; color: var(--status-error-text);">Clear All Data</div>
+                    <div style="font-weight: bold; margin-bottom: 5px; color: #ef4444;">Clear All Data</div>
                     <div style="font-size: 12px; color: var(--text-secondary);">Permanently delete all your data including user-added and test contacts, events, suggestions, and voice notes</div>
                 </div>
-                <button onclick="deleteAllUserData()" style="background: var(--status-error-text); color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap; font-weight: bold;">Clear All</button>
+                <button onclick="deleteAllUserData()" style="background: #ef4444; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap; font-weight: bold;">Clear All</button>
             </div>
         </div>
     `;
@@ -4999,7 +5094,7 @@ async function loadAccountInfo() {
         contentDiv.innerHTML = `
             <div style="display: grid; gap: 15px;">
                 <!-- Email -->
-                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-hover); border-radius: 8px;">
                     <div>
                         <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">EMAIL</div>
                         <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${escapeHtml(user.email)}</div>
@@ -5007,20 +5102,21 @@ async function loadAccountInfo() {
                 </div>
                 
                 <!-- Authentication Method -->
-                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-hover); border-radius: 8px;">
                     <div style="flex: 1;">
                         <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">AUTHENTICATION METHOD</div>
                         <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${authMethodDisplay}</div>
                     </div>
-                    <div>
-                        <span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; background: var(--status-success-bg); color: ${connectionStatusColor}; font-weight: 600;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                        <span style="font-size: 12px; font-weight: 500; color: #10b981;">
                             ${connectionStatus}
                         </span>
                     </div>
                 </div>
                 
                 <!-- Account Created -->
-                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-hover); border-radius: 8px;">
                     <div>
                         <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">MEMBER SINCE</div>
                         <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${createdDateStr}</div>
@@ -5028,7 +5124,7 @@ async function loadAccountInfo() {
                 </div>
                 
                 <!-- Last Login -->
-                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                <div class="info-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-hover); border-radius: 8px;">
                     <div>
                         <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600;">LAST LOGIN</div>
                         <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${lastLoginStr}</div>
@@ -6291,32 +6387,41 @@ function createOnboardingContactCard(contact) {
 // Update contact circle assignment
 async function updateContactCircle(contactId, circle) {
     try {
-        const response = await fetch(`${API_BASE}/contacts/${contactId}`, {
-            method: 'PATCH',
+        const userId = window.userId || localStorage.getItem('userId');
+        if (!userId) {
+            throw new Error('User ID not found. Please log in again.');
+        }
+
+        // Send the circle string value directly (database expects 'inner', 'close', etc.)
+        const response = await fetch(`/api/contacts/${contactId}`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({ circle })
+            body: JSON.stringify({ 
+                userId: userId,
+                dunbarCircle: circle  // Send the string value, not a number
+            })
         });
         
         if (!response.ok) {
-            throw new Error('Failed to update contact circle');
+            const errorData = await response.json().catch(() => ({ error: response.statusText }));
+            throw new Error(errorData.error || `Failed to update contact circle: ${response.statusText}`);
         }
+        
+        const updatedContact = await response.json();
         
         // Update local contact data
         const contact = contacts.find(c => c.id === contactId);
         if (contact) {
             contact.circle = circle;
-            // Map to dunbarCircle for backward compatibility
-            const circleMap = { inner: 1, close: 2, active: 3, casual: 4, acquaintance: 5 };
-            contact.dunbarCircle = circleMap[circle];
+            contact.dunbarCircle = circle;  // Store the string value
         }
         
-        console.log(`Updated contact ${contactId} to circle: ${circle}`);
+        console.log(`✅ Updated contact ${contactId} to circle: ${circle}`);
     } catch (error) {
-        console.error('Error updating contact circle:', error);
-        showToast('Failed to update contact circle', 'error');
+        console.error('❌ Error updating contact circle:', error);
+        showToast(`Failed to update contact circle: ${error.message}`, 'error');
     }
 }
 
@@ -6347,10 +6452,17 @@ async function completeOnboarding() {
         // Close modal
         closeOnboardingModal();
         
-        // Refresh the Circles visualizer
+        // Reload contacts from server to get latest data
+        await loadContacts();
+        
+        // Refresh the Circles visualizer if it exists
         if (window.circularVisualizer) {
-            await loadContacts(); // Reload contacts with updated circles
             window.circularVisualizer.render(contacts, groups);
+        }
+        
+        // If we have a contacts table instance, refresh it too
+        if (window.contactsTableInstance) {
+            window.contactsTableInstance.refresh(contacts);
         }
         
     } catch (error) {
