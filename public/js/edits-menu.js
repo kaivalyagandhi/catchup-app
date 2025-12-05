@@ -39,7 +39,7 @@ class EditsMenu {
       <div class="edits-menu__tabs" role="tablist">
         <button class="edits-menu__tab edits-menu__tab--active" role="tab" aria-selected="true" data-tab="pending">
           Pending Edits
-          <span class="edits-menu__tab-count" data-count="pending">0</span>
+          <span class="edits-menu__tab-count" data-count="pending" style="display: none;">0</span>
         </button>
         <button class="edits-menu__tab" role="tab" aria-selected="false" data-tab="history">
           Edit History

@@ -1,0 +1,209 @@
+# Implementation Plan
+
+- [ ] 1. Set up project structure and core interfaces
+  - [ ] 1.1 Create chat module directory structure (`src/chat/`)
+    - Create directories for intent classification, query engine, and response generation
+    - _Requirements: 1.1, 6.2_
+  - [ ] 1.2 Define TypeScript interfaces for all components
+    - Create `src/chat/types.ts` with IntentClassificationResult, QueryFilter, EditAction, QueryResult, ChatResponse interfaces
+    - _Requirements: 1.1, 5.1_
+  - [ ]* 1.3 Set up fast-check testing framework
+    - Add fast-check dependency and configure test utilities
+    - Create test helpers for generating random contacts, queries, and filters
+    - _Requirements: 6.2_
+
+- [ ] 2. Implement Time Expression Parser
+  - [ ] 2.1 Create time expression parser with support for relative and absolute dates
+    - Implement parsing for "2 weeks", "a month", "last Tuesday", "this year"
+    - Handle edge cases like "yesterday", "today", "last week"
+    - _Requirements: 7.3_
+  - [ ]* 2.2 Write property test for time expression parsing
+    - **Property 12: Time expression parsing**
+    - **Validates: Requirements 7.3**
+  - [ ]* 2.3 Write unit tests for time parser edge cases
+    - Test invalid inputs, boundary dates, timezone handling
+    - _Requirements: 7.3_
+
+- [ ] 3. Implement Contact Query Engine
+  - [ ] 3.1 Create SQL query builder with parameterized queries
+    - Build dynamic WHERE clauses from QueryFilter array
+    - Ensure all values are parameterized (never interpolated)
+    - _Requirements: 6.2, 6.3_
+  - [ ]* 3.2 Write property test for SQL parameterization
+    - **Property 11: SQL parameterization**
+    - **Validates: Requirements 6.2**
+  - [ ] 3.3 Implement location filter
+    - Support exact match and contains for location field
+    - Handle case-insensitive matching
+    - _Requirements: 1.2_
+  - [ ]* 3.4 Write property test for location filter correctness
+    - **Property 1: Location filter correctness**
+    - **Validates: Requirements 1.2**
+  - [ ] 3.5 Implement tag filter
+    - Query contacts by tag membership
+    - Support single and multiple tag filters
+    - _Requirements: 1.4_
+  - [ ]* 3.6 Write property test for tag filter correctness
+    - **Property 2: Tag filter correctness**
+    - **Validates: Requirements 1.4**
+  - [ ] 3.7 Implement group/circle filter
+    - Query contacts by group or circle membership
+    - _Requirements: 3.4_
+  - [ ]* 3.8 Write property test for group/circle filter correctness
+    - **Property 5: Group/circle filter correctness**
+    - **Validates: Requirements 3.4**
+  - [ ] 3.9 Implement time-based filter
+    - Filter by lastContactDate using parsed time expressions
+    - Support "before", "after", and "between" operators
+    - _Requirements: 7.1, 7.2_
+  - [ ]* 3.10 Write property test for time-based filter correctness
+    - **Property 13: Time-based filter correctness**
+    - **Validates: Requirements 7.1, 7.2**
+  - [ ] 3.11 Implement combined filters with AND logic
+    - Combine multiple filters in single query
+    - _Requirements: 8.1_
+  - [ ]* 3.12 Write property test for combined filter AND logic
+    - **Property 14: Combined filter AND logic**
+    - **Validates: Requirements 8.1**
+  - [ ] 3.13 Implement sorting by lastContactDate
+    - Sort results ascending (oldest first) for "not contacted recently" queries
+    - _Requirements: 1.3_
+  - [ ]* 3.14 Write property test for last contact date sorting
+    - **Property 3: Last contact date sorting**
+    - **Validates: Requirements 1.3**
+  - [ ] 3.15 Implement pagination
+    - Return max 10 results per page with hasMore flag
+    - _Requirements: 4.3_
+  - [ ]* 3.16 Write property test for pagination correctness
+    - **Property 7: Pagination correctness**
+    - **Validates: Requirements 4.3**
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 5. Implement Intent Classifier
+  - [ ] 5.1 Create Gemini API client wrapper for intent classification
+    - Configure structured JSON output using responseSchema
+    - Handle API errors with fallback to keyword matching
+    - _Requirements: 1.1, 3.1_
+  - [ ] 5.2 Implement synonym mapping for contact attributes
+    - Map "city" → "location", "friends" → contacts, etc.
+    - _Requirements: 3.1_
+  - [ ]* 5.3 Write property test for synonym mapping consistency
+    - **Property 4: Synonym mapping consistency**
+    - **Validates: Requirements 3.1**
+  - [ ] 5.4 Implement intent classification logic
+    - Classify messages as query, edit, followup, or general
+    - Extract entities (locations, tags, groups, time expressions, contact names)
+    - _Requirements: 9.1, 9.2_
+  - [ ]* 5.5 Write property test for intent classification correctness
+    - **Property 15: Intent classification correctness**
+    - **Validates: Requirements 9.1**
+
+- [ ] 6. Implement Conversation Context Manager
+  - [ ] 6.1 Create conversation session storage
+    - Store edit context (contact IDs from last query)
+    - Track message history for follow-up context
+    - _Requirements: 3.2, 5.1_
+  - [ ] 6.2 Implement edit context preservation after queries
+    - Update edit context with contact IDs from query results
+    - _Requirements: 5.1_
+  - [ ]* 6.3 Write property test for edit context preservation
+    - **Property 8: Edit context preservation**
+    - **Validates: Requirements 5.1**
+  - [ ] 6.4 Implement pronoun resolution ("them", "these contacts")
+    - Resolve pronouns to contacts in edit context
+    - _Requirements: 9.4_
+  - [ ]* 6.5 Write property test for pronoun resolution
+    - **Property 16: Pronoun resolution**
+    - **Validates: Requirements 9.4**
+
+- [ ] 7. Implement Chat Edit Handler
+  - [ ] 7.1 Create batch edit creation for tag operations
+    - Create pending edits for all contacts in edit context
+    - Tag edits with source "chat_query"
+    - _Requirements: 5.2, 10.2_
+  - [ ]* 7.2 Write property test for batch edit creation
+    - **Property 9: Batch edit creation**
+    - **Validates: Requirements 5.2, 5.3**
+  - [ ]* 7.3 Write property test for edit source tagging
+    - **Property 17: Edit source tagging**
+    - **Validates: Requirements 10.2**
+  - [ ] 7.4 Create batch edit creation for group operations
+    - Create pending edits for group assignments
+    - _Requirements: 5.3_
+  - [ ] 7.5 Implement single contact edit creation
+    - Create edit for specific named contact
+    - _Requirements: 5.5_
+  - [ ] 7.6 Implement edit confirmation with contact count
+    - Generate confirmation message with affected contact count
+    - _Requirements: 5.4_
+  - [ ]* 7.7 Write property test for edit confirmation count accuracy
+    - **Property 10: Edit confirmation count accuracy**
+    - **Validates: Requirements 5.4**
+
+- [ ] 8. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 9. Implement Response Generator
+  - [ ] 9.1 Create query result formatter
+    - Format contact list with name, matching attribute, lastContactDate
+    - _Requirements: 4.1, 4.2_
+  - [ ]* 9.2 Write property test for result formatting completeness
+    - **Property 6: Result formatting completeness**
+    - **Validates: Requirements 4.2**
+  - [ ] 9.3 Create TTS-friendly response formatter for voice mode
+    - Remove special characters, format numbers for speech
+    - _Requirements: 2.2_
+  - [ ]* 9.4 Write property test for voice response TTS formatting
+    - **Property 18: Voice response TTS formatting**
+    - **Validates: Requirements 2.2**
+  - [ ] 9.5 Implement no-results response with suggestions
+    - Suggest relaxing criteria when no matches found
+    - _Requirements: 1.5, 8.3_
+  - [ ] 9.6 Implement single contact detailed response
+    - Show full contact details when only one match
+    - _Requirements: 4.4_
+
+- [ ] 10. Implement Chat Query API Endpoint
+  - [ ] 10.1 Create POST /api/chat/query endpoint
+    - Accept message, sessionId, conversationContext, isVoiceMode
+    - Return ChatResponse with newContext
+    - _Requirements: 1.1, 2.1_
+  - [ ] 10.2 Wire up intent classifier, query engine, and response generator
+    - Process message through full pipeline
+    - _Requirements: 1.1_
+  - [ ] 10.3 Implement error handling and validation
+    - Handle empty messages, invalid sessions, database errors
+    - _Requirements: 2.4_
+
+- [ ] 11. Integrate with Frontend Chat Window
+  - [ ] 11.1 Update chat-window.js to call /api/chat/query
+    - Send user messages to new endpoint
+    - Handle structured responses with contacts
+    - _Requirements: 1.1_
+  - [ ] 11.2 Display contact query results in chat
+    - Render contact cards with key details
+    - Show pagination controls when hasMore is true
+    - _Requirements: 4.1, 4.3_
+  - [ ] 11.3 Add quick action buttons to contact results
+    - View profile, schedule catchup buttons
+    - _Requirements: 5.1_
+  - [ ] 11.4 Integrate with enrichment review panel for edits
+    - Display pending edits from chat in enrichment panel
+    - _Requirements: 10.1_
+
+- [ ] 12. Integrate with Voice Mode
+  - [ ] 12.1 Update voice-notes.js to route transcribed queries to chat endpoint
+    - Detect query intent in transcription
+    - Send to /api/chat/query with isVoiceMode=true
+    - _Requirements: 2.1_
+  - [ ] 12.2 Display voice query results in chat window
+    - Show results after voice query completes
+    - _Requirements: 2.1_
+  - [ ] 12.3 Implement TTS response playback (optional)
+    - Use Web Speech API to speak responses
+    - _Requirements: 2.2_
+
+- [ ] 13. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

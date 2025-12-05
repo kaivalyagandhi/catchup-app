@@ -4,7 +4,7 @@
  * Overlay interface for conversational interaction with the system.
  * Displays messages, handles voice input, and shows disambiguation options.
  *
- * Requirements: 2.2, 2.3, 3.1-3.9, 4.3, 6.1-6.5
+ * Requirements: 2.2, 2.3, 3.1-3.9, 4.3
  */
 
 class ChatWindow {
@@ -12,21 +12,17 @@ class ChatWindow {
     this.isOpen = false;
     this.sessionId = null;
     this.messages = [];
-    this.pendingEditCount = 0;
     this.isRecording = false;
     this.onClose = options.onClose || (() => {});
-    this.onCancelSession = options.onCancelSession || (() => {});
     this.onStartRecording = options.onStartRecording || (() => {});
     this.onStopRecording = options.onStopRecording || (() => {});
     this.onSendMessage = options.onSendMessage || (() => {});
     this.onEditClick = options.onEditClick || (() => {});
     this.onDisambiguationSelect = options.onDisambiguationSelect || (() => {});
-    this.onCounterClick = options.onCounterClick || (() => {});
     
     this.element = null;
     this.messagesContainer = null;
     this.inputElement = null;
-    this.counterElement = null;
   }
 
   /**
@@ -43,13 +39,6 @@ class ChatWindow {
         <div class="chat-window__header">
           <h2 class="chat-window__title">CatchUp</h2>
           <div class="chat-window__header-actions">
-            <button class="chat-window__counter" aria-label="View pending edits">
-              <span class="chat-window__counter-value">0</span>
-              <span class="chat-window__counter-label">pending</span>
-            </button>
-            <button class="chat-window__cancel-btn" aria-label="Clear this chat and pending edits">
-              Clear
-            </button>
             <button class="chat-window__close-btn" aria-label="Close chat">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -82,7 +71,6 @@ class ChatWindow {
     // Get references to elements
     this.messagesContainer = this.element.querySelector('.chat-window__messages');
     this.inputElement = this.element.querySelector('.chat-window__text-input');
-    this.counterElement = this.element.querySelector('.chat-window__counter-value');
 
     // Set up event listeners
     this.setupEventListeners();
@@ -97,14 +85,6 @@ class ChatWindow {
     // Close button
     const closeBtn = this.element.querySelector('.chat-window__close-btn');
     closeBtn.addEventListener('click', () => this.close());
-
-    // Clear button
-    const clearBtn = this.element.querySelector('.chat-window__cancel-btn');
-    clearBtn.addEventListener('click', () => this.handleClear());
-
-    // Counter click
-    const counterBtn = this.element.querySelector('.chat-window__counter');
-    counterBtn.addEventListener('click', () => this.onCounterClick());
 
     // Mic button
     const micBtn = this.element.querySelector('.chat-window__mic-btn');
@@ -168,16 +148,6 @@ class ChatWindow {
     }
     
     this.onClose();
-  }
-
-  /**
-   * Handle clear button click
-   */
-  handleClear() {
-    // Clear messages and show notification
-    this.clearMessages();
-    this.onCancelSession();
-    this.showClearNotification();
   }
 
   /**
@@ -557,33 +527,6 @@ class ChatWindow {
   }
 
   /**
-   * Update pending edits counter
-   * Requirements: 6.1, 6.2, 6.3
-   */
-  setPendingEditCount(count) {
-    const previousCount = this.pendingEditCount;
-    this.pendingEditCount = count;
-
-    if (this.counterElement) {
-      this.counterElement.textContent = count.toString();
-      
-      // Animate if count changed
-      if (count !== previousCount) {
-        this.counterElement.classList.add('chat-window__counter-value--animate');
-        setTimeout(() => {
-          this.counterElement?.classList.remove('chat-window__counter-value--animate');
-        }, 300);
-      }
-
-      // Muted state when zero
-      const counterBtn = this.element?.querySelector('.chat-window__counter');
-      if (counterBtn) {
-        counterBtn.classList.toggle('chat-window__counter--muted', count === 0);
-      }
-    }
-  }
-
-  /**
    * Scroll to bottom of messages
    */
   scrollToBottom() {
@@ -621,25 +564,6 @@ class ChatWindow {
   }
 
   /**
-   * Show clear notification
-   */
-  showClearNotification() {
-    const notification = document.createElement('div');
-    notification.className = 'chat-window__notification chat-window__notification--clear';
-    notification.textContent = '✓ Chat and edits cleared';
-    
-    if (this.messagesContainer) {
-      this.messagesContainer.appendChild(notification);
-      this.scrollToBottom();
-      
-      setTimeout(() => {
-        notification.classList.add('chat-window__notification--fade');
-        setTimeout(() => notification.remove(), 300);
-      }, 2500);
-    }
-  }
-
-  /**
    * Format edit type for display
    */
   formatEditType(editType) {
@@ -665,7 +589,6 @@ class ChatWindow {
     this.element = null;
     this.messagesContainer = null;
     this.inputElement = null;
-    this.counterElement = null;
   }
 }
 

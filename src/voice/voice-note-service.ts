@@ -273,7 +273,30 @@ export class VoiceNoteService extends EventEmitter {
       // Get final transcript
       const transcript = session.finalTranscript.trim();
       if (!transcript) {
-        throw new Error('No transcript available');
+        // No speech detected - clean up silently without creating a voice note
+        console.log(`[VoiceNoteService] No transcript captured for session ${sessionId}, cleaning up silently`);
+        
+        // Clean up session
+        this.activeSessions.delete(sessionId);
+        this.enrichmentAnalyzer.clearSession(sessionId);
+        
+        // Return empty result instead of throwing error
+        return {
+          voiceNote: {
+            id: '',
+            userId: session.userId,
+            transcript: '',
+            recordingTimestamp: session.startTime,
+            status: 'ready' as VoiceNoteStatus,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          proposal: {
+            voiceNoteId: '',
+            contactProposals: [],
+            createdAt: new Date(),
+          },
+        };
       }
 
       // Create initial voice note record

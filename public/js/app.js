@@ -218,6 +218,9 @@ function showMainApp() {
     // Load pending edits count for nav badge
     loadPendingEditsCount();
     
+    // Load pending suggestions count for nav badge
+    loadPendingSuggestionsCount();
+    
     // Initialize floating chat icon and chat window
     initializeChatComponents();
     
@@ -251,9 +254,6 @@ function initializeChatComponents() {
             },
             onCancelSession: () => {
                 console.log('Chat session cancelled');
-                if (floatingChatIcon) {
-                    floatingChatIcon.setPendingEditCount(0);
-                }
             },
             onStartRecording: () => {
                 console.log('Recording started from chat');
@@ -3218,6 +3218,10 @@ async function loadSuggestions(statusFilter) {
         
         allSuggestions = await response.json();
         
+        // Update pending suggestions badge
+        const pendingCount = allSuggestions.filter(s => s.status === 'pending').length;
+        updatePendingSuggestionsCount(pendingCount);
+        
         // Apply the current filter
         filterSuggestions(currentSuggestionFilter);
     } catch (error) {
@@ -4342,16 +4346,6 @@ async function processTextMessageForEnrichment(text) {
                         console.warn('[App] enrichmentReview not available or no enrichment proposal');
                     }
                     
-                    // Update pending edit count
-                    if (floatingChatIcon) {
-                        const currentCount = floatingChatIcon.pendingEditCount || 0;
-                        floatingChatIcon.setPendingEditCount(currentCount + totalItems);
-                    }
-                    if (chatWindow) {
-                        const currentCount = chatWindow.pendingEditCount || 0;
-                        chatWindow.setPendingEditCount(currentCount + totalItems);
-                    }
-                    
                     // Refresh the pending edits page if it's currently visible
                     if (currentPage === 'edits') {
                         loadPendingEdits();
@@ -4580,15 +4574,6 @@ async function submitEdit(editId) {
             loadContacts();
         }, 1000);
         
-        // Update pending count
-        if (chatWindow) {
-            const currentCount = chatWindow.pendingEditCount || 0;
-            chatWindow.setPendingEditCount(Math.max(0, currentCount - 1));
-        }
-        if (floatingChatIcon) {
-            const currentCount = floatingChatIcon.pendingEditCount || 0;
-            floatingChatIcon.setPendingEditCount(Math.max(0, currentCount - 1));
-        }
     } catch (error) {
         console.error('Error submitting edit:', error);
         showToast('Failed to submit edit: ' + error.message, 'error');
@@ -4625,16 +4610,6 @@ async function dismissEdit(editId) {
         setTimeout(() => {
             loadPendingEditsCompact();
         }, 500);
-        
-        // Update pending count
-        if (chatWindow) {
-            const currentCount = chatWindow.pendingEditCount || 0;
-            chatWindow.setPendingEditCount(Math.max(0, currentCount - 1));
-        }
-        if (floatingChatIcon) {
-            const currentCount = floatingChatIcon.pendingEditCount || 0;
-            floatingChatIcon.setPendingEditCount(Math.max(0, currentCount - 1));
-        }
     } catch (error) {
         console.error('Error dismissing edit:', error);
         showToast('Failed to dismiss edit: ' + error.message, 'error');
@@ -4822,16 +4797,9 @@ async function loadPendingEditsCount() {
 }
 
 /**
- * Update pending edit counts in chat components and nav badge
+ * Update pending edit counts in nav badge and floating chat icon
  */
 function updatePendingEditCounts(count) {
-    if (chatWindow) {
-        chatWindow.setPendingEditCount(count);
-    }
-    if (floatingChatIcon) {
-        floatingChatIcon.setPendingEditCount(count);
-    }
-    
     // Update sidebar nav badge
     const badge = document.getElementById('edits-badge');
     if (badge) {
@@ -4852,6 +4820,52 @@ function updatePendingEditCounts(count) {
         } else {
             mobileBadge.classList.add('hidden');
         }
+    }
+}
+
+/**
+ * Update pending suggestions count in nav badge
+ */
+function updatePendingSuggestionsCount(count) {
+    // Update sidebar nav badge
+    const badge = document.getElementById('suggestions-badge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+    
+    // Update mobile nav badge
+    const mobileBadge = document.getElementById('mobile-suggestions-badge');
+    if (mobileBadge) {
+        if (count > 0) {
+            mobileBadge.textContent = count > 99 ? '99+' : count;
+            mobileBadge.classList.remove('hidden');
+        } else {
+            mobileBadge.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * Load pending suggestions count on app initialization
+ */
+async function loadPendingSuggestionsCount() {
+    try {
+        const response = await fetch(`${API_BASE}/suggestions/all?userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.ok) {
+            const suggestions = await response.json();
+            const pendingCount = suggestions.filter(s => s.status === 'pending').length;
+            console.log('Loaded pending suggestions count on init:', pendingCount);
+            updatePendingSuggestionsCount(pendingCount);
+        }
+    } catch (error) {
+        console.error('Error loading pending suggestions count:', error);
     }
 }
 
@@ -5009,16 +5023,6 @@ async function applyEdit(editId) {
         loadPendingEdits();
         loadEditsHistory(); // Refresh history to show applied edit
         loadContacts(); // Refresh contacts
-        
-        // Update pending count in chat
-        if (chatWindow) {
-            const currentCount = chatWindow.pendingEditCount || 0;
-            chatWindow.setPendingEditCount(Math.max(0, currentCount - 1));
-        }
-        if (floatingChatIcon) {
-            const currentCount = floatingChatIcon.pendingEditCount || 0;
-            floatingChatIcon.setPendingEditCount(Math.max(0, currentCount - 1));
-        }
     } catch (error) {
         console.error('Error applying edit:', error);
         showToast('Failed to apply edit', 'error');
@@ -5047,16 +5051,6 @@ async function rejectEdit(editId) {
                 showToast('Edit rejected', 'info');
                 loadPendingEdits();
                 loadEditsHistory(); // Refresh history (no new entry for rejected edits)
-                
-                // Update pending count in chat
-                if (chatWindow) {
-                    const currentCount = chatWindow.pendingEditCount || 0;
-                    chatWindow.setPendingEditCount(Math.max(0, currentCount - 1));
-                }
-                if (floatingChatIcon) {
-                    const currentCount = floatingChatIcon.pendingEditCount || 0;
-                    floatingChatIcon.setPendingEditCount(Math.max(0, currentCount - 1));
-                }
             } finally {
                 isRejectingInProgress = false;
                 // Add delay between requests to prevent rate limiting
