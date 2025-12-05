@@ -47,8 +47,8 @@ steps:
       - |
         # Check if this is a prod tag trigger
         if [ "$TAG_NAME" = "prod" ]; then
-          # Production version: YYYY.MM.DD.BUILD
-          APP_VERSION=$$(date -u +'%Y.%m.%d').$${BUILD_ID:0:8}
+          # Production version: YYYY.MM.DD.BUILD (use SHORT_SHA for build identifier)
+          APP_VERSION=$$(date -u +'%Y.%m.%d').$$SHORT_SHA
           echo "Production build version: $$APP_VERSION"
         else
           # Development version: dev-YYYY.MM.DD-COMMIT
