@@ -159,23 +159,22 @@ export function validateEnvironmentVariables(): EnvValidationResult {
     );
   }
 
-  // Redis configuration (required for job queue)
-  const redisVars = ['REDIS_HOST', 'REDIS_PORT'];
-  for (const varName of redisVars) {
-    if (!process.env[varName]) {
-      errors.push(`Missing required environment variable: ${varName}`);
-    } else if (process.env[varName]?.trim() === '') {
-      errors.push(`Environment variable ${varName} is empty`);
-    }
-  }
-
-  // Validate REDIS_PORT is a valid number
-  if (process.env.REDIS_PORT) {
-    const port = parseInt(process.env.REDIS_PORT, 10);
-    if (isNaN(port) || port < 1 || port > 65535) {
-      errors.push(
-        `REDIS_PORT must be a valid port number (1-65535), got: ${process.env.REDIS_PORT}`
-      );
+  // Redis configuration (optional - caching/job queue disabled without it)
+  if (!process.env.REDIS_HOST || !process.env.REDIS_PORT) {
+    warnings.push(
+      'Redis configuration is incomplete. ' +
+        'Caching and job queue features will be disabled. ' +
+        'Set REDIS_HOST and REDIS_PORT to enable these features.'
+    );
+  } else {
+    // Validate REDIS_PORT is a valid number if set
+    if (process.env.REDIS_PORT) {
+      const port = parseInt(process.env.REDIS_PORT, 10);
+      if (isNaN(port) || port < 1 || port > 65535) {
+        errors.push(
+          `REDIS_PORT must be a valid port number (1-65535), got: ${process.env.REDIS_PORT}`
+        );
+      }
     }
   }
 
@@ -256,10 +255,10 @@ export function logValidationStatus(validation: EnvValidationResult): void {
   console.log(`  GOOGLE_REDIRECT_URI: ${process.env.GOOGLE_REDIRECT_URI ? '✓ Set' : '✗ Not set'}`);
   console.log(`  JWT_SECRET: ${process.env.JWT_SECRET ? '✓ Set' : '✗ Not set'}`);
   console.log(`  ENCRYPTION_KEY: ${process.env.ENCRYPTION_KEY ? '✓ Set' : '✗ Not set'}`);
-  console.log(`  REDIS_HOST: ${process.env.REDIS_HOST ? '✓ Set' : '✗ Not set'}`);
-  console.log(`  REDIS_PORT: ${process.env.REDIS_PORT ? '✓ Set' : '✗ Not set'}`);
 
   console.log('\nOptional Variables:');
+  console.log(`  REDIS_HOST: ${process.env.REDIS_HOST ? '✓ Set' : '✗ Not set'}`);
+  console.log(`  REDIS_PORT: ${process.env.REDIS_PORT ? '✓ Set' : '✗ Not set'}`);
   console.log(
     `  GOOGLE_APPLICATION_CREDENTIALS: ${process.env.GOOGLE_APPLICATION_CREDENTIALS ? '✓ Set' : '✗ Not set'}`
   );
