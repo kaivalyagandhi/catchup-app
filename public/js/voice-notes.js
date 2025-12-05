@@ -239,12 +239,27 @@ class VoiceNoteRecorder {
       this.sendAudioChunk(chunk);
     };
     
-    // Level change callback
-    this.audioManager.onLevelChange = (level) => {
-      // Used for visualization - no action needed here
+    // Level change callback - triggers waveform and glow on floating chat icon
+    this.audioManager.onLevelChange = (levelDb) => {
+      // Convert dB level to 0-1 range with more sensitivity
+      // Typical speech is around -30 to -10 dB, silence is below -50 dB
+      // Amplify the range for more dramatic effect
+      const normalizedLevel = Math.max(0, Math.min(1, (levelDb + 45) / 35));
+      // Apply exponential curve for more dramatic response
+      const amplifiedLevel = Math.pow(normalizedLevel, 0.7);
+      
+      // Update floating chat icon with speaking state and waveform
+      if (window.floatingChatIcon && this.audioManager.isRecording()) {
+        const isSpeaking = amplifiedLevel > 0.15; // Lower threshold for more sensitivity
+        window.floatingChatIcon.setSpeakingState(isSpeaking);
+        window.floatingChatIcon.setAudioLevel(amplifiedLevel);
+      }
+      
+      // Also update chat window if open
+      if (window.chatWindow) {
+        window.chatWindow.setAudioLevel(amplifiedLevel);
+      }
     };
-    
-    // Audio level callbacks removed - no visualization needed
   }
   
 
@@ -931,17 +946,15 @@ class VoiceNoteRecorder {
   }
   
   updateRecordingIndicator() {
-    if (!this.recordingIndicator || !this.audioManager) return;
+    // Recording indicator (top bar) removed per UX update
+    // Recording state is now shown via floating chat icon
+    if (!this.audioManager) return;
     
-    const elapsedSeconds = Math.floor(this.audioManager.getElapsedTime() / 1000);
-    
-    this.recordingIndicator.show({
-      isRecording: this.audioManager.isRecording() || this.audioManager.isPaused(),
-      isPaused: this.audioManager.isPaused(),
-      elapsedTime: elapsedSeconds,
-      connectionStatus: this.connectionState,
-      reconnectAttempt: this.reconnectAttempt
-    });
+    // Update floating chat icon recording state
+    if (window.floatingChatIcon) {
+      const isRecording = this.audioManager.isRecording() || this.audioManager.isPaused();
+      window.floatingChatIcon.setRecordingState(isRecording);
+    }
   }
   
   startIndicatorTimer() {
@@ -1045,8 +1058,11 @@ class VoiceNoteRecorder {
       // Stop indicator timer
       this.stopIndicatorTimer();
       
-      // Hide recording indicator
-      this.recordingIndicator.hide();
+      // Update floating chat icon to not recording
+      if (window.floatingChatIcon) {
+        window.floatingChatIcon.setRecordingState(false);
+        window.floatingChatIcon.setSpeakingState(false);
+      }
       
       // Stop audio manager and get audio blob
       const audioBlob = await this.audioManager.stop();
@@ -1387,9 +1403,10 @@ class VoiceNoteRecorder {
     // Stop indicator timer
     this.stopIndicatorTimer();
     
-    // Hide recording indicator
-    if (this.recordingIndicator) {
-      this.recordingIndicator.hide();
+    // Update floating chat icon to not recording
+    if (window.floatingChatIcon) {
+      window.floatingChatIcon.setRecordingState(false);
+      window.floatingChatIcon.setSpeakingState(false);
     }
     
     // Cleanup audio manager

@@ -59,13 +59,6 @@ class ChatWindow {
           </div>
         </div>
         <div class="chat-window__messages" role="log" aria-live="polite"></div>
-        <div class="chat-window__audio-indicator hidden" aria-label="Audio level indicator">
-          <div class="chat-window__audio-bar"></div>
-          <div class="chat-window__audio-bar"></div>
-          <div class="chat-window__audio-bar"></div>
-          <div class="chat-window__audio-bar"></div>
-          <div class="chat-window__audio-bar"></div>
-        </div>
         <div class="chat-window__input-area">
           <input type="text" class="chat-window__text-input" placeholder="Type a message..." aria-label="Message input">
           <button class="chat-window__mic-btn" aria-label="Start voice recording">
@@ -192,14 +185,13 @@ class ChatWindow {
    */
   async toggleRecording() {
     const micBtn = this.element.querySelector('.chat-window__mic-btn');
-    const audioIndicator = this.element.querySelector('.chat-window__audio-indicator');
     
     if (this.isRecording) {
       // Stop recording
       this.isRecording = false;
       micBtn.classList.remove('chat-window__mic-btn--recording');
       micBtn.setAttribute('aria-label', 'Start voice recording');
-      if (audioIndicator) audioIndicator.classList.add('hidden');
+      this.updateMicIcon(false);
       
       // Stop the voice recording and process
       if (window.voiceNoteRecorder) {
@@ -213,7 +205,7 @@ class ChatWindow {
       this.isRecording = true;
       micBtn.classList.add('chat-window__mic-btn--recording');
       micBtn.setAttribute('aria-label', 'Stop voice recording');
-      if (audioIndicator) audioIndicator.classList.remove('hidden');
+      this.updateMicIcon(true);
       
       // Start the voice recording
       if (window.voiceNoteRecorder) {
@@ -225,7 +217,7 @@ class ChatWindow {
           this.isRecording = false;
           micBtn.classList.remove('chat-window__mic-btn--recording');
           micBtn.setAttribute('aria-label', 'Start voice recording');
-          if (audioIndicator) audioIndicator.classList.add('hidden');
+          this.updateMicIcon(false);
         }
       } else {
         console.warn('[ChatWindow] voiceNoteRecorder not available');
@@ -236,47 +228,110 @@ class ChatWindow {
   }
 
   /**
+   * Update mic button icon based on recording state
+   */
+  updateMicIcon(isRecording) {
+    const micBtn = this.element?.querySelector('.chat-window__mic-btn');
+    if (!micBtn) return;
+    
+    if (isRecording) {
+      // Sound waveform icon when recording
+      micBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="waveform-icon">
+          <line x1="4" y1="8" x2="4" y2="16"></line>
+          <line x1="8" y1="5" x2="8" y2="19"></line>
+          <line x1="12" y1="3" x2="12" y2="21"></line>
+          <line x1="16" y1="5" x2="16" y2="19"></line>
+          <line x1="20" y1="8" x2="20" y2="16"></line>
+        </svg>
+      `;
+    } else {
+      // Microphone icon when not recording
+      micBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+      `;
+    }
+  }
+
+  /**
    * Set recording state externally
    */
   setRecordingState(isRecording) {
     this.isRecording = isRecording;
     const micBtn = this.element?.querySelector('.chat-window__mic-btn');
-    const audioIndicator = this.element?.querySelector('.chat-window__audio-indicator');
     
     if (micBtn) {
       if (isRecording) {
         micBtn.classList.add('chat-window__mic-btn--recording');
         micBtn.setAttribute('aria-label', 'Stop voice recording');
-        if (audioIndicator) audioIndicator.classList.remove('hidden');
       } else {
         micBtn.classList.remove('chat-window__mic-btn--recording');
         micBtn.setAttribute('aria-label', 'Start voice recording');
-        if (audioIndicator) audioIndicator.classList.add('hidden');
       }
+    }
+    
+    this.updateMicIcon(isRecording);
+  }
+
+  /**
+   * Update audio level - updates waveform and triggers glow on floating chat icon
+   * @param {number} level - Audio level from 0 to 1
+   */
+  setAudioLevel(level) {
+    // Update waveform in chat window mic button
+    this.updateWaveform(level);
+    
+    // Trigger speaking glow and waveform on floating chat icon when audio level is significant
+    const floatingIcon = window.floatingChatIcon;
+    if (floatingIcon && this.isRecording) {
+      // Threshold for "speaking" - level above 0.1 indicates voice activity
+      const isSpeaking = level > 0.1;
+      floatingIcon.setSpeakingState(isSpeaking);
+      floatingIcon.setAudioLevel(level);
     }
   }
 
   /**
-   * Update audio level visualization
+   * Update waveform visualization based on audio level
    * @param {number} level - Audio level from 0 to 1
    */
-  setAudioLevel(level) {
-    const bars = this.element?.querySelectorAll('.chat-window__audio-bar');
-    if (!bars || bars.length === 0) return;
+  updateWaveform(level) {
+    if (!this.isRecording || !this.element) return;
     
-    // Map level (0-1) to number of active bars (0-5)
-    const activeBars = Math.ceil(level * 5);
+    const micBtn = this.element.querySelector('.chat-window__mic-btn');
+    if (!micBtn) return;
     
-    bars.forEach((bar, index) => {
-      if (index < activeBars) {
-        bar.classList.add('active');
-        // Vary height based on level
-        const height = 8 + (level * 16) + (Math.random() * 4);
-        bar.style.height = `${height}px`;
-      } else {
-        bar.classList.remove('active');
-        bar.style.height = '4px';
-      }
+    const waveformIcon = micBtn.querySelector('.waveform-icon');
+    if (!waveformIcon) return;
+    
+    const lines = waveformIcon.querySelectorAll('line');
+    if (lines.length !== 5) return;
+    
+    // Minimum heights when silent (small bars visible)
+    const minHeights = [2, 3, 4, 3, 2];
+    // Maximum heights at full volume (dramatic range)
+    const maxHeights = [6, 9, 11, 9, 6];
+    
+    // Add randomness for organic feel
+    lines.forEach((line, index) => {
+      const minH = minHeights[index];
+      const maxH = maxHeights[index];
+      // Random variation per bar
+      const randomFactor = 0.8 + Math.random() * 0.4;
+      // Interpolate between min and max based on level
+      const height = minH + (maxH - minH) * level * randomFactor;
+      
+      // Calculate y1 and y2 centered at 12 (middle of 24px viewBox)
+      const y1 = 12 - height;
+      const y2 = 12 + height;
+      
+      line.setAttribute('y1', y1.toFixed(1));
+      line.setAttribute('y2', y2.toFixed(1));
     });
   }
 

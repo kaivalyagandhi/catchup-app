@@ -316,6 +316,10 @@ function initializeChatComponents() {
     const iconEl = floatingChatIcon.render();
     document.body.appendChild(iconEl);
     
+    // Expose globally for voice-notes.js audio level integration
+    window.floatingChatIcon = floatingChatIcon;
+    window.chatWindow = chatWindow;
+    
     console.log('Chat components initialized');
 }
 

@@ -77,24 +77,40 @@
   justify-content: center;
 }
 
-/* Recording state - red glow */
-.floating-chat-icon--recording,
-.floating-chat-icon--glow {
+/* Recording state - red background to indicate active recording */
+.floating-chat-icon--recording {
   background: var(--edits-danger);
-  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-  animation: recording-glow 1.5s infinite;
 }
 
-@keyframes recording-glow {
+/* Speaking state - glow when mic picks up audio */
+.floating-chat-icon--speaking {
+  background: var(--edits-danger);
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  animation: speaking-glow 0.6s ease-out;
+}
+
+@keyframes speaking-glow {
   0% {
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
   }
-  70% {
-    box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+  50% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.3);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 14px rgba(239, 68, 68, 0);
   }
+}
+
+/* Legacy glow class for backwards compatibility */
+.floating-chat-icon--glow {
+  background: var(--edits-danger);
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  animation: speaking-glow 0.6s ease-out;
+}
+
+/* Waveform icon - responds to audio input via JavaScript */
+.waveform-icon line {
+  transition: y1 0.05s ease-out, y2 0.05s ease-out;
 }
 
 /* Error state */
