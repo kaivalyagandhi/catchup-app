@@ -113,7 +113,7 @@ steps:
           --cpu=1 \
           --timeout=3600 \
           --service-account=catchup-cloud-run@$PROJECT_ID.iam.gserviceaccount.com \
-          --no-allow-unauthenticated \
+          --allow-unauthenticated \
           --add-cloudsql-instances=$PROJECT_ID:us-central1:catchup-db \
           --vpc-connector=catchup-connector \
           --vpc-egress=private-ranges-only \
