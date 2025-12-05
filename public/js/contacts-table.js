@@ -623,15 +623,8 @@ class ContactsTable {
 
       const newContact = await response.json();
 
-      // Add to data arrays
-      this.data.push(newContact);
-      this.filteredData.push(newContact);
-
       // Remove the new contact row
       this.cancelNewContact();
-
-      // Re-sort and render to place contact in correct position (Requirement 5.3)
-      this.sort(this.options.sortBy, this.options.sortOrder);
 
       // Trigger callback
       if (this.options.onAdd) {
@@ -641,6 +634,12 @@ class ContactsTable {
       // Show success message
       if (typeof showToast === 'function') {
         showToast('Contact created successfully', 'success');
+      }
+
+      // Refresh contacts from server to ensure data consistency
+      // This avoids duplicates from manual array manipulation
+      if (typeof loadContacts === 'function') {
+        loadContacts();
       }
 
     } catch (error) {
@@ -3150,9 +3149,15 @@ function renderContactsTable(contacts) {
     // Expose globally for access from other parts of the app
     window.contactsTable = globalContactsTable;
   } else {
-    // Update data and refresh the table
+    // Update data with fresh server data (replaces any local additions)
     globalContactsTable.data = contacts;
-    globalContactsTable.filteredData = contacts;
+    // Re-apply filters if active, otherwise use fresh data
+    if (globalContactsTable.searchQuery || globalContactsTable.activeFilters) {
+      globalContactsTable.applyFilters();
+      return; // applyFilters calls updateTableBody, no need for full render
+    } else {
+      globalContactsTable.filteredData = contacts;
+    }
   }
   
   // Render the table (this will show/hide A-Z scrollbar based on sort order)
