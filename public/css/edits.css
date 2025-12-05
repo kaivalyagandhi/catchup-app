@@ -640,18 +640,6 @@
   overflow: hidden;
 }
 
-.edits-menu__header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--edits-border);
-}
-
-.edits-menu__title {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--edits-text);
-  margin: 0;
-}
-
 .edits-menu__tabs {
   display: flex;
   border-bottom: 1px solid var(--edits-border);
