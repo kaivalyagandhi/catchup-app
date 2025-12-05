@@ -5030,6 +5030,12 @@ async function loadPreferences() {
     `;
     container.appendChild(accountSection);
     
+    // Add About section with version info
+    const aboutSection = document.createElement('div');
+    aboutSection.style.marginTop = '30px';
+    aboutSection.innerHTML = renderAboutSection();
+    container.appendChild(aboutSection);
+    
     // Render Google Contacts card
     const googleContactsCard = document.getElementById('google-contacts-card');
     if (googleContactsCard && typeof renderGoogleContactsCard === 'function') {
@@ -5040,6 +5046,61 @@ async function loadPreferences() {
     
     // Load account information
     loadAccountInfo();
+}
+
+/**
+ * Render the About section with version information
+ */
+function renderAboutSection() {
+    const versionInfo = window.__VERSION_INFO__;
+    
+    let displayVersion = 'Unknown';
+    let versionClass = 'local';
+    let environment = 'Unknown';
+    let buildDate = 'Unknown';
+    
+    if (versionInfo) {
+        if (versionInfo.isProduction) {
+            displayVersion = `v${versionInfo.version}`;
+            versionClass = 'production';
+            environment = 'Production';
+        } else if (versionInfo.isLocal) {
+            displayVersion = 'Development (Local)';
+            versionClass = 'local';
+            environment = 'Local';
+        } else if (versionInfo.isDevelopment) {
+            displayVersion = `Dev ${versionInfo.version}`;
+            versionClass = 'development';
+            environment = 'Development';
+        } else {
+            displayVersion = versionInfo.version || 'Unknown';
+        }
+        
+        if (versionInfo.timestamp) {
+            buildDate = new Date(versionInfo.timestamp).toLocaleString();
+        }
+    }
+    
+    return `
+        <h4 style="margin-bottom: 15px; font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">About</h4>
+        
+        <div class="version-info-card">
+            <div class="version-info-grid">
+                <div class="version-info-item">
+                    <div class="version-label">Version</div>
+                    <div class="version-value ${versionClass}">${displayVersion}</div>
+                </div>
+                <div class="version-info-item">
+                    <div class="version-label">Environment</div>
+                    <div class="version-value">${environment}</div>
+                </div>
+                <div class="version-info-item">
+                    <div class="version-label">Build Date</div>
+                    <div class="version-value" style="font-size: 12px;">${buildDate}</div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function savePreferences() {
