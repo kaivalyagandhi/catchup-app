@@ -2653,6 +2653,8 @@ class EnrichmentReview {
         transform: translateX(400px);
         transition: all 0.3s ease;
         pointer-events: auto;
+        min-width: 320px;
+        width: 320px;
       }
       
       .contact-modal.visible {
