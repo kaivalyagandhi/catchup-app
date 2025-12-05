@@ -1,6 +1,8 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import { createServer as createHttpServer, Server } from 'http';
 import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
 import { WebSocketServer } from 'ws';
 import authRouter from './routes/auth';
 import auditRouter from './routes/audit';
@@ -35,6 +37,7 @@ import { apiRateLimiter } from '../utils/rate-limiter';
 import { enforceHttps, securityHeaders } from './middleware/security';
 import { VoiceNoteWebSocketHandler } from '../voice/websocket-handler';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
+import { isTestModeEnabled } from './middleware/test-mode';
 import pool from '../db/connection';
 
 export function createServer(): Express {
@@ -50,11 +53,13 @@ export function createServer(): Express {
   app.use(express.urlencoded({ extended: true }));
 
   // Serve static files from public directory with cache control
+  // Exclude index.html so we can inject test mode status server-side
   app.use(
     express.static('public', {
-      setHeaders: (res, path) => {
+      index: false, // Don't serve index.html automatically
+      setHeaders: (res, filePath) => {
         // Disable caching for HTML and JS files during development
-        if (path.endsWith('.html') || path.endsWith('.js')) {
+        if (filePath.endsWith('.html') || filePath.endsWith('.js')) {
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
           res.setHeader('Pragma', 'no-cache');
           res.setHeader('Expires', '0');
@@ -147,9 +152,29 @@ export function createServer(): Express {
   }
 
   // Serve index.html for all other routes (SPA support)
+  // Inject test mode status server-side to avoid flash of unstyled content
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (!req.path.startsWith('/api')) {
-      res.sendFile('index.html', { root: 'public' });
+      const indexPath = path.join(process.cwd(), 'public', 'index.html');
+      
+      fs.readFile(indexPath, 'utf8', (err, html) => {
+        if (err) {
+          console.error('Error reading index.html:', err);
+          res.status(500).send('Internal Server Error');
+          return;
+        }
+        
+        // Inject test mode status as a global variable before other scripts
+        const testModeEnabled = isTestModeEnabled();
+        const testModeScript = `<script>window.__TEST_MODE_ENABLED__ = ${testModeEnabled};</script>`;
+        
+        // Insert the script right after the opening <head> tag
+        const modifiedHtml = html.replace('<head>', `<head>\n    ${testModeScript}`);
+        
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(modifiedHtml);
+      });
     } else {
       // API route not found - pass to 404 handler
       next();
