@@ -114,6 +114,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
+    // Listen for navigation requests from chat window
+    window.addEventListener('navigate-to', (event) => {
+        const page = event.detail;
+        if (page && ['directory', 'suggestions', 'edits', 'preferences'].includes(page)) {
+            navigateTo(page);
+        }
+    });
+    
     // Listen for edits updates from voice notes enrichment
     window.addEventListener('edits-updated', async () => {
         console.log('edits-updated event received, currentPage:', currentPage);
@@ -3892,7 +3900,12 @@ async function processTextMessageForEnrichment(text) {
                     chatWindow.addMessage({
                         id: 'enrichment-' + Date.now(),
                         type: 'system',
-                        content: `✨ Found enrichments!\n${summaryParts.join('\n')}\n\nGo to Edits to review and apply these changes.`,
+                        content: `✨ Found some updates!\n${summaryParts.join('\n')}\n\n{{EDITS_LINK}} to review and apply.`,
+                        action: {
+                            placeholder: '{{EDITS_LINK}}',
+                            text: 'Go to Edits',
+                            navigate: 'edits'
+                        },
                         timestamp: new Date().toISOString()
                     });
                     

@@ -433,6 +433,17 @@
   text-decoration: none;
 }
 
+.chat-message__action-link {
+  color: var(--edits-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.chat-message__action-link:hover {
+  text-decoration: none;
+}
+
 /* Disambiguation options */
 .chat-message__disambiguation {
   display: flex;

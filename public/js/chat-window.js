@@ -350,6 +350,26 @@ class ChatWindow {
           this.onEditClick(editId);
         });
       });
+    } else if (message.action) {
+      // Support for messages with clickable action links
+      const parts = message.content.split(message.action.placeholder);
+      content.appendChild(document.createTextNode(parts[0] || ''));
+      
+      const link = document.createElement('a');
+      link.href = '#';
+      link.className = 'chat-message__action-link';
+      link.textContent = message.action.text;
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (message.action.navigate) {
+          window.dispatchEvent(new CustomEvent('navigate-to', { detail: message.action.navigate }));
+        }
+      });
+      content.appendChild(link);
+      
+      if (parts[1]) {
+        content.appendChild(document.createTextNode(parts[1]));
+      }
     } else {
       content.textContent = message.content;
     }
