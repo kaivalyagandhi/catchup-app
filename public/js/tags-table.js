@@ -194,12 +194,20 @@ class TagsTable {
    * Requirements: 14.5
    */
   renderSourceBadge(tag) {
-    if (tag.source === 'ai' || tag.source === 'voice') {
-      const icon = tag.source === 'ai' ? '🤖' : '🎤';
-      const label = tag.source === 'ai' ? 'AI' : 'Voice';
+    // Map database source values to display
+    // Simplify: voice_memo, notification_reply, and ai_edit all show as "AI Edit"
+    const sourceMap = {
+      'ai_edit': { icon: '🤖', label: 'AI Edit', class: 'badge-ai' },
+      'voice_memo': { icon: '🤖', label: 'AI Edit', class: 'badge-ai' },
+      'notification_reply': { icon: '🤖', label: 'AI Edit', class: 'badge-ai' },
+      'manual': { icon: '✋', label: 'Manual', class: 'badge-manual' }
+    };
+
+    const sourceInfo = sourceMap[tag.source];
+    if (sourceInfo) {
       return `
-        <span class="badge badge-automated" title="Automated ${label} tag">
-          ${icon} ${label}
+        <span class="badge badge-automated ${sourceInfo.class}" title="${sourceInfo.label} tag">
+          ${sourceInfo.icon} ${sourceInfo.label}
         </span>
       `;
     }

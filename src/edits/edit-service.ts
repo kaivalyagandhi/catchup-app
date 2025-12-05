@@ -380,7 +380,7 @@ export class EditService implements EditServiceInterface {
           const tagText =
             typeof edit.proposedValue === 'string' ? edit.proposedValue : edit.proposedValue.text;
           // Create or find the tag, then add to contact
-          const tag = await this.tagRepository.create(tagText, TagSource.VOICE_MEMO, edit.userId);
+          const tag = await this.tagRepository.create(tagText, TagSource.AI_EDIT, edit.userId);
           await this.tagRepository.addToContact(edit.targetContactId, tag.id, edit.userId);
           console.log(`[EditService] ✓ Tag added successfully: ${tagText}`);
 
