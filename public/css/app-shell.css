@@ -6,7 +6,11 @@
 .app-shell {
     display: flex;
     min-height: 100vh;
-    background: var(--bg-app);
+    background-color: var(--bg-app);
+    /* Subtle dotted notebook pattern */
+    background-image: radial-gradient(circle, var(--stone-6) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+    background-attachment: fixed;
 }
 
 /* Fixed Sidebar Navigation */

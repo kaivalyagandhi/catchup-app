@@ -242,11 +242,6 @@ body {
   color: var(--text-primary);
   background-color: var(--bg-app);
   transition: background-color var(--transition-base), color var(--transition-base);
-  /* Dotted pattern overlay - more visible */
-  background-image: 
-    radial-gradient(circle, var(--stone-7) 1.5px, transparent 1.5px);
-  background-size: 24px 24px;
-  background-attachment: fixed;
 }
 
 /* Smooth transitions for theme changes */

@@ -545,7 +545,7 @@
         
         button {
             background: var(--text-primary);
-            color: var(--bg-surface);
+            color: var(--bg-primary);
             border: none;
             padding: 10px 20px;
             border-radius: 8px;
@@ -560,14 +560,14 @@
         }
         
         button.secondary {
-            background: transparent;
+            background: var(--bg-secondary);
             color: var(--text-primary);
-            border: 1px solid var(--border-subtle);
+            border: 1px solid var(--border-primary);
             font-weight: 500;
         }
         
         button.secondary:hover {
-            background: var(--bg-hover);
+            background: var(--bg-tertiary);
             opacity: 1;
         }
         
@@ -578,6 +578,40 @@
         
         button.accent:hover {
             background: var(--accent-hover);
+            opacity: 1;
+        }
+        
+        /* Suggestion page action buttons - theme-aware */
+        .btn-primary {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: opacity 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
             opacity: 1;
         }
         
@@ -643,6 +677,33 @@
             font-size: 12px;
         }
         
+        /* Suggestion card action buttons - theme-aware */
+        .card-actions .btn-primary {
+            background: var(--text-primary) !important;
+            color: var(--bg-primary) !important;
+            border: none !important;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .card-actions .btn-primary:hover {
+            opacity: 0.85;
+        }
+        
+        .card-actions .btn-secondary {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-primary) !important;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .card-actions .btn-secondary:hover {
+            background: var(--bg-tertiary) !important;
+        }
+        
         .suggestion-filters {
             display: flex;
             gap: 10px;
@@ -653,23 +714,23 @@
         .filter-btn {
             padding: 8px 16px;
             font-size: 13px;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-primary);
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-primary) !important;
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
         
         .filter-btn:hover {
-            background: var(--bg-tertiary);
-            border-color: var(--border-secondary);
+            background: var(--bg-tertiary) !important;
+            border-color: var(--border-secondary) !important;
         }
         
         .filter-btn.active {
-            background: var(--color-primary);
-            color: var(--text-inverse);
-            border-color: var(--color-primary);
+            background: var(--color-primary) !important;
+            color: var(--text-inverse) !important;
+            border-color: var(--color-primary) !important;
         }
         
         .search-bar {
