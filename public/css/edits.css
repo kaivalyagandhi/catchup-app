@@ -172,7 +172,7 @@
 }
 
 .chat-window__container {
-  width: 400px;
+  width: 340px;
   max-width: calc(100vw - 48px);
   max-height: calc(100vh - 120px);
   background: var(--edits-bg);
@@ -1124,7 +1124,6 @@
     width: 48px;
     height: 48px;
   }
-}
 
   .chat-window__container {
     bottom: 16px;
