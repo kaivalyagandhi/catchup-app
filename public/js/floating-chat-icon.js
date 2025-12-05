@@ -2,7 +2,7 @@
  * Floating Chat Icon Component
  *
  * Persistent UI element that provides access to the chat interface.
- * Displays recording state, pending edit count, and error indicators.
+ * Displays recording state and error indicators.
  *
  * Requirements: 2.1, 2.4, 12.1, 12.2, 12.3, 12.5
  */
@@ -10,14 +10,12 @@
 class FloatingChatIcon {
   constructor(options = {}) {
     this.isRecording = false;
-    this.pendingEditCount = 0;
     this.hasError = false;
     this.isGlowing = false;
     this.isPulsing = false;
     this.isSpeaking = false;
     this.onClick = options.onClick || (() => {});
     this.element = null;
-    this.badgeElement = null;
     this.pulseTimeout = null;
     this.speakingTimeout = null;
   }
@@ -42,12 +40,6 @@ class FloatingChatIcon {
       </svg>
     `;
     this.element.appendChild(icon);
-
-    // Create badge for pending edit count
-    this.badgeElement = document.createElement('span');
-    this.badgeElement.className = 'floating-chat-icon__badge';
-    this.badgeElement.style.display = 'none';
-    this.element.appendChild(this.badgeElement);
 
     // Add click handler
     this.element.addEventListener('click', () => this.onClick());
@@ -178,28 +170,6 @@ class FloatingChatIcon {
   }
 
   /**
-   * Update pending edit count
-   */
-  setPendingEditCount(count) {
-    const previousCount = this.pendingEditCount;
-    this.pendingEditCount = count;
-    
-    if (this.badgeElement) {
-      if (count > 0) {
-        this.badgeElement.textContent = count > 99 ? '99+' : count.toString();
-        this.badgeElement.style.display = 'flex';
-        
-        // Animate if count increased
-        if (count > previousCount) {
-          this.animateBadge();
-        }
-      } else {
-        this.badgeElement.style.display = 'none';
-      }
-    }
-  }
-
-  /**
    * Trigger pulse animation when edit detected
    * Requirements: 12.3
    */
@@ -221,20 +191,6 @@ class FloatingChatIcon {
         this.element.classList.remove('floating-chat-icon--pulse');
       }
     }, 600);
-  }
-
-  /**
-   * Animate badge when count changes
-   */
-  animateBadge() {
-    if (!this.badgeElement) return;
-
-    this.badgeElement.classList.add('floating-chat-icon__badge--bounce');
-    setTimeout(() => {
-      if (this.badgeElement) {
-        this.badgeElement.classList.remove('floating-chat-icon__badge--bounce');
-      }
-    }, 300);
   }
 
   /**
@@ -274,7 +230,6 @@ class FloatingChatIcon {
       this.element.parentNode.removeChild(this.element);
     }
     this.element = null;
-    this.badgeElement = null;
   }
 }
 
