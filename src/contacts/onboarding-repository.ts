@@ -23,7 +23,7 @@ export type OnboardingStep =
 /**
  * Onboarding trigger types
  */
-export type OnboardingTriggerType = 'new_user' | 'post_import' | 'manage';
+export type OnboardingTriggerType = 'new_user' | 'post_import' | 'manage' | 'manual';
 
 /**
  * Onboarding state record from database

@@ -288,13 +288,14 @@ export class VoiceNoteService extends EventEmitter {
             transcript: '',
             recordingTimestamp: session.startTime,
             status: 'ready' as VoiceNoteStatus,
+            contacts: [],
             createdAt: new Date(),
             updatedAt: new Date(),
           },
           proposal: {
             voiceNoteId: '',
             contactProposals: [],
-            createdAt: new Date(),
+            requiresContactSelection: false,
           },
         };
       }

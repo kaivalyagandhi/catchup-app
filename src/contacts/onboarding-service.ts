@@ -20,7 +20,7 @@ import { PostgresContactRepository, DunbarCircle } from './repository';
  */
 export interface OnboardingTrigger {
   type: OnboardingTriggerType;
-  source?: 'google' | 'manual';
+  source?: 'google' | 'manual' | 'onboarding_flow';
   contactCount?: number;
 }
 
