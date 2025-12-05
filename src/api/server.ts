@@ -38,6 +38,7 @@ import { enforceHttps, securityHeaders } from './middleware/security';
 import { VoiceNoteWebSocketHandler } from '../voice/websocket-handler';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { isTestModeEnabled } from './middleware/test-mode';
+import { getVersionInfo } from '../utils/version';
 import pool from '../db/connection';
 
 export function createServer(): Express {
@@ -152,25 +153,29 @@ export function createServer(): Express {
   }
 
   // Serve index.html for all other routes (SPA support)
-  // Inject test mode status server-side to avoid flash of unstyled content
+  // Inject test mode status and version info server-side to avoid flash of unstyled content
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (!req.path.startsWith('/api')) {
       const indexPath = path.join(process.cwd(), 'public', 'index.html');
-      
+
       fs.readFile(indexPath, 'utf8', (err, html) => {
         if (err) {
           console.error('Error reading index.html:', err);
           res.status(500).send('Internal Server Error');
           return;
         }
-        
+
         // Inject test mode status as a global variable before other scripts
         const testModeEnabled = isTestModeEnabled();
         const testModeScript = `<script>window.__TEST_MODE_ENABLED__ = ${testModeEnabled};</script>`;
-        
-        // Insert the script right after the opening <head> tag
-        const modifiedHtml = html.replace('<head>', `<head>\n    ${testModeScript}`);
-        
+
+        // Inject version info as a global variable
+        const versionInfo = getVersionInfo();
+        const versionScript = `<script>window.__VERSION_INFO__ = ${JSON.stringify(versionInfo)};</script>`;
+
+        // Insert both scripts right after the opening <head> tag
+        const modifiedHtml = html.replace('<head>', `<head>\n    ${testModeScript}\n    ${versionScript}`);
+
         res.setHeader('Content-Type', 'text/html');
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.send(modifiedHtml);
