@@ -387,7 +387,7 @@ async function initializeStep1Handler() {
     }
     
     // Check if user clicked on Step 1 or is on preferences page
-    const isOnPreferences = window.location.hash === '#preferences' || currentView === 'preferences';
+    const isOnPreferences = window.location.hash === '#preferences' || currentPage === 'preferences';
     
     if (isOnPreferences) {
         // Create and initialize Step 1 handler
