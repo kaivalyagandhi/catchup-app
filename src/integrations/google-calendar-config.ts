@@ -35,12 +35,16 @@ export function getAuthorizationUrl(state?: string): string {
     'https://www.googleapis.com/auth/userinfo.profile',
   ];
 
-  return oauth2Client.generateAuthUrl({
+  const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: scopes,
     prompt: 'consent',
     state: state,
   });
+
+  console.log('Generated auth URL with redirect_uri:', process.env.GOOGLE_CALENDAR_REDIRECT_URI || process.env.GOOGLE_REDIRECT_URI);
+  
+  return authUrl;
 }
 
 /**

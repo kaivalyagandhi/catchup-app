@@ -4112,7 +4112,7 @@ async function getCalendarEvents(startTime, endTime) {
 async function getAvailableSlots(startTime, endTime, slotDurationMinutes = 30) {
     try {
         const response = await fetch(
-            `/api/calendar/api/available-slots?startTime=${startTime}&endTime=${endTime}&slotDurationMinutes=${slotDurationMinutes}`,
+            `/api/calendar/available-slots?startTime=${startTime}&endTime=${endTime}&slotDurationMinutes=${slotDurationMinutes}`,
             {
                 headers: {
                     'Authorization': `Bearer ${authToken}`
@@ -5169,7 +5169,7 @@ async function loadPreferences() {
     let lastSync = null;
     if (calendarConnected) {
         try {
-            const syncResponse = await fetch(`${API_BASE}/calendar/api/sync-status`, {
+            const syncResponse = await fetch(`${API_BASE}/calendar/sync-status`, {
                 headers: { 'Authorization': `Bearer ${authToken}` }
             });
             if (syncResponse.ok) {
