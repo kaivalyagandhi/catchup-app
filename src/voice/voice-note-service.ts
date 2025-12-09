@@ -281,22 +281,26 @@ export class VoiceNoteService extends EventEmitter {
         this.enrichmentAnalyzer.clearSession(sessionId);
         
         // Return empty result instead of throwing error
+        const emptyVoiceNote: VoiceNote = {
+          id: '',
+          userId: session.userId,
+          transcript: '',
+          recordingTimestamp: session.startTime,
+          status: 'ready' as VoiceNoteStatus,
+          contacts: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const emptyProposal: MultiContactEnrichmentProposal = {
+          voiceNoteId: '',
+          contactProposals: [],
+          requiresContactSelection: false,
+        };
+
         return {
-          voiceNote: {
-            id: '',
-            userId: session.userId,
-            transcript: '',
-            recordingTimestamp: session.startTime,
-            status: 'ready' as VoiceNoteStatus,
-            contacts: [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          proposal: {
-            voiceNoteId: '',
-            contactProposals: [],
-            requiresContactSelection: false,
-          },
+          voiceNote: emptyVoiceNote,
+          proposal: emptyProposal,
         };
       }
 
