@@ -7,22 +7,15 @@
 
 import {
   validateCircleAssignment,
-  validateBatchCircleAssignment,
-  validateOnboardingInit,
-  throwIfInvalid,
+  validateOnboardingState,
+  showValidationErrors,
 } from './onboarding-validation';
 import {
-  withOnboardingErrorHandling,
-  withAISuggestionHandling,
-  withConcurrencyHandling,
-  executeBatchOperation,
-  withTimeout,
+  classifyError,
+  handleIntegrationError,
+  handleAIServiceError,
+  withRetry,
 } from './onboarding-error-handler';
-import {
-  InvalidCircleError,
-  CircleAssignmentError,
-  ContactNotFoundError,
-} from './onboarding-errors';
 
 /**
  * Demo 1: Input Validation
@@ -31,195 +24,142 @@ async function demoInputValidation() {
   console.log('\n=== Demo 1: Input Validation ===\n');
 
   // Valid input
-  const validInput = {
-    contactId: '550e8400-e29b-41d4-a716-446655440000',
-    circle: 'inner',
-    confidence: 0.95,
-  };
-
-  const validResult = validateCircleAssignment(validInput);
-  console.log('Valid input:', validResult.valid ? '✓ PASS' : '✗ FAIL');
+  const validResult = validateCircleAssignment(123, 'inner');
+  console.log('Valid input:', validResult.isValid ? '✓ PASS' : '✗ FAIL');
 
   // Invalid circle
-  const invalidCircle = {
-    contactId: '550e8400-e29b-41d4-a716-446655440000',
-    circle: 'invalid_circle',
-  };
-
-  const invalidResult = validateCircleAssignment(invalidCircle);
-  console.log('Invalid circle:', !invalidResult.valid ? '✓ PASS' : '✗ FAIL');
+  const invalidResult = validateCircleAssignment(123, 'invalid_circle');
+  console.log('Invalid circle:', !invalidResult.isValid ? '✓ PASS' : '✗ FAIL');
   console.log('Errors:', invalidResult.errors);
 
-  // Invalid UUID
-  const invalidUUID = {
-    contactId: 'not-a-uuid',
-    circle: 'inner',
-  };
-
-  const uuidResult = validateCircleAssignment(invalidUUID);
-  console.log('Invalid UUID:', !uuidResult.valid ? '✓ PASS' : '✗ FAIL');
-  console.log('Errors:', uuidResult.errors);
+  // Invalid contact ID
+  const invalidIdResult = validateCircleAssignment(-1, 'inner');
+  console.log('Invalid contact ID:', !invalidIdResult.isValid ? '✓ PASS' : '✗ FAIL');
+  console.log('Errors:', invalidIdResult.errors);
 }
 
 /**
- * Demo 2: Batch Validation
+ * Demo 2: State Validation
  */
-async function demoBatchValidation() {
-  console.log('\n=== Demo 2: Batch Validation ===\n');
+async function demoStateValidation() {
+  console.log('\n=== Demo 2: State Validation ===\n');
 
-  // Valid batch
-  const validBatch = [
-    {
-      contactId: '550e8400-e29b-41d4-a716-446655440000',
-      circle: 'inner',
-    },
-    {
-      contactId: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
-      circle: 'close',
-    },
-  ];
+  // Valid state
+  const validState = {
+    userId: 'user123',
+    currentStep: 1 as 1 | 2 | 3,
+    isComplete: false,
+  };
 
-  const validResult = validateBatchCircleAssignment(validBatch);
-  console.log('Valid batch:', validResult.valid ? '✓ PASS' : '✗ FAIL');
+  const validResult = validateOnboardingState(validState);
+  console.log('Valid state:', validResult.isValid ? '✓ PASS' : '✗ FAIL');
 
-  // Too many assignments
-  const largeBatch = Array.from({ length: 101 }, (_, i) => ({
-    contactId: '550e8400-e29b-41d4-a716-446655440000',
-    circle: 'inner',
-  }));
+  // Invalid state - missing userId
+  const invalidState = {
+    currentStep: 1 as 1 | 2 | 3,
+  };
 
-  const largeResult = validateBatchCircleAssignment(largeBatch);
-  console.log('Too many assignments:', !largeResult.valid ? '✓ PASS' : '✗ FAIL');
-  console.log('Errors:', largeResult.errors);
+  const invalidResult = validateOnboardingState(invalidState);
+  console.log('Invalid state (missing userId):', !invalidResult.isValid ? '✓ PASS' : '✗ FAIL');
+  console.log('Errors:', invalidResult.errors);
 
-  // Mixed valid/invalid
-  const mixedBatch = [
-    {
-      contactId: '550e8400-e29b-41d4-a716-446655440000',
-      circle: 'inner',
-    },
-    {
-      contactId: 'invalid-uuid',
-      circle: 'close',
-    },
-  ];
+  // Invalid state - invalid currentStep
+  const invalidStepState = {
+    userId: 'user123',
+    currentStep: 99 as any,
+  };
 
-  const mixedResult = validateBatchCircleAssignment(mixedBatch);
-  console.log('Mixed batch:', !mixedResult.valid ? '✓ PASS' : '✗ FAIL');
-  console.log('Errors:', mixedResult.errors);
+  const stepResult = validateOnboardingState(invalidStepState);
+  console.log('Invalid step:', !stepResult.isValid ? '✓ PASS' : '✗ FAIL');
+  console.log('Errors:', stepResult.errors);
 }
 
 /**
- * Demo 3: Error Handling with Fallback
+ * Demo 3: Error Classification
  */
-async function demoErrorHandlingWithFallback() {
-  console.log('\n=== Demo 3: Error Handling with Fallback ===\n');
+async function demoErrorClassification() {
+  console.log('\n=== Demo 3: Error Classification ===\n');
 
-  // Successful operation
-  const successOp = async () => {
-    return { result: 'success' };
-  };
+  // Network error - retryable
+  const networkError = new Error('Failed to fetch');
+  const networkClassified = classifyError(networkError);
+  console.log('Network error:', networkClassified.isRetryable ? 'RETRYABLE' : 'NOT RETRYABLE');
+  console.log('Message:', networkClassified.userMessage);
 
-  const successResult = await withOnboardingErrorHandling(successOp, 'demo_success');
-  console.log('Success operation:', successResult);
+  // Timeout error - retryable
+  const timeoutError = new Error('Request timed out');
+  const timeoutClassified = classifyError(timeoutError);
+  console.log('\nTimeout error:', timeoutClassified.isRetryable ? 'RETRYABLE' : 'NOT RETRYABLE');
+  console.log('Message:', timeoutClassified.userMessage);
 
-  // Failed operation with fallback
-  const failOp = async () => {
-    throw new Error('Simulated failure');
-  };
-
-  const fallbackResult = await withOnboardingErrorHandling(failOp, 'demo_fail', {
-    result: 'fallback',
-  });
-  console.log('Failed operation with fallback:', fallbackResult);
+  // Auth error - not retryable
+  const authError = new Error('401 Unauthorized');
+  const authClassified = classifyError(authError);
+  console.log('\nAuth error:', authClassified.isRetryable ? 'RETRYABLE' : 'NOT RETRYABLE');
+  console.log('Message:', authClassified.userMessage);
 }
 
 /**
- * Demo 4: AI Suggestion Graceful Degradation
+ * Demo 4: AI Service Error Handling
  */
-async function demoAIGracefulDegradation() {
-  console.log('\n=== Demo 4: AI Suggestion Graceful Degradation ===\n');
+async function demoAIErrorHandling() {
+  console.log('\n=== Demo 4: AI Service Error Handling ===\n');
 
-  // Successful AI operation
-  const successAI = async () => {
-    return { circle: 'inner', confidence: 0.95 };
-  };
+  // AI timeout error
+  const aiTimeout = new Error('AI service timeout');
+  const timeoutResult = handleAIServiceError(aiTimeout);
+  console.log('AI timeout:', timeoutResult.isRetryable ? 'RETRYABLE' : 'NOT RETRYABLE');
+  console.log('Message:', timeoutResult.userMessage);
 
-  const successResult = await withAISuggestionHandling(successAI);
-  console.log('AI success:', successResult);
-
-  // Failed AI operation with fallback
-  const failAI = async () => {
-    throw new Error('AI service unavailable');
-  };
-
-  const fallbackResult = await withAISuggestionHandling(failAI, {
-    circle: 'active',
-    confidence: 0.5,
-  });
-  console.log('AI failure with fallback:', fallbackResult);
-
-  // Failed AI operation without fallback
-  const noFallbackResult = await withAISuggestionHandling(failAI);
-  console.log('AI failure without fallback:', noFallbackResult);
+  // AI service error
+  const aiError = new Error('AI service unavailable');
+  const errorResult = handleAIServiceError(aiError);
+  console.log('\nAI error:', errorResult.isRetryable ? 'RETRYABLE' : 'NOT RETRYABLE');
+  console.log('Message:', errorResult.userMessage);
 }
 
 /**
- * Demo 5: Batch Operation with Partial Success
+ * Demo 5: Integration Error Handling
  */
-async function demoBatchOperation() {
-  console.log('\n=== Demo 5: Batch Operation with Partial Success ===\n');
+async function demoIntegrationErrors() {
+  console.log('\n=== Demo 5: Integration Error Handling ===\n');
 
-  const items = ['item1', 'item2', 'item3', 'item4', 'item5'];
+  // OAuth popup error
+  const popupError = new Error('popup blocked');
+  const popupResult = handleIntegrationError('google-calendar', popupError);
+  console.log('Popup error:', popupResult.isRetryable ? 'RETRYABLE' : 'NOT RETRYABLE');
+  console.log('Message:', popupResult.userMessage);
 
-  // Operation that fails on item3
-  const operation = async (item: string) => {
-    if (item === 'item3') {
-      throw new Error(`Failed to process ${item}`);
+  // Permission error
+  const permError = new Error('permission denied');
+  const permResult = handleIntegrationError('google-contacts', permError);
+  console.log('\nPermission error:', permResult.isRetryable ? 'RETRYABLE' : 'NOT RETRYABLE');
+  console.log('Message:', permResult.userMessage);
+}
+
+/**
+ * Demo 6: Retry Mechanism
+ */
+async function demoRetry() {
+  console.log('\n=== Demo 6: Retry Mechanism ===\n');
+
+  let attempts = 0;
+
+  // Operation that succeeds on 3rd attempt
+  const flakeyOp = async () => {
+    attempts++;
+    if (attempts < 3) {
+      throw new Error('Network error');
     }
-    return `processed-${item}`;
-  };
-
-  const result = await executeBatchOperation(items, operation, {
-    continueOnError: true,
-    maxConcurrent: 2,
-  });
-
-  console.log('Successful items:', result.successful.length);
-  console.log('Failed items:', result.failed.length);
-  console.log('Failed details:', result.failed);
-}
-
-/**
- * Demo 6: Timeout Handling
- */
-async function demoTimeout() {
-  console.log('\n=== Demo 6: Timeout Handling ===\n');
-
-  // Fast operation
-  const fastOp = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    return 'completed';
+    return 'success';
   };
 
   try {
-    const result = await withTimeout(fastOp, 1000, 'fast_operation');
-    console.log('Fast operation:', result);
+    const result = await withRetry(flakeyOp, { maxRetries: 3, retryDelay: 100 });
+    console.log('Flakey operation succeeded after', attempts, 'attempts');
+    console.log('Result:', result);
   } catch (error: any) {
-    console.log('Fast operation failed:', error.message);
-  }
-
-  // Slow operation
-  const slowOp = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    return 'completed';
-  };
-
-  try {
-    const result = await withTimeout(slowOp, 500, 'slow_operation');
-    console.log('Slow operation:', result);
-  } catch (error: any) {
-    console.log('Slow operation timed out:', error.message);
+    console.log('Operation failed:', error.message);
   }
 }
 
@@ -233,11 +173,11 @@ async function runAllDemos() {
 
   try {
     await demoInputValidation();
-    await demoBatchValidation();
-    await demoErrorHandlingWithFallback();
-    await demoAIGracefulDegradation();
-    await demoBatchOperation();
-    await demoTimeout();
+    await demoStateValidation();
+    await demoErrorClassification();
+    await demoAIErrorHandling();
+    await demoIntegrationErrors();
+    await demoRetry();
 
     console.log('\n╔════════════════════════════════════════════════════════╗');
     console.log('║  All demos completed successfully!                     ║');
@@ -255,10 +195,10 @@ if (require.main === module) {
 
 export {
   demoInputValidation,
-  demoBatchValidation,
-  demoErrorHandlingWithFallback,
-  demoAIGracefulDegradation,
-  demoBatchOperation,
-  demoTimeout,
+  demoStateValidation,
+  demoErrorClassification,
+  demoAIErrorHandling,
+  demoIntegrationErrors,
+  demoRetry,
   runAllDemos,
 };

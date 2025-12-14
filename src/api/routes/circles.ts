@@ -6,15 +6,9 @@ import { FrequencyOption } from '../../types';
 import { asyncHandler, validateRequest, requestTimeout } from '../middleware/error-handler';
 import {
   validateCircleAssignment,
-  validateBatchCircleAssignment,
-  validatePreference,
-  VALID_CIRCLES,
 } from '../../contacts/onboarding-validation';
-import {
-  logOperation,
-  withTimeout,
-  executeBatchOperation,
-} from '../../contacts/onboarding-error-handler';
+
+const VALID_CIRCLES = ['inner', 'close', 'active', 'casual'];
 
 const router = Router();
 
@@ -30,21 +24,19 @@ router.use(requestTimeout(30000));
  */
 router.post(
   '/assign',
-  validateRequest(validateCircleAssignment),
   asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const userId = req.userId!;
     const { contactId, circle } = req.body;
 
-    logOperation('assign_circle', userId, { contactId, circle });
+    // Validate input
+    const validation = validateCircleAssignment(contactId, circle);
+    if (!validation.isValid) {
+      res.status(400).json({ errors: validation.errors });
+      return;
+    }
 
     const circleService = new CircleAssignmentServiceImpl();
-
-    // Execute with timeout (5 seconds for single assignment)
-    await withTimeout(
-      () => circleService.assignToCircle(userId, contactId, circle),
-      5000,
-      'assign_circle'
-    );
+    await circleService.assignToCircle(userId, contactId, circle);
 
     res.status(204).send();
   })
@@ -56,23 +48,17 @@ router.post(
  */
 router.post(
   '/batch-assign',
-  validateRequest((data) => validateBatchCircleAssignment(data.assignments || [])),
   asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const userId = req.userId!;
     const { assignments } = req.body;
 
-    logOperation('batch_assign_circles', userId, {
-      count: assignments.length,
-    });
+    if (!assignments || !Array.isArray(assignments)) {
+      res.status(400).json({ error: 'assignments array is required' });
+      return;
+    }
 
     const circleService = new CircleAssignmentServiceImpl();
-
-    // Execute with timeout (30 seconds for batch operation)
-    await withTimeout(
-      () => circleService.batchAssign(userId, assignments),
-      30000,
-      'batch_assign_circles'
-    );
+    await circleService.batchAssign(userId, assignments);
 
     res.status(204).send();
   })
@@ -87,16 +73,8 @@ router.get(
   asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const userId = req.userId!;
 
-    logOperation('get_circle_distribution', userId);
-
     const circleService = new CircleAssignmentServiceImpl();
-
-    // Execute with timeout (5 seconds for read operation)
-    const distribution = await withTimeout(
-      () => circleService.getCircleDistribution(userId),
-      5000,
-      'get_circle_distribution'
-    );
+    const distribution = await circleService.getCircleDistribution(userId);
 
     res.json(distribution);
   })
