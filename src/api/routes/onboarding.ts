@@ -3,15 +3,8 @@ import { PostgresOnboardingService } from '../../contacts/onboarding-service';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { asyncHandler, validateRequest, requestTimeout } from '../middleware/error-handler';
 import {
-  validateOnboardingInit,
-  validateProgressUpdate,
-  throwIfInvalid,
+  validateOnboardingState,
 } from '../../contacts/onboarding-validation';
-import {
-  logOperation,
-  logOperationError,
-  withTimeout,
-} from '../../contacts/onboarding-error-handler';
 
 const router = Router();
 
@@ -31,20 +24,11 @@ router.post(
   asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const userId = req.userId!;
 
-    logOperation('init_onboarding', userId);
-
     const onboardingService = new PostgresOnboardingService();
-
-    // Execute with timeout (10 seconds for initialization)
-    const state = await withTimeout(
-      () =>
-        onboardingService.initializeOnboarding(userId, {
-          type: 'manual',
-          source: 'onboarding_flow',
-        }),
-      10000,
-      'init_onboarding'
-    );
+    const state = await onboardingService.initializeOnboarding(userId, {
+      type: 'manual',
+      source: 'onboarding_flow',
+    });
 
     res.status(201).json(state);
   })
@@ -56,26 +40,16 @@ router.post(
  */
 router.post(
   '/initialize',
-  validateRequest(validateOnboardingInit),
   asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const userId = req.userId!;
     const { trigger, source, contactCount } = req.body;
 
-    logOperation('initialize_onboarding', userId, { trigger, source, contactCount });
-
     const onboardingService = new PostgresOnboardingService();
-
-    // Execute with timeout (10 seconds for initialization)
-    const state = await withTimeout(
-      () =>
-        onboardingService.initializeOnboarding(userId, {
-          type: trigger,
-          source,
-          contactCount,
-        }),
-      10000,
-      'initialize_onboarding'
-    );
+    const state = await onboardingService.initializeOnboarding(userId, {
+      type: trigger,
+      source,
+      contactCount,
+    });
 
     res.status(201).json(state);
   })
@@ -90,16 +64,8 @@ router.get(
   asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const userId = req.userId!;
 
-    logOperation('get_onboarding_state', userId);
-
     const onboardingService = new PostgresOnboardingService();
-
-    // Execute with timeout (5 seconds for read operation)
-    const state = await withTimeout(
-      () => onboardingService.getOnboardingState(userId),
-      5000,
-      'get_onboarding_state'
-    );
+    const state = await onboardingService.getOnboardingState(userId);
 
     if (!state) {
       res.status(404).json({
@@ -124,16 +90,8 @@ router.put(
     const userId = req.userId!;
     const stateUpdate = req.body;
 
-    logOperation('update_onboarding_state', userId, stateUpdate);
-
     const onboardingService = new PostgresOnboardingService();
-
-    // Execute with timeout (10 seconds for update operation)
-    await withTimeout(
-      () => onboardingService.updateOnboardingState(userId, stateUpdate),
-      10000,
-      'update_onboarding_state'
-    );
+    await onboardingService.updateOnboardingState(userId, stateUpdate);
 
     res.status(204).send();
   })
@@ -145,21 +103,17 @@ router.put(
  */
 router.put(
   '/progress',
-  validateRequest(validateProgressUpdate),
   asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const userId = req.userId!;
     const { step, data } = req.body;
 
-    logOperation('update_onboarding_progress', userId, { step });
+    if (!step) {
+      res.status(400).json({ error: 'step is required' });
+      return;
+    }
 
     const onboardingService = new PostgresOnboardingService();
-
-    // Execute with timeout (10 seconds for update operation)
-    await withTimeout(
-      () => onboardingService.updateProgress(userId, step, data || {}),
-      10000,
-      'update_onboarding_progress'
-    );
+    await onboardingService.updateProgress(userId, step, data || {});
 
     res.status(204).send();
   })
@@ -176,16 +130,8 @@ router.post(
     const userId = req.userId!;
     const localState = req.body;
 
-    logOperation('sync_onboarding_state', userId);
-
     const onboardingService = new PostgresOnboardingService();
-
-    // Execute with timeout (10 seconds for sync operation)
-    await withTimeout(
-      () => onboardingService.syncLocalState(userId, localState),
-      10000,
-      'sync_onboarding_state'
-    );
+    await onboardingService.syncLocalState(userId, localState);
 
     res.status(204).send();
   })
@@ -200,16 +146,8 @@ router.post(
   asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const userId = req.userId!;
 
-    logOperation('complete_onboarding', userId);
-
     const onboardingService = new PostgresOnboardingService();
-
-    // Execute with timeout (10 seconds for completion)
-    await withTimeout(
-      () => onboardingService.completeOnboarding(userId),
-      10000,
-      'complete_onboarding'
-    );
+    await onboardingService.completeOnboarding(userId);
 
     res.status(204).send();
   })

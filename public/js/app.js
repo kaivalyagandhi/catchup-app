@@ -387,7 +387,7 @@ async function initializeStep1Handler() {
     }
     
     // Check if user clicked on Step 1 or is on preferences page
-    const isOnPreferences = window.location.hash === '#preferences' || currentView === 'preferences';
+    const isOnPreferences = window.location.hash === '#preferences' || currentPage === 'preferences';
     
     if (isOnPreferences) {
         // Create and initialize Step 1 handler
@@ -4112,7 +4112,7 @@ async function getCalendarEvents(startTime, endTime) {
 async function getAvailableSlots(startTime, endTime, slotDurationMinutes = 30) {
     try {
         const response = await fetch(
-            `/api/calendar/api/available-slots?startTime=${startTime}&endTime=${endTime}&slotDurationMinutes=${slotDurationMinutes}`,
+            `/api/calendar/available-slots?startTime=${startTime}&endTime=${endTime}&slotDurationMinutes=${slotDurationMinutes}`,
             {
                 headers: {
                     'Authorization': `Bearer ${authToken}`
@@ -5169,7 +5169,7 @@ async function loadPreferences() {
     let lastSync = null;
     if (calendarConnected) {
         try {
-            const syncResponse = await fetch(`${API_BASE}/calendar/api/sync-status`, {
+            const syncResponse = await fetch(`${API_BASE}/calendar/sync-status`, {
                 headers: { 'Authorization': `Bearer ${authToken}` }
             });
             if (syncResponse.ok) {

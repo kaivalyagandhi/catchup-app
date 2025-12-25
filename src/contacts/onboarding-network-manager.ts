@@ -70,12 +70,12 @@ export class OnboardingNetworkManager {
     );
 
     // Show toast notification if available
-    if (typeof (window as Window & { showToast?: (msg: string, type: string) => void }).showToast === 'function') {
-      const showToast = (window as Window & { showToast: (msg: string, type: string) => void }).showToast;
+    const windowWithToast = window as Window & { showToast?: (msg: string, type: string) => void };
+    if (windowWithToast.showToast) {
       if (online) {
-        showToast('Connection restored. Syncing your progress...', 'success');
+        windowWithToast.showToast('Connection restored. Syncing your progress...', 'success');
       } else {
-        showToast('You\'re offline. Changes will sync when connection is restored.', 'warning');
+        windowWithToast.showToast('You\'re offline. Changes will sync when connection is restored.', 'warning');
       }
     }
   }
@@ -148,9 +148,9 @@ export class OnboardingNetworkManager {
 
     // Show success message if queue is now empty
     if (this.syncQueue.length === 0 && successfulIds.length > 0) {
-      if (typeof (window as Window & { showToast?: (msg: string, type: string) => void }).showToast === 'function') {
-        const showToast = (window as Window & { showToast: (msg: string, type: string) => void }).showToast;
-        showToast('All changes synced successfully', 'success');
+      const windowWithToast = window as Window & { showToast?: (msg: string, type: string) => void };
+      if (windowWithToast.showToast) {
+        windowWithToast.showToast('All changes synced successfully', 'success');
       }
     }
   }
