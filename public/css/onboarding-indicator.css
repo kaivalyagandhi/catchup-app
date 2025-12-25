@@ -16,19 +16,22 @@
   padding: 16px;
   margin: 16px;
   transition: opacity 0.3s ease, transform 0.3s ease;
+  position: relative;
 }
 
 .onboarding-indicator__header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   margin-bottom: 12px;
+  gap: 8px;
 }
 
 .onboarding-indicator__title {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
+  text-align: left;
 }
 
 .onboarding-indicator__dismiss {
@@ -42,6 +45,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  top: 16px;
+  right: 16px;
 }
 
 .onboarding-indicator__dismiss:hover {
