@@ -15,7 +15,7 @@
 
 import { getOnboardingNetworkManager } from './onboarding-network-manager';
 import {
-  validateOnboardingState,
+  validateOnboardingStateComplex,
   validateStepCompletion,
   showValidationErrors,
 } from './onboarding-validation';
@@ -441,7 +441,7 @@ export class OnboardingStateManager {
    */
   async saveState(state: OnboardingState): Promise<void> {
     // Validate state before saving
-    const validationResult = validateOnboardingState(state);
+    const validationResult = validateOnboardingStateComplex(state);
     if (!validationResult.isValid) {
       console.error('Invalid onboarding state:', validationResult.errors);
       showValidationErrors(validationResult);

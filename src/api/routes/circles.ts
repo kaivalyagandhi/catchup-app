@@ -29,8 +29,8 @@ router.post(
     const { contactId, circle } = req.body;
 
     // Validate input
-    const validation = validateCircleAssignment(contactId, circle);
-    if (!validation.isValid) {
+    const validation = validateCircleAssignment({ contactId, circle });
+    if (!validation.valid) {
       res.status(400).json({ errors: validation.errors });
       return;
     }

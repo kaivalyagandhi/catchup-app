@@ -3,7 +3,7 @@ import { PostgresOnboardingService } from '../../contacts/onboarding-service';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { asyncHandler, validateRequest, requestTimeout } from '../middleware/error-handler';
 import {
-  validateOnboardingState,
+  validateOnboardingStateComplex,
 } from '../../contacts/onboarding-validation';
 
 const router = Router();

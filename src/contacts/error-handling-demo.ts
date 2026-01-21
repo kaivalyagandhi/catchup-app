@@ -6,8 +6,8 @@
  */
 
 import {
-  validateCircleAssignment,
-  validateOnboardingState,
+  OnboardingValidator,
+  validateOnboardingStateComplex,
   showValidationErrors,
 } from './onboarding-validation';
 import {
@@ -24,16 +24,16 @@ async function demoInputValidation() {
   console.log('\n=== Demo 1: Input Validation ===\n');
 
   // Valid input
-  const validResult = validateCircleAssignment(123, 'inner');
+  const validResult = OnboardingValidator.validateCircleAssignment(123, 'inner');
   console.log('Valid input:', validResult.isValid ? '✓ PASS' : '✗ FAIL');
 
   // Invalid circle
-  const invalidResult = validateCircleAssignment(123, 'invalid_circle');
+  const invalidResult = OnboardingValidator.validateCircleAssignment(123, 'invalid_circle');
   console.log('Invalid circle:', !invalidResult.isValid ? '✓ PASS' : '✗ FAIL');
   console.log('Errors:', invalidResult.errors);
 
   // Invalid contact ID
-  const invalidIdResult = validateCircleAssignment(-1, 'inner');
+  const invalidIdResult = OnboardingValidator.validateCircleAssignment(-1, 'inner');
   console.log('Invalid contact ID:', !invalidIdResult.isValid ? '✓ PASS' : '✗ FAIL');
   console.log('Errors:', invalidIdResult.errors);
 }
@@ -51,7 +51,7 @@ async function demoStateValidation() {
     isComplete: false,
   };
 
-  const validResult = validateOnboardingState(validState);
+  const validResult = validateOnboardingStateComplex(validState);
   console.log('Valid state:', validResult.isValid ? '✓ PASS' : '✗ FAIL');
 
   // Invalid state - missing userId
@@ -59,7 +59,7 @@ async function demoStateValidation() {
     currentStep: 1 as 1 | 2 | 3,
   };
 
-  const invalidResult = validateOnboardingState(invalidState);
+  const invalidResult = validateOnboardingStateComplex(invalidState);
   console.log('Invalid state (missing userId):', !invalidResult.isValid ? '✓ PASS' : '✗ FAIL');
   console.log('Errors:', invalidResult.errors);
 
@@ -69,7 +69,7 @@ async function demoStateValidation() {
     currentStep: 99 as any,
   };
 
-  const stepResult = validateOnboardingState(invalidStepState);
+  const stepResult = validateOnboardingStateComplex(invalidStepState);
   console.log('Invalid step:', !stepResult.isValid ? '✓ PASS' : '✗ FAIL');
   console.log('Errors:', stepResult.errors);
 }
