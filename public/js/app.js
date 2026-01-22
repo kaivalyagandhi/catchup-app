@@ -605,10 +605,12 @@ function toggleAuthMode() {
         document.getElementById('auth-title').textContent = 'Login to CatchUp';
         document.getElementById('auth-submit-btn').textContent = 'Login';
         document.getElementById('auth-toggle-text').textContent = "Don't have an account?";
+        document.getElementById('auth-toggle-link').textContent = 'Sign up';
     } else {
         document.getElementById('auth-title').textContent = 'Sign Up for CatchUp';
         document.getElementById('auth-submit-btn').textContent = 'Sign Up';
         document.getElementById('auth-toggle-text').textContent = 'Already have an account?';
+        document.getElementById('auth-toggle-link').textContent = 'Log in';
     }
     
     document.getElementById('auth-error').classList.add('hidden');
