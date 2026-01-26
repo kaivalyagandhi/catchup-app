@@ -55,10 +55,10 @@ export class GoogleContactsSyncService {
   }
 
   /**
-   * Perform full synchronization of all contacts
+   * Perform full synchronization of all contacts using streaming approach
    *
-   * Fetches all contacts with pagination (pageSize=1000), processes each page,
-   * and stores sync token after completion.
+   * Processes contacts one-by-one as they arrive instead of loading into memory.
+   * This prevents memory buildup with large contact lists.
    *
    * Requirements: 2.2, 2.5, 12.1, 12.2
    */
@@ -78,10 +78,9 @@ export class GoogleContactsSyncService {
       await this.syncStateRepository.markSyncInProgress(userId);
 
       // Get People API client (READ-ONLY operations only)
-      // Requirements: 15.3 - Only GET requests are made to Google API
       const people = getPeopleClient({ access_token: accessToken });
 
-      // Fetch all contacts with pagination (READ-ONLY operation)
+      // Process pages one at a time, releasing memory after each
       do {
         try {
           // Execute request with rate limiting and track API request
@@ -89,7 +88,7 @@ export class GoogleContactsSyncService {
           const response = await this.rateLimiter.executeRequest(userId, async () => {
             return await people.people.connections.list({
               resourceName: 'people/me',
-              pageSize: 1000,
+              pageSize: 500, // Reduced from 1000 to lower memory usage
               pageToken: pageToken,
               personFields:
                 'names,emailAddresses,phoneNumbers,organizations,urls,addresses,memberships,metadata',
@@ -106,70 +105,56 @@ export class GoogleContactsSyncService {
               `Sync token: ${syncToken ? 'yes' : 'no'}`
           );
 
-          // Filter valid contacts for batch processing
-          const validContacts = connections.filter((person) => {
-            // Skip contacts without names
-            if (!person.names || person.names.length === 0) {
-              return false;
-            }
-            // Skip deleted contacts (handle separately)
-            if (person.metadata?.deleted) {
-              return false;
-            }
-            return true;
-          });
-
-          // Handle deleted contacts separately (not batched)
-          const deletedContacts = connections.filter((person) => person.metadata?.deleted);
-          for (const person of deletedContacts) {
+          // Process contacts immediately without storing in arrays
+          // This is the key memory optimization - process and discard
+          for (const person of connections) {
             try {
-              await this.importService.handleDeletedContact(userId, person.resourceName!);
+              // Handle deleted contacts
+              if (person.metadata?.deleted) {
+                await this.importService.handleDeletedContact(userId, person.resourceName!);
+                continue;
+              }
+
+              // Skip contacts without names
+              if (!person.names || person.names.length === 0) {
+                continue;
+              }
+
+              // Import contact immediately
+              await this.importService.importContact(userId, person as GooglePerson);
+              contactsImported++;
+
+              // Periodic progress logging
+              if (contactsImported % 100 === 0) {
+                console.log(`Progress: ${contactsImported} contacts imported`);
+              }
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : String(error);
-              console.error(
-                `Error handling deleted contact ${person.resourceName}: ${errorMessage}`
-              );
+              console.error(`Error importing contact ${person.resourceName}: ${errorMessage}`);
               errors.push({
                 contactResourceName: person.resourceName || undefined,
                 errorMessage,
-                errorCode: 'DELETE_ERROR',
+                errorCode: 'IMPORT_ERROR',
               });
             }
           }
-
-          // Process valid contacts in batches
-          await this.batchProcessor.processBatches(
-            validContacts,
-            async (batch) => {
-              for (const person of batch) {
-                try {
-                  await this.importService.importContact(userId, person as GooglePerson);
-                  contactsImported++;
-                } catch (error) {
-                  const errorMessage = error instanceof Error ? error.message : String(error);
-                  console.error(`Error importing contact ${person.resourceName}: ${errorMessage}`);
-                  errors.push({
-                    contactResourceName: person.resourceName || undefined,
-                    errorMessage,
-                    errorCode: 'IMPORT_ERROR',
-                  });
-                }
-              }
-            },
-            true // Use transactions
-          );
 
           // Store sync token if this is the last page
           if (!pageToken && syncToken) {
             await this.syncStateRepository.updateSyncToken(userId, syncToken);
             console.log(`Stored sync token for user ${userId}`);
           }
+
+          // Force garbage collection after each page if available
+          if (global.gc) {
+            global.gc();
+          }
         } catch (error) {
           // Handle pagination errors
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error(`Error fetching page: ${errorMessage}`);
 
-          // Check if this is a token expiration error (shouldn't happen in full sync)
+          // Check if this is a token expiration error
           if (this.isSyncTokenExpiredError(error)) {
             console.log('Sync token expired during full sync (unexpected)');
             throw error;
@@ -189,7 +174,6 @@ export class GoogleContactsSyncService {
             }
           }
 
-          // For other errors, implement retry logic
           throw error;
         }
       } while (pageToken);

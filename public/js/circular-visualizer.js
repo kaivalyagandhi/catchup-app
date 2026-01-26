@@ -4,67 +4,57 @@
  * No drag-and-drop, cleaner hover states, better visual hierarchy
  */
 
-// Circle definitions based on Dunbar's number
+// Circle definitions based on Dunbar's number - Simplified 4-circle system
 // Using warm color variants as per Requirement 7.2
+// Radii scaled for larger 1200px viewport
 const CIRCLE_DEFINITIONS = {
   inner: {
     id: 'inner',
     name: 'Inner Circle',
-    description: 'Your closest relationships - family and best friends',
-    recommendedSize: 5,
-    maxSize: 5,
+    description: 'Your closest confidants—people you\'d call in a crisis',
+    recommendedSize: 10,
+    maxSize: 10,
     defaultFrequency: 'weekly',
     color: '#8b5cf6', // Warm purple
     innerRadius: 0,
-    outerRadius: 80
+    outerRadius: 140 // Scaled up from 100
   },
   close: {
     id: 'close',
     name: 'Close Friends',
-    description: 'Good friends you see regularly',
-    recommendedSize: 15,
-    maxSize: 15,
+    description: 'Good friends you regularly share life updates with',
+    recommendedSize: 25,
+    maxSize: 25,
     defaultFrequency: 'biweekly',
     color: '#3b82f6', // Warm blue
-    innerRadius: 80,
-    outerRadius: 160
+    innerRadius: 140,
+    outerRadius: 280 // Scaled up from 200
   },
   active: {
     id: 'active',
     name: 'Active Friends',
-    description: 'Friends you maintain regular contact with',
+    description: 'People you want to stay connected with regularly',
     recommendedSize: 50,
     maxSize: 50,
     defaultFrequency: 'monthly',
     color: '#10b981', // Warm green
-    innerRadius: 160,
-    outerRadius: 240
+    innerRadius: 280,
+    outerRadius: 420 // Scaled up from 300
   },
   casual: {
     id: 'casual',
     name: 'Casual Network',
-    description: 'Acquaintances and occasional contacts',
-    recommendedSize: 150,
-    maxSize: 150,
+    description: 'Acquaintances you keep in touch with occasionally',
+    recommendedSize: 100,
+    maxSize: 100,
     defaultFrequency: 'quarterly',
     color: '#f59e0b', // Warm amber
-    innerRadius: 240,
-    outerRadius: 320
-  },
-  acquaintance: {
-    id: 'acquaintance',
-    name: 'Acquaintances',
-    description: 'People you know but rarely interact with',
-    recommendedSize: 500,
-    maxSize: 1000,
-    defaultFrequency: 'yearly',
-    color: '#78716C', // Warm stone (Stone-500)
-    innerRadius: 320,
-    outerRadius: 400
+    innerRadius: 420,
+    outerRadius: 560 // Scaled up from 400
   }
 };
 
-const CIRCLE_ORDER = ['inner', 'close', 'active', 'casual', 'acquaintance'];
+const CIRCLE_ORDER = ['inner', 'close', 'active', 'casual'];
 
 class CircularVisualizer {
   constructor(containerId) {
@@ -74,10 +64,14 @@ class CircularVisualizer {
     this.contacts = [];
     this.groups = [];
     this.activeGroupFilter = null;
-    this.viewportSize = 900;
-    this.centerX = 450;
-    this.centerY = 450;
-    this.contactDotSize = 36;
+    this.viewportSize = 1200; // Increased from 900 to 1200 for larger default view
+    this.centerX = 600; // Updated center
+    this.centerY = 600; // Updated center
+    this.contactDotSize = 52; // Increased from 48 to 52 for better visibility
+    this.zoomLevel = 1; // Default zoom level
+    this.minZoom = 0.25; // Minimum zoom (25%)
+    this.maxZoom = 2.0; // Maximum zoom (200%)
+    this.zoomStep = 0.25; // 25% steps for cleaner zoom levels
     
     this.listeners = {
       contactClick: [],
@@ -110,24 +104,45 @@ class CircularVisualizer {
               <option value="">All Contacts</option>
             </select>
           </div>
-          <div class="circle-legend">
-            ${CIRCLE_ORDER.map(circleId => this.renderLegendItem(circleId)).join('')}
+          <div class="controls-row">
+            <div class="circle-legend">
+              ${CIRCLE_ORDER.map(circleId => this.renderLegendItem(circleId)).join('')}
+            </div>
+            <div class="zoom-controls">
+              <button class="zoom-btn zoom-in" id="${this.containerId}-zoom-in" title="Zoom In (Ctrl/Cmd + +)">
+                <span style="font-size: 18px; font-weight: bold; line-height: 1;">+</span>
+              </button>
+              <span class="zoom-level" id="${this.containerId}-zoom-level">100%</span>
+              <button class="zoom-btn zoom-out" id="${this.containerId}-zoom-out" title="Zoom Out (Ctrl/Cmd + -)">
+                <span style="font-size: 18px; font-weight: bold; line-height: 1;">−</span>
+              </button>
+              <button class="zoom-btn zoom-reset" id="${this.containerId}-zoom-reset" title="Reset Zoom (Ctrl/Cmd + 0)">
+                <span style="font-size: 18px; font-weight: bold; line-height: 1;">↺</span>
+              </button>
+            </div>
           </div>
         </div>
-        <div class="visualizer-canvas" id="${this.containerId}-canvas">
-          <svg id="${this.containerId}-svg" class="visualizer-svg">
-            <defs>
-              <filter id="contact-shadow">
-                <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.2"/>
-              </filter>
-            </defs>
-          </svg>
+        <div class="visualizer-canvas-wrapper">
+          <div class="visualizer-canvas" id="${this.containerId}-canvas">
+            <svg id="${this.containerId}-svg" class="visualizer-svg">
+              <defs>
+                <filter id="contact-shadow">
+                  <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.3"/>
+                </filter>
+              </defs>
+              <g class="zoom-group" id="${this.containerId}-zoom-group">
+                <!-- All content will be rendered inside this group for unified zoom -->
+              </g>
+            </svg>
+          </div>
         </div>
       </div>
     `;
     
     this.svg = document.getElementById(`${this.containerId}-svg`);
     this.setupGroupFilterListener();
+    this.setupZoomControls();
+    this.setupKeyboardShortcuts();
   }
 
   renderLegendItem(circleId) {
@@ -190,6 +205,97 @@ class CircularVisualizer {
           this.clearGroupFilter();
         }
       });
+    }
+  }
+  
+  setupZoomControls() {
+    const zoomInBtn = document.getElementById(`${this.containerId}-zoom-in`);
+    const zoomOutBtn = document.getElementById(`${this.containerId}-zoom-out`);
+    const zoomResetBtn = document.getElementById(`${this.containerId}-zoom-reset`);
+    
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener('click', () => this.zoomIn());
+    }
+    
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener('click', () => this.zoomOut());
+    }
+    
+    if (zoomResetBtn) {
+      zoomResetBtn.addEventListener('click', () => this.resetZoom());
+    }
+    
+    // Mouse wheel zoom disabled per user request
+  }
+  
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Check if Ctrl/Cmd is pressed
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '=' || e.key === '+') {
+          e.preventDefault();
+          this.zoomIn();
+        } else if (e.key === '-') {
+          e.preventDefault();
+          this.zoomOut();
+        } else if (e.key === '0') {
+          e.preventDefault();
+          this.resetZoom();
+        }
+      }
+    });
+  }
+  
+  zoomIn() {
+    const newZoom = Math.min(this.maxZoom, this.zoomLevel + this.zoomStep);
+    this.setZoom(newZoom);
+  }
+  
+  zoomOut() {
+    const newZoom = Math.max(this.minZoom, this.zoomLevel - this.zoomStep);
+    this.setZoom(newZoom);
+  }
+  
+  resetZoom() {
+    this.setZoom(1);
+  }
+  
+  setZoom(level) {
+    this.zoomLevel = level;
+    
+    // Apply zoom by scaling the SVG size while keeping viewBox fixed
+    // This allows native scrolling when zoomed in
+    if (this.svg) {
+      // Keep viewBox at full size
+      this.svg.setAttribute('viewBox', `0 0 ${this.viewportSize} ${this.viewportSize}`);
+      
+      // Scale the SVG element size based on zoom level
+      const baseSize = 800; // Base size that fits container at 100%
+      const scaledSize = baseSize * level;
+      
+      this.svg.style.width = `${scaledSize}px`;
+      this.svg.style.height = `${scaledSize}px`;
+      this.svg.style.minWidth = `${scaledSize}px`;
+      this.svg.style.minHeight = `${scaledSize}px`;
+      this.svg.style.transform = 'none';
+    }
+    
+    // Update zoom level display
+    const zoomLevelEl = document.getElementById(`${this.containerId}-zoom-level`);
+    if (zoomLevelEl) {
+      zoomLevelEl.textContent = `${Math.round(level * 100)}%`;
+    }
+    
+    // Update button states
+    const zoomInBtn = document.getElementById(`${this.containerId}-zoom-in`);
+    const zoomOutBtn = document.getElementById(`${this.containerId}-zoom-out`);
+    
+    if (zoomInBtn) {
+      zoomInBtn.disabled = level >= this.maxZoom;
+    }
+    
+    if (zoomOutBtn) {
+      zoomOutBtn.disabled = level <= this.minZoom;
     }
   }
 
@@ -286,18 +392,18 @@ class CircularVisualizer {
     const labelGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     labelGroup.setAttribute('class', 'circle-label');
     
-    const labelY = this.centerY - circleDef.outerRadius - 15;
+    const labelY = this.centerY - circleDef.outerRadius - 20;
     
     const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    bg.setAttribute('x', this.centerX - 60);
-    bg.setAttribute('y', labelY - 12);
-    bg.setAttribute('width', '120');
-    bg.setAttribute('height', '24');
-    bg.setAttribute('rx', '12');
+    bg.setAttribute('x', this.centerX - 70);
+    bg.setAttribute('y', labelY - 14);
+    bg.setAttribute('width', '140');
+    bg.setAttribute('height', '28');
+    bg.setAttribute('rx', '14');
     bg.setAttribute('fill', 'white');
     bg.setAttribute('opacity', '0.95');
     bg.setAttribute('stroke', circleDef.color);
-    bg.setAttribute('stroke-width', '1.5');
+    bg.setAttribute('stroke-width', '2');
     labelGroup.appendChild(bg);
     
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -306,7 +412,7 @@ class CircularVisualizer {
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'middle');
     text.setAttribute('fill', circleDef.color);
-    text.setAttribute('font-size', '13');
+    text.setAttribute('font-size', '15');
     text.setAttribute('font-weight', '700');
     text.textContent = circleDef.name;
     labelGroup.appendChild(text);
@@ -399,13 +505,13 @@ class CircularVisualizer {
     circle.setAttribute('class', 'contact-circle');
     group.appendChild(circle);
     
-    // Initials text
+    // Initials text - larger and bolder
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'middle');
     text.setAttribute('fill', 'white');
-    text.setAttribute('font-size', '14');
-    text.setAttribute('font-weight', '600');
+    text.setAttribute('font-size', '18'); // Increased from 14 to 18
+    text.setAttribute('font-weight', '700'); // Increased from 600 to 700
     text.setAttribute('pointer-events', 'none');
     text.textContent = this.getInitials(contact.name);
     group.appendChild(text);
@@ -422,28 +528,29 @@ class CircularVisualizer {
       group.appendChild(indicator);
     }
     
-    // Group membership indicators
+    // Group membership indicators - enhanced visibility
     if (contact.groups && contact.groups.length > 0) {
       const groupBadge = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       groupBadge.setAttribute('class', 'group-badge');
       
       const badgeCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      badgeCircle.setAttribute('cx', -this.contactDotSize / 2 + 5);
-      badgeCircle.setAttribute('cy', -this.contactDotSize / 2 + 5);
-      badgeCircle.setAttribute('r', '8');
+      badgeCircle.setAttribute('cx', -this.contactDotSize / 2 + 8);
+      badgeCircle.setAttribute('cy', -this.contactDotSize / 2 + 8);
+      badgeCircle.setAttribute('r', '10'); // Increased from 8 to 10
       badgeCircle.setAttribute('fill', '#6366f1');
       badgeCircle.setAttribute('stroke', 'white');
-      badgeCircle.setAttribute('stroke-width', '2');
+      badgeCircle.setAttribute('stroke-width', '2.5'); // Increased from 2 to 2.5
+      badgeCircle.setAttribute('filter', 'url(#contact-shadow)'); // Add shadow
       groupBadge.appendChild(badgeCircle);
       
       if (contact.groups.length > 1) {
         const badgeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        badgeText.setAttribute('x', -this.contactDotSize / 2 + 5);
-        badgeText.setAttribute('y', -this.contactDotSize / 2 + 5);
+        badgeText.setAttribute('x', -this.contactDotSize / 2 + 8);
+        badgeText.setAttribute('y', -this.contactDotSize / 2 + 8);
         badgeText.setAttribute('text-anchor', 'middle');
         badgeText.setAttribute('dominant-baseline', 'middle');
         badgeText.setAttribute('fill', 'white');
-        badgeText.setAttribute('font-size', '10');
+        badgeText.setAttribute('font-size', '12'); // Increased from 10 to 12
         badgeText.setAttribute('font-weight', '700');
         badgeText.setAttribute('pointer-events', 'none');
         badgeText.textContent = contact.groups.length;
@@ -670,20 +777,138 @@ class CircularVisualizer {
     const style = document.createElement('style');
     style.id = 'circular-visualizer-styles';
     style.textContent = `
+      /* Make the circles visualizer extend edge-to-edge */
+      /* Override the max-width constraint on parent when circles tab is active */
+      #directory-circles-tab #circles-visualizer {
+        position: relative;
+        box-sizing: border-box;
+        width: calc(100vw - 240px) !important; /* Full viewport minus sidebar */
+        max-width: none !important;
+        /* Calculate left margin to break out of centered container */
+        margin-left: calc(-1 * (100vw - 240px - 100%) / 2 - 32px + 32px) !important; /* +32px to avoid sidebar overlap */
+        margin-right: calc(-1 * (100vw - 240px - 100%) / 2 - 32px) !important;
+        padding: 0 8px 0 0 !important; /* Small right padding */
+      }
+      
+      /* Mobile: no sidebar */
+      @media (max-width: 1023px) {
+        #directory-circles-tab #circles-visualizer {
+          width: 100vw !important;
+          margin-left: calc(-1 * (100vw - 100%) / 2 - 32px) !important;
+          margin-right: calc(-1 * (100vw - 100%) / 2 - 32px) !important;
+          padding: 0 !important;
+        }
+      }
+      
+      @media (max-width: 767px) {
+        #directory-circles-tab #circles-visualizer {
+          width: 100vw !important;
+          margin-left: calc(-1 * (100vw - 100%) / 2 - 16px) !important;
+          margin-right: calc(-1 * (100vw - 100%) / 2 - 16px) !important;
+          padding: 0 !important;
+        }
+      }
+      
+      #circles-visualizer-container {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      
+      #circles-visualizer {
+        width: 100% !important;
+        max-width: none !important;
+      }
+      
       .circular-visualizer {
         width: 100%;
         height: 100%;
+        min-height: 100vh;
         display: flex;
         flex-direction: column;
         background: var(--bg-app);
-        border-radius: 12px;
+        border-radius: 0;
         overflow: hidden;
+        margin: 0;
+        padding: 0;
       }
       
       .visualizer-controls {
-        padding: 20px;
+        padding: 16px 24px;
         background: var(--bg-surface);
         border-bottom: 1px solid var(--border-subtle);
+      }
+      
+      .controls-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      
+      .visualizer-canvas-wrapper {
+        flex: 1;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+      
+      .zoom-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-app, #f5f5f5);
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border-subtle, #e5e5e5);
+        flex-shrink: 0;
+      }
+      
+      .zoom-btn {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-surface, #fff);
+        border: 1px solid var(--border-subtle, #ddd);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: var(--text-primary, #333);
+        font-size: 16px;
+        font-weight: bold;
+      }
+      
+      .zoom-btn:hover:not(:disabled) {
+        background: var(--accent-primary, #8b5cf6);
+        border-color: var(--accent-primary, #8b5cf6);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+      }
+      
+      .zoom-btn:active:not(:disabled) {
+        transform: translateY(0);
+      }
+      
+      .zoom-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      
+      .zoom-level {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary, #333);
+        min-width: 45px;
+        text-align: center;
+        padding: 0 2px;
       }
       
       .group-filter-container {
@@ -777,16 +1002,24 @@ class CircularVisualizer {
       .visualizer-canvas {
         flex: 1;
         position: relative;
-        min-height: 500px;
+        min-height: 600px;
+        max-height: 80vh;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
-        padding: 20px;
+        padding: 20px 10px 10px 10px;
+        overflow: auto;
+        width: 100%;
+        background: var(--bg-app);
       }
       
       .visualizer-svg {
-        max-width: 100%;
-        max-height: 100%;
+        width: 800px;
+        height: 800px;
+        min-width: 800px;
+        min-height: 800px;
+        display: block;
+        flex-shrink: 0;
       }
       
       .circle-zone {

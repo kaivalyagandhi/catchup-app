@@ -47,6 +47,16 @@ class Step2CirclesHandler {
    */
   async openManageCirclesFlow() {
     try {
+      // Check if dialog is already open or being opened
+      const existingOverlay = document.querySelector('.manage-circles-overlay');
+      if (existingOverlay || window.isOpeningManageCircles) {
+        console.log('[Step2] Manage Circles dialog already open or opening, skipping');
+        return;
+      }
+      
+      // Set flag to prevent duplicate opening
+      window.isOpeningManageCircles = true;
+      
       // Fetch contacts
       await this.fetchContacts();
       
@@ -72,8 +82,14 @@ class Step2CirclesHandler {
       // Set up event listeners for progress tracking
       this.setupEventListeners();
       
+      // Clear flag after dialog is mounted
+      setTimeout(() => {
+        window.isOpeningManageCircles = false;
+      }, 1000);
+      
     } catch (error) {
       console.error('Error opening Manage Circles flow:', error);
+      window.isOpeningManageCircles = false;
       if (typeof showToast === 'function') {
         showToast('Failed to load circle organization', 'error');
       }

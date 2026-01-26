@@ -9,7 +9,7 @@ import { Contact, InteractionLog, InteractionType } from '../types';
 import { PostgresContactRepository } from './repository';
 import { PostgresInteractionRepository } from './interaction-repository';
 
-export type DunbarCircle = 'inner' | 'close' | 'active' | 'casual' | 'acquaintance';
+export type DunbarCircle = 'inner' | 'close' | 'active' | 'casual';
 
 export interface CircleSuggestion {
   contactId: string;
@@ -427,11 +427,11 @@ export class PostgresAISuggestionService implements AISuggestionService {
     const weightedScore = factors.reduce((sum, f) => sum + f.value * f.weight, 0) / totalWeight;
 
     // Determine circle based on score
-    // Inner Circle (5): 85-100
-    // Close Friends (15): 70-84
+    // Simplified 4-circle scoring thresholds:
+    // Inner Circle (10): 85-100
+    // Close Friends (25): 70-84
     // Active Friends (50): 50-69
-    // Casual Network (150): 30-49
-    // Acquaintances (500+): 0-29
+    // Casual Network (100): 0-49
     let suggestedCircle: DunbarCircle;
     let confidence: number;
 
@@ -444,12 +444,9 @@ export class PostgresAISuggestionService implements AISuggestionService {
     } else if (weightedScore >= 50) {
       suggestedCircle = 'active';
       confidence = Math.min(100, 60 + (weightedScore - 50) * 1.5);
-    } else if (weightedScore >= 30) {
-      suggestedCircle = 'casual';
-      confidence = Math.min(100, 55 + (weightedScore - 30) * 1.5);
     } else {
-      suggestedCircle = 'acquaintance';
-      confidence = Math.min(100, 50 + weightedScore);
+      suggestedCircle = 'casual';
+      confidence = Math.min(100, 55 + weightedScore * 0.9);
     }
 
     // Generate alternative suggestions
@@ -465,7 +462,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
     score: number,
     primary: DunbarCircle
   ): Array<{ circle: DunbarCircle; confidence: number }> {
-    const circles: DunbarCircle[] = ['inner', 'close', 'active', 'casual', 'acquaintance'];
+    const circles: DunbarCircle[] = ['inner', 'close', 'active', 'casual'];
     const alternatives: Array<{ circle: DunbarCircle; confidence: number }> = [];
 
     // Add adjacent circles as alternatives with lower confidence

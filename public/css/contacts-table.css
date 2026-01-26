@@ -52,26 +52,26 @@
   align-items: center;
   gap: 6px;
   padding: 10px 20px;
-  background: var(--chat-bubble-bg);
-  color: white;
+  background: var(--accent-primary);
+  color: var(--text-inverse);
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(139, 111, 92, 0.3);
+  box-shadow: 0 1px 3px rgba(146, 64, 14, 0.3);
 }
 
 .btn-add-contact:hover {
-  background: var(--chat-bubble-hover);
-  box-shadow: 0 2px 6px rgba(139, 111, 92, 0.4);
+  background: var(--accent-hover);
+  box-shadow: 0 2px 6px rgba(146, 64, 14, 0.4);
   transform: translateY(-1px);
 }
 
 .btn-add-contact:active {
   transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(139, 111, 92, 0.3);
+  box-shadow: 0 1px 2px rgba(146, 64, 14, 0.3);
 }
 
 /* Sort Controls - Requirement 6.1 */
@@ -984,13 +984,13 @@
 
 /* Dark mode for controls and new contact row */
 [data-theme="dark"] .btn-add-contact {
-  background: var(--chat-bubble-bg);
-  box-shadow: 0 1px 3px rgba(155, 127, 108, 0.4);
+  background: var(--accent-primary);
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.4);
 }
 
 [data-theme="dark"] .btn-add-contact:hover {
-  background: var(--chat-bubble-hover);
-  box-shadow: 0 2px 6px rgba(155, 127, 108, 0.5);
+  background: var(--accent-hover);
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.5);
 }
 
 [data-theme="dark"] .sort-controls label {

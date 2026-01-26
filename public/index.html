@@ -362,24 +362,26 @@
         }
         
         .theme-toggle-btn {
-            background: var(--color-secondary);
-            color: var(--text-inverse);
+            background: var(--edits-primary);
+            color: white;
             border: none;
             padding: 6px 12px;
-            border-radius: 4px;
+            border-radius: 50%;
             cursor: pointer;
             font-size: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s, transform 0.2s;
+            transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
             min-width: 44px;
             min-height: 44px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         
         .theme-toggle-btn:hover {
-            background: var(--color-secondary-hover);
+            background: var(--edits-primary-hover);
             transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
         }
         
         .theme-toggle-btn:active {

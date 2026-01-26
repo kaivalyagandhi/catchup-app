@@ -69,41 +69,41 @@ export const CIRCLE_DEFINITIONS = {
     defaultFrequency: 'weekly',
     color: '#FF6B6B',
   },
+  inner: {
+    id: 'inner' as DunbarCircle,
+    name: 'Inner Circle',
+    description: 'Your closest confidants—people you\'d call in a crisis',
+    recommendedSize: 10,
+    maxSize: 10,
+    defaultFrequency: 'weekly',
+    color: '#8b5cf6',
+  },
   close: {
     id: 'close' as DunbarCircle,
     name: 'Close Friends',
-    description: 'Good friends you see regularly',
-    recommendedSize: 15,
+    description: 'Good friends you regularly share life updates with',
+    recommendedSize: 25,
     maxSize: 25,
     defaultFrequency: 'biweekly',
-    color: '#4ECDC4',
+    color: '#3b82f6',
   },
   active: {
     id: 'active' as DunbarCircle,
     name: 'Active Friends',
-    description: 'Friends you maintain regular contact with',
+    description: 'People you want to stay connected with regularly',
     recommendedSize: 50,
-    maxSize: 75,
+    maxSize: 50,
     defaultFrequency: 'monthly',
-    color: '#45B7D1',
+    color: '#10b981',
   },
   casual: {
     id: 'casual' as DunbarCircle,
     name: 'Casual Network',
-    description: 'Acquaintances and casual friends',
-    recommendedSize: 150,
-    maxSize: 200,
+    description: 'Acquaintances you keep in touch with occasionally',
+    recommendedSize: 100,
+    maxSize: 100,
     defaultFrequency: 'quarterly',
-    color: '#96CEB4',
-  },
-  acquaintance: {
-    id: 'acquaintance' as DunbarCircle,
-    name: 'Acquaintances',
-    description: 'People you know but rarely interact with',
-    recommendedSize: 500,
-    maxSize: 1000,
-    defaultFrequency: 'yearly',
-    color: '#FFEAA7',
+    color: '#f59e0b',
   },
 };
 
@@ -302,7 +302,7 @@ export class CircleAssignmentServiceImpl implements CircleAssignmentService {
     const distribution = await this.assignmentRepository.getCircleDistribution(userId);
 
     // Check each circle for imbalance (>150% of recommended size)
-    const circles: DunbarCircle[] = ['inner', 'close', 'active', 'casual', 'acquaintance'];
+    const circles: DunbarCircle[] = ['inner', 'close', 'active', 'casual'];
 
     for (const circle of circles) {
       const definition = CIRCLE_DEFINITIONS[circle];
@@ -346,14 +346,14 @@ export class CircleAssignmentServiceImpl implements CircleAssignmentService {
    * Validate if a circle name is valid
    */
   private isValidCircle(circle: string): circle is DunbarCircle {
-    return ['inner', 'close', 'active', 'casual', 'acquaintance'].includes(circle);
+    return ['inner', 'close', 'active', 'casual'].includes(circle);
   }
 
   /**
    * Get the next larger circle
    */
   private getNextLargerCircle(circle: DunbarCircle): DunbarCircle | null {
-    const order: DunbarCircle[] = ['inner', 'close', 'active', 'casual', 'acquaintance'];
+    const order: DunbarCircle[] = ['inner', 'close', 'active', 'casual'];
     const index = order.indexOf(circle);
     return index < order.length - 1 ? order[index + 1] : null;
   }

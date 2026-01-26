@@ -438,7 +438,7 @@ class ManageCirclesFlow {
     const selects = this.modalElement.querySelectorAll('.contact-card__circle-select');
     selects.forEach(select => {
       select.addEventListener('change', (e) => {
-        const contactId = parseInt(e.target.dataset.contactId);
+        const contactId = e.target.dataset.contactId; // Keep as string, don't parse
         const circleId = e.target.value;
         this.handleCircleAssignment(contactId, circleId);
       });
@@ -479,6 +479,9 @@ class ManageCirclesFlow {
    * Requirements: 3.5, 14.1, 14.2, All requirements (data integrity)
    */
   async handleCircleAssignment(contactId, circleId) {
+    // Ensure contactId is a string (UUIDs are strings)
+    contactId = String(contactId);
+    
     // Validate inputs
     const validationResult = this.validateCircleAssignment(contactId, circleId);
     if (!validationResult.isValid) {
@@ -508,6 +511,7 @@ class ManageCirclesFlow {
     
     // Save to backend
     try {
+      const userId = window.userId || localStorage.getItem('userId');
       const response = await fetch(`${window.API_BASE || '/api'}/contacts/${contactId}/circle`, {
         method: 'POST',
         headers: {
@@ -515,13 +519,16 @@ class ManageCirclesFlow {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify({
+          userId: userId,
           circle: circleId || null,
           assignedBy: 'user'
         })
       });
       
       if (!response.ok) {
-        throw new Error('Failed to save circle assignment');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'Failed to save circle assignment';
+        throw new Error(errorMessage);
       }
       
       // Update contact in local array
@@ -554,8 +561,11 @@ class ManageCirclesFlow {
     } catch (error) {
       console.error('Error saving circle assignment:', error);
       if (typeof showToast === 'function') {
-        showToast('Failed to save circle assignment', 'error');
+        showToast(error.message || 'Failed to save circle assignment', 'error');
       }
+      
+      // Revert the UI change on error
+      this.refresh();
     }
   }
   
@@ -640,8 +650,9 @@ class ManageCirclesFlow {
    * Save all assignments to backend
    */
   async saveAllAssignments() {
+    const userId = window.userId || localStorage.getItem('userId');
     const assignmentsToSave = Object.entries(this.assignments).map(([contactId, circleId]) => ({
-      contactId: parseInt(contactId),
+      contactId: String(contactId), // Keep as string (UUID)
       circle: circleId
     }));
     
@@ -656,11 +667,16 @@ class ManageCirclesFlow {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
-        body: JSON.stringify({ assignments: assignmentsToSave })
+        body: JSON.stringify({ 
+          userId: userId,
+          assignments: assignmentsToSave 
+        })
       });
       
       if (!response.ok) {
-        throw new Error('Failed to save assignments');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'Failed to save assignments';
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error saving assignments:', error);
@@ -742,12 +758,12 @@ class ManageCirclesFlow {
     const errors = [];
     const warnings = [];
     
-    // Validate contact ID
-    if (!contactId || typeof contactId !== 'number' || contactId <= 0) {
+    // Validate contact ID (can be string UUID or number)
+    if (!contactId || (typeof contactId !== 'string' && typeof contactId !== 'number')) {
       errors.push('Invalid contact ID');
     }
     
-    // Validate circle value
+    // Validate circle value (only 4 circles now)
     const validCircles = ['inner', 'close', 'active', 'casual', null, ''];
     if (circle && !validCircles.includes(circle)) {
       errors.push(`Invalid circle: ${circle}`);

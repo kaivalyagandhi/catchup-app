@@ -30,7 +30,6 @@ export interface CircleDistribution {
   close: number;
   active: number;
   casual: number;
-  acquaintance: number;
   uncategorized: number;
   total: number;
 }

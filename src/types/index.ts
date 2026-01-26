@@ -66,11 +66,11 @@ export interface Contact {
   googleResourceName?: string;
   googleEtag?: string;
   lastSyncedAt?: Date;
-  // Dunbar circle fields for onboarding
-  dunbarCircle?: 'inner' | 'close' | 'active' | 'casual' | 'acquaintance';
+  // Dunbar circle fields for onboarding (Simplified 4-circle system)
+  dunbarCircle?: 'inner' | 'close' | 'active' | 'casual';
   circleAssignedAt?: Date;
   circleConfidence?: number;
-  aiSuggestedCircle?: 'inner' | 'close' | 'active' | 'casual' | 'acquaintance';
+  aiSuggestedCircle?: 'inner' | 'close' | 'active' | 'casual';
   createdAt: Date;
   updatedAt: Date;
 }

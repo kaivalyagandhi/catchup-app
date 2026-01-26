@@ -9,9 +9,9 @@ import pool from '../db/connection';
 import { Contact, FrequencyOption } from '../types';
 
 /**
- * Dunbar circle types for contact categorization
+ * Dunbar circle types for contact categorization (Simplified 4-circle system)
  */
-export type DunbarCircle = 'inner' | 'close' | 'active' | 'casual' | 'acquaintance';
+export type DunbarCircle = 'inner' | 'close' | 'active' | 'casual';
 
 /**
  * Contact Repository Interface
@@ -84,7 +84,7 @@ export interface ContactUpdateData {
   customNotes?: string;
   lastContactDate?: Date;
   frequencyPreference?: FrequencyOption;
-  dunbarCircle?: 'inner' | 'close' | 'active' | 'casual' | 'acquaintance';
+  dunbarCircle?: 'inner' | 'close' | 'active' | 'casual';
   // Google metadata fields - only updated during sync operations
   source?: 'manual' | 'google' | 'calendar' | 'voice_note';
   googleResourceName?: string;

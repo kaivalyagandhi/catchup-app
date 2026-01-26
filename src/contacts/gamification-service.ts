@@ -357,8 +357,7 @@ export class GamificationServiceImpl implements GamificationService {
       distribution.inner +
       distribution.close +
       distribution.active +
-      distribution.casual +
-      distribution.acquaintance;
+      distribution.casual;
 
     // Calculate circle balance score (0-100)
     const circleBalanceScore = this.calculateCircleBalance(distribution);
@@ -447,12 +446,11 @@ export class GamificationServiceImpl implements GamificationService {
 
     let score = 0;
 
-    // Points for having contacts in each circle
+    // Points for having contacts in each circle (4-circle system)
     if (distribution.inner > 0) score += 30;
-    if (distribution.close > 0) score += 25;
-    if (distribution.active > 0) score += 20;
+    if (distribution.close > 0) score += 30;
+    if (distribution.active > 0) score += 25;
     if (distribution.casual > 0) score += 15;
-    if (distribution.acquaintance > 0) score += 10;
 
     return Math.min(100, score);
   }

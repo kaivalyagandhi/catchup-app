@@ -68,7 +68,10 @@ class OnboardingStepIndicator {
            id="onboarding-indicator" 
            role="navigation" 
            aria-label="Onboarding progress">
-        <div class="onboarding-indicator__header">
+        <div class="sr-only" aria-live="polite" aria-atomic="true">
+          ${completedSteps} of 3 steps completed
+        </div>
+        <div class="onboarding-indicator__row onboarding-indicator__header">
           <h2 class="onboarding-indicator__title" id="onboarding-title">Get Started</h2>
           <button class="onboarding-indicator__dismiss" 
                   aria-label="Dismiss onboarding setup" 
@@ -91,9 +94,6 @@ class OnboardingStepIndicator {
              role="list" 
              aria-label="Setup steps"
              aria-describedby="onboarding-title">
-          <div class="sr-only" aria-live="polite" aria-atomic="true">
-            ${completedSteps} of 3 steps completed
-          </div>
           ${this.renderStep(1, 'Connect Accounts', this.state.steps.integrations.complete)}
           ${this.renderStep(2, 'Organize Circles', this.state.steps.circles.complete)}
           ${this.renderStep(3, 'Review Groups', this.state.steps.groups.complete)}
@@ -126,7 +126,7 @@ class OnboardingStepIndicator {
         tabindex="0"
       >
         <span class="onboarding-step__icon" aria-hidden="true">${icon}</span>
-        <span class="onboarding-step__label">${number}. ${label}</span>
+        <span class="onboarding-step__label">${label}</span>
         <span class="sr-only">${statusText}</span>
       </button>
     `;

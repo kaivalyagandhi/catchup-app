@@ -30,7 +30,7 @@
 /* Sidebar Brand Section */
 .sidebar__brand {
     padding: 24px 20px;
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 700;
     color: var(--text-primary);
     border-bottom: 1px solid var(--border-subtle);
@@ -56,7 +56,7 @@
     border-radius: 8px;
     color: var(--text-primary);
     text-decoration: none;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
     transition: all 0.2s ease;
     cursor: pointer;
@@ -142,8 +142,9 @@
 }
 
 .user-name {
-    font-size: 13px;
-    font-weight: 500;
+    font-family: var(--font-heading);
+    font-weight: var(--font-bold);
+    font-size: 14px;
     color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -210,23 +211,23 @@
   justify-content: center;
   width: 56px;
   height: 56px;
-  background: var(--chat-bubble-bg);
+  background: var(--edits-primary);
   border: none;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(139, 111, 92, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .theme-toggle:hover {
-  background: var(--chat-bubble-hover);
+  background: var(--edits-primary-hover);
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(139, 111, 92, 0.4);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .theme-toggle svg {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   stroke: white;
   fill: none;
   stroke-width: 2;

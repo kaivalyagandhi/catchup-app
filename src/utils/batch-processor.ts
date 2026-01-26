@@ -100,6 +100,6 @@ export class BatchProcessor {
 }
 
 /**
- * Default batch processor instance with batch size of 100
+ * Default batch processor instance with batch size of 50 (reduced for memory efficiency)
  */
-export const defaultBatchProcessor = new BatchProcessor(100);
+export const defaultBatchProcessor = new BatchProcessor(50);

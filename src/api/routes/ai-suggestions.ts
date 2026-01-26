@@ -7,8 +7,8 @@ const router = Router();
 // Apply authentication to all routes
 router.use(authenticate);
 
-// Valid Dunbar circles
-const VALID_CIRCLES = ['inner', 'close', 'active', 'casual', 'acquaintance'];
+// Valid Dunbar circles (Simplified 4-circle system)
+const VALID_CIRCLES = ['inner', 'close', 'active', 'casual'];
 
 /**
  * POST /api/ai/circle-suggestions

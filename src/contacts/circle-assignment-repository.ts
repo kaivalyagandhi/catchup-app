@@ -12,7 +12,7 @@ import pool from '../db/connection';
 /**
  * Dunbar circle types
  */
-export type DunbarCircle = 'inner' | 'close' | 'active' | 'casual' | 'acquaintance';
+export type DunbarCircle = 'inner' | 'close' | 'active' | 'casual';
 
 /**
  * Assignment source types
@@ -55,7 +55,6 @@ export interface CircleDistribution {
   close: number;
   active: number;
   casual: number;
-  acquaintance: number;
   uncategorized: number;
   total: number;
 }
@@ -159,7 +158,6 @@ export class PostgresCircleAssignmentRepository implements CircleAssignmentRepos
       close: 0,
       active: 0,
       casual: 0,
-      acquaintance: 0,
       uncategorized: 0,
       total: 0,
     };

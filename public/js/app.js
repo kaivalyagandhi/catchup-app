@@ -57,13 +57,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (urlParams.get('calendar_success') === 'true') {
         // Clear URL parameters
         window.history.replaceState({}, document.title, window.location.pathname);
-        // Show success message
+        // Navigate to preferences page
+        navigateTo('preferences');
+        // Show success message and reload preferences
         setTimeout(() => {
             showToast('Google Calendar connected successfully!', 'success');
-            // Refresh preferences if on that page
-            if (currentPage === 'preferences') {
-                loadPreferences();
-            }
+            loadPreferences();
         }, 500);
     }
     
@@ -79,16 +78,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Handle contacts success redirect
     if (urlParams.get('contacts_success') === 'true') {
         window.history.replaceState({}, document.title, window.location.pathname);
+        // Navigate to preferences page
+        navigateTo('preferences');
+        // Show success message and reload preferences
         setTimeout(() => {
             showToast('Google Contacts connected successfully! Syncing contacts...', 'success');
-            // Refresh preferences if on that page
-            if (currentPage === 'preferences') {
-                loadPreferences();
-            }
-            // Refresh contacts if on that page
-            if (currentPage === 'directory' && currentDirectoryTab === 'contacts') {
-                loadContacts();
-            }
+            loadPreferences();
         }, 500);
     }
     
@@ -203,8 +198,8 @@ function showMainApp() {
     const userNameEl = document.getElementById('user-name');
     const userAvatarEl = document.getElementById('user-avatar-initials');
     
-    if (userNameEl && userEmail) {
-        userNameEl.textContent = userEmail;
+    if (userNameEl) {
+        userNameEl.textContent = 'Preferences';
     }
     
     if (userAvatarEl && userEmail) {
@@ -427,14 +422,28 @@ async function initializeStep2Handler() {
                         (currentPage === 'directory' && currentDirectoryTab === 'circles');
     
     if (isOnCircles) {
+        // Check if dialog is already open or being opened
+        const existingOverlay = document.querySelector('.manage-circles-overlay');
+        if (existingOverlay || window.isOpeningManageCircles) {
+            console.log('[Step2] Manage Circles dialog already open or opening, skipping auto-open');
+            return;
+        }
+        
         // Create and initialize Step 2 handler
         if (!step2Handler) {
             step2Handler = new Step2CirclesHandler(savedState);
         }
         
+        // Set flag to prevent duplicate opening
+        window.isOpeningManageCircles = true;
+        
         // Auto-open Manage Circles flow
         setTimeout(async () => {
             await step2Handler.openManageCirclesFlow();
+            // Clear flag after dialog is opened
+            setTimeout(() => {
+                window.isOpeningManageCircles = false;
+            }, 1000);
         }, 500);
     }
 }
@@ -1672,9 +1681,20 @@ function handleCircleContactClick(data) {
  */
 async function openManageCirclesFlow() {
     try {
+        // Check if dialog is already open or being opened
+        const existingOverlay = document.querySelector('.manage-circles-overlay');
+        if (existingOverlay || window.isOpeningManageCircles) {
+            console.log('[ManageCircles] Dialog already open or opening, skipping');
+            return;
+        }
+        
+        // Set flag to prevent duplicate opening
+        window.isOpeningManageCircles = true;
+        
         // Ensure ManageCirclesFlow is available
         if (typeof ManageCirclesFlow === 'undefined') {
             showToast('Manage Circles feature is not available', 'error');
+            window.isOpeningManageCircles = false;
             return;
         }
         
@@ -1708,9 +1728,15 @@ async function openManageCirclesFlow() {
         
         manageCirclesFlow.mount();
         
+        // Clear flag after dialog is mounted
+        setTimeout(() => {
+            window.isOpeningManageCircles = false;
+        }, 1000);
+        
     } catch (error) {
         console.error('Error opening Manage Circles flow:', error);
         showToast('Failed to open Manage Circles', 'error');
+        window.isOpeningManageCircles = false;
     }
 }
 
@@ -1771,7 +1797,8 @@ async function loadCirclesVisualization() {
             const visualizerDiv = document.createElement('div');
             visualizerDiv.id = 'circles-visualizer';
             visualizerDiv.style.width = '100%';
-            visualizerDiv.style.minHeight = '600px';
+            visualizerDiv.style.minHeight = '900px';
+            visualizerDiv.style.height = 'auto';
             container.appendChild(visualizerDiv);
             
             // Initialize CircularVisualizer
@@ -5372,6 +5399,60 @@ async function loadPreferences() {
     if (calendarConnected) {
         setTimeout(() => loadCalendarEventsCount(), 100);
     }
+    
+    // Check if Step 1 should be marked complete
+    checkStep1Completion(calendarConnected, googleContactsStatus.connected);
+}
+
+/**
+ * Check if Step 1 of onboarding should be marked complete
+ */
+async function checkStep1Completion(calendarConnected, contactsConnected) {
+    console.log('[Onboarding] Checking Step 1 completion:', { calendarConnected, contactsConnected });
+    
+    // Only check if both are connected
+    if (!calendarConnected || !contactsConnected) {
+        console.log('[Onboarding] Not both connected, skipping');
+        return;
+    }
+    
+    // Get or initialize onboarding state
+    const stateManager = getOnboardingStateManagerForUI();
+    let savedState = OnboardingStepIndicator.loadState();
+    
+    // Initialize state if it doesn't exist
+    if (!savedState) {
+        console.log('[Onboarding] No saved state found, initializing...');
+        savedState = await stateManager.initializeState(window.userId);
+    }
+    
+    console.log('[Onboarding] Current state:', savedState);
+    
+    if (savedState.isComplete) {
+        console.log('[Onboarding] Onboarding already complete, skipping');
+        return;
+    }
+    
+    if (savedState.currentStep !== 1) {
+        console.log('[Onboarding] Not on Step 1 (current step:', savedState.currentStep, '), skipping');
+        return;
+    }
+    
+    // Both integrations are connected - mark Step 1 complete
+    console.log('[Onboarding] Marking Step 1 complete');
+    await stateManager.markStep1Complete(window.userId, true, true);
+    
+    // Update the onboarding indicator
+    if (window.onboardingIndicator) {
+        const updatedState = await stateManager.loadState(window.userId);
+        console.log('[Onboarding] Updated state:', updatedState);
+        window.onboardingIndicator.updateState(updatedState);
+    }
+    
+    // Show success message
+    if (typeof showToast === 'function') {
+        showToast('Step 1 complete! Click "Organize Circles" to continue.', 'success');
+    }
 }
 
 async function loadCalendarEventsCount() {
@@ -6478,38 +6559,32 @@ function hideToast(toastId) {
 }
 
 // Circle Management Integration
-// Helper function to get circle information
+// Helper function to get circle information (Simplified 4-circle system)
 function getCircleInfo(circleId) {
     const circles = {
         'inner': {
             name: 'Inner Circle',
             emoji: '💎',
             color: '#8b5cf6',
-            description: 'Your closest relationships (up to 5 people)'
+            description: 'Your closest confidants—people you\'d call in a crisis (up to 10 people)'
         },
         'close': {
             name: 'Close Friends',
             emoji: '🌟',
             color: '#3b82f6',
-            description: 'Close friends you see regularly (up to 15 people)'
+            description: 'Good friends you regularly share life updates with (up to 25 people)'
         },
         'active': {
             name: 'Active Friends',
-            emoji: '🤝',
+            emoji: '✨',
             color: '#10b981',
-            description: 'Friends you actively maintain (up to 50 people)'
+            description: 'People you want to stay connected with regularly (up to 50 people)'
         },
         'casual': {
             name: 'Casual Network',
-            emoji: '👋',
+            emoji: '🤝',
             color: '#f59e0b',
-            description: 'Casual acquaintances (up to 150 people)'
-        },
-        'acquaintance': {
-            name: 'Acquaintances',
-            emoji: '👤',
-            color: '#6b7280',
-            description: 'People you know but don\'t interact with often'
+            description: 'Acquaintances you keep in touch with occasionally (up to 100 people)'
         }
     };
     
@@ -6758,13 +6833,10 @@ function createOnboardingContactCard(contact) {
         { value: 'inner', label: 'Inner Circle', color: '#8b5cf6' },
         { value: 'close', label: 'Close Friends', color: '#3b82f6' },
         { value: 'active', label: 'Active Friends', color: '#10b981' },
-        { value: 'casual', label: 'Casual Network', color: '#f59e0b' },
-        { value: 'acquaintance', label: 'Acquaintances', color: '#6b7280' }
+        { value: 'casual', label: 'Casual Network', color: '#f59e0b' }
     ];
     
-    const currentCircle = contact.circle || contact.dunbarCircle ? 
-        ['inner', 'close', 'active', 'casual', 'acquaintance'][contact.dunbarCircle - 1] || 'acquaintance' : 
-        'acquaintance';
+    const currentCircle = contact.circle || contact.dunbarCircle || '';
     
     card.innerHTML = `
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
