@@ -63,15 +63,6 @@ export const CIRCLE_DEFINITIONS = {
   inner: {
     id: 'inner' as DunbarCircle,
     name: 'Inner Circle',
-    description: 'Your closest relationships - family and best friends',
-    recommendedSize: 5,
-    maxSize: 10,
-    defaultFrequency: 'weekly',
-    color: '#FF6B6B',
-  },
-  inner: {
-    id: 'inner' as DunbarCircle,
-    name: 'Inner Circle',
     description: 'Your closest confidants—people you\'d call in a crisis',
     recommendedSize: 10,
     maxSize: 10,
