@@ -53,7 +53,7 @@ psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migratio
 
 echo ""
 echo "Running migration 006b: Audit logs table..."
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/006_create_audit_logs_table.sql
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/006b_create_audit_logs_table.sql
 
 echo ""
 echo "Running migration 007: Calendar events table..."
@@ -73,7 +73,7 @@ psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migratio
 
 echo ""
 echo "Running migration 010b: Enhance suggestions for groups..."
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/010_enhance_suggestions_for_groups.sql
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/010b_enhance_suggestions_for_groups.sql
 
 echo ""
 echo "Running migration 011: Make tags user specific..."
@@ -138,6 +138,34 @@ psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migratio
 echo ""
 echo "Running migration 027: Add pending edits deduplication..."
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/027_add_pending_edits_deduplication.sql
+
+echo ""
+echo "Running migration 028: Add frequency options..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/028_add_frequency_options.sql
+
+echo ""
+echo "Running migration 029: Add AI edit tag source..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/029_add_ai_edit_tag_source.sql
+
+echo ""
+echo "Running migration 030: Update contact onboarding for simplified circles..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/030_update_contact_onboarding_for_simplified_circles.sql
+
+echo ""
+echo "Running migration 031: Create onboarding analytics table..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/031_create_onboarding_analytics_table.sql
+
+echo ""
+echo "Running migration 032: Add tier1 foundation schema..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/032_add_tier1_foundation_schema.sql
+
+echo ""
+echo "Running migration 033: Add circle assignment history..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/033_add_circle_assignment_history.sql
+
+echo ""
+echo "Running migration 034: Add trigger type to onboarding..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/034_add_trigger_type_to_onboarding.sql
 
 echo ""
 echo "✓ All migrations completed successfully!"

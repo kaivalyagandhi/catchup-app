@@ -26,12 +26,17 @@ describe('Onboarding Repositories', () => {
   const contactRepo = new PostgresContactRepository();
 
   beforeAll(async () => {
-    // Create a test user
+    // Create a test user with required google_id and auth_provider
     const userResult = await pool.query(
-      `INSERT INTO users (email, name) 
-       VALUES ($1, $2) 
+      `INSERT INTO users (email, name, google_id, auth_provider) 
+       VALUES ($1, $2, $3, $4) 
        RETURNING id`,
-      ['test-onboarding@example.com', 'Test User']
+      [
+        'test-onboarding@example.com',
+        'Test User',
+        `google_test_${Date.now()}`,
+        'google',
+      ]
     );
     testUserId = userResult.rows[0].id;
 

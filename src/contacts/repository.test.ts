@@ -15,10 +15,10 @@ describe('ContactRepository - Source Filtering', () => {
   let manualContactId: string;
 
   beforeAll(async () => {
-    // Create a test user
+    // Create a test user with required google_id and auth_provider
     const userResult = await pool.query(
-      `INSERT INTO users (email, name) VALUES ($1, $2) RETURNING id`,
-      ['test-source-filter@example.com', 'Test User']
+      `INSERT INTO users (email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4) RETURNING id`,
+      ['test-source-filter@example.com', 'Test User', `google_test_${Date.now()}`, 'google']
     );
     testUserId = userResult.rows[0].id;
 

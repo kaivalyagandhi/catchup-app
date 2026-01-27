@@ -283,12 +283,12 @@ export class AccountServiceImpl implements AccountService {
     try {
       await client.query('BEGIN');
 
-      // Create user with is_test_user flag
+      // Create user with is_test_user flag and required google_id/auth_provider
       const result = await client.query(
-        `INSERT INTO users (email, name, is_test_user)
-         VALUES ($1, $2, true)
+        `INSERT INTO users (email, name, google_id, auth_provider, is_test_user)
+         VALUES ($1, $2, $3, $4, true)
          RETURNING id, email, name, is_test_user, created_at`,
-        [email, name || null]
+        [email, name || null, `google_test_${Date.now()}_${Math.random().toString(36).substring(7)}`, 'google']
       );
 
       await client.query('COMMIT');
