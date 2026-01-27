@@ -11,7 +11,6 @@
 import { PostgresContactRepository, DunbarCircle } from './repository';
 import {
   PostgresCircleAssignmentRepository,
-  CircleAssignmentCreateData,
   CircleDistribution,
   AssignedBy,
 } from './circle-assignment-repository';

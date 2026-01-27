@@ -19,9 +19,21 @@ All project documentation has been organized into `docs/` folder.
 
 **Testing**: `docs/testing/`
 - Testing guides, checklists, verification procedures
+- Also see `tests/html/` for manual HTML test files
 
 **Development**: `docs/development/`
 - Quick starts, implementation guides, bug fixes
+- `UNIMPLEMENTED_FEATURES.md` - Tracked TODOs and future work
+
+**Examples**: `docs/examples/`
+- `backend/` - TypeScript example code for backend services
+- `frontend/` - JavaScript example code for frontend components
+- Reference implementations and usage patterns
+
+**Testing**: `tests/html/`
+- Manual test HTML files for UI components and features
+- `dashboards/` - Monitoring and debugging dashboards
+- See `tests/html/README.md` for testing guide
 
 **Archive**: `docs/archive/`
 - Historical task summaries and checkpoints
@@ -41,6 +53,9 @@ Current steering files in `.kiro/steering/`:
 - `structure.md` - Project structure and naming
 - `security.md` - Security standards
 - `product.md` - Product vision
+- `testing-guide.md` - Testing conventions and patterns
+- `voice-notes-architecture.md` - Voice notes feature architecture
+- `google-integrations.md` - Google API integration patterns
 - `database-setup.md` - Database setup guide
 - `google-calendar-setup.md` - Calendar OAuth setup
 - `chrome-devtools.md` - Browser debugging guide
@@ -55,5 +70,8 @@ Current steering files in `.kiro/steering/`:
 **Need feature overview?** → `.kiro/steering/features-overview.md`
 **Need setup instructions?** → Check `docs/` for `*_SETUP*.md` files
 **Need implementation details?** → `docs/features/<feature-name>/`
-**Need testing info?** → `docs/testing/`
+**Need code examples?** → `docs/examples/backend/` or `docs/examples/frontend/`
+**Need testing info?** → `docs/testing/` or `.kiro/steering/testing-guide.md`
+**Need manual testing?** → `tests/html/` for HTML test files
 **Need historical context?** → `docs/archive/`
+**Need TODO tracking?** → `docs/development/UNIMPLEMENTED_FEATURES.md`

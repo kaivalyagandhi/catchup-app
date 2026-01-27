@@ -53,6 +53,7 @@ async function example2_LoadState() {
   }
 }
 
+
 /**
  * Example 3: Update Step 1 (Integrations)
  */
@@ -115,6 +116,7 @@ async function example5_UpdateStep3() {
   console.log('Overall complete:', status.overallComplete); // true
 }
 
+
 /**
  * Example 6: Dismiss and resume onboarding
  */
@@ -171,6 +173,7 @@ async function example7_AdvancedUsage() {
   const cachedState = manager.getCurrentState();
   console.log('Cached state:', cachedState);
 }
+
 
 /**
  * Example 8: Complete workflow
@@ -231,6 +234,7 @@ async function example9_ErrorHandling() {
   await updateCircleProgress(userId, 10, 100);
   console.log('Progress updated successfully');
 }
+
 
 /**
  * Example 10: Monitoring progress in real-time

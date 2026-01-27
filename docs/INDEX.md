@@ -183,6 +183,35 @@ This document provides an organized overview of all documentation in the CatchUp
 - [TWILIO_UI_TESTING_SUMMARY.md](features/sms-mms/TWILIO_UI_TESTING_SUMMARY.md) - Testing summary
 - [TWILIO_VOICE_TRANSCRIPTION_RESEARCH.md](features/sms-mms/TWILIO_VOICE_TRANSCRIPTION_RESEARCH.md) - Voice research
 
+## 📝 Code Examples
+
+**Location**: `docs/examples/`
+
+Reference implementations and integration examples for CatchUp features. These examples demonstrate best practices and common usage patterns.
+
+**Overview**:
+- [README.md](examples/README.md) - Complete examples documentation
+
+**Backend Examples** (`docs/examples/backend/`):
+- **API**: Google SSO, OAuth state management, authentication
+- **Calendar**: Calendar service usage, iCal feed generation
+- **Contacts**: Account operations, error handling, onboarding
+- **Integrations**: Google Contacts sync, token refresh
+- **Jobs**: Background job scheduling
+- **Matching**: AI matching algorithms, group matching
+- **SMS**: Message processing, media download, TwiML generation
+- **Voice**: Transcription, entity extraction, contact disambiguation
+
+**Frontend Examples** (`docs/examples/frontend/`):
+- AI suggestion integration
+- Contact management workflows
+- Enrichment review panel
+- Onboarding controller
+- Mobile responsive patterns
+- And more...
+
+See [docs/examples/README.md](examples/README.md) for detailed documentation on using these examples.
+
 ## 🧪 Testing
 
 **Location**: `docs/testing/`
@@ -203,6 +232,29 @@ This document provides an organized overview of all documentation in the CatchUp
 - [test-sync-routes.md](testing/test-sync-routes.md)
 - [test-webhook-integration.md](testing/test-webhook-integration.md)
 
+**Manual Test Files** (`tests/html/`):
+
+HTML files for manual testing and verification of features in isolation. See [tests/html/README.md](../tests/html/README.md) for complete documentation.
+
+**Component Tests**:
+- UI components (enrichment panel, audio manager, etc.)
+- Circular visualizer tests (v1, v2, drag, group filter)
+- Contact selector and management
+- Theme and accessibility tests
+
+**Feature Tests**:
+- Google integrations (SSO, Contacts, Calendar)
+- Voice notes (recording, transcription, history)
+- Onboarding flow (animations, responsive, step indicators)
+- Mobile responsive tests
+
+**Dashboards** (`tests/html/dashboards/`):
+- SMS monitoring dashboard
+- General test dashboard
+- Twilio integration testing
+
+To use manual test files, start the dev server (`npm run dev`) and navigate to `http://localhost:3000/tests/html/[filename].test.html`. See the [tests/html/README.md](../tests/html/README.md) for detailed usage instructions.
+
 ## 🛠️ Development
 
 **Location**: `docs/development/`
@@ -211,6 +263,7 @@ This document provides an organized overview of all documentation in the CatchUp
 - [QUICK_START.md](development/QUICK_START.md) - Quick start guide
 - [QUICK_REFERENCE.md](development/QUICK_REFERENCE.md) - Quick reference
 - [ACTION_ITEMS.md](development/ACTION_ITEMS.md) - Action items
+- [UNIMPLEMENTED_FEATURES.md](development/UNIMPLEMENTED_FEATURES.md) - TODO tracking and unimplemented features
 
 **Implementation**:
 - [IMPLEMENTATION_CHECKLIST.md](development/IMPLEMENTATION_CHECKLIST.md) - Implementation checklist
@@ -268,11 +321,14 @@ Implementation summaries and verification documents:
 ### By Feature
 1. Check the feature-specific folder in `docs/features/`
 2. Look for user guides, implementation docs, and troubleshooting
+3. Check `docs/examples/` for code examples
 
 ### By Task
 1. Development tasks: Check `docs/development/`
 2. Testing tasks: Check `docs/testing/`
-3. Historical tasks: Check `docs/archive/`
+3. Manual testing: Check `tests/html/` for test files
+4. Historical tasks: Check `docs/archive/`
+5. Unimplemented features: Check `docs/development/UNIMPLEMENTED_FEATURES.md`
 
 ### By Type
 - **User Guides**: Look for `*_USER_GUIDE.md` files
@@ -280,6 +336,8 @@ Implementation summaries and verification documents:
 - **Setup Guides**: Look for `*_SETUP*.md` files
 - **Troubleshooting**: Look for `*_TROUBLESHOOTING.md` files
 - **Quick References**: Look for `*_QUICK_REFERENCE.md` files
+- **Code Examples**: Check `docs/examples/backend/` or `docs/examples/frontend/`
+- **Manual Tests**: Check `tests/html/` for `.test.html` files
 
 ## 📝 Contributing Documentation
 
@@ -287,5 +345,7 @@ When adding new documentation:
 1. Place feature docs in `docs/features/<feature-name>/`
 2. Place testing docs in `docs/testing/`
 3. Place development docs in `docs/development/`
-4. Update this index file
-5. Follow naming conventions: `FEATURE_TYPE.md` (e.g., `GOOGLE_SSO_USER_GUIDE.md`)
+4. Place code examples in `docs/examples/backend/` or `docs/examples/frontend/`
+5. Place manual test files in `tests/html/`
+6. Update this index file
+7. Follow naming conventions: `FEATURE_TYPE.md` (e.g., `GOOGLE_SSO_USER_GUIDE.md`)
