@@ -35,8 +35,8 @@ describe('Security Audit Tests', () => {
     beforeEach(async () => {
       // Create test user if doesn't exist
       await pool.query(
-        `INSERT INTO users (id, email, name) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING`,
-        [testUserId, 'test-encryption@example.com', 'Test User']
+        `INSERT INTO users (id, email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO NOTHING`,
+        [testUserId, 'test-encryption@example.com', 'Test User', `google_test_${Date.now()}`, 'google']
       );
     });
 
@@ -390,8 +390,8 @@ describe('Security Audit Tests', () => {
     beforeEach(async () => {
       // Create test user
       await pool.query(
-        `INSERT INTO users (id, email, name) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING`,
-        [testUserId, 'test-pii@example.com', 'Test User PII']
+        `INSERT INTO users (id, email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO NOTHING`,
+        [testUserId, 'test-pii@example.com', 'Test User PII', `google_test_${Date.now()}`, 'google']
       );
       // Create test contact
       await pool.query(
@@ -520,8 +520,8 @@ describe('Security Audit Tests', () => {
     beforeEach(async () => {
       // Create test user
       await pool.query(
-        `INSERT INTO users (id, email, name) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING`,
-        [testUserId, 'test-deletion@example.com', 'Test User Deletion']
+        `INSERT INTO users (id, email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO NOTHING`,
+        [testUserId, 'test-deletion@example.com', 'Test User Deletion', `google_test_${Date.now()}`, 'google']
       );
 
       // Create test contact

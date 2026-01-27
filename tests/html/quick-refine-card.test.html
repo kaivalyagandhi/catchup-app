@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Refine Card Test</title>
+  <style>
+    :root {
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --text-tertiary: #9ca3af;
+      --bg-primary: #f9fafb;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e5e7eb;
+      --bg-hover: #f3f4f6;
+      --bg-selected: #eff6ff;
+      --border-color: #e5e7eb;
+      --border-hover: #d1d5db;
+      --primary-color: #3b82f6;
+      --primary-hover: #2563eb;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-primary);
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .test-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .test-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+    
+    .test-header p {
+      font-size: 1rem;
+      color: var(--text-secondary);
+    }
+    
+    .test-controls {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-controls h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+    
+    .control-group {
+      margin-bottom: 1rem;
+    }
+    
+    .control-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+    
+    .control-group input,
+    .control-group select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    
+    .control-group button {
+      padding: 0.75rem 1.5rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .control-group button:hover {
+      background-color: var(--primary-hover);
+    }
+    
+    .test-output {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-output h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+    
+    .output-log {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 1rem;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .output-log-entry {
+      margin-bottom: 0.5rem;
+      padding: 0.25rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .output-log-entry:last-child {
+      border-bottom: none;
+    }
+    
+    .log-timestamp {
+      color: #9ca3af;
+      margin-right: 0.5rem;
+    }
+    
+    .log-success {
+      color: #10b981;
+    }
+    
+    .log-error {
+      color: #ef4444;
+    }
+    
+    .log-info {
+      color: #3b82f6;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>Quick Refine Card Test</h1>
+      <p>Test the swipe-style contact refinement interface</p>
+    </div>
+    
+    <div class="test-controls">
+      <h2>Test Controls</h2>
+      
+      <div class="control-group">
+        <label for="contact-count">Number of Contacts:</label>
+        <input type="number" id="contact-count" value="10" min="1" max="50">
+      </div>
+      
+      <div class="control-group">
+        <button id="init-test">Initialize Quick Refine</button>
+        <button id="reset-test" style="background-color: #6b7280; margin-left: 0.5rem;">Reset</button>
+      </div>
+    </div>
+    
+    <div id="quick-refine-container"></div>
+    
+    <div class="test-output">
+      <h2>Event Log</h2>
+      <div class="output-log" id="output-log">
+        <div class="output-log-entry">
+          <span class="log-timestamp">[Ready]</span>
+          <span class="log-info">Test environment initialized. Click "Initialize Quick Refine" to start.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="/js/quick-refine-card.js"></script>
+  <script>
+    let quickRefineInstance = null;
+    
+    // Mock data generator
+    function generateMockContacts(count) {
+      const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emily', 'Robert', 'Lisa', 'James', 'Mary'];
+      const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
+      const companies = ['Tech Corp', 'Design Studio', 'Marketing Inc', 'Finance Group', 'Consulting LLC', null];
+      
+      const contacts = [];
+      for (let i = 0; i < count; i++) {
+        const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+        const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+        const company = companies[Math.floor(Math.random() * companies.length)];
+        
+        contacts.push({
+          id: `contact-${i + 1}`,
+          name: `${firstName} ${lastName}`,
+          email: Math.random() > 0.3 ? `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com` : null,
+          phone: Math.random() > 0.5 ? `(555) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}` : null,
+          company: company,
+          lastContactDate: Math.random() > 0.4 ? new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString() : null
+        });
+      }
+      
+      return contacts;
+    }
+    
+    // Logging utility
+    function log(message, type = 'info') {
+      const logContainer = document.getElementById('output-log');
+      const entry = document.createElement('div');
+      entry.className = 'output-log-entry';
+      
+      const timestamp = new Date().toLocaleTimeString();
+      const typeClass = type === 'success' ? 'log-success' : type === 'error' ? 'log-error' : 'log-info';
+      
+      entry.innerHTML = `
+        <span class="log-timestamp">[${timestamp}]</span>
+        <span class="${typeClass}">${message}</span>
+      `;
+      
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+    
+    // Mock toast function
+    window.showToast = function(message, type) {
+      log(`Toast: ${message}`, type);
+    };
+    
+    // Initialize test
+    document.getElementById('init-test').addEventListener('click', () => {
+      const count = parseInt(document.getElementById('contact-count').value) || 10;
+      const contacts = generateMockContacts(count);
+      
+      log(`Generating ${count} mock contacts...`, 'info');
+      
+      // Destroy existing instance
+      if (quickRefineInstance) {
+        quickRefineInstance.destroy();
+      }
+      
+      // Create new instance
+      quickRefineInstance = new QuickRefineCard(contacts, {
+        containerId: 'quick-refine-container',
+        userId: 'test-user-123',
+        onAssign: (contactId, circle) => {
+          log(`Contact ${contactId} assigned to ${circle} circle`, 'success');
+        },
+        onDone: (progress) => {
+          log(`User exited flow. Progress: ${progress.currentIndex}/${progress.totalContacts}`, 'info');
+        },
+        onProgress: (progress) => {
+          log(`Progress: ${progress.current}/${progress.total} (assigned to ${progress.assigned})`, 'info');
+        }
+      });
+      
+      // Render
+      quickRefineInstance.render();
+      log('Quick Refine initialized successfully', 'success');
+      log('Try swiping the card left/right or clicking the circle buttons', 'info');
+      log('On mobile: Swipe gestures are enabled', 'info');
+    });
+    
+    // Reset test
+    document.getElementById('reset-test').addEventListener('click', () => {
+      if (quickRefineInstance) {
+        quickRefineInstance.destroy();
+        quickRefineInstance = null;
+      }
+      
+      document.getElementById('output-log').innerHTML = `
+        <div class="output-log-entry">
+          <span class="log-timestamp">[Ready]</span>
+          <span class="log-info">Test environment reset. Click "Initialize Quick Refine" to start.</span>
+        </div>
+      `;
+      
+      log('Test reset', 'info');
+    });
+    
+    // Auto-initialize on load
+    window.addEventListener('load', () => {
+      log('Page loaded. Ready to test.', 'success');
+      log('Instructions:', 'info');
+      log('1. Adjust the number of contacts if desired', 'info');
+      log('2. Click "Initialize Quick Refine" to start', 'info');
+      log('3. Use circle buttons or swipe gestures to assign contacts', 'info');
+      log('4. Swipe mapping: Far left = Inner, Near left = Close, Near right = Active, Far right = Casual', 'info');
+    });
+  </script>
+</body>
+</html>

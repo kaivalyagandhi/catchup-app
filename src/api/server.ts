@@ -3,10 +3,12 @@ import { createServer as createHttpServer, Server } from 'http';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import jwt from 'jsonwebtoken';
 import { WebSocketServer } from 'ws';
 import authRouter from './routes/auth';
 import auditRouter from './routes/audit';
 import contactsRouter from './routes/contacts';
+import contactsArchiveRouter from './routes/contacts-archive';
 import groupsTagsRouter from './routes/groups-tags';
 import suggestionsRouter from './routes/suggestions';
 import calendarRouter from './routes/calendar';
@@ -24,6 +26,8 @@ import editsRouter from './routes/edits';
 import onboardingRouter from './routes/onboarding';
 import circlesRouter from './routes/circles';
 import aiSuggestionsRouter from './routes/ai-suggestions';
+import aiQuickStartRouter from './routes/ai-quick-start';
+import aiBatchRouter from './routes/ai-batch';
 import gamificationRouter from './routes/gamification';
 import weeklyCatchupRouter from './routes/weekly-catchup';
 import privacyRouter from './routes/privacy';
@@ -120,6 +124,7 @@ export function createServer(): Express {
   app.use('/api/auth/statistics', authStatisticsRouter);
   app.use('/api/audit', auditRouter);
   app.use('/api/contacts', contactsRouter);
+  app.use('/api/contacts', contactsArchiveRouter);
   app.use('/api/groups-tags', groupsTagsRouter);
   app.use('/api/suggestions', suggestionsRouter);
   app.use('/api/calendar/oauth', googleCalendarOAuthRouter);
@@ -134,6 +139,8 @@ export function createServer(): Express {
   app.use('/api/onboarding', onboardingRouter);
   app.use('/api/circles', circlesRouter);
   app.use('/api/ai', aiSuggestionsRouter);
+  app.use('/api/ai', aiQuickStartRouter);
+  app.use('/api/ai', aiBatchRouter);
   app.use('/api/gamification', gamificationRouter);
   app.use('/api/weekly-catchup', weeklyCatchupRouter);
   app.use('/api/privacy', privacyRouter);
@@ -151,6 +158,70 @@ export function createServer(): Express {
   } catch (error) {
     console.error('Failed to register test data routes:', error);
   }
+
+  // Root route - serve landing page for unauthenticated users, dashboard for authenticated
+  app.get('/', (req: Request, res: Response) => {
+    // Check for JWT token in Authorization header
+    const authHeader = req.headers.authorization;
+    let isAuthenticated = false;
+
+    if (authHeader) {
+      const parts = authHeader.split(' ');
+      if (parts.length === 2 && parts[0] === 'Bearer') {
+        try {
+          const token = parts[1];
+          const secret = process.env.JWT_SECRET;
+          if (secret) {
+            jwt.verify(token, secret);
+            isAuthenticated = true;
+          }
+        } catch (error) {
+          // Token invalid or expired, treat as unauthenticated
+          isAuthenticated = false;
+        }
+      }
+    }
+
+    // Serve appropriate page based on auth status
+    if (isAuthenticated) {
+      // Authenticated user - serve dashboard (index.html)
+      const indexPath = path.join(process.cwd(), 'public', 'index.html');
+      
+      fs.readFile(indexPath, 'utf8', (err, html) => {
+        if (err) {
+          console.error('Error reading index.html:', err);
+          res.status(500).send('Internal Server Error');
+          return;
+        }
+
+        // Inject test mode status and version info
+        const testModeEnabled = isTestModeEnabled();
+        const testModeScript = `<script>window.__TEST_MODE_ENABLED__ = ${testModeEnabled};</script>`;
+        const versionInfo = getVersionInfo();
+        const versionScript = `<script>window.__VERSION_INFO__ = ${JSON.stringify(versionInfo)};</script>`;
+        const modifiedHtml = html.replace('<head>', `<head>\n    ${testModeScript}\n    ${versionScript}`);
+
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(modifiedHtml);
+      });
+    } else {
+      // Unauthenticated user - serve landing page
+      const landingPath = path.join(process.cwd(), 'public', 'landing.html');
+      
+      fs.readFile(landingPath, 'utf8', (err, html) => {
+        if (err) {
+          console.error('Error reading landing.html:', err);
+          res.status(500).send('Internal Server Error');
+          return;
+        }
+
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.send(html);
+      });
+    }
+  });
 
   // Serve index.html for all other routes (SPA support)
   // Inject test mode status and version info server-side to avoid flash of unstyled content

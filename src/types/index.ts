@@ -62,6 +62,7 @@ export interface Contact {
   groups: string[];
   tags: Tag[];
   archived: boolean;
+  archivedAt?: Date;
   source?: 'manual' | 'google' | 'calendar' | 'voice_note';
   googleResourceName?: string;
   googleEtag?: string;
@@ -256,6 +257,7 @@ export interface CalendarEvent {
   isAllDay: boolean;
   isBusy: boolean;
   location?: string;
+  attendees?: Array<{ email?: string; displayName?: string }>;
   syncedAt: Date;
   createdAt: Date;
   updatedAt: Date;

@@ -181,7 +181,9 @@ export class CircleAssignmentServiceImpl implements CircleAssignmentService {
 
   /**
    * Batch assign contacts to circles
-   * Requirements: 5.5
+   * Requirements: 5.5, 17.6
+   * 
+   * All assignments succeed or all fail (atomic transaction).
    */
   async batchAssign(
     userId: string,
@@ -199,40 +201,80 @@ export class CircleAssignmentServiceImpl implements CircleAssignmentService {
       }
     }
 
-    // Group assignments by circle for efficient batch updates
-    const assignmentsByCircle = new Map<DunbarCircle, string[]>();
-    for (const assignment of assignments) {
-      const contactIds = assignmentsByCircle.get(assignment.circle) || [];
-      contactIds.push(assignment.contactId);
-      assignmentsByCircle.set(assignment.circle, contactIds);
-    }
+    // Import pool for transaction management
+    const pool = (await import('../db/connection')).default;
+    const client = await pool.connect();
 
-    // Get current states for all contacts
-    const contactStates = new Map<string, DunbarCircle | undefined>();
-    for (const assignment of assignments) {
-      const contact = await this.contactRepository.findById(assignment.contactId, userId);
-      if (!contact) {
-        throw new Error(`Contact not found: ${assignment.contactId}`);
+    try {
+      // Start transaction for atomic operation
+      await client.query('BEGIN');
+
+      // Group assignments by circle for efficient batch updates
+      const assignmentsByCircle = new Map<DunbarCircle, string[]>();
+      for (const assignment of assignments) {
+        const contactIds = assignmentsByCircle.get(assignment.circle) || [];
+        contactIds.push(assignment.contactId);
+        assignmentsByCircle.set(assignment.circle, contactIds);
       }
-      contactStates.set(assignment.contactId, contact.dunbarCircle);
-    }
 
-    // Perform batch updates by circle
-    for (const [circle, contactIds] of assignmentsByCircle) {
-      await this.contactRepository.batchAssignToCircle(contactIds, userId, circle);
-    }
+      // Get current states for all contacts
+      const contactStates = new Map<string, DunbarCircle | undefined>();
+      for (const assignment of assignments) {
+        const contact = await this.contactRepository.findById(assignment.contactId, userId);
+        if (!contact) {
+          throw new Error(`Contact not found: ${assignment.contactId}`);
+        }
+        contactStates.set(assignment.contactId, contact.dunbarCircle);
+      }
 
-    // Record all assignments in history
-    for (const assignment of assignments) {
-      await this.assignmentRepository.create({
-        userId,
-        contactId: assignment.contactId,
-        fromCircle: contactStates.get(assignment.contactId),
-        toCircle: assignment.circle,
-        assignedBy,
-        confidence: assignment.confidence,
-        reason: assignment.userOverride ? 'User override' : undefined,
-      });
+      // Perform batch updates by circle (within the same transaction)
+      for (const [circle, contactIds] of assignmentsByCircle) {
+        // Verify all contacts belong to user
+        const verifyResult = await client.query(
+          'SELECT id FROM contacts WHERE id = ANY($1) AND user_id = $2',
+          [contactIds, userId]
+        );
+
+        if (verifyResult.rows.length !== contactIds.length) {
+          throw new Error('One or more contacts not found or do not belong to user');
+        }
+
+        // Batch update within transaction
+        await client.query(
+          `UPDATE contacts
+           SET dunbar_circle = $1,
+               circle_assigned_at = CURRENT_TIMESTAMP
+           WHERE id = ANY($2) AND user_id = $3`,
+          [circle, contactIds, userId]
+        );
+      }
+
+      // Record all assignments in history (within the same transaction)
+      for (const assignment of assignments) {
+        await client.query(
+          `INSERT INTO circle_assignment_history 
+           (user_id, contact_id, from_circle, to_circle, assigned_by, confidence, reason, assigned_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+          [
+            userId,
+            assignment.contactId,
+            contactStates.get(assignment.contactId) || null,
+            assignment.circle,
+            assignedBy,
+            assignment.confidence || null,
+            assignment.userOverride ? 'User override' : null,
+          ]
+        );
+      }
+
+      // Commit transaction - all succeed
+      await client.query('COMMIT');
+    } catch (error) {
+      // Rollback transaction - all fail
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
   }
 

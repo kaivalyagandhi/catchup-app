@@ -11,6 +11,8 @@
 import { AvailabilityParams, TimeSlot, TimeBlock, CommuteWindow } from '../types';
 import * as availabilityRepository from './availability-repository';
 import * as calendarEventsRepository from './calendar-events-repository';
+import { timezoneService } from './timezone-service';
+import { userPreferencesService } from '../users/preferences-service';
 
 /**
  * Get availability parameters for a user
@@ -170,7 +172,7 @@ export async function getAvailableSlots(
  * Generate potential time slots during reasonable hours
  * (9 AM - 9 PM by default)
  */
-function generatePotentialSlots(dateRange: { start: Date; end: Date }): TimeSlot[] {
+function generatePotentialSlots(dateRange: { start: Date; end: Date }, timezone: string = 'UTC'): TimeSlot[] {
   const slots: TimeSlot[] = [];
   const slotDuration = 60; // 1 hour slots
   const startHour = 9; // 9 AM
@@ -194,7 +196,7 @@ function generatePotentialSlots(dateRange: { start: Date; end: Date }): TimeSlot
       slots.push({
         start: slotStart,
         end: slotEnd,
-        timezone: 'UTC', // TODO: Use user's timezone
+        timezone: timezone, // Use user's timezone
       });
     }
 

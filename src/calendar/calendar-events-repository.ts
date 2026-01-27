@@ -20,6 +20,7 @@ export interface CalendarEventRow {
   is_all_day: boolean;
   is_busy: boolean;
   location: string | null;
+  attendees: any | null;
   synced_at: Date;
   created_at: Date;
   updated_at: Date;
@@ -42,6 +43,7 @@ function rowToCalendarEvent(row: CalendarEventRow): CalendarEvent {
     isAllDay: row.is_all_day,
     isBusy: row.is_busy,
     location: row.location || undefined,
+    attendees: row.attendees || undefined,
     syncedAt: row.synced_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

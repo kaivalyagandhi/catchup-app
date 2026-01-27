@@ -42,8 +42,9 @@ class Step2CirclesHandler {
   }
   
   /**
-   * Open the Manage Circles flow with AI suggestions
-   * Requirements: 3.1, 8.1, 8.2, 8.3
+   * Open the new simplified circle assignment flow
+   * QuickStartFlow → BatchSuggestions → QuickRefine
+   * Requirements: 5.1, 6.1, 7.1
    */
   async openManageCirclesFlow() {
     try {
@@ -60,40 +61,497 @@ class Step2CirclesHandler {
       // Fetch contacts
       await this.fetchContacts();
       
-      // Fetch AI suggestions
-      await this.fetchAISuggestions();
-      
-      // Apply AI suggestions to contacts
-      this.applyAISuggestionsToContacts();
-      
-      // Get current assignments
-      this.loadCurrentAssignments();
-      
-      // Create and show Manage Circles flow
-      this.manageCirclesFlow = new ManageCirclesFlow(this.contacts, this.currentAssignments, {
-        isOnboarding: true,
-        onSave: () => this.handleSaveAndContinue(),
-        onSkip: () => this.handleSkip(),
-        onClose: () => this.handleClose()
-      });
-      
-      this.manageCirclesFlow.mount();
+      // Start with Quick Start Flow
+      await this.startQuickStartFlow();
       
       // Set up event listeners for progress tracking
       this.setupEventListeners();
       
-      // Clear flag after dialog is mounted
+      // Clear flag after flow is started
       setTimeout(() => {
         window.isOpeningManageCircles = false;
       }, 1000);
       
     } catch (error) {
-      console.error('Error opening Manage Circles flow:', error);
+      console.error('Error opening circle assignment flow:', error);
       window.isOpeningManageCircles = false;
       if (typeof showToast === 'function') {
         showToast('Failed to load circle organization', 'error');
       }
     }
+  }
+  
+  /**
+   * Start the Quick Start Flow (Step 1 of new flow)
+   * Requirements: 5.1, 5.6, 5.7, 5.8, 5.9, 19.1, 19.2
+   */
+  async startQuickStartFlow() {
+    // Create container for the flow
+    const container = document.createElement('div');
+    container.id = 'onboarding-flow-container';
+    container.className = 'manage-circles-overlay';
+    container.innerHTML = `
+      <div class="manage-circles-modal">
+        <div class="manage-circles__header">
+          <h2>Organize Your Circles - Step 1 of 3</h2>
+          <button class="btn-close" id="flow-close" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px;">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="education-tip">
+          <div class="education-tip__icon">💡</div>
+          <div class="education-tip__content">
+            <strong>Understanding Circles:</strong> Based on Dunbar's number research, humans naturally maintain relationships in layers. 
+            Your <strong>Inner Circle</strong> (~5 people) includes your closest relationships - those you see or talk to weekly.
+            <a href="#" class="education-tip__learn-more" id="learn-more-circles">Learn more about circles</a>
+          </div>
+        </div>
+        <div id="quick-start-container"></div>
+      </div>
+    `;
+    
+    document.body.appendChild(container);
+    
+    // Add close button handler
+    const closeBtn = document.getElementById('flow-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.closeFlow());
+    }
+    
+    // Add learn more handler
+    const learnMoreBtn = document.getElementById('learn-more-circles');
+    if (learnMoreBtn) {
+      learnMoreBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showCirclesEducation();
+      });
+    }
+    
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+    
+    // Initialize Quick Start Flow
+    if (typeof QuickStartFlow === 'undefined') {
+      console.error('QuickStartFlow component not loaded');
+      if (typeof showToast === 'function') {
+        showToast('Quick Start component not available', 'error');
+      }
+      return;
+    }
+    
+    this.quickStartFlow = new QuickStartFlow({
+      containerId: 'quick-start-container',
+      userId: window.userId || localStorage.getItem('userId'),
+      onAcceptAll: (contactIds, circle) => {
+        console.log('Quick Start: Accept All', contactIds, circle);
+        this.handleQuickStartComplete(contactIds);
+      },
+      onReview: () => {
+        console.log('Quick Start: Review mode activated');
+      },
+      onSkip: () => {
+        console.log('Quick Start: Skipped');
+        this.startBatchSuggestionsFlow();
+      },
+      onComplete: (result) => {
+        console.log('Quick Start: Complete', result);
+        this.startBatchSuggestionsFlow();
+      }
+    });
+    
+    await this.quickStartFlow.render();
+  }
+  
+  /**
+   * Handle Quick Start completion and move to Batch Suggestions
+   * Requirements: 5.10, 6.1
+   */
+  async handleQuickStartComplete(assignedContactIds) {
+    // Update progress
+    this.updateProgress();
+    
+    // Move to Batch Suggestions
+    await this.startBatchSuggestionsFlow();
+  }
+  
+  /**
+   * Start the Batch Suggestions Flow (Step 2 of new flow)
+   * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 19.1, 19.3
+   */
+  async startBatchSuggestionsFlow() {
+    const container = document.getElementById('onboarding-flow-container');
+    if (!container) return;
+    
+    // Update header
+    const header = container.querySelector('.manage-circles__header h2');
+    if (header) {
+      header.textContent = 'Organize Your Circles - Step 2 of 3';
+    }
+    
+    // Update education tip
+    const educationTip = container.querySelector('.education-tip__content');
+    if (educationTip) {
+      educationTip.innerHTML = `
+        <strong>Smart Batching:</strong> We've grouped contacts by relationship signals (family, work, hobbies, etc.). 
+        Assign entire groups to circles with one click to save time.
+        <a href="#" class="education-tip__learn-more" id="learn-more-batching">Learn more</a>
+      `;
+      
+      // Re-attach learn more handler
+      const learnMoreBtn = document.getElementById('learn-more-batching');
+      if (learnMoreBtn) {
+        learnMoreBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.showBatchingEducation();
+        });
+      }
+    }
+    
+    // Clear previous content
+    const contentContainer = document.getElementById('quick-start-container');
+    if (!contentContainer) return;
+    
+    contentContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading batch suggestions...</p></div>';
+    
+    // Check if BatchSuggestionCard component is available
+    if (typeof BatchSuggestionCard === 'undefined') {
+      console.error('BatchSuggestionCard component not loaded');
+      // Fall back to Quick Refine
+      await this.startQuickRefineFlow();
+      return;
+    }
+    
+    try {
+      // Fetch batch suggestions
+      const response = await fetch(`/api/ai/batch-suggestions?userId=${window.userId || localStorage.getItem('userId')}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch batch suggestions');
+      }
+      
+      const data = await response.json();
+      const batches = data.batches || [];
+      
+      if (batches.length === 0) {
+        // No batches, move to Quick Refine
+        await this.startQuickRefineFlow();
+        return;
+      }
+      
+      // Render batch suggestions
+      contentContainer.innerHTML = `
+        <div class="batch-suggestions-container">
+          <div class="batch-suggestions-header">
+            <h3>Smart Batching by Relationship Signals</h3>
+            <p>We've grouped your contacts based on relationship strength. Review and accept each batch.</p>
+          </div>
+          <div id="batch-cards-container"></div>
+          <div class="batch-actions">
+            <button class="btn-primary" id="batch-done">Done with Batches</button>
+            <button class="btn-text" id="batch-skip">Skip to Manual Review</button>
+          </div>
+        </div>
+      `;
+      
+      // Render each batch card
+      const batchCardsContainer = document.getElementById('batch-cards-container');
+      this.batchCards = [];
+      
+      batches.forEach((batch, index) => {
+        const cardContainer = document.createElement('div');
+        cardContainer.id = `batch-card-${index}`;
+        batchCardsContainer.appendChild(cardContainer);
+        
+        const card = new BatchSuggestionCard(batch, {
+          containerId: `batch-card-${index}`,
+          onAccept: (batchId, contactIds, circle) => {
+            console.log('Batch accepted:', batchId, contactIds, circle);
+            this.handleBatchAccepted(batchId, contactIds, circle);
+          },
+          onSkip: (batchId) => {
+            console.log('Batch skipped:', batchId);
+          }
+        });
+        
+        card.render();
+        this.batchCards.push(card);
+      });
+      
+      // Add event listeners
+      const doneBtn = document.getElementById('batch-done');
+      if (doneBtn) {
+        doneBtn.addEventListener('click', () => this.startQuickRefineFlow());
+      }
+      
+      const skipBtn = document.getElementById('batch-skip');
+      if (skipBtn) {
+        skipBtn.addEventListener('click', () => this.startQuickRefineFlow());
+      }
+      
+    } catch (error) {
+      console.error('Error loading batch suggestions:', error);
+      // Fall back to Quick Refine
+      await this.startQuickRefineFlow();
+    }
+  }
+  
+  /**
+   * Handle batch acceptance
+   * Requirements: 6.8, 6.9
+   */
+  async handleBatchAccepted(batchId, contactIds, circle) {
+    // Update progress
+    this.updateProgress();
+    
+    // Show undo toast if available
+    if (typeof UndoToast !== 'undefined') {
+      // Undo toast will be handled by the BatchSuggestionCard component
+    }
+  }
+  
+  /**
+   * Start the Quick Refine Flow (Step 3 of new flow)
+   * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 19.1, 19.4
+   */
+  async startQuickRefineFlow() {
+    const container = document.getElementById('onboarding-flow-container');
+    if (!container) return;
+    
+    // Update header
+    const header = container.querySelector('.manage-circles__header h2');
+    if (header) {
+      header.textContent = 'Organize Your Circles - Step 3 of 3';
+    }
+    
+    // Update education tip
+    const educationTip = container.querySelector('.education-tip__content');
+    if (educationTip) {
+      educationTip.innerHTML = `
+        <strong>Quick Refine:</strong> Swipe right to assign contacts to circles, or swipe left to skip. 
+        You can always come back and organize more contacts later.
+        <a href="#" class="education-tip__learn-more" id="learn-more-refine">Learn more</a>
+      `;
+      
+      // Re-attach learn more handler
+      const learnMoreBtn = document.getElementById('learn-more-refine');
+      if (learnMoreBtn) {
+        learnMoreBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.showRefineEducation();
+        });
+      }
+    }
+    
+    // Clear previous content
+    const contentContainer = document.getElementById('quick-start-container');
+    if (!contentContainer) return;
+    
+    contentContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading remaining contacts...</p></div>';
+    
+    // Check if QuickRefineCard component is available
+    if (typeof QuickRefineCard === 'undefined') {
+      console.error('QuickRefineCard component not loaded');
+      // Fall back to completion
+      await this.handleFlowComplete();
+      return;
+    }
+    
+    try {
+      // Fetch uncategorized contacts
+      const response = await fetch(`/api/contacts?userId=${window.userId || localStorage.getItem('userId')}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch contacts');
+      }
+      
+      const allContacts = await response.json();
+      const uncategorized = allContacts.filter(c => !c.circle && !c.dunbarCircle);
+      
+      if (uncategorized.length === 0) {
+        // All contacts categorized, complete the flow
+        await this.handleFlowComplete();
+        return;
+      }
+      
+      // Render Quick Refine
+      contentContainer.innerHTML = '<div id="quick-refine-container"></div>';
+      
+      this.quickRefineCard = new QuickRefineCard(uncategorized, {
+        containerId: 'quick-refine-container',
+        onAssign: (contactId, circle) => {
+          console.log('Contact assigned:', contactId, circle);
+          this.handleContactAssigned(contactId, circle);
+        },
+        onDone: () => {
+          console.log('Quick Refine: Done');
+          this.handleFlowComplete();
+        },
+        onSkip: () => {
+          console.log('Quick Refine: Skipped');
+          this.handleFlowComplete();
+        }
+      });
+      
+      await this.quickRefineCard.render();
+      
+    } catch (error) {
+      console.error('Error loading Quick Refine:', error);
+      // Complete the flow anyway
+      await this.handleFlowComplete();
+    }
+  }
+  
+  /**
+   * Handle individual contact assignment in Quick Refine
+   * Requirements: 7.3, 7.5, 10.2, 19.3, 19.4
+   */
+  async handleContactAssigned(contactId, circle) {
+    // Update onboarding controller if available
+    if (window.onboardingController && window.onboardingController.isOnboardingActive()) {
+      try {
+        window.onboardingController.addCategorizedContact(contactId);
+      } catch (error) {
+        console.error('Error updating onboarding controller:', error);
+      }
+    }
+    
+    // Check circle capacity and show warning if needed
+    await this.checkCircleCapacity(circle);
+    
+    // Update progress
+    this.updateProgress();
+  }
+  
+  /**
+   * Check circle capacity and show warning if approaching limit
+   * Requirements: 19.3, 19.4
+   */
+  async checkCircleCapacity(circle) {
+    const capacities = {
+      inner: 5,
+      close: 15,
+      active: 50,
+      casual: 150
+    };
+    
+    const capacity = capacities[circle];
+    if (!capacity) return;
+    
+    try {
+      // Fetch current contacts in this circle
+      const response = await fetch(`/api/contacts?userId=${window.userId || localStorage.getItem('userId')}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      
+      if (!response.ok) return;
+      
+      const allContacts = await response.json();
+      const circleContacts = allContacts.filter(c => c.circle === circle || c.dunbarCircle === circle);
+      const count = circleContacts.length;
+      
+      // Show warning if at 80% capacity or more
+      if (count >= capacity * 0.8) {
+        this.showCapacityWarning(circle);
+      }
+      
+      // Update capacity display in UI if element exists
+      const capacityDisplay = document.querySelector(`.circle-capacity-${circle}`);
+      if (capacityDisplay) {
+        capacityDisplay.textContent = `${count}/${capacity}`;
+        
+        // Add warning class if at capacity
+        if (count >= capacity) {
+          capacityDisplay.classList.add('at-capacity');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking circle capacity:', error);
+    }
+  }
+  
+  /**
+   * Handle flow completion
+   * Requirements: 10.1, 10.2
+   */
+  async handleFlowComplete() {
+    // Close the flow
+    this.closeFlow();
+    
+    // Call the original save and continue handler
+    await this.handleSaveAndContinue();
+  }
+  
+  /**
+   * Close the flow container
+   */
+  closeFlow() {
+    const container = document.getElementById('onboarding-flow-container');
+    if (container && container.parentNode) {
+      container.parentNode.removeChild(container);
+    }
+    
+    // Restore body scroll
+    document.body.style.overflow = '';
+    
+    // Clean up components
+    if (this.quickStartFlow) {
+      this.quickStartFlow.destroy();
+      this.quickStartFlow = null;
+    }
+    
+    if (this.batchCards) {
+      this.batchCards.forEach(card => card.destroy && card.destroy());
+      this.batchCards = null;
+    }
+    
+    if (this.quickRefineCard) {
+      this.quickRefineCard.destroy && this.quickRefineCard.destroy();
+      this.quickRefineCard = null;
+    }
+  }
+  
+  /**
+   * Update progress tracking
+   * Requirements: 9.1, 9.2, 10.2, 10.5
+   */
+  updateProgress() {
+    // Reload contacts to get updated counts
+    this.fetchContacts().then(() => {
+      const categorized = this.contacts.filter(c => c.circle || c.dunbarCircle).length;
+      const total = this.contacts.length;
+      
+      // Update onboarding controller if available
+      if (window.onboardingController && window.onboardingController.isOnboardingActive()) {
+        window.onboardingController.updateProgressData({
+          totalCount: total,
+          categorizedCount: categorized
+        });
+      }
+      
+      // Update onboarding state (legacy support)
+      if (window.onboardingIndicator) {
+        const currentState = window.onboardingIndicator.state;
+        currentState.steps.circles.contactsCategorized = categorized;
+        currentState.steps.circles.totalContacts = total;
+        window.onboardingIndicator.updateState(currentState);
+      }
+      
+      // Check for milestones
+      this.checkProgressMilestones();
+    });
   }
   
   /**
@@ -426,14 +884,33 @@ class Step2CirclesHandler {
   
   /**
    * Handle save and continue to Step 3
-   * Requirements: 6.3, 6.4, 12.1
+   * Requirements: 6.3, 6.4, 10.2, 12.1
    */
   async handleSaveAndContinue() {
-    // Update onboarding state
+    const categorized = this.contacts.filter(c => c.circle || c.dunbarCircle).length;
+    const total = this.contacts.length;
+    
+    // Update onboarding controller if available
+    if (window.onboardingController && window.onboardingController.isOnboardingActive()) {
+      try {
+        // Mark circle assignment step as complete
+        await window.onboardingController.markStepComplete(window.onboardingController.getCurrentStep());
+        
+        // Update progress data
+        window.onboardingController.updateProgressData({
+          totalCount: total,
+          categorizedCount: categorized
+        });
+        
+        // Save progress to backend
+        await window.onboardingController.saveProgress();
+      } catch (error) {
+        console.error('Error updating onboarding controller:', error);
+      }
+    }
+    
+    // Update onboarding state (legacy support)
     if (window.onboardingIndicator) {
-      const categorized = this.contacts.filter(c => c.circle || c.dunbarCircle).length;
-      const total = this.contacts.length;
-      
       const currentState = window.onboardingIndicator.state;
       currentState.steps.circles.complete = true;
       currentState.steps.circles.contactsCategorized = categorized;
@@ -490,6 +967,294 @@ class Step2CirclesHandler {
   }
   
   /**
+   * Show detailed circles education modal
+   * Requirements: 19.2, 19.5, 19.6
+   */
+  showCirclesEducation() {
+    if (typeof EducationalFeatures !== 'undefined') {
+      // Use existing educational features if available
+      const educationalFeatures = new EducationalFeatures({
+        userId: window.userId || localStorage.getItem('userId')
+      });
+      educationalFeatures.openHelpPanel();
+    } else {
+      // Fallback: show comprehensive education modal
+      this.showEducationModal('circles');
+    }
+  }
+  
+  /**
+   * Show comprehensive education modal
+   * Requirements: 19.1, 19.2, 19.3, 19.4, 19.5, 19.6
+   */
+  showEducationModal(topic) {
+    const content = this.getEducationContent(topic);
+    
+    const modal = document.createElement('div');
+    modal.className = 'education-modal-overlay';
+    modal.innerHTML = `
+      <div class="education-modal">
+        <div class="education-modal__header">
+          <h2>${content.title}</h2>
+          <button class="btn-close" aria-label="Close">×</button>
+        </div>
+        <div class="education-modal__content">
+          ${content.html}
+        </div>
+        <div class="education-modal__footer">
+          <button class="btn-primary">Got it!</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Add event listeners
+    const closeBtn = modal.querySelector('.btn-close');
+    const gotItBtn = modal.querySelector('.btn-primary');
+    
+    const closeModal = () => {
+      modal.classList.add('closing');
+      setTimeout(() => {
+        if (modal.parentNode) {
+          modal.parentNode.removeChild(modal);
+        }
+      }, 300);
+    };
+    
+    closeBtn.addEventListener('click', closeModal);
+    gotItBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+  }
+  
+  /**
+   * Get education content for different topics
+   * Requirements: 19.1, 19.2, 19.3, 19.4
+   */
+  getEducationContent(topic) {
+    const content = {
+      circles: {
+        title: 'Understanding Social Circles',
+        html: `
+          <div class="education-section">
+            <h3>Based on Dunbar's Number Research</h3>
+            <p>Humans naturally maintain relationships in layers. This isn't about ranking people - it's about recognizing the different levels of connection we have.</p>
+          </div>
+          
+          <div class="education-circles">
+            <div class="education-circle-item">
+              <div class="circle-badge inner">~5</div>
+              <div class="circle-info">
+                <h4>Inner Circle</h4>
+                <p>Your closest relationships - family and best friends you see or talk to weekly.</p>
+                <ul>
+                  <li>People you turn to in times of crisis</li>
+                  <li>Relationships that require regular maintenance</li>
+                  <li>Your emotional support network</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div class="education-circle-item">
+              <div class="circle-badge close">~15</div>
+              <div class="circle-info">
+                <h4>Close Friends</h4>
+                <p>Good friends you see regularly and actively maintain friendships with.</p>
+                <ul>
+                  <li>Friends you see or talk to monthly</li>
+                  <li>People you share activities and interests with</li>
+                  <li>Friends you make time for regularly</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div class="education-circle-item">
+              <div class="circle-badge active">~50</div>
+              <div class="circle-info">
+                <h4>Active Friends</h4>
+                <p>Friends you maintain regular contact with throughout the year.</p>
+                <ul>
+                  <li>Friends you see a few times per year</li>
+                  <li>Colleagues you socialize with outside work</li>
+                  <li>Friends from different life contexts</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div class="education-circle-item">
+              <div class="circle-badge casual">~150</div>
+              <div class="circle-info">
+                <h4>Casual Network</h4>
+                <p>Acquaintances and occasional contacts you know and recognize.</p>
+                <ul>
+                  <li>Casual friends and acquaintances</li>
+                  <li>Professional contacts you interact with</li>
+                  <li>Friends of friends you see occasionally</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div class="education-tips">
+            <h3>💡 Tips for Success</h3>
+            <ul>
+              <li><strong>Be honest:</strong> Place contacts where they actually fit, not where you wish they were</li>
+              <li><strong>Small circles are okay:</strong> Quality matters more than quantity</li>
+              <li><strong>Circles can change:</strong> Relationships evolve - you can always reorganize</li>
+              <li><strong>Don't overthink it:</strong> Your first instinct is usually right</li>
+            </ul>
+          </div>
+        `
+      },
+      batching: {
+        title: 'Smart Batching',
+        html: `
+          <div class="education-section">
+            <h3>Save Time with Batch Assignment</h3>
+            <p>We've analyzed your contacts and grouped them by relationship signals to help you organize faster.</p>
+          </div>
+          
+          <div class="education-features">
+            <div class="feature-item">
+              <div class="feature-icon">👨‍👩‍👧‍👦</div>
+              <div class="feature-content">
+                <h4>Family Groups</h4>
+                <p>Contacts identified as family members based on shared last names and relationship indicators.</p>
+              </div>
+            </div>
+            
+            <div class="feature-item">
+              <div class="feature-icon">💼</div>
+              <div class="feature-content">
+                <h4>Work Colleagues</h4>
+                <p>People from the same company or with similar job titles and professional connections.</p>
+              </div>
+            </div>
+            
+            <div class="feature-item">
+              <div class="feature-icon">🎯</div>
+              <div class="feature-content">
+                <h4>Shared Interests</h4>
+                <p>Contacts grouped by hobbies, activities, or common interests you've mentioned.</p>
+              </div>
+            </div>
+            
+            <div class="feature-item">
+              <div class="feature-icon">📅</div>
+              <div class="feature-content">
+                <h4>Calendar Overlap</h4>
+                <p>People you frequently meet with based on shared calendar events.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="education-tips">
+            <h3>How to Use Batching</h3>
+            <ul>
+              <li><strong>Review each batch:</strong> Check if the suggested circle makes sense</li>
+              <li><strong>Accept or skip:</strong> Accept entire batches with one click, or skip to review individually</li>
+              <li><strong>Expand to see details:</strong> Click on a batch to see all contacts before accepting</li>
+              <li><strong>It's flexible:</strong> You can always adjust assignments later</li>
+            </ul>
+          </div>
+        `
+      },
+      refine: {
+        title: 'Quick Refine',
+        html: `
+          <div class="education-section">
+            <h3>Fast Contact Organization</h3>
+            <p>Review remaining contacts one at a time and quickly assign them to circles.</p>
+          </div>
+          
+          <div class="education-features">
+            <div class="feature-item">
+              <div class="feature-icon">👆</div>
+              <div class="feature-content">
+                <h4>Swipe Gestures (Mobile)</h4>
+                <p>Swipe right to assign to a circle, swipe left to skip. Fast and intuitive!</p>
+              </div>
+            </div>
+            
+            <div class="feature-item">
+              <div class="feature-icon">⌨️</div>
+              <div class="feature-content">
+                <h4>Keyboard Shortcuts (Desktop)</h4>
+                <p>Use arrow keys to navigate and number keys (1-4) to assign to circles.</p>
+              </div>
+            </div>
+            
+            <div class="feature-item">
+              <div class="feature-icon">💾</div>
+              <div class="feature-content">
+                <h4>Auto-Save Progress</h4>
+                <p>Your progress is saved automatically. You can stop anytime and resume later.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="education-tips">
+            <h3>Pro Tips</h3>
+            <ul>
+              <li><strong>Trust your instinct:</strong> Your first reaction is usually correct</li>
+              <li><strong>Don't overthink:</strong> You can always adjust later</li>
+              <li><strong>Skip if unsure:</strong> It's okay to skip contacts you're uncertain about</li>
+              <li><strong>Take breaks:</strong> Come back anytime - your progress is saved</li>
+            </ul>
+          </div>
+        `
+      }
+    };
+    
+    return content[topic] || content.circles;
+  }
+  
+  /**
+   * Show batching education
+   * Requirements: 19.1, 19.3
+   */
+  showBatchingEducation() {
+    this.showEducationModal('batching');
+  }
+  
+  /**
+   * Show refine education
+   * Requirements: 19.1, 19.4
+   */
+  showRefineEducation() {
+    this.showEducationModal('refine');
+  }
+  
+  /**
+   * Show capacity warning when circle is full
+   * Requirements: 19.4
+   */
+  showCapacityWarning(circle) {
+    const capacities = {
+      inner: 5,
+      close: 15,
+      active: 50,
+      casual: 150
+    };
+    
+    const capacity = capacities[circle];
+    if (!capacity) return;
+    
+    const message = `Your ${circle} circle is approaching capacity (${capacity} contacts).\n\n` +
+                   `Based on Dunbar's research, maintaining more than ${capacity} relationships ` +
+                   `at this level becomes difficult. Consider if some contacts might fit better ` +
+                   `in a different circle.`;
+    
+    if (typeof showToast === 'function') {
+      showToast(message, 'warning', 8000);
+    } else {
+      alert(message);
+    }
+  }
+  
+  /**
    * Destroy the handler and clean up
    */
   destroy() {
@@ -498,6 +1263,347 @@ class Step2CirclesHandler {
       this.manageCirclesFlow = null;
     }
   }
+  
+  /**
+   * Initialize education modal styles
+   */
+  static initStyles() {
+    if (document.getElementById('step2-education-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'step2-education-styles';
+    style.textContent = `
+      /* Education Modal Styles */
+      .education-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 20px;
+        animation: fadeIn 0.3s ease-out;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      .education-modal-overlay.closing {
+        animation: fadeOut 0.3s ease-out;
+      }
+      
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+      
+      .education-modal {
+        background: white;
+        border-radius: 16px;
+        max-width: 700px;
+        width: 100%;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        animation: slideUp 0.3s ease-out;
+      }
+      
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      .education-modal__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      
+      .education-modal__header h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: #1f2937;
+      }
+      
+      .education-modal__header .btn-close {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s;
+      }
+      
+      .education-modal__header .btn-close:hover {
+        background: #f3f4f6;
+        color: #4b5563;
+      }
+      
+      .education-modal__content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+      }
+      
+      .education-modal__footer {
+        padding: 20px 24px;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+      }
+      
+      .education-section {
+        margin-bottom: 32px;
+      }
+      
+      .education-section h3 {
+        margin: 0 0 12px 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: #1f2937;
+      }
+      
+      .education-section p {
+        margin: 0;
+        color: #4b5563;
+        line-height: 1.6;
+      }
+      
+      .education-circles {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-bottom: 32px;
+      }
+      
+      .education-circle-item {
+        display: flex;
+        gap: 16px;
+        padding: 20px;
+        background: #f9fafb;
+        border-radius: 12px;
+        border: 2px solid #e5e7eb;
+      }
+      
+      .circle-badge {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: 700;
+        color: white;
+        flex-shrink: 0;
+      }
+      
+      .circle-badge.inner {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+      }
+      
+      .circle-badge.close {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+      }
+      
+      .circle-badge.active {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+      }
+      
+      .circle-badge.casual {
+        background: linear-gradient(135deg, #10b981, #059669);
+      }
+      
+      .circle-info {
+        flex: 1;
+      }
+      
+      .circle-info h4 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f2937;
+      }
+      
+      .circle-info p {
+        margin: 0 0 12px 0;
+        color: #4b5563;
+        line-height: 1.5;
+      }
+      
+      .circle-info ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+      
+      .circle-info li {
+        margin-bottom: 6px;
+        color: #6b7280;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      
+      .education-features {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+      
+      .feature-item {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        background: #f9fafb;
+        border-radius: 12px;
+      }
+      
+      .feature-icon {
+        font-size: 32px;
+        flex-shrink: 0;
+      }
+      
+      .feature-content h4 {
+        margin: 0 0 8px 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #1f2937;
+      }
+      
+      .feature-content p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      
+      .education-tips {
+        padding: 20px;
+        background: #fef3c7;
+        border-radius: 12px;
+        border-left: 4px solid #f59e0b;
+      }
+      
+      .education-tips h3 {
+        margin: 0 0 16px 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #92400e;
+      }
+      
+      .education-tips ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+      
+      .education-tips li {
+        margin-bottom: 10px;
+        color: #78350f;
+        line-height: 1.6;
+      }
+      
+      .education-tips li strong {
+        color: #92400e;
+      }
+      
+      /* Education tip in flow */
+      .education-tip {
+        display: flex;
+        gap: 12px;
+        padding: 16px;
+        background: #eff6ff;
+        border-radius: 12px;
+        border-left: 4px solid #3b82f6;
+        margin-bottom: 24px;
+      }
+      
+      .education-tip__icon {
+        font-size: 24px;
+        flex-shrink: 0;
+      }
+      
+      .education-tip__content {
+        flex: 1;
+        color: #1e40af;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      
+      .education-tip__content strong {
+        color: #1e3a8a;
+      }
+      
+      .education-tip__learn-more {
+        color: #2563eb;
+        text-decoration: underline;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      
+      .education-tip__learn-more:hover {
+        color: #1d4ed8;
+      }
+      
+      /* Mobile responsive */
+      @media (max-width: 768px) {
+        .education-modal {
+          max-width: 100%;
+          border-radius: 12px;
+        }
+        
+        .education-modal__header {
+          padding: 20px;
+        }
+        
+        .education-modal__header h2 {
+          font-size: 20px;
+        }
+        
+        .education-modal__content {
+          padding: 20px;
+        }
+        
+        .education-circle-item {
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+        
+        .circle-info ul {
+          text-align: left;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+// Initialize styles when script loads
+if (typeof document !== 'undefined') {
+  Step2CirclesHandler.initStyles();
 }
 
 // Export for use in other modules

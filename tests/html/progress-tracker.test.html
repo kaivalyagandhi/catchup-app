@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Progress Tracker Test</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 2rem;
+      background: var(--bg-app, #f9fafb);
+    }
+    
+    .test-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      background: var(--bg-surface, #ffffff);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-header h1 {
+      margin: 0 0 1rem 0;
+      color: var(--text-primary, #1f2937);
+    }
+    
+    .test-header p {
+      margin: 0;
+      color: var(--text-secondary, #6b7280);
+    }
+    
+    .test-controls {
+      background: var(--bg-surface, #ffffff);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-controls h2 {
+      margin: 0 0 1rem 0;
+      font-size: 1.25rem;
+      color: var(--text-primary, #1f2937);
+    }
+    
+    .control-group {
+      margin-bottom: 1rem;
+    }
+    
+    .control-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-primary, #1f2937);
+    }
+    
+    .control-group input {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--border-subtle, #e5e7eb);
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    
+    .test-btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .test-btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .test-btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+    
+    .test-btn-secondary {
+      background: #10b981;
+      color: white;
+    }
+    
+    .test-btn-secondary:hover {
+      background: #059669;
+      transform: translateY(-1px);
+    }
+    
+    .test-btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+    
+    .test-btn-danger:hover {
+      background: #dc2626;
+      transform: translateY(-1px);
+    }
+    
+    .console-output {
+      background: var(--bg-surface, #ffffff);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 2rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .console-output h2 {
+      margin: 0 0 1rem 0;
+      font-size: 1.25rem;
+      color: var(--text-primary, #1f2937);
+    }
+    
+    .console-output pre {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>Progress Tracker Component Test</h1>
+      <p>Test the progress tracking UI with percentage, absolute numbers, estimated time, milestone celebrations, and circle capacity indicators.</p>
+    </div>
+    
+    <div class="test-controls">
+      <h2>Test Controls</h2>
+      
+      <div class="control-group">
+        <label for="total-contacts">Total Contacts:</label>
+        <input type="number" id="total-contacts" value="100" min="1" max="1000">
+      </div>
+      
+      <div class="control-group">
+        <label for="categorized-contacts">Categorized Contacts:</label>
+        <input type="number" id="categorized-contacts" value="0" min="0" max="1000">
+      </div>
+      
+      <div class="button-group">
+        <button class="test-btn test-btn-primary" id="update-progress">Update Progress</button>
+        <button class="test-btn test-btn-secondary" id="add-5">Add 5 Contacts</button>
+        <button class="test-btn test-btn-secondary" id="add-10">Add 10 Contacts</button>
+        <button class="test-btn test-btn-secondary" id="add-25">Add 25 Contacts</button>
+        <button class="test-btn test-btn-danger" id="reset-progress">Reset</button>
+      </div>
+      
+      <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-subtle, #e5e7eb);">
+        <h3 style="margin: 0 0 1rem 0; font-size: 1rem;">Circle Capacities</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          <div class="control-group">
+            <label for="inner-circle">Inner Circle (0-10):</label>
+            <input type="number" id="inner-circle" value="0" min="0" max="10">
+          </div>
+          <div class="control-group">
+            <label for="close-circle">Close Friends (0-25):</label>
+            <input type="number" id="close-circle" value="0" min="0" max="25">
+          </div>
+          <div class="control-group">
+            <label for="active-circle">Active Friends (0-50):</label>
+            <input type="number" id="active-circle" value="0" min="0" max="50">
+          </div>
+          <div class="control-group">
+            <label for="casual-circle">Casual Network (0-100):</label>
+            <input type="number" id="casual-circle" value="0" min="0" max="100">
+          </div>
+        </div>
+        <button class="test-btn test-btn-primary" id="update-circles" style="margin-top: 1rem;">Update Circle Capacities</button>
+      </div>
+    </div>
+    
+    <!-- Progress Tracker Container -->
+    <div id="progress-tracker-container"></div>
+    
+    <div class="console-output">
+      <h2>Console Output</h2>
+      <pre id="console-log">Initializing Progress Tracker...</pre>
+    </div>
+  </div>
+  
+  <script src="/js/progress-tracker.js"></script>
+  <script>
+    // Console logging
+    const consoleLog = document.getElementById('console-log');
+    function log(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      consoleLog.textContent += `\n[${timestamp}] ${message}`;
+      consoleLog.scrollTop = consoleLog.scrollHeight;
+    }
+    
+    // Initialize Progress Tracker
+    let progressTracker;
+    
+    function initializeTracker() {
+      const totalContacts = parseInt(document.getElementById('total-contacts').value);
+      const categorizedContacts = parseInt(document.getElementById('categorized-contacts').value);
+      
+      progressTracker = new ProgressTracker({
+        containerId: 'progress-tracker-container',
+        totalContacts: totalContacts,
+        categorizedContacts: categorizedContacts,
+        startTime: Date.now(),
+        circleCapacities: {
+          inner: { current: 0, max: 10 },
+          close: { current: 0, max: 25 },
+          active: { current: 0, max: 50 },
+          casual: { current: 0, max: 100 }
+        },
+        onMilestone: (milestone) => {
+          log(`🎉 Milestone reached: ${milestone.threshold}% - ${milestone.message}`);
+        }
+      });
+      
+      progressTracker.render();
+      log(`Progress Tracker initialized with ${totalContacts} total contacts, ${categorizedContacts} categorized`);
+    }
+    
+    // Initialize on page load
+    initializeTracker();
+    
+    // Update Progress button
+    document.getElementById('update-progress').addEventListener('click', () => {
+      const totalContacts = parseInt(document.getElementById('total-contacts').value);
+      const categorizedContacts = parseInt(document.getElementById('categorized-contacts').value);
+      
+      const circleCapacities = {
+        inner: { 
+          current: parseInt(document.getElementById('inner-circle').value), 
+          max: 10 
+        },
+        close: { 
+          current: parseInt(document.getElementById('close-circle').value), 
+          max: 25 
+        },
+        active: { 
+          current: parseInt(document.getElementById('active-circle').value), 
+          max: 50 
+        },
+        casual: { 
+          current: parseInt(document.getElementById('casual-circle').value), 
+          max: 100 
+        }
+      };
+      
+      progressTracker.update(categorizedContacts, totalContacts, circleCapacities);
+      log(`Progress updated: ${categorizedContacts}/${totalContacts} contacts (${Math.round((categorizedContacts/totalContacts)*100)}%)`);
+    });
+    
+    // Add 5 Contacts button
+    document.getElementById('add-5').addEventListener('click', () => {
+      const current = parseInt(document.getElementById('categorized-contacts').value);
+      const total = parseInt(document.getElementById('total-contacts').value);
+      const newValue = Math.min(current + 5, total);
+      document.getElementById('categorized-contacts').value = newValue;
+      
+      // Simulate adding to inner circle
+      const innerCurrent = parseInt(document.getElementById('inner-circle').value);
+      document.getElementById('inner-circle').value = Math.min(innerCurrent + 5, 10);
+      
+      document.getElementById('update-progress').click();
+    });
+    
+    // Add 10 Contacts button
+    document.getElementById('add-10').addEventListener('click', () => {
+      const current = parseInt(document.getElementById('categorized-contacts').value);
+      const total = parseInt(document.getElementById('total-contacts').value);
+      const newValue = Math.min(current + 10, total);
+      document.getElementById('categorized-contacts').value = newValue;
+      
+      // Simulate adding to close circle
+      const closeCurrent = parseInt(document.getElementById('close-circle').value);
+      document.getElementById('close-circle').value = Math.min(closeCurrent + 10, 25);
+      
+      document.getElementById('update-progress').click();
+    });
+    
+    // Add 25 Contacts button
+    document.getElementById('add-25').addEventListener('click', () => {
+      const current = parseInt(document.getElementById('categorized-contacts').value);
+      const total = parseInt(document.getElementById('total-contacts').value);
+      const newValue = Math.min(current + 25, total);
+      document.getElementById('categorized-contacts').value = newValue;
+      
+      // Simulate adding to active circle
+      const activeCurrent = parseInt(document.getElementById('active-circle').value);
+      document.getElementById('active-circle').value = Math.min(activeCurrent + 25, 50);
+      
+      document.getElementById('update-progress').click();
+    });
+    
+    // Reset button
+    document.getElementById('reset-progress').addEventListener('click', () => {
+      document.getElementById('categorized-contacts').value = 0;
+      document.getElementById('inner-circle').value = 0;
+      document.getElementById('close-circle').value = 0;
+      document.getElementById('active-circle').value = 0;
+      document.getElementById('casual-circle').value = 0;
+      
+      progressTracker.reset();
+      log('Progress tracker reset');
+    });
+    
+    // Update Circle Capacities button
+    document.getElementById('update-circles').addEventListener('click', () => {
+      const circleCapacities = {
+        inner: { 
+          current: parseInt(document.getElementById('inner-circle').value), 
+          max: 10 
+        },
+        close: { 
+          current: parseInt(document.getElementById('close-circle').value), 
+          max: 25 
+        },
+        active: { 
+          current: parseInt(document.getElementById('active-circle').value), 
+          max: 50 
+        },
+        casual: { 
+          current: parseInt(document.getElementById('casual-circle').value), 
+          max: 100 
+        }
+      };
+      
+      progressTracker.updateCircleCapacities(circleCapacities);
+      log('Circle capacities updated');
+    });
+    
+    // Test milestone celebrations
+    log('✅ Progress Tracker component loaded successfully');
+    log('📝 Instructions:');
+    log('  1. Use "Add X Contacts" buttons to simulate progress');
+    log('  2. Watch for milestone celebrations at 25%, 50%, 75%, and 100%');
+    log('  3. Observe circle capacity indicators updating in real-time');
+    log('  4. Check estimated time remaining calculation');
+  </script>
+</body>
+</html>

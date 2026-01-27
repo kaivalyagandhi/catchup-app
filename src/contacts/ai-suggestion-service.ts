@@ -5,9 +5,10 @@
  * based on communication patterns, interaction history, and user behavior.
  */
 
-import { Contact, InteractionLog, InteractionType } from '../types';
+import { Contact, InteractionLog, InteractionType, CalendarEvent } from '../types';
 import { PostgresContactRepository } from './repository';
 import { PostgresInteractionRepository } from './interaction-repository';
+import { getCachedEvents } from '../calendar/calendar-events-repository';
 
 export type DunbarCircle = 'inner' | 'close' | 'active' | 'casual';
 
@@ -57,6 +58,11 @@ export interface AISuggestionService {
     actual: DunbarCircle
   ): Promise<void>;
   improveModel(userId: string): Promise<void>;
+  analyzeContactForOnboarding(
+    userId: string,
+    contactId: string,
+    calendarEvents: CalendarEvent[]
+  ): Promise<CircleSuggestion>;
 }
 
 /**
@@ -225,6 +231,90 @@ export class PostgresAISuggestionService implements AISuggestionService {
     // 3. Update a user-specific model or preferences
     // For now, we just log that we would do this
     console.log(`Would improve model for user ${userId} based on ${result.rows.length} overrides`);
+  }
+
+  /**
+   * Analyze a contact for onboarding with optimized scoring factors
+   * Requirements: 5.2
+   * 
+   * This method is optimized for new users during onboarding who don't have
+   * interaction history in CatchUp yet. It uses:
+   * - Calendar events (35%): Shared calendar events as strongest signal
+   * - Metadata richness (30%): Populated contact fields
+   * - Contact age (15%): How long contact has existed
+   * - Communication frequency (10%): Interactions per month (if available)
+   * - Recency (10%): Days since last contact (if available)
+   * 
+   * @param userId - The user ID
+   * @param contactId - The contact ID to analyze
+   * @param calendarEvents - Calendar events to analyze for shared attendees
+   * @returns Circle suggestion with confidence score
+   */
+  async analyzeContactForOnboarding(
+    userId: string,
+    contactId: string,
+    calendarEvents: CalendarEvent[]
+  ): Promise<CircleSuggestion> {
+    // Get contact data
+    const contact = await this.contactRepository.findById(contactId, userId);
+    if (!contact) {
+      throw new Error('Contact not found');
+    }
+
+    // Get interaction data (may be empty for new users)
+    const interactions = await this.interactionRepository.findByContactId(contactId, userId);
+
+    // Calculate new onboarding-optimized factors
+    const calendarScore = this.calculateCalendarEventScore(contact, calendarEvents);
+    const metadataScore = this.calculateMetadataRichnessScore(contact);
+    const ageScore = this.calculateContactAgeScore(contact);
+
+    // Calculate existing factors (with lower weight for new users)
+    const frequencyFactor = this.calculateFrequencyFactor(interactions, new Date());
+    const recencyFactor = this.calculateRecencyFactor(interactions, new Date());
+
+    // Weighted combination optimized for onboarding
+    const weightedScore =
+      calendarScore * 0.35 +
+      metadataScore * 0.30 +
+      ageScore * 0.15 +
+      frequencyFactor.value * 0.10 +
+      recencyFactor.value * 0.10;
+
+    // Build factors array for transparency
+    const factors: SuggestionFactor[] = [
+      {
+        type: 'calendar_events',
+        weight: 0.35,
+        value: calendarScore,
+        description: `Calendar event score: ${calendarScore}`,
+      },
+      {
+        type: 'communication_frequency',
+        weight: 0.30,
+        value: metadataScore,
+        description: `Metadata richness: ${metadataScore}`,
+      },
+      {
+        type: 'recency',
+        weight: 0.15,
+        value: ageScore,
+        description: `Contact age score: ${ageScore}`,
+      },
+      frequencyFactor,
+      recencyFactor,
+    ];
+
+    // Determine circle based on weighted score
+    const { suggestedCircle, confidence, alternatives } = this.determineCircle(factors, userId);
+
+    return {
+      contactId,
+      suggestedCircle,
+      confidence,
+      factors,
+      alternativeCircles: alternatives,
+    };
   }
 
   /**
@@ -412,6 +502,122 @@ export class PostgresAISuggestionService implements AISuggestionService {
   }
 
   /**
+   * Calculate calendar event score based on shared calendar events
+   * Requirements: 5.2, 5.3
+   * 
+   * Counts calendar events where the contact's email appears as an attendee.
+   * This is a strong signal for relationship depth during onboarding.
+   */
+  private calculateCalendarEventScore(
+    contact: Contact,
+    calendarEvents: CalendarEvent[]
+  ): number {
+    if (!contact.email || calendarEvents.length === 0) {
+      return 0;
+    }
+
+    const contactEmail = contact.email.toLowerCase();
+
+    // Count events where contact's email appears as attendee
+    const sharedEvents = calendarEvents.filter((event) =>
+      event.attendees?.some((attendee) => 
+        attendee.email?.toLowerCase() === contactEmail
+      )
+    );
+
+    const count = sharedEvents.length;
+
+    // Score based on event count
+    // 20+ events = 100, 10+ = 85, 5+ = 70, 2+ = 50, 1 = 30, 0 = 0
+    if (count >= 20) return 100;
+    if (count >= 10) return 85;
+    if (count >= 5) return 70;
+    if (count >= 2) return 50;
+    if (count >= 1) return 30;
+    return 0;
+  }
+
+  /**
+   * Calculate metadata richness score based on populated contact fields
+   * Requirements: 5.4
+   * 
+   * Scores based on:
+   * - email: +5
+   * - phone: +5
+   * - location: +10
+   * - customNotes: +10
+   * - linkedIn: +5
+   * - instagram: +5
+   * - xHandle: +5
+   * - otherSocialMedia: +5 per platform
+   * 
+   * Normalized to 0-100 range
+   */
+  private calculateMetadataRichnessScore(contact: Contact): number {
+    let score = 0;
+
+    // Email
+    if (contact.email) score += 5;
+
+    // Phone
+    if (contact.phone) score += 5;
+
+    // Location
+    if (contact.location) score += 10;
+
+    // Custom notes
+    if (contact.customNotes) score += 10;
+
+    // Social profiles
+    if (contact.linkedIn) score += 5;
+    if (contact.instagram) score += 5;
+    if (contact.xHandle) score += 5;
+
+    // Other social media platforms
+    if (contact.otherSocialMedia) {
+      const platformCount = Object.keys(contact.otherSocialMedia).length;
+      score += Math.min(15, platformCount * 5); // Max 15 points for other platforms
+    }
+
+    // Normalize to 0-100 range
+    // Maximum possible score is ~60 (all fields populated)
+    // Multiply by 1.67 to scale to 100
+    return Math.min(100, Math.round(score * 1.67));
+  }
+
+  /**
+   * Calculate contact age score based on how long the contact has existed
+   * Requirements: 5.2
+   * 
+   * Older contacts in Google Contacts likely represent more established relationships.
+   * Score based on contact age:
+   * - 5+ years: 100
+   * - 3-5 years: 85
+   * - 2-3 years: 70
+   * - 1-2 years: 55
+   * - 6-12 months: 40
+   * - 3-6 months: 25
+   * - < 3 months: 10
+   */
+  private calculateContactAgeScore(contact: Contact): number {
+    if (!contact.createdAt) {
+      return 50; // Default score if no creation date
+    }
+
+    const now = new Date();
+    const ageInDays = (now.getTime() - contact.createdAt.getTime()) / (24 * 60 * 60 * 1000);
+    const ageInYears = ageInDays / 365;
+
+    if (ageInYears >= 5) return 100;
+    if (ageInYears >= 3) return 85;
+    if (ageInYears >= 2) return 70;
+    if (ageInYears >= 1) return 55;
+    if (ageInDays >= 180) return 40; // 6 months
+    if (ageInDays >= 90) return 25;  // 3 months
+    return 10;
+  }
+
+  /**
    * Determine circle based on weighted factors
    */
   private determineCircle(
@@ -505,3 +711,9 @@ export const recordUserOverride = (
 ) => defaultService.recordUserOverride(userId, contactId, suggested, actual);
 
 export const improveModel = (userId: string) => defaultService.improveModel(userId);
+
+export const analyzeContactForOnboarding = (
+  userId: string,
+  contactId: string,
+  calendarEvents: CalendarEvent[]
+) => defaultService.analyzeContactForOnboarding(userId, contactId, calendarEvents);

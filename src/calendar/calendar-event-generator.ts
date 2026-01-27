@@ -7,6 +7,7 @@
 
 import pool from '../db/connection';
 import { CalendarEvent } from '../types';
+import { userPreferencesService } from '../users/preferences-service';
 
 export enum TimeOfDay {
   Morning = 'morning', // 8am-12pm
@@ -62,7 +63,7 @@ export class CalendarEventGenerator {
 
         // Generate slots for each time of day
         for (const timeOfDay of timesOfDay) {
-          const slot = this.createSlotForTimeOfDay(currentDate, timeOfDay, slotDuration);
+          const slot = await this.createSlotForTimeOfDay(userId, currentDate, timeOfDay, slotDuration);
 
           // Insert into database
           const result = await client.query<{
@@ -130,17 +131,18 @@ export class CalendarEventGenerator {
   /**
    * Create a time slot for a specific time of day
    */
-  private createSlotForTimeOfDay(
+  private async createSlotForTimeOfDay(
+    userId: string,
     date: Date,
     timeOfDay: TimeOfDay,
     durationMinutes: number
-  ): {
+  ): Promise<{
     title: string;
     startTime: Date;
     endTime: Date;
     timezone: string;
     isAvailable: boolean;
-  } {
+  }> {
     const startTime = new Date(date);
 
     // Set the hour based on time of day
@@ -162,11 +164,14 @@ export class CalendarEventGenerator {
     const endTime = new Date(startTime);
     endTime.setMinutes(endTime.getMinutes() + durationMinutes);
 
+    // Get user's timezone preference
+    const timezone = await userPreferencesService.getTimezone(userId);
+
     return {
       title: `Available - ${timeOfDay}`,
       startTime,
       endTime,
-      timezone: 'UTC', // TODO: Use user's timezone preference
+      timezone,
       isAvailable: true,
     };
   }

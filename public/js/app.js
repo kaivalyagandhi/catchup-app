@@ -104,6 +104,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Refreshing contacts list');
         loadContacts();
         
+        // Update uncategorized count badge
+        loadUncategorizedCount();
+        
         // Also refresh groups/tags view if visible in directory
         if (currentPage === 'directory') {
             console.log('Refreshing directory tabs');
@@ -214,6 +217,10 @@ function showMainApp() {
     loadPendingEditsCount();
     
     // Load pending suggestions count for nav badge
+    loadPendingSuggestionsCount();
+    
+    // Load uncategorized contacts count for Directory badge
+    loadUncategorizedCount();
     loadPendingSuggestionsCount();
     
     // Initialize floating chat icon and chat window
@@ -869,6 +876,8 @@ function navigateTo(page) {
     switch(page) {
         case 'directory':
             loadDirectory();
+            // Update archived count badge when directory loads
+            updateArchivedCountBadge();
             break;
         case 'suggestions':
             loadSuggestions();
@@ -888,14 +897,14 @@ let currentDirectoryTab = 'contacts';
 function loadDirectory() {
     // Check URL hash for tab first
     const hash = window.location.hash;
-    const tabMatch = hash.match(/#directory\/(contacts|circles|groups|tags)/);
+    const tabMatch = hash.match(/#directory\/(contacts|circles|groups|tags|archived)/);
     
     if (tabMatch) {
         currentDirectoryTab = tabMatch[1];
     } else {
         // If no hash, check localStorage for saved tab
         const savedTab = localStorage.getItem('currentDirectoryTab');
-        if (savedTab && ['contacts', 'circles', 'groups', 'tags'].includes(savedTab)) {
+        if (savedTab && ['contacts', 'circles', 'groups', 'tags', 'archived'].includes(savedTab)) {
             currentDirectoryTab = savedTab;
         }
     }
@@ -939,6 +948,9 @@ function switchDirectoryTab(tab) {
             break;
         case 'tags':
             loadTagsManagement();
+            break;
+        case 'archived':
+            loadArchivedContacts();
             break;
     }
 }
@@ -1662,6 +1674,98 @@ async function loadTagsManagement() {
     await loadTags();
 }
 
+// Archived Contacts Management
+// Requirements: 16.1, 16.2, 16.7
+let archivedContactsView = null;
+
+async function loadArchivedContacts() {
+    const container = document.getElementById('archived-contacts-list');
+    
+    if (!container) {
+        console.error('Archived contacts container not found');
+        return;
+    }
+    
+    // Show loading state
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading archived contacts...</p>
+        </div>
+    `;
+    
+    try {
+        // Create or reuse ArchivedContactsView instance
+        if (!archivedContactsView) {
+            archivedContactsView = new ArchivedContactsView(container, {
+                onRestore: (contactId) => {
+                    // Reload contacts to update the main list
+                    if (currentDirectoryTab === 'contacts') {
+                        loadContacts();
+                    }
+                    // Update archived count badge
+                    updateArchivedCountBadge();
+                },
+                onBulkRestore: (contactIds) => {
+                    // Reload contacts to update the main list
+                    if (currentDirectoryTab === 'contacts') {
+                        loadContacts();
+                    }
+                    // Update archived count badge
+                    updateArchivedCountBadge();
+                }
+            });
+        }
+        
+        // Load archived contacts
+        await archivedContactsView.loadArchivedContacts();
+        
+        // Update archived count badge
+        updateArchivedCountBadge();
+    } catch (error) {
+        console.error('Error loading archived contacts:', error);
+        container.innerHTML = `
+            <div class="error-state">
+                <p>Failed to load archived contacts</p>
+                <button onclick="loadArchivedContacts()">Retry</button>
+            </div>
+        `;
+    }
+}
+
+// Update archived count badge
+// Requirements: 16.7
+async function updateArchivedCountBadge() {
+    try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        
+        const response = await fetch('/api/contacts/archived', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            const count = result.count || 0;
+            const badge = document.getElementById('archived-count-badge');
+            
+            if (badge) {
+                if (count > 0) {
+                    badge.textContent = count;
+                    badge.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error updating archived count badge:', error);
+    }
+}
+
 // Store visualizer instance globally
 let circlesVisualizer = null;
 
@@ -1740,6 +1844,77 @@ async function openManageCirclesFlow() {
     }
 }
 
+/**
+ * Open Manage Circles flow from Directory with focus on uncategorized contacts
+ * This is used when user clicks "Continue Organizing" from the Circles tab
+ * Requirements: 10.3, 10.4
+ */
+async function openManageCirclesFromDirectory() {
+    try {
+        // Check if dialog is already open or being opened
+        const existingOverlay = document.querySelector('.manage-circles-overlay');
+        if (existingOverlay || window.isOpeningManageCircles) {
+            console.log('[ManageCircles] Dialog already open or opening, skipping');
+            return;
+        }
+        
+        // Set flag to prevent duplicate opening
+        window.isOpeningManageCircles = true;
+        
+        // Ensure Step2CirclesHandler is available
+        if (typeof Step2CirclesHandler === 'undefined') {
+            showToast('Circle assignment feature is not available', 'error');
+            window.isOpeningManageCircles = false;
+            return;
+        }
+        
+        // Reload contacts to get latest data
+        await loadContacts();
+        
+        // Get current circle assignments
+        const currentAssignments = {};
+        contacts.forEach(contact => {
+            if (contact.circle) {
+                currentAssignments[contact.id] = contact.circle;
+            }
+        });
+        
+        // Create Step2CirclesHandler instance (not in onboarding mode)
+        const step2Handler = new Step2CirclesHandler(contacts, currentAssignments, {
+            isOnboarding: false,
+            onComplete: async (assignments) => {
+                showToast('Circle assignments saved successfully', 'success');
+                // Reload circles visualization
+                await loadCirclesVisualization();
+                // Update uncategorized count badge
+                await loadUncategorizedCount();
+            },
+            onSkip: () => {
+                // Just close the modal
+            },
+            onClose: () => {
+                // Reload circles visualization to show any changes
+                loadCirclesVisualization();
+                // Update uncategorized count badge
+                loadUncategorizedCount();
+            }
+        });
+        
+        // Open the flow (starts with QuickStartFlow)
+        await step2Handler.openManageCirclesFlow();
+        
+        // Clear flag after dialog is mounted
+        setTimeout(() => {
+            window.isOpeningManageCircles = false;
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Error opening Manage Circles from Directory:', error);
+        showToast('Failed to open circle assignment', 'error');
+        window.isOpeningManageCircles = false;
+    }
+}
+
 // Load Circles visualization
 async function loadCirclesVisualization() {
     const container = document.getElementById('circles-visualizer-container');
@@ -1771,46 +1946,86 @@ async function loadCirclesVisualization() {
             }
         }
         
+        // Count uncategorized contacts
+        const uncategorizedCount = contacts.filter(c => !c.circle || c.circle === 'uncategorized').length;
+        
         // Check if CircularVisualizer is available
         if (typeof CircularVisualizer !== 'undefined') {
             // Clear container
             container.innerHTML = '';
             
-            // Add "Manage Circles" button at the top
-            const buttonContainer = document.createElement('div');
-            buttonContainer.style.marginBottom = '20px';
-            buttonContainer.style.display = 'flex';
-            buttonContainer.style.justifyContent = 'flex-end';
-            buttonContainer.innerHTML = `
-                <button 
-                    id="manage-circles-btn" 
-                    class="accent"
-                    onclick="openManageCirclesFlow()"
-                    style="padding: 10px 20px; font-size: 14px;"
-                >
-                    Manage Circles
-                </button>
-            `;
-            container.appendChild(buttonContainer);
-            
-            // Create visualizer container
-            const visualizerDiv = document.createElement('div');
-            visualizerDiv.id = 'circles-visualizer';
-            visualizerDiv.style.width = '100%';
-            visualizerDiv.style.minHeight = '900px';
-            visualizerDiv.style.height = 'auto';
-            container.appendChild(visualizerDiv);
-            
-            // Initialize CircularVisualizer
-            circlesVisualizer = new CircularVisualizer('circles-visualizer');
-            
-            // Render with contacts and groups
-            circlesVisualizer.render(contacts, groups);
-            
-            // Add contact click handler
-            circlesVisualizer.on('contactClick', (data) => {
-                handleCircleContactClick(data);
-            });
+            // If there are uncategorized contacts, show CTA instead of visualizer
+            if (uncategorizedCount > 0) {
+                const ctaContainer = document.createElement('div');
+                ctaContainer.className = 'circles-cta-container';
+                ctaContainer.innerHTML = `
+                    <div class="circles-cta-card">
+                        <div class="circles-cta-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <circle cx="12" cy="12" r="6"/>
+                                <circle cx="12" cy="12" r="2"/>
+                            </svg>
+                        </div>
+                        <h2 class="circles-cta-title">Continue Organizing Your Contacts</h2>
+                        <p class="circles-cta-description">
+                            You have <strong>${uncategorizedCount} contact${uncategorizedCount === 1 ? '' : 's'}</strong> 
+                            waiting to be organized into circles. Complete your setup to see the full visualization.
+                        </p>
+                        <button 
+                            class="circles-cta-button accent"
+                            onclick="openManageCirclesFromDirectory()"
+                        >
+                            Continue Organizing
+                        </button>
+                        <button 
+                            class="circles-cta-secondary"
+                            onclick="openManageCirclesFlow()"
+                        >
+                            View Current Circles
+                        </button>
+                    </div>
+                `;
+                container.appendChild(ctaContainer);
+            } else {
+                // All contacts are categorized, show the visualizer
+                
+                // Add "Manage Circles" button at the top
+                const buttonContainer = document.createElement('div');
+                buttonContainer.style.marginBottom = '20px';
+                buttonContainer.style.display = 'flex';
+                buttonContainer.style.justifyContent = 'flex-end';
+                buttonContainer.innerHTML = `
+                    <button 
+                        id="manage-circles-btn" 
+                        class="accent"
+                        onclick="openManageCirclesFlow()"
+                        style="padding: 10px 20px; font-size: 14px;"
+                    >
+                        Manage Circles
+                    </button>
+                `;
+                container.appendChild(buttonContainer);
+                
+                // Create visualizer container
+                const visualizerDiv = document.createElement('div');
+                visualizerDiv.id = 'circles-visualizer';
+                visualizerDiv.style.width = '100%';
+                visualizerDiv.style.minHeight = '900px';
+                visualizerDiv.style.height = 'auto';
+                container.appendChild(visualizerDiv);
+                
+                // Initialize CircularVisualizer
+                circlesVisualizer = new CircularVisualizer('circles-visualizer');
+                
+                // Render with contacts and groups
+                circlesVisualizer.render(contacts, groups);
+                
+                // Add contact click handler
+                circlesVisualizer.on('contactClick', (data) => {
+                    handleCircleContactClick(data);
+                });
+            }
         } else {
             // Fallback if CircularVisualizer is not loaded
             container.innerHTML = `
@@ -4899,6 +5114,53 @@ async function loadPendingSuggestionsCount() {
 }
 
 /**
+ * Update uncategorized contacts count in Directory nav badge
+ * Requirements: 10.3, 10.4
+ */
+function updateUncategorizedCount(count) {
+    // Update Directory tab badge for uncategorized contacts
+    const directoryTab = document.querySelector('[data-tab="circles"]');
+    if (directoryTab) {
+        let badge = directoryTab.querySelector('.tab-badge');
+        
+        if (count > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'tab-badge';
+                directoryTab.appendChild(badge);
+            }
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+            badge.title = `${count} uncategorized contact${count !== 1 ? 's' : ''}`;
+        } else {
+            if (badge) {
+                badge.classList.add('hidden');
+            }
+        }
+    }
+}
+
+/**
+ * Load uncategorized contacts count
+ * Requirements: 10.3, 10.4
+ */
+async function loadUncategorizedCount() {
+    try {
+        const response = await fetch(`${API_BASE}/contacts?userId=${userId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.ok) {
+            const allContacts = await response.json();
+            const uncategorized = allContacts.filter(c => !c.circle && !c.dunbarCircle);
+            console.log('Loaded uncategorized count:', uncategorized.length);
+            updateUncategorizedCount(uncategorized.length);
+        }
+    } catch (error) {
+        console.error('Error loading uncategorized count:', error);
+    }
+}
+
+/**
  * Apply a single enrichment item from a voice note
  */
 async function applyVoiceNoteEnrichment(voiceNoteId, contactId, enrichmentItem) {
@@ -5350,6 +5612,26 @@ async function loadPreferences() {
             </div>
         </div>
         
+        <!-- Display Settings Section -->
+        <div style="margin-top: 24px;">
+            <h3 style="margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; color: var(--text-primary); font-size: 16px;">Display Settings</h3>
+            
+            <div style="padding: 20px; background: var(--bg-hover); border-radius: 10px;">
+                <h4 style="margin: 0 0 12px 0; color: var(--text-primary); font-size: 14px;">Timezone</h4>
+                <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--text-secondary);">
+                    Set your timezone to display calendar times and availability in your local time.
+                </p>
+                
+                <div id="timezone-selector-container"></div>
+                
+                <div style="margin-top: 16px;">
+                    <button onclick="saveTimezonePreference()" id="save-timezone-btn" class="btn-primary" style="width: 100%;">
+                        Save Timezone
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <!-- Notifications Section -->
         <div style="margin-top: 24px;">
             <h3 style="margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; color: var(--text-primary); font-size: 16px;">Notifications</h3>
@@ -5399,6 +5681,9 @@ async function loadPreferences() {
     if (calendarConnected) {
         setTimeout(() => loadCalendarEventsCount(), 100);
     }
+    
+    // Initialize timezone selector (with small delay to ensure DOM is ready)
+    setTimeout(() => initializeTimezoneSelector(), 100);
     
     // Check if Step 1 should be marked complete
     checkStep1Completion(calendarConnected, googleContactsStatus.connected);
@@ -5478,6 +5763,90 @@ async function loadCalendarEventsCount() {
         const countElement = document.getElementById('calendar-events-count');
         if (countElement) {
             countElement.textContent = '0';
+        }
+    }
+}
+
+/**
+ * Initialize timezone selector component
+ */
+let timezoneSelector = null;
+
+async function initializeTimezoneSelector() {
+    try {
+        // Fetch current timezone preference
+        const response = await fetch(`${API_BASE}/preferences/timezone`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        let currentTimezone = 'UTC';
+        if (response.ok) {
+            const data = await response.json();
+            currentTimezone = data.timezone || 'UTC';
+        } else {
+            // Auto-detect from browser if not set
+            currentTimezone = TimezoneSelector.detectBrowserTimezone();
+        }
+        
+        // Initialize timezone selector
+        if (typeof TimezoneSelector !== 'undefined') {
+            timezoneSelector = new TimezoneSelector({
+                containerId: 'timezone-selector-container',
+                currentTimezone: currentTimezone,
+                onChange: (timezone) => {
+                    console.log('Timezone changed to:', timezone);
+                }
+            });
+        } else {
+            console.error('TimezoneSelector class not found');
+        }
+    } catch (error) {
+        console.error('Error initializing timezone selector:', error);
+    }
+}
+
+/**
+ * Save timezone preference
+ */
+async function saveTimezonePreference() {
+    if (!timezoneSelector) {
+        showToast('Timezone selector not initialized', 'error');
+        return;
+    }
+    
+    const timezone = timezoneSelector.getValue();
+    const saveBtn = document.getElementById('save-timezone-btn');
+    
+    try {
+        // Disable button during save
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+        }
+        
+        const response = await fetch(`${API_BASE}/preferences/timezone`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ timezone })
+        });
+        
+        if (response.ok) {
+            showToast('Timezone preference saved successfully', 'success');
+        } else {
+            const error = await response.json();
+            showToast(error.error || 'Failed to save timezone preference', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving timezone preference:', error);
+        showToast('Failed to save timezone preference', 'error');
+    } finally {
+        // Re-enable button
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Timezone';
         }
     }
 }

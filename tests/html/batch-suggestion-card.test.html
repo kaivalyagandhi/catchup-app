@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batch Suggestion Card Test</title>
+  <link rel="stylesheet" href="/css/batch-suggestion-card.css">
+  <link rel="stylesheet" href="/css/undo-toast.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: #f3f4f6;
+    }
+    
+    .test-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #1f2937;
+      margin-bottom: 0.5rem;
+    }
+    
+    .test-description {
+      color: #6b7280;
+      margin-bottom: 2rem;
+    }
+    
+    .test-section {
+      margin-bottom: 3rem;
+    }
+    
+    .test-section h2 {
+      color: #374151;
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #3b82f6);
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    
+    .progress-text {
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+    
+    .console-output {
+      background: #1f2937;
+      color: #f3f4f6;
+      padding: 1rem;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 2rem;
+    }
+    
+    .console-output .log {
+      margin: 0.25rem 0;
+    }
+    
+    .console-output .success {
+      color: #10b981;
+    }
+    
+    .console-output .error {
+      color: #ef4444;
+    }
+    
+    .console-output .info {
+      color: #3b82f6;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Batch Suggestion Card Component Test</h1>
+    <p class="test-description">
+      Testing the BatchSuggestionCard component with expand/collapse, accept, skip, and undo functionality.
+    </p>
+    
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="progress-text" id="progress-text">0% Complete</div>
+    
+    <div class="test-section">
+      <h2>Batch Suggestions</h2>
+      <div id="batch-cards-container"></div>
+    </div>
+    
+    <div class="console-output" id="console-output">
+      <div class="log">Console output will appear here...</div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <!-- Load dependencies -->
+  <script src="/js/undo-toast.js"></script>
+  <script src="/js/batch-suggestion-card.js"></script>
+  
+  <script>
+    // Mock data for testing
+    const mockBatches = [
+      {
+        id: 'high-signal',
+        name: 'Frequent Calendar Overlap',
+        description: '8 contacts with frequent calendar events and rich contact information',
+        suggestedCircle: 'close',
+        contacts: [
+          {
+            id: 'contact-1',
+            name: 'Alice Johnson',
+            email: 'alice@example.com',
+            calendarEventCount: 12,
+            metadataScore: 85,
+            overallScore: 205
+          },
+          {
+            id: 'contact-2',
+            name: 'Bob Smith',
+            email: 'bob@example.com',
+            calendarEventCount: 8,
+            metadataScore: 70,
+            overallScore: 150
+          },
+          {
+            id: 'contact-3',
+            name: 'Carol Williams',
+            email: 'carol@example.com',
+            calendarEventCount: 10,
+            metadataScore: 75,
+            overallScore: 175
+          },
+          {
+            id: 'contact-4',
+            name: 'David Brown',
+            email: 'david@example.com',
+            calendarEventCount: 6,
+            metadataScore: 65,
+            overallScore: 125
+          },
+          {
+            id: 'contact-5',
+            name: 'Emma Davis',
+            email: 'emma@example.com',
+            calendarEventCount: 9,
+            metadataScore: 80,
+            overallScore: 170
+          },
+          {
+            id: 'contact-6',
+            name: 'Frank Miller',
+            email: 'frank@example.com',
+            calendarEventCount: 7,
+            metadataScore: 60,
+            overallScore: 130
+          },
+          {
+            id: 'contact-7',
+            name: 'Grace Wilson',
+            email: 'grace@example.com',
+            calendarEventCount: 11,
+            metadataScore: 90,
+            overallScore: 200
+          },
+          {
+            id: 'contact-8',
+            name: 'Henry Moore',
+            email: 'henry@example.com',
+            calendarEventCount: 5,
+            metadataScore: 55,
+            overallScore: 105
+          }
+        ],
+        signalStrength: 'high',
+        averageScore: 157.5,
+        signalType: 'mixed'
+      },
+      {
+        id: 'medium-signal',
+        name: 'Regular Contact',
+        description: '12 contacts with some calendar events and contact details',
+        suggestedCircle: 'active',
+        contacts: [
+          {
+            id: 'contact-9',
+            name: 'Ivy Taylor',
+            email: 'ivy@example.com',
+            calendarEventCount: 3,
+            metadataScore: 45,
+            overallScore: 75
+          },
+          {
+            id: 'contact-10',
+            name: 'Jack Anderson',
+            email: 'jack@example.com',
+            calendarEventCount: 4,
+            metadataScore: 50,
+            overallScore: 90
+          },
+          {
+            id: 'contact-11',
+            name: 'Kate Thomas',
+            email: 'kate@example.com',
+            calendarEventCount: 2,
+            metadataScore: 35,
+            overallScore: 55
+          },
+          {
+            id: 'contact-12',
+            name: 'Liam Jackson',
+            email: 'liam@example.com',
+            calendarEventCount: 3,
+            metadataScore: 40,
+            overallScore: 70
+          },
+          {
+            id: 'contact-13',
+            name: 'Mia White',
+            email: 'mia@example.com',
+            calendarEventCount: 4,
+            metadataScore: 55,
+            overallScore: 95
+          },
+          {
+            id: 'contact-14',
+            name: 'Noah Harris',
+            email: 'noah@example.com',
+            calendarEventCount: 2,
+            metadataScore: 30,
+            overallScore: 50
+          },
+          {
+            id: 'contact-15',
+            name: 'Olivia Martin',
+            email: 'olivia@example.com',
+            calendarEventCount: 3,
+            metadataScore: 42,
+            overallScore: 72
+          },
+          {
+            id: 'contact-16',
+            name: 'Peter Thompson',
+            email: 'peter@example.com',
+            calendarEventCount: 4,
+            metadataScore: 48,
+            overallScore: 88
+          },
+          {
+            id: 'contact-17',
+            name: 'Quinn Garcia',
+            email: 'quinn@example.com',
+            calendarEventCount: 2,
+            metadataScore: 38,
+            overallScore: 58
+          },
+          {
+            id: 'contact-18',
+            name: 'Rachel Martinez',
+            email: 'rachel@example.com',
+            calendarEventCount: 3,
+            metadataScore: 44,
+            overallScore: 74
+          },
+          {
+            id: 'contact-19',
+            name: 'Sam Robinson',
+            email: 'sam@example.com',
+            calendarEventCount: 4,
+            metadataScore: 52,
+            overallScore: 92
+          },
+          {
+            id: 'contact-20',
+            name: 'Tina Clark',
+            email: 'tina@example.com',
+            calendarEventCount: 2,
+            metadataScore: 36,
+            overallScore: 56
+          }
+        ],
+        signalStrength: 'medium',
+        averageScore: 72.5,
+        signalType: 'mixed'
+      },
+      {
+        id: 'low-signal',
+        name: 'Occasional Contact',
+        description: '15 contacts with minimal interaction history',
+        suggestedCircle: 'casual',
+        contacts: Array.from({ length: 15 }, (_, i) => ({
+          id: `contact-${21 + i}`,
+          name: `Contact ${21 + i}`,
+          email: `contact${21 + i}@example.com`,
+          calendarEventCount: Math.floor(Math.random() * 2),
+          metadataScore: Math.floor(Math.random() * 20),
+          overallScore: Math.floor(Math.random() * 30)
+        })),
+        signalStrength: 'low',
+        averageScore: 15,
+        signalType: 'metadata'
+      }
+    ];
+    
+    // Progress tracking
+    let totalProgress = 0;
+    
+    // Mock showToast function
+    window.showToast = function(message, type = 'info') {
+      logToConsole(message, type);
+      
+      // Create simple toast
+      const toast = document.createElement('div');
+      toast.className = 'toast toast-show';
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 10000;
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    };
+    
+    // Mock localStorage
+    if (!localStorage.getItem('authToken')) {
+      localStorage.setItem('authToken', 'mock-token');
+      localStorage.setItem('userId', 'mock-user-id');
+    }
+    
+    // Mock window.userId
+    window.userId = 'mock-user-id';
+    
+    // Mock fetch for batch-accept and batch-remove
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+      if (url.includes('/api/contacts/circles/batch-accept')) {
+        logToConsole('API: POST /api/contacts/circles/batch-accept', 'info');
+        const body = JSON.parse(options.body);
+        logToConsole(`Accepting ${body.contactIds.length} contacts to ${body.circle} circle`, 'success');
+        
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            batchId: body.batchId,
+            assignedCount: body.contactIds.length,
+            circle: body.circle
+          })
+        });
+      }
+      
+      if (url.includes('/api/contacts/circles/batch-remove')) {
+        logToConsole('API: POST /api/contacts/circles/batch-remove', 'info');
+        const body = JSON.parse(options.body);
+        logToConsole(`Removing ${body.contactIds.length} contacts from circles`, 'success');
+        
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            removedCount: body.contactIds.length
+          })
+        });
+      }
+      
+      return originalFetch(url, options);
+    };
+    
+    // Console logging
+    function logToConsole(message, type = 'log') {
+      const consoleOutput = document.getElementById('console-output');
+      const logEntry = document.createElement('div');
+      logEntry.className = `log ${type}`;
+      logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      consoleOutput.appendChild(logEntry);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+      console.log(message);
+    }
+    
+    // Update progress bar
+    function updateProgress(increment) {
+      totalProgress = Math.min(100, totalProgress + increment);
+      const progressFill = document.getElementById('progress-fill');
+      const progressText = document.getElementById('progress-text');
+      
+      progressFill.style.width = `${totalProgress}%`;
+      progressText.textContent = `${totalProgress}% Complete`;
+      
+      logToConsole(`Progress updated: ${totalProgress}%`, 'info');
+    }
+    
+    // Initialize test
+    function initTest() {
+      logToConsole('Initializing Batch Suggestion Card test...', 'info');
+      
+      const container = document.getElementById('batch-cards-container');
+      
+      // Create batch cards
+      mockBatches.forEach((batch, index) => {
+        logToConsole(`Creating batch card: ${batch.name}`, 'info');
+        
+        const card = new BatchSuggestionCard(batch, {
+          onAccept: async (data) => {
+            logToConsole(`Batch accepted: ${data.batchId} (${data.contactIds.length} contacts)`, 'success');
+          },
+          onSkip: (data) => {
+            logToConsole(`Batch skipped: ${data.batchId} (${data.contactCount} contacts)`, 'info');
+          },
+          onProgressUpdate: (increment) => {
+            updateProgress(increment);
+          }
+        });
+        
+        const cardElement = card.render();
+        container.appendChild(cardElement);
+      });
+      
+      logToConsole('Test initialized successfully!', 'success');
+      logToConsole('Try expanding cards, accepting batches, and using undo functionality', 'info');
+    }
+    
+    // Start test when page loads
+    window.addEventListener('DOMContentLoaded', initTest);
+  </script>
+</body>
+</html>

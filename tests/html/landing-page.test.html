@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Landing Page Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #4285f4;
+      padding-bottom: 10px;
+    }
+    .test-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    .test-section h2 {
+      color: #4285f4;
+      margin-top: 0;
+    }
+    .test-link {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #4285f4;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      margin: 10px 10px 10px 0;
+    }
+    .test-link:hover {
+      background: #357ae8;
+    }
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+    .checklist li {
+      padding: 8px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    .checklist li:before {
+      content: "☐ ";
+      margin-right: 10px;
+      color: #4285f4;
+    }
+    code {
+      background: #e8eaed;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    .note {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 12px;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Landing Page Test Guide</h1>
+  
+  <div class="test-section">
+    <h2>Prerequisites</h2>
+    <ul class="checklist">
+      <li>Development server is running (<code>npm run dev</code>)</li>
+      <li>Database is running and migrations are applied</li>
+      <li>Environment variables are configured (especially <code>JWT_SECRET</code>)</li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h2>Test Links</h2>
+    <p>Open these links to test the landing page:</p>
+    <a href="http://localhost:3000/" class="test-link" target="_blank">Landing Page (Root)</a>
+    <a href="http://localhost:3000/landing.html" class="test-link" target="_blank">Landing Page (Direct)</a>
+  </div>
+
+  <div class="test-section">
+    <h2>Manual Testing Checklist</h2>
+    
+    <h3>1. Unauthenticated User Experience</h3>
+    <ul class="checklist">
+      <li>Clear localStorage and visit <code>http://localhost:3000/</code></li>
+      <li>Verify landing page loads (not dashboard)</li>
+      <li>Check hero section displays with correct headline</li>
+      <li>Verify "Get Started with Google" button is visible</li>
+      <li>Check features section displays all 6 features</li>
+      <li>Verify testimonials section displays 3 testimonials</li>
+      <li>Check final CTA section is visible</li>
+      <li>Verify footer displays correctly</li>
+    </ul>
+
+    <h3>2. Responsive Design</h3>
+    <ul class="checklist">
+      <li>Test on mobile viewport (320px width)</li>
+      <li>Test on tablet viewport (768px width)</li>
+      <li>Test on desktop viewport (1024px+ width)</li>
+      <li>Verify all buttons are touch-friendly (44x44px minimum)</li>
+      <li>Check that text is readable at all sizes</li>
+      <li>Verify images/icons scale properly</li>
+    </ul>
+
+    <h3>3. SEO and Accessibility</h3>
+    <ul class="checklist">
+      <li>View page source and verify meta tags are present</li>
+      <li>Check title tag: "CatchUp - Your AI-Powered Relationship Manager"</li>
+      <li>Verify description meta tag is present</li>
+      <li>Check Open Graph tags (og:title, og:description, og:image)</li>
+      <li>Verify semantic HTML (h1, h2, h3 hierarchy)</li>
+      <li>Test keyboard navigation (Tab through all interactive elements)</li>
+      <li>Check focus indicators are visible</li>
+    </ul>
+
+    <h3>4. CTA Button Functionality</h3>
+    <ul class="checklist">
+      <li>Click "Get Started with Google" button</li>
+      <li>Verify it redirects to <code>/api/auth/google/authorize</code></li>
+      <li>Click "Learn More" button</li>
+      <li>Verify smooth scroll to features section</li>
+      <li>Click final CTA button</li>
+      <li>Verify it also redirects to Google SSO</li>
+    </ul>
+
+    <h3>5. Authenticated User Experience</h3>
+    <ul class="checklist">
+      <li>Log in to the application</li>
+      <li>Visit <code>http://localhost:3000/</code> while logged in</li>
+      <li>Verify you are redirected to dashboard (index.html)</li>
+      <li>OR verify "Go to Dashboard" button is shown instead of sign-up</li>
+    </ul>
+
+    <h3>6. Browser Console</h3>
+    <ul class="checklist">
+      <li>Open browser DevTools console</li>
+      <li>Verify no JavaScript errors</li>
+      <li>Check Network tab for 404 errors</li>
+      <li>Verify all CSS and JS files load successfully</li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h2>Performance Testing</h2>
+    <ul class="checklist">
+      <li>Open Chrome DevTools Lighthouse</li>
+      <li>Run audit on landing page</li>
+      <li>Verify Performance score >= 80</li>
+      <li>Verify Accessibility score >= 90</li>
+      <li>Check for any critical issues</li>
+    </ul>
+  </div>
+
+  <div class="note">
+    <strong>Note:</strong> The landing page uses client-side JavaScript to detect auth state. 
+    If you're logged in, the page will show "Go to Dashboard" instead of "Get Started with Google".
+    To test the unauthenticated experience, clear localStorage or use an incognito window.
+  </div>
+
+  <div class="test-section">
+    <h2>Expected Behavior</h2>
+    <h3>Unauthenticated Users (No JWT token)</h3>
+    <ul>
+      <li>Root path (<code>/</code>) serves <code>landing.html</code></li>
+      <li>Shows "Get Started with Google" CTAs</li>
+      <li>Clicking CTA redirects to Google SSO</li>
+    </ul>
+
+    <h3>Authenticated Users (Valid JWT token)</h3>
+    <ul>
+      <li>Root path (<code>/</code>) serves <code>index.html</code> (dashboard)</li>
+      <li>OR landing page shows "Go to Dashboard" button</li>
+      <li>Clicking button navigates to dashboard</li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h2>Troubleshooting</h2>
+    <h3>Landing page not loading</h3>
+    <ul>
+      <li>Check server is running: <code>npm run dev</code></li>
+      <li>Verify <code>public/landing.html</code> exists</li>
+      <li>Check browser console for errors</li>
+    </ul>
+
+    <h3>Styles not applying</h3>
+    <ul>
+      <li>Verify <code>public/css/landing.css</code> exists</li>
+      <li>Check Network tab for 404 on CSS file</li>
+      <li>Clear browser cache and reload</li>
+    </ul>
+
+    <h3>Auth state detection not working</h3>
+    <ul>
+      <li>Check <code>public/js/landing-page.js</code> is loaded</li>
+      <li>Verify JWT token in localStorage</li>
+      <li>Check browser console for JavaScript errors</li>
+    </ul>
+  </div>
+
+  <script>
+    console.log('Landing Page Test Guide loaded');
+    console.log('Current auth token:', localStorage.getItem('authToken') ? 'Present' : 'Not present');
+  </script>
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- SEO Meta Tags -->
+  <title>CatchUp - Your AI-Powered Relationship Manager</title>
+  <meta name="description" content="Reduce coordination friction for maintaining friendships with AI-powered relationship management. Voice-first context capture and smart scheduling suggestions.">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="CatchUp - Your AI-Powered Relationship Manager">
+  <meta property="og:description" content="Voice-first context capture and smart scheduling suggestions for maintaining meaningful connections.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://catchup.app">
+  <meta property="og:image" content="/favicon.svg">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/css/landing.css">
+</head>
+<body>
+  <!-- Hero Section -->
+  <section class="hero" id="hero">
+    <div class="hero-content">
+      <h1 class="hero-title">Your AI-powered Rolodex that actually remembers to call</h1>
+      <p class="hero-subtitle">Reduce coordination friction for maintaining friendships with intelligent relationship management</p>
+      
+      <div class="cta-buttons">
+        <a href="/api/auth/google/authorize" class="btn-primary" id="primary-cta">
+          <svg class="google-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Get Started with Google
+        </a>
+        <a href="#features" class="btn-secondary">Learn More</a>
+      </div>
+      
+      <!-- Logged-in state (hidden by default) -->
+      <div class="logged-in-cta" id="logged-in-cta" style="display: none;">
+        <a href="/index.html" class="btn-primary">Go to Dashboard</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="features-container">
+      <h2 class="section-title">Maintain meaningful connections effortlessly</h2>
+      <p class="section-subtitle">CatchUp helps you stay connected with the people who matter most</p>
+      
+      <div class="features-grid">
+        <!-- Feature 1: Dunbar's Circles -->
+        <div class="feature-card">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="6"/>
+              <circle cx="12" cy="12" r="2"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Organize by Relationship Depth</h3>
+          <p class="feature-description">
+            Based on Dunbar's number research, CatchUp helps you organize contacts into meaningful circles: 
+            Inner Circle (10), Close Friends (25), Active Friends (50), and Casual Network (100). 
+            Focus your energy where it matters most.
+          </p>
+        </div>
+
+        <!-- Feature 2: Voice-First Capture -->
+        <div class="feature-card">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Voice-First Context Capture</h3>
+          <p class="feature-description">
+            Record quick voice notes about your contacts and let AI automatically extract tags, interests, 
+            and important details. No more forgetting what you talked about or losing context between conversations.
+          </p>
+        </div>
+
+        <!-- Feature 3: Smart Scheduling -->
+        <div class="feature-card">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+              <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Smart Scheduling Suggestions</h3>
+          <p class="feature-description">
+            Connect your calendar and let CatchUp suggest optimal times to reach out based on your availability, 
+            shared interests, and how long it's been since you last connected. Reduce coordination friction.
+          </p>
+        </div>
+
+        <!-- Feature 4: AI-Powered Insights -->
+        <div class="feature-card">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">AI-Powered Relationship Insights</h3>
+          <p class="feature-description">
+            Get intelligent suggestions on who to reach out to and when. CatchUp analyzes your interaction patterns, 
+            calendar events, and relationship depth to help you maintain meaningful connections effortlessly.
+          </p>
+        </div>
+
+        <!-- Feature 5: Privacy First -->
+        <div class="feature-card">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Privacy-Focused Design</h3>
+          <p class="feature-description">
+            Your relationship data stays private. We use read-only access to your calendar and contacts, 
+            never modifying your Google data. You control what information is captured and shared.
+          </p>
+        </div>
+
+        <!-- Feature 6: Time-Based Reminders -->
+        <div class="feature-card">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Never Lose Touch</h3>
+          <p class="feature-description">
+            Set custom frequency preferences for each relationship circle. CatchUp tracks time since last contact 
+            and reminds you when it's time to reach out, helping you maintain consistent connections.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Social Proof Section -->
+  <section class="testimonials" id="testimonials">
+    <div class="testimonials-container">
+      <h2 class="section-title">What people are saying</h2>
+      
+      <div class="testimonials-grid">
+        <div class="testimonial-card">
+          <p class="testimonial-text">
+            "CatchUp has transformed how I maintain friendships. I used to feel guilty about losing touch, 
+            but now I have a system that actually works."
+          </p>
+          <div class="testimonial-author">
+            <strong>Sarah Chen</strong>
+            <span>Product Manager</span>
+          </div>
+        </div>
+
+        <div class="testimonial-card">
+          <p class="testimonial-text">
+            "The voice notes feature is a game-changer. I can quickly capture context after conversations 
+            and never forget important details about my friends' lives."
+          </p>
+          <div class="testimonial-author">
+            <strong>Michael Rodriguez</strong>
+            <span>Software Engineer</span>
+          </div>
+        </div>
+
+        <div class="testimonial-card">
+          <p class="testimonial-text">
+            "Finally, a tool that helps me be more intentional about my relationships. The Dunbar circles 
+            framework makes so much sense for organizing my network."
+          </p>
+          <div class="testimonial-author">
+            <strong>Emily Thompson</strong>
+            <span>Entrepreneur</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA Section -->
+  <section class="final-cta">
+    <div class="final-cta-container">
+      <h2 class="final-cta-title">Start organizing your relationships today</h2>
+      <p class="final-cta-subtitle">Join CatchUp and never lose touch with the people who matter most</p>
+      
+      <a href="/api/auth/google/authorize" class="btn-primary btn-large" id="final-cta">
+        <svg class="google-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Get Started with Google
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <p>&copy; 2026 CatchUp. All rights reserved.</p>
+      <nav class="footer-nav">
+        <a href="#privacy">Privacy Policy</a>
+        <a href="#terms">Terms of Service</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- JavaScript for auth state detection -->
+  <script src="/js/landing-page.js"></script>
+</body>
+</html>

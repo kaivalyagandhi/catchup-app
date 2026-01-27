@@ -33,8 +33,8 @@ describe('PrivacyService', () => {
     it('should export all user data', async () => {
       // Create test user
       await pool.query(
-        'INSERT INTO users (id, email, name) VALUES ($1, $2, $3)',
-        [testUserId, testEmail, 'Test User']
+        'INSERT INTO users (id, email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4, $5)',
+        [testUserId, testEmail, 'Test User', `google_test_${Date.now()}`, 'google']
       );
 
       // Create test contact
@@ -58,8 +58,8 @@ describe('PrivacyService', () => {
     it('should respect export options', async () => {
       // Create test user
       await pool.query(
-        'INSERT INTO users (id, email, name) VALUES ($1, $2, $3)',
-        [testUserId, testEmail, 'Test User']
+        'INSERT INTO users (id, email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4, $5)',
+        [testUserId, testEmail, 'Test User', `google_test_${Date.now()}`, 'google']
       );
 
       const exportData = await privacyService.exportUserData({
@@ -75,8 +75,8 @@ describe('PrivacyService', () => {
     it('should handle empty data gracefully', async () => {
       // Create test user with no data
       await pool.query(
-        'INSERT INTO users (id, email, name) VALUES ($1, $2, $3)',
-        [testUserId, testEmail, 'Test User']
+        'INSERT INTO users (id, email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4, $5)',
+        [testUserId, testEmail, 'Test User', `google_test_${Date.now()}`, 'google']
       );
 
       const exportData = await privacyService.exportUserData({
@@ -93,8 +93,8 @@ describe('PrivacyService', () => {
     it('should delete all user data', async () => {
       // Create test user
       await pool.query(
-        'INSERT INTO users (id, email, name) VALUES ($1, $2, $3)',
-        [testUserId, testEmail, 'Test User']
+        'INSERT INTO users (id, email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4, $5)',
+        [testUserId, testEmail, 'Test User', `google_test_${Date.now()}`, 'google']
       );
 
       // Create test contact
@@ -126,8 +126,8 @@ describe('PrivacyService', () => {
     it('should be atomic - rollback on error', async () => {
       // Create test user
       await pool.query(
-        'INSERT INTO users (id, email, name) VALUES ($1, $2, $3)',
-        [testUserId, testEmail, 'Test User']
+        'INSERT INTO users (id, email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4, $5)',
+        [testUserId, testEmail, 'Test User', `google_test_${Date.now()}`, 'google']
       );
 
       // Mock a database error during deletion
@@ -165,8 +165,8 @@ describe('PrivacyService', () => {
     it('should verify contact ownership', async () => {
       // Create test user
       await pool.query(
-        'INSERT INTO users (id, email, name) VALUES ($1, $2, $3)',
-        [testUserId, testEmail, 'Test User']
+        'INSERT INTO users (id, email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4, $5)',
+        [testUserId, testEmail, 'Test User', `google_test_${Date.now()}`, 'google']
       );
 
       // Create test contact
@@ -189,8 +189,8 @@ describe('PrivacyService', () => {
     it('should reject non-owner access', async () => {
       // Create test user
       await pool.query(
-        'INSERT INTO users (id, email, name) VALUES ($1, $2, $3)',
-        [testUserId, testEmail, 'Test User']
+        'INSERT INTO users (id, email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4, $5)',
+        [testUserId, testEmail, 'Test User', `google_test_${Date.now()}`, 'google']
       );
 
       // Create test contact

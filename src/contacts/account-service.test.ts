@@ -31,8 +31,8 @@ describe('AccountService', () => {
     // Create a test user with more unique identifier
     testUserEmail = `test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
     const result = await pool.query(
-      'INSERT INTO users (email, name) VALUES ($1, $2) RETURNING id',
-      [testUserEmail, 'Test User']
+      'INSERT INTO users (email, name, google_id, auth_provider) VALUES ($1, $2, $3, $4) RETURNING id',
+      [testUserEmail, 'Test User', `google_test_${Date.now()}`, 'google']
     );
     testUserId = result.rows[0].id;
   });

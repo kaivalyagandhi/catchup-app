@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Undo Toast Component Test</title>
+  <style>
+    :root {
+      --accent-primary: #4a90e2;
+      --accent-primary-hover: #357abd;
+      --status-success-bg: #d4edda;
+      --status-success-text: #155724;
+      --status-success: #28a745;
+      --status-error-bg: #f8d7da;
+      --status-error-text: #721c24;
+      --status-error: #dc3545;
+      --status-warning-bg: #fff3cd;
+      --status-warning-text: #856404;
+      --status-warning: #ffc107;
+      --status-info-bg: #d1ecf1;
+      --status-info-text: #0c5460;
+      --status-info: #17a2b8;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background: #f5f5f5;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .description {
+      color: #666;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+
+    .test-section {
+      margin-bottom: 40px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      border-left: 4px solid var(--accent-primary);
+    }
+
+    .test-section h2 {
+      margin-top: 0;
+      color: #333;
+      font-size: 18px;
+    }
+
+    .test-controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--accent-primary);
+      color: white;
+    }
+
+    button:hover {
+      background: var(--accent-primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: #6c757d;
+    }
+
+    button.secondary:hover {
+      background: #5a6268;
+    }
+
+    button.danger {
+      background: var(--status-error);
+    }
+
+    button.danger:hover {
+      background: #c82333;
+    }
+
+    .status-display {
+      margin-top: 15px;
+      padding: 12px;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .status-display .label {
+      font-weight: bold;
+      color: #666;
+    }
+
+    .mock-contacts {
+      margin-top: 15px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+
+    .contact-card {
+      padding: 12px;
+      background: white;
+      border-radius: 6px;
+      border: 2px solid #ddd;
+      transition: all 0.2s;
+    }
+
+    .contact-card.assigned {
+      border-color: var(--status-success);
+      background: var(--status-success-bg);
+    }
+
+    .contact-name {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .contact-circle {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .console-log {
+      margin-top: 20px;
+      padding: 15px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .console-log .log-entry {
+      margin-bottom: 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid #333;
+    }
+
+    .console-log .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .console-log .timestamp {
+      color: #858585;
+      margin-right: 8px;
+    }
+
+    .console-log .success {
+      color: #4ec9b0;
+    }
+
+    .console-log .error {
+      color: #f48771;
+    }
+
+    .console-log .info {
+      color: #9cdcfe;
+    }
+  </style>
+  <link rel="stylesheet" href="/css/undo-toast.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🔄 Undo Toast Component Test</h1>
+    <p class="description">
+      Test the UndoToast component with countdown timer and undo state management.
+      This demonstrates the undo capability for bulk circle assignment actions.
+    </p>
+
+    <!-- Test 1: Basic Undo Toast -->
+    <div class="test-section">
+      <h2>Test 1: Basic Undo Toast</h2>
+      <p>Show a simple undo toast with countdown timer.</p>
+      <div class="test-controls">
+        <button onclick="testBasicUndo()">Show Undo Toast</button>
+        <button class="secondary" onclick="testCustomDuration()">Custom Duration (5s)</button>
+      </div>
+      <div class="status-display">
+        <span class="label">Status:</span> <span id="basic-status">Ready</span>
+      </div>
+    </div>
+
+    <!-- Test 2: Bulk Assignment with Undo -->
+    <div class="test-section">
+      <h2>Test 2: Bulk Circle Assignment with Undo</h2>
+      <p>Simulate bulk assignment of contacts to a circle with undo capability.</p>
+      <div class="test-controls">
+        <button onclick="testBulkAssignment('inner')">Assign to Inner Circle</button>
+        <button onclick="testBulkAssignment('close')">Assign to Close Friends</button>
+        <button class="secondary" onclick="resetMockContacts()">Reset Contacts</button>
+      </div>
+      <div class="mock-contacts" id="mock-contacts"></div>
+      <div class="status-display">
+        <span class="label">Undo Available:</span> <span id="undo-status">No</span>
+      </div>
+    </div>
+
+    <!-- Test 3: Multiple Actions -->
+    <div class="test-section">
+      <h2>Test 3: Multiple Actions (Only Most Recent Undoable)</h2>
+      <p>Test that only the most recent action can be undone (Requirement 8.6).</p>
+      <div class="test-controls">
+        <button onclick="performAction('Action 1')">Perform Action 1</button>
+        <button onclick="performAction('Action 2')">Perform Action 2</button>
+        <button onclick="performAction('Action 3')">Perform Action 3</button>
+        <button class="danger" onclick="checkUndoInfo()">Check Undo Info</button>
+      </div>
+      <div class="status-display">
+        <span class="label">Last Action:</span> <span id="last-action">None</span>
+      </div>
+    </div>
+
+    <!-- Test 4: Countdown Urgency -->
+    <div class="test-section">
+      <h2>Test 4: Countdown Urgency Animation</h2>
+      <p>Test the urgent animation when countdown reaches last 3 seconds.</p>
+      <div class="test-controls">
+        <button onclick="testUrgentCountdown()">Show 5s Toast (Watch Last 3s)</button>
+      </div>
+    </div>
+
+    <!-- Console Log -->
+    <div class="console-log" id="console-log">
+      <div class="log-entry">
+        <span class="timestamp">[00:00:00]</span>
+        <span class="info">Console ready. Test actions will be logged here.</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/undo-toast.js"></script>
+  <script src="/js/undo-state-manager.js"></script>
+  <script>
+    // Mock contacts data
+    let mockContacts = [
+      { id: '1', name: 'Alice Johnson', dunbarCircle: null },
+      { id: '2', name: 'Bob Smith', dunbarCircle: null },
+      { id: '3', name: 'Carol Williams', dunbarCircle: null },
+      { id: '4', name: 'David Brown', dunbarCircle: null },
+      { id: '5', name: 'Eve Davis', dunbarCircle: null }
+    ];
+
+    // Initialize
+    renderMockContacts();
+
+    // Test 1: Basic Undo Toast
+    function testBasicUndo() {
+      logToConsole('Showing basic undo toast...', 'info');
+      
+      const toast = new UndoToast({
+        message: 'Test action performed',
+        onUndo: () => {
+          logToConsole('Undo clicked!', 'success');
+          document.getElementById('basic-status').textContent = 'Undone';
+        },
+        duration: 10000
+      });
+
+      toast.show();
+      document.getElementById('basic-status').textContent = 'Toast shown (10s)';
+    }
+
+    function testCustomDuration() {
+      logToConsole('Showing undo toast with 5s duration...', 'info');
+      
+      const toast = new UndoToast({
+        message: 'Custom duration test (5 seconds)',
+        onUndo: () => {
+          logToConsole('Custom duration undo clicked!', 'success');
+        },
+        duration: 5000
+      });
+
+      toast.show();
+      document.getElementById('basic-status').textContent = 'Toast shown (5s)';
+    }
+
+    // Test 2: Bulk Assignment with Undo
+    function testBulkAssignment(circle) {
+      logToConsole(`Assigning ${mockContacts.length} contacts to ${circle} circle...`, 'info');
+
+      // Save state before assignment
+      const state = undoStateManager.createBulkAssignmentState(
+        'bulk-assign',
+        mockContacts,
+        async (previousValues, contacts) => {
+          // Restore function
+          logToConsole('Restoring previous state...', 'info');
+          
+          contacts.forEach(contact => {
+            contact.dunbarCircle = previousValues[contact.id];
+          });
+
+          renderMockContacts();
+          updateUndoStatus();
+          logToConsole('State restored successfully!', 'success');
+        },
+        { circle, contactCount: mockContacts.length }
+      );
+
+      undoStateManager.saveState(state);
+
+      // Perform assignment
+      mockContacts.forEach(contact => {
+        contact.dunbarCircle = circle;
+      });
+
+      renderMockContacts();
+      updateUndoStatus();
+
+      // Show undo toast
+      const toast = new UndoToast({
+        message: `${mockContacts.length} contacts assigned to ${circle} circle`,
+        onUndo: async () => {
+          const result = await undoStateManager.restoreState();
+          
+          if (result.success) {
+            logToConsole(`Undo successful: ${result.contactsRestored} contacts restored`, 'success');
+          } else {
+            logToConsole(`Undo failed: ${result.error}`, 'error');
+          }
+        }
+      });
+
+      toast.show();
+      logToConsole(`Assignment complete. Undo available for 10 seconds.`, 'success');
+    }
+
+    function resetMockContacts() {
+      mockContacts.forEach(contact => {
+        contact.dunbarCircle = null;
+      });
+      renderMockContacts();
+      undoStateManager.clearUndoStack();
+      updateUndoStatus();
+      logToConsole('Contacts reset', 'info');
+    }
+
+    function renderMockContacts() {
+      const container = document.getElementById('mock-contacts');
+      container.innerHTML = mockContacts.map(contact => `
+        <div class="contact-card ${contact.dunbarCircle ? 'assigned' : ''}">
+          <div class="contact-name">${contact.name}</div>
+          <div class="contact-circle">
+            Circle: ${contact.dunbarCircle || 'Unassigned'}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateUndoStatus() {
+      const canUndo = undoStateManager.canUndo();
+      document.getElementById('undo-status').textContent = canUndo ? 'Yes' : 'No';
+    }
+
+    // Test 3: Multiple Actions
+    function performAction(actionName) {
+      logToConsole(`Performing ${actionName}...`, 'info');
+
+      const state = {
+        actionType: actionName,
+        contacts: mockContacts.slice(0, 2),
+        previousValues: { '1': 'previous', '2': 'previous' },
+        restoreFunction: () => {
+          logToConsole(`${actionName} undone`, 'success');
+        }
+      };
+
+      undoStateManager.saveState(state);
+      document.getElementById('last-action').textContent = actionName;
+      updateUndoStatus();
+
+      const toast = new UndoToast({
+        message: `${actionName} performed`,
+        onUndo: async () => {
+          await undoStateManager.restoreState();
+        }
+      });
+
+      toast.show();
+      logToConsole(`${actionName} complete. Previous undo state cleared (Req 8.6).`, 'info');
+    }
+
+    function checkUndoInfo() {
+      const info = undoStateManager.getUndoInfo();
+      
+      if (info) {
+        logToConsole(`Undo Info: ${JSON.stringify(info, null, 2)}`, 'info');
+      } else {
+        logToConsole('No undo information available', 'error');
+      }
+    }
+
+    // Test 4: Urgent Countdown
+    function testUrgentCountdown() {
+      logToConsole('Showing 5s toast. Watch for urgent animation in last 3 seconds...', 'info');
+      
+      const toast = new UndoToast({
+        message: 'Watch the countdown turn urgent!',
+        onUndo: () => {
+          logToConsole('Urgent countdown undo clicked', 'success');
+        },
+        duration: 5000
+      });
+
+      toast.show();
+
+      // Add urgent class when < 3 seconds remain
+      setTimeout(() => {
+        const countdownEl = document.querySelector('.toast-countdown');
+        if (countdownEl) {
+          countdownEl.classList.add('urgent');
+          logToConsole('Countdown entered urgent state (< 3s)', 'info');
+        }
+      }, 2100);
+    }
+
+    // Console logging
+    function logToConsole(message, type = 'info') {
+      const consoleLog = document.getElementById('console-log');
+      const timestamp = new Date().toLocaleTimeString();
+      
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `
+        <span class="timestamp">[${timestamp}]</span>
+        <span class="${type}">${message}</span>
+      `;
+      
+      consoleLog.appendChild(entry);
+      consoleLog.scrollTop = consoleLog.scrollHeight;
+    }
+
+    // Log to browser console as well
+    console.log('✓ Undo Toast Test Page Loaded');
+    console.log('✓ UndoToast component available');
+    console.log('✓ UndoStateManager available');
+    console.log('Run tests using the buttons above');
+  </script>
+</body>
+</html>

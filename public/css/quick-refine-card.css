@@ -1,0 +1,569 @@
+/**
+ * Quick Refine Card Styles
+ * 
+ * Swipe-style interface for rapid contact categorization
+ * Mobile-first responsive design with touch gesture support
+ */
+
+.quick-refine-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  min-height: 500px;
+}
+
+.quick-refine-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.quick-refine-header h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin-bottom: 0.5rem;
+}
+
+.quick-refine-progress {
+  font-size: 1rem;
+  color: var(--text-secondary, #6b7280);
+  margin-bottom: 1rem;
+}
+
+.quick-refine-progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--bg-tertiary, #e5e7eb);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.quick-refine-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #3b82f6);
+  transition: width 0.3s ease;
+}
+
+/* Card Wrapper */
+.quick-refine-card-wrapper {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  perspective: 1000px;
+  margin-bottom: 2rem;
+}
+
+/* Contact Card */
+.quick-refine-card {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-secondary, #ffffff);
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-y;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.quick-refine-card.dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.quick-refine-card.swiping-left {
+  opacity: 0.7;
+}
+
+.quick-refine-card.swiping-right {
+  opacity: 0.7;
+}
+
+/* Contact Avatar */
+.contact-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 1.5rem;
+}
+
+/* Contact Info */
+.contact-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin-bottom: 0.5rem;
+}
+
+.contact-metadata {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6b7280);
+  margin-bottom: 1rem;
+}
+
+.contact-metadata-item {
+  display: inline-block;
+  margin: 0 0.5rem;
+}
+
+.contact-last-contact {
+  font-size: 0.875rem;
+  color: var(--text-tertiary, #9ca3af);
+  font-style: italic;
+}
+
+/* Swipe Hint */
+.swipe-hint {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #9ca3af);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.swipe-hint-arrow {
+  font-size: 1rem;
+}
+
+/* Circle Buttons */
+.circle-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 1.5rem;
+}
+
+.circle-btn {
+  padding: 1rem;
+  border-radius: 12px;
+  border: 2px solid var(--border-color, #e5e7eb);
+  background: var(--bg-secondary, #ffffff);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 80px;
+}
+
+.circle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.circle-btn:active {
+  transform: translateY(0);
+}
+
+/* Circle Button Variants */
+.circle-btn-inner {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+}
+
+.circle-btn-inner:hover {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.circle-btn-close {
+  border-color: #ec4899;
+  color: #ec4899;
+}
+
+.circle-btn-close:hover {
+  background-color: #ec4899;
+  color: white;
+}
+
+.circle-btn-active {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.circle-btn-active:hover {
+  background-color: #10b981;
+  color: white;
+}
+
+.circle-btn-casual {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.circle-btn-casual:hover {
+  background-color: #3b82f6;
+  color: white;
+}
+
+/* Circle Button Content */
+.circle-btn-icon {
+  font-size: 1.5rem;
+}
+
+.circle-btn-label {
+  font-size: 0.875rem;
+}
+
+.circle-btn-capacity {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* Action Buttons */
+.quick-refine-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.refine-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.refine-btn-skip {
+  background-color: var(--bg-tertiary, #e5e7eb);
+  color: var(--text-primary, #1f2937);
+}
+
+.refine-btn-skip:hover {
+  background-color: var(--bg-hover, #d1d5db);
+}
+
+.refine-btn-done {
+  background-color: var(--primary-color, #3b82f6);
+  color: white;
+}
+
+.refine-btn-done:hover {
+  background-color: var(--primary-hover, #2563eb);
+}
+
+/* Empty State */
+.quick-refine-empty {
+  text-align: center;
+  padding: 3rem;
+}
+
+.quick-refine-empty h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin-bottom: 1rem;
+}
+
+.quick-refine-empty p {
+  font-size: 1rem;
+  color: var(--text-secondary, #6b7280);
+  margin-bottom: 2rem;
+}
+
+.quick-refine-empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+/* Mobile Responsive - Requirements 20.3, 20.5, 20.6 */
+@media (max-width: 768px) {
+  .quick-refine-container {
+    padding: 1rem 0.5rem;
+    min-height: 450px;
+  }
+  
+  .quick-refine-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .quick-refine-progress {
+    font-size: 0.9375rem;
+  }
+  
+  .quick-refine-card-wrapper {
+    height: 350px;
+  }
+  
+  .quick-refine-card {
+    padding: 1.5rem;
+  }
+  
+  .circle-buttons {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    max-width: 100%;
+  }
+  
+  .circle-btn {
+    padding: 0.875rem 0.75rem;
+    min-height: 80px;
+    font-size: 0.875rem;
+  }
+  
+  .circle-btn-icon {
+    font-size: 1.25rem;
+  }
+  
+  .circle-btn-label {
+    font-size: 0.8125rem;
+  }
+  
+  .circle-btn-capacity {
+    font-size: 0.6875rem;
+  }
+  
+  .contact-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .contact-name {
+    font-size: 1.25rem;
+  }
+  
+  .contact-metadata {
+    font-size: 0.8125rem;
+  }
+  
+  .contact-last-contact {
+    font-size: 0.8125rem;
+  }
+  
+  .swipe-hint {
+    font-size: 0.6875rem;
+  }
+  
+  .quick-refine-actions {
+    gap: 0.75rem;
+  }
+  
+  .refine-btn {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+}
+
+/* Extra small devices (320px and up) */
+@media (max-width: 480px) {
+  .quick-refine-container {
+    padding: 0.75rem 0.5rem;
+    min-height: 400px;
+  }
+  
+  .quick-refine-header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .quick-refine-header h2 {
+    font-size: 1.25rem;
+  }
+  
+  .quick-refine-progress {
+    font-size: 0.875rem;
+  }
+  
+  .quick-refine-card-wrapper {
+    height: 320px;
+  }
+  
+  .quick-refine-card {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+  
+  .circle-buttons {
+    gap: 0.625rem;
+    margin-bottom: 1rem;
+  }
+  
+  .circle-btn {
+    padding: 0.75rem 0.5rem;
+    min-height: 72px;
+    font-size: 0.8125rem;
+    border-radius: 8px;
+  }
+  
+  .circle-btn-icon {
+    font-size: 1.125rem;
+  }
+  
+  .circle-btn-label {
+    font-size: 0.75rem;
+  }
+  
+  .circle-btn-capacity {
+    font-size: 0.625rem;
+  }
+  
+  .contact-avatar {
+    width: 50px;
+    height: 50px;
+    font-size: 1.25rem;
+    margin-bottom: 0.875rem;
+  }
+  
+  .contact-name {
+    font-size: 1.125rem;
+  }
+  
+  .contact-metadata {
+    font-size: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .contact-metadata-item {
+    margin: 0 0.375rem;
+  }
+  
+  .contact-last-contact {
+    font-size: 0.75rem;
+  }
+  
+  .swipe-hint {
+    font-size: 0.625rem;
+    bottom: 0.75rem;
+  }
+  
+  .swipe-hint-arrow {
+    font-size: 0.875rem;
+  }
+  
+  .quick-refine-actions {
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+  
+  .refine-btn {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .quick-refine-empty {
+    padding: 2rem 1rem;
+  }
+  
+  .quick-refine-empty h3 {
+    font-size: 1.25rem;
+  }
+  
+  .quick-refine-empty p {
+    font-size: 0.9375rem;
+  }
+  
+  .quick-refine-empty-icon {
+    font-size: 3rem;
+  }
+}
+
+/* Landscape orientation on small devices */
+@media (max-width: 768px) and (orientation: landscape) {
+  .quick-refine-container {
+    padding: 0.75rem 1rem;
+    min-height: 350px;
+  }
+  
+  .quick-refine-header {
+    margin-bottom: 1rem;
+  }
+  
+  .quick-refine-card-wrapper {
+    height: 280px;
+  }
+  
+  .quick-refine-card {
+    padding: 1rem;
+  }
+  
+  .contact-avatar {
+    width: 50px;
+    height: 50px;
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .circle-buttons {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Touch-friendly tap targets (WCAG 2.1 Level AAA) - Requirements 20.4 */
+@media (max-width: 768px) {
+  .circle-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .refine-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.quick-refine-card {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Dark Mode Support (if needed) */
+@media (prefers-color-scheme: dark) {
+  .quick-refine-card {
+    background: #1f2937;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  }
+  
+  .contact-name {
+    color: #f9fafb;
+  }
+  
+  .contact-metadata {
+    color: #9ca3af;
+  }
+  
+  .circle-btn {
+    background: #374151;
+    border-color: #4b5563;
+  }
+}

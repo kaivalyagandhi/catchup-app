@@ -14,6 +14,7 @@ import * as availabilityService from './availability-service';
 import * as oauthRepository from '../integrations/oauth-repository';
 import { getOrSetCache, CacheKeys, CacheTTL, invalidateCalendarCache } from '../utils/cache';
 import { logAuditEvent, AuditAction } from '../utils/audit-logger';
+import { userPreferencesService } from '../users/preferences-service';
 
 /**
  * Connect Google Calendar by exchanging auth code for tokens
@@ -422,8 +423,8 @@ export async function getFreeTimeSlots(
         dateRange.end
       );
 
-      // Determine timezone (use first selected calendar's timezone or default to UTC)
-      const timezone = 'UTC'; // TODO: Get from user preferences
+      // Get user's timezone preference
+      const timezone = await userPreferencesService.getTimezone(userId);
 
       // Convert cached events to time slots (filter out all-day events and non-busy)
       const busySlots = cachedEvents

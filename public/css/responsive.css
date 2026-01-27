@@ -200,10 +200,58 @@
     overflow-x: auto;
   }
 
-  /* Circular visualizer scaling */
+  /* Circular visualizer scaling - Requirements 20.6 */
   .circular-visualizer {
-    transform: scale(0.8);
+    transform: scale(0.85);
     transform-origin: center top;
+    margin: 0 auto;
+  }
+  
+  /* Ensure touch-friendly interactions */
+  .circular-visualizer .contact-dot,
+  .circular-visualizer .circle-label {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+}
+
+/* Extra small devices (320px and up) */
+@media (max-width: 480px) {
+  .main-content {
+    padding-bottom: 80px;
+  }
+  
+  /* Circular visualizer further scaling for very small screens */
+  .circular-visualizer {
+    transform: scale(0.7);
+    transform-origin: center top;
+  }
+  
+  /* Adjust modal sizing for very small screens */
+  .modal {
+    width: 100%;
+    margin: 8px;
+    max-height: calc(100vh - 16px);
+  }
+  
+  /* Ensure cards are readable on small screens */
+  .card-grid {
+    padding: 0.5rem;
+  }
+  
+  /* Mobile nav adjustments */
+  .mobile-nav__item {
+    padding: 6px 8px;
+    min-width: 50px;
+  }
+  
+  .mobile-nav__icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .mobile-nav__label {
+    font-size: 10px;
   }
 }
 

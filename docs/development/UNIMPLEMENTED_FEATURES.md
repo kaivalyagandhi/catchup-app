@@ -2,7 +2,7 @@
 
 This document tracks all unimplemented features and TODO comments found in the CatchUp codebase. Features are categorized by priority to help guide future development work.
 
-**Last Updated**: January 2025
+**Last Updated**: January 2026
 
 ---
 

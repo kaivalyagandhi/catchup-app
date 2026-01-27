@@ -1,0 +1,176 @@
+/**
+ * Undo Toast Styles
+ * 
+ * Styles for the undo toast component with countdown timer
+ * Requirements: 8.1, 8.2, 8.3
+ */
+
+/* Undo toast specific styling */
+.toast-undo {
+  background: var(--status-warning-bg, #fff3cd);
+  color: var(--status-warning-text, #856404);
+  border-left: 4px solid var(--status-warning, #ffc107);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  min-width: 350px;
+  max-width: 500px;
+}
+
+/* Undo button styling */
+.toast-undo-btn {
+  background: var(--accent-primary, #4a90e2);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.toast-undo-btn:hover {
+  background: var(--accent-primary-hover, #357abd);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toast-undo-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.toast-undo-btn:focus {
+  outline: 2px solid var(--accent-primary, #4a90e2);
+  outline-offset: 2px;
+}
+
+/* Countdown timer styling */
+.toast-countdown {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.countdown-text {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--status-warning-text, #856404);
+}
+
+/* Animation for countdown urgency */
+@keyframes pulse-urgent {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Add pulse animation when time is running out (last 3 seconds) */
+.toast-countdown.urgent {
+  animation: pulse-urgent 0.5s ease-in-out infinite;
+  background: rgba(220, 53, 69, 0.2);
+}
+
+.toast-countdown.urgent .countdown-text {
+  color: var(--status-error, #dc3545);
+}
+
+/* Toast container positioning */
+#toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+#toast-container .toast {
+  pointer-events: auto;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .toast-undo {
+    min-width: 300px;
+    max-width: calc(100vw - 40px);
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .toast-undo-btn {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  .toast-countdown {
+    min-width: 32px;
+    height: 32px;
+  }
+
+  .countdown-text {
+    font-size: 11px;
+  }
+
+  #toast-container {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    align-items: stretch;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .toast-undo {
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+    border-left-color: #ffc107;
+  }
+
+  .toast-countdown {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .countdown-text {
+    color: #ffc107;
+  }
+
+  .toast-countdown.urgent {
+    background: rgba(220, 53, 69, 0.3);
+  }
+
+  .toast-countdown.urgent .countdown-text {
+    color: #ff6b6b;
+  }
+}
+
+/* Accessibility: Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .toast-countdown.urgent {
+    animation: none;
+  }
+
+  .toast-undo-btn:hover {
+    transform: none;
+  }
+
+  .toast-undo-btn:active {
+    transform: none;
+  }
+}

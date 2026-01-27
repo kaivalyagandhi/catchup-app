@@ -65,6 +65,101 @@ router.post(
 );
 
 /**
+ * POST /api/circles/batch-accept
+ * Accept a batch of contacts and assign them to a circle atomically
+ * 
+ * This endpoint is used during onboarding to accept batch suggestions.
+ * All assignments succeed or all fail (atomic transaction).
+ * 
+ * Requirements: 17.3, 17.6, 17.7
+ */
+router.post(
+  '/batch-accept',
+  asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const userId = req.userId!;
+    const { batchId, circle, contactIds } = req.body;
+
+    // Validate input
+    if (!batchId) {
+      res.status(400).json({ error: 'batchId is required' });
+      return;
+    }
+
+    if (!circle) {
+      res.status(400).json({ error: 'circle is required' });
+      return;
+    }
+
+    if (!contactIds || !Array.isArray(contactIds) || contactIds.length === 0) {
+      res.status(400).json({ error: 'contactIds array is required and must not be empty' });
+      return;
+    }
+
+    // Validate circle
+    if (!VALID_CIRCLES.includes(circle)) {
+      res.status(400).json({
+        error: `Invalid circle. Must be one of: ${VALID_CIRCLES.join(', ')}`,
+      });
+      return;
+    }
+
+    // Use existing batchAssign service with atomic transaction
+    const circleService = new CircleAssignmentServiceImpl();
+    
+    // Convert to assignments format
+    const assignments = contactIds.map(contactId => ({
+      contactId,
+      circle,
+    }));
+
+    // This will use a transaction internally - all succeed or all fail
+    await circleService.batchAssign(userId, assignments, 'user');
+
+    res.json({
+      success: true,
+      batchId,
+      assignedCount: contactIds.length,
+      circle,
+    });
+  })
+);
+
+/**
+ * POST /api/circles/batch-remove
+ * Remove circle assignments from multiple contacts (for undo functionality)
+ * 
+ * Requirements: 8.4 (Undo capability)
+ */
+router.post(
+  '/batch-remove',
+  asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const userId = req.userId!;
+    const { contactIds } = req.body;
+
+    // Validate input
+    if (!contactIds || !Array.isArray(contactIds) || contactIds.length === 0) {
+      res.status(400).json({ error: 'contactIds array is required and must not be empty' });
+      return;
+    }
+
+    const circleService = new CircleAssignmentServiceImpl();
+    
+    // Remove circle assignments by setting to null
+    const assignments = contactIds.map(contactId => ({
+      contactId,
+      circle: null as any, // Remove circle assignment
+    }));
+
+    await circleService.batchAssign(userId, assignments, 'user');
+
+    res.json({
+      success: true,
+      removedCount: contactIds.length,
+    });
+  })
+);
+
+/**
  * GET /api/circles/distribution
  * Get the distribution of contacts across circles
  */

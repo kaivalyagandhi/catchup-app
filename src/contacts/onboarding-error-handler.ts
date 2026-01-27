@@ -352,3 +352,152 @@ export async function withRetry<T>(
 ): Promise<T> {
   return OnboardingErrorHandler.withRetry(fn, options);
 }
+
+
+// Additional utility functions for error handling
+
+export async function withOnboardingErrorHandling<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  fallbackValue?: T
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    console.error(`Onboarding operation '${operationName}' failed:`, error);
+    
+    if (fallbackValue !== undefined) {
+      return fallbackValue;
+    }
+    
+    throw error;
+  }
+}
+
+export async function withAISuggestionHandling<T>(
+  operation: () => Promise<T>,
+  fallbackValue?: T
+): Promise<{ success: boolean; data?: T; error?: string }> {
+  try {
+    const data = await operation();
+    return { success: true, data };
+  } catch (error) {
+    console.error('AI suggestion operation failed:', error);
+    
+    if (fallbackValue !== undefined) {
+      return { success: true, data: fallbackValue };
+    }
+    
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'AI suggestion failed',
+    };
+  }
+}
+
+export async function withConcurrencyHandling<T>(
+  operation: () => Promise<T>,
+  resourceType: string,
+  resourceId: string,
+  maxRetries: number = 3
+): Promise<T> {
+  let lastError: unknown;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      
+      // Check if it's an optimistic lock error
+      if (error instanceof Error && error.message.includes('optimistic lock')) {
+        console.log(`Optimistic lock conflict on ${resourceType} ${resourceId}, retrying (${attempt + 1}/${maxRetries})...`);
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+        continue;
+      }
+      
+      // Not a lock error, throw immediately
+      throw error;
+    }
+  }
+  
+  throw lastError;
+}
+
+export async function executeBatchOperation<T, R>(
+  items: T[],
+  operation: (item: T) => Promise<R>,
+  options: {
+    continueOnError?: boolean;
+    maxConcurrent?: number;
+  } = {}
+): Promise<{
+  successful: R[];
+  failed: Array<{ item: T; error: unknown }>;
+}> {
+  const { continueOnError = true, maxConcurrent = 10 } = options;
+  const successful: R[] = [];
+  const failed: Array<{ item: T; error: unknown }> = [];
+  
+  // Process in batches to respect maxConcurrent
+  for (let i = 0; i < items.length; i += maxConcurrent) {
+    const batch = items.slice(i, i + maxConcurrent);
+    const promises = batch.map(async (item) => {
+      try {
+        const result = await operation(item);
+        successful.push(result);
+        return { success: true, result };
+      } catch (error) {
+        failed.push({ item, error });
+        if (!continueOnError) {
+          throw error;
+        }
+        return { success: false, error };
+      }
+    });
+    
+    await Promise.all(promises);
+    
+    // If continueOnError is false and we have failures, stop
+    if (!continueOnError && failed.length > 0) {
+      break;
+    }
+  }
+  
+  return { successful, failed };
+}
+
+export async function withTimeout<T>(
+  operation: () => Promise<T>,
+  timeoutMs: number,
+  operationName: string
+): Promise<T> {
+  return Promise.race([
+    operation(),
+    new Promise<T>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`Operation '${operationName}' timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    ),
+  ]);
+}
+
+export async function measurePerformance<T>(
+  operation: () => Promise<T>,
+  operationName: string
+): Promise<{ result: T; duration: number }> {
+  const startTime = Date.now();
+  
+  try {
+    const result = await operation();
+    const duration = Date.now() - startTime;
+    console.log(`Operation '${operationName}' completed in ${duration}ms`);
+    return { result, duration };
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`Operation '${operationName}' failed after ${duration}ms:`, error);
+    throw error;
+  }
+}

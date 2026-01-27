@@ -31,6 +31,12 @@ export interface ContactRepository {
   unarchive(id: string, userId: string): Promise<void>;
   clearGoogleSyncMetadata(userId: string): Promise<void>;
 
+  // Archive methods - Requirements: 14.1, 15.1, 15.2, 16.4
+  previewArchival(userId: string, contactIds: string[]): Promise<Contact[]>;
+  archiveContacts(userId: string, contactIds: string[]): Promise<number>;
+  restoreContacts(userId: string, contactIds: string[]): Promise<number>;
+  findArchived(userId: string): Promise<Contact[]>;
+
   // Circle assignment methods - Requirements: 3.3, 12.2, 12.5
   assignToCircle(
     id: string,
@@ -94,6 +100,7 @@ export interface ContactUpdateData {
 
 export interface ContactFilters {
   archived?: boolean;
+  includeArchived?: boolean;
   groupId?: string;
   search?: string;
   source?: 'manual' | 'google' | 'calendar' | 'voice_note';
@@ -359,8 +366,17 @@ export class PostgresContactRepository implements ContactRepository {
     let paramCount = 2;
 
     if (filters?.archived !== undefined) {
-      query += ` AND c.archived = $${paramCount++}`;
-      values.push(filters.archived);
+      // Handle archived filtering - Requirements: 15.2, 15.3, 15.4
+      if (filters.archived === true) {
+        // Only archived contacts
+        query += ` AND c.archived_at IS NOT NULL`;
+      } else {
+        // Only non-archived contacts
+        query += ` AND c.archived_at IS NULL`;
+      }
+    } else if (!filters?.includeArchived) {
+      // Exclude archived by default
+      query += ` AND c.archived_at IS NULL`;
     }
 
     if (filters?.groupId) {
@@ -448,12 +464,12 @@ export class PostgresContactRepository implements ContactRepository {
       await client.query('BEGIN');
 
       const result = await client.query(
-        'UPDATE contacts SET archived = true WHERE id = $1 AND user_id = $2',
+        'UPDATE contacts SET archived_at = NOW() WHERE id = $1 AND user_id = $2 AND archived_at IS NULL',
         [id, userId]
       );
 
       if (result.rowCount === 0) {
-        throw new Error('Contact not found');
+        throw new Error('Contact not found or already archived');
       }
 
       await client.query('COMMIT');
@@ -471,12 +487,12 @@ export class PostgresContactRepository implements ContactRepository {
       await client.query('BEGIN');
 
       const result = await client.query(
-        'UPDATE contacts SET archived = false WHERE id = $1 AND user_id = $2',
+        'UPDATE contacts SET archived_at = NULL WHERE id = $1 AND user_id = $2 AND archived_at IS NOT NULL',
         [id, userId]
       );
 
       if (result.rowCount === 0) {
-        throw new Error('Contact not found');
+        throw new Error('Contact not found or not archived');
       }
 
       await client.query('COMMIT');
@@ -486,6 +502,165 @@ export class PostgresContactRepository implements ContactRepository {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Preview contacts that would be archived
+   * Requirements: 14.1, 14.5
+   * This method does NOT modify any data - it only returns contacts for preview
+   */
+  async previewArchival(userId: string, contactIds: string[]): Promise<Contact[]> {
+    if (contactIds.length === 0) {
+      return [];
+    }
+
+    const result = await pool.query(
+      `SELECT c.*,
+        COALESCE(
+          json_agg(DISTINCT g.id) FILTER (WHERE g.id IS NOT NULL),
+          '[]'
+        ) as group_ids,
+        COALESCE(
+          json_agg(DISTINCT jsonb_build_object(
+            'id', t.id,
+            'text', t.text,
+            'source', t.source,
+            'createdAt', t.created_at
+          )) FILTER (WHERE t.id IS NOT NULL),
+          '[]'
+        ) as tags
+      FROM contacts c
+      LEFT JOIN contact_groups cg ON c.id = cg.contact_id
+      LEFT JOIN groups g ON cg.group_id = g.id
+      LEFT JOIN contact_tags ct ON c.id = ct.contact_id
+      LEFT JOIN tags t ON ct.tag_id = t.id
+      WHERE c.user_id = $1 AND c.id = ANY($2) AND c.archived_at IS NULL
+      GROUP BY c.id
+      ORDER BY c.name ASC`,
+      [userId, contactIds]
+    );
+
+    return result.rows.map((row) => this.mapRowToContact(row));
+  }
+
+  /**
+   * Archive contacts (soft delete)
+   * Requirements: 15.1
+   */
+  async archiveContacts(userId: string, contactIds: string[]): Promise<number> {
+    if (contactIds.length === 0) {
+      return 0;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Verify all contacts belong to user
+      const verifyResult = await client.query(
+        'SELECT id FROM contacts WHERE id = ANY($1) AND user_id = $2 AND archived_at IS NULL',
+        [contactIds, userId]
+      );
+
+      if (verifyResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return 0;
+      }
+
+      // Archive contacts
+      const result = await client.query(
+        `UPDATE contacts 
+         SET archived_at = NOW(), updated_at = NOW() 
+         WHERE user_id = $1 AND id = ANY($2) AND archived_at IS NULL`,
+        [userId, contactIds]
+      );
+
+      await client.query('COMMIT');
+
+      return result.rowCount || 0;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Restore archived contacts
+   * Requirements: 16.4, 16.5
+   */
+  async restoreContacts(userId: string, contactIds: string[]): Promise<number> {
+    if (contactIds.length === 0) {
+      return 0;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Verify all contacts belong to user and are archived
+      const verifyResult = await client.query(
+        'SELECT id FROM contacts WHERE id = ANY($1) AND user_id = $2 AND archived_at IS NOT NULL',
+        [contactIds, userId]
+      );
+
+      if (verifyResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return 0;
+      }
+
+      // Restore contacts
+      const result = await client.query(
+        `UPDATE contacts 
+         SET archived_at = NULL, updated_at = NOW() 
+         WHERE user_id = $1 AND id = ANY($2) AND archived_at IS NOT NULL`,
+        [userId, contactIds]
+      );
+
+      await client.query('COMMIT');
+
+      return result.rowCount || 0;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get archived contacts
+   * Requirements: 16.1, 16.2
+   */
+  async findArchived(userId: string): Promise<Contact[]> {
+    const result = await pool.query(
+      `SELECT c.*,
+        COALESCE(
+          json_agg(DISTINCT g.id) FILTER (WHERE g.id IS NOT NULL),
+          '[]'
+        ) as group_ids,
+        COALESCE(
+          json_agg(DISTINCT jsonb_build_object(
+            'id', t.id,
+            'text', t.text,
+            'source', t.source,
+            'createdAt', t.created_at
+          )) FILTER (WHERE t.id IS NOT NULL),
+          '[]'
+        ) as tags
+      FROM contacts c
+      LEFT JOIN contact_groups cg ON c.id = cg.contact_id
+      LEFT JOIN groups g ON cg.group_id = g.id
+      LEFT JOIN contact_tags ct ON c.id = ct.contact_id
+      LEFT JOIN tags t ON ct.tag_id = t.id
+      WHERE c.user_id = $1 AND c.archived_at IS NOT NULL 
+      GROUP BY c.id
+      ORDER BY c.archived_at DESC`,
+      [userId]
+    );
+
+    return result.rows.map((row) => this.mapRowToContact(row));
   }
 
   /**
@@ -621,7 +796,7 @@ export class PostgresContactRepository implements ContactRepository {
       LEFT JOIN tags t ON ct.tag_id = t.id
       WHERE c.user_id = $1 
         AND c.dunbar_circle IS NULL
-        AND c.archived = false
+        AND c.archived_at IS NULL
       GROUP BY c.id
       ORDER BY c.created_at DESC`,
       [userId]
@@ -657,7 +832,7 @@ export class PostgresContactRepository implements ContactRepository {
       LEFT JOIN tags t ON ct.tag_id = t.id
       WHERE c.user_id = $1 
         AND c.dunbar_circle = $2
-        AND c.archived = false
+        AND c.archived_at IS NULL
       GROUP BY c.id
       ORDER BY c.name ASC`,
       [userId, circle]
@@ -685,6 +860,7 @@ export class PostgresContactRepository implements ContactRepository {
       groups: row.group_ids || [],
       tags: row.tags || [],
       archived: row.archived,
+      archivedAt: row.archived_at ? new Date(row.archived_at) : undefined,
       source: row.source || undefined,
       googleResourceName: row.google_resource_name || undefined,
       googleEtag: row.google_etag || undefined,

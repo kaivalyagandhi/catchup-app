@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Start Flow Test</title>
+  <style>
+    :root {
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f9fafb;
+      --bg-tertiary: #e5e7eb;
+      --bg-hover: #f3f4f6;
+      --bg-selected: #eff6ff;
+      --border-color: #e5e7eb;
+      --border-hover: #d1d5db;
+      --primary-color: #3b82f6;
+      --primary-hover: #2563eb;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f3f4f6;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-header h1 {
+      margin: 0 0 10px 0;
+      color: var(--text-primary);
+    }
+    
+    .test-header p {
+      margin: 0;
+      color: var(--text-secondary);
+    }
+    
+    .test-controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-controls button {
+      padding: 10px 20px;
+      margin-right: 10px;
+      border: none;
+      border-radius: 6px;
+      background-color: var(--primary-color);
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .test-controls button:hover {
+      background-color: var(--primary-hover);
+    }
+    
+    .test-controls button.secondary {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+    
+    #console-output {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    #console-output h3 {
+      margin-top: 0;
+      color: var(--text-primary);
+    }
+    
+    .log-entry {
+      padding: 8px;
+      margin-bottom: 4px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    
+    .log-entry.info {
+      background-color: #eff6ff;
+      color: #1e40af;
+    }
+    
+    .log-entry.success {
+      background-color: #f0fdf4;
+      color: #166534;
+    }
+    
+    .log-entry.error {
+      background-color: #fef2f2;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>Quick Start Flow Component Test</h1>
+      <p>Test the AI-powered Quick Start flow for onboarding</p>
+    </div>
+    
+    <div class="test-controls">
+      <button onclick="initializeComponent()">Initialize Component</button>
+      <button onclick="testWithMockData()">Load Mock Data</button>
+      <button onclick="testEmptyState()">Test Empty State</button>
+      <button onclick="testErrorState()">Test Error State</button>
+      <button class="secondary" onclick="clearConsole()">Clear Console</button>
+    </div>
+    
+    <div id="quick-start-container"></div>
+    
+    <div id="console-output">
+      <h3>Console Output</h3>
+      <div id="console-logs"></div>
+    </div>
+  </div>
+  
+  <script src="/js/quick-start-flow.js"></script>
+  <script>
+    let quickStartFlow = null;
+    
+    // Mock localStorage for testing
+    if (!localStorage.getItem('authToken')) {
+      localStorage.setItem('authToken', 'test-token-123');
+    }
+    
+    // Mock showToast function
+    window.showToast = function(message, type) {
+      log(`Toast: ${message} (${type})`, type === 'error' ? 'error' : 'success');
+    };
+    
+    // Mock fetch for testing
+    const originalFetch = window.fetch;
+    window.mockFetchResponse = null;
+    
+    window.fetch = function(url, options) {
+      log(`Fetch: ${url}`, 'info');
+      
+      if (window.mockFetchResponse) {
+        return Promise.resolve({
+          ok: window.mockFetchResponse.ok !== false,
+          statusText: window.mockFetchResponse.statusText || 'OK',
+          json: () => Promise.resolve(window.mockFetchResponse.data)
+        });
+      }
+      
+      return originalFetch(url, options);
+    };
+    
+    function log(message, type = 'info') {
+      const logsContainer = document.getElementById('console-logs');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logsContainer.appendChild(entry);
+      logsContainer.scrollTop = logsContainer.scrollHeight;
+      console.log(message);
+    }
+    
+    function clearConsole() {
+      document.getElementById('console-logs').innerHTML = '';
+    }
+    
+    function initializeComponent() {
+      log('Initializing QuickStartFlow component...', 'info');
+      
+      quickStartFlow = new QuickStartFlow({
+        containerId: 'quick-start-container',
+        userId: 'test-user-123',
+        onAcceptAll: (contactIds, circle) => {
+          log(`Accept All: ${contactIds.length} contacts to ${circle} circle`, 'success');
+        },
+        onReview: () => {
+          log('Review Individually mode activated', 'info');
+        },
+        onSkip: () => {
+          log('User skipped Quick Start', 'info');
+        },
+        onComplete: (result) => {
+          log(`Quick Start completed: ${JSON.stringify(result)}`, 'success');
+        }
+      });
+      
+      log('Component initialized', 'success');
+    }
+    
+    function testWithMockData() {
+      log('Loading component with mock data...', 'info');
+      
+      // Set up mock response
+      window.mockFetchResponse = {
+        ok: true,
+        data: {
+          suggestions: [
+            {
+              contactId: '1',
+              name: 'Alice Johnson',
+              confidence: 95,
+              reasons: ['12 shared calendar events', 'Birthday saved', 'Multiple phone numbers'],
+              scores: {
+                calendarEvents: 85,
+                metadataRichness: 90,
+                contactAge: 100,
+                communicationFrequency: 80,
+                recency: 95
+              }
+            },
+            {
+              contactId: '2',
+              name: 'Bob Smith',
+              confidence: 92,
+              reasons: ['8 shared calendar events', 'Company info saved'],
+              scores: {
+                calendarEvents: 70,
+                metadataRichness: 75,
+                contactAge: 95,
+                communicationFrequency: 85,
+                recency: 90
+              }
+            },
+            {
+              contactId: '3',
+              name: 'Carol Williams',
+              confidence: 90,
+              reasons: ['10 shared calendar events', 'Address saved'],
+              scores: {
+                calendarEvents: 80,
+                metadataRichness: 80,
+                contactAge: 90,
+                communicationFrequency: 75,
+                recency: 85
+              }
+            },
+            {
+              contactId: '4',
+              name: 'David Brown',
+              confidence: 88,
+              reasons: ['6 shared calendar events', 'LinkedIn profile'],
+              scores: {
+                calendarEvents: 65,
+                metadataRichness: 70,
+                contactAge: 85,
+                communicationFrequency: 80,
+                recency: 88
+              }
+            },
+            {
+              contactId: '5',
+              name: 'Emma Davis',
+              confidence: 87,
+              reasons: ['7 shared calendar events', 'Notes saved'],
+              scores: {
+                calendarEvents: 68,
+                metadataRichness: 85,
+                contactAge: 80,
+                communicationFrequency: 78,
+                recency: 86
+              }
+            }
+          ],
+          totalContacts: 50,
+          qualifyingContacts: 5
+        }
+      };
+      
+      if (!quickStartFlow) {
+        initializeComponent();
+      }
+      
+      quickStartFlow.render();
+      log('Mock data loaded successfully', 'success');
+    }
+    
+    function testEmptyState() {
+      log('Testing empty state...', 'info');
+      
+      window.mockFetchResponse = {
+        ok: true,
+        data: {
+          suggestions: [],
+          totalContacts: 10,
+          qualifyingContacts: 0
+        }
+      };
+      
+      if (!quickStartFlow) {
+        initializeComponent();
+      }
+      
+      quickStartFlow.render();
+      log('Empty state rendered', 'success');
+    }
+    
+    function testErrorState() {
+      log('Testing error state...', 'info');
+      
+      window.mockFetchResponse = {
+        ok: false,
+        statusText: 'Internal Server Error',
+        data: null
+      };
+      
+      if (!quickStartFlow) {
+        initializeComponent();
+      }
+      
+      quickStartFlow.render();
+      log('Error state rendered', 'success');
+    }
+    
+    // Auto-initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      log('Page loaded. Click "Load Mock Data" to test the component.', 'info');
+    });
+  </script>
+</body>
+</html>
