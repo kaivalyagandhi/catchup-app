@@ -1871,36 +1871,15 @@ async function openManageCirclesFromDirectory() {
         // Reload contacts to get latest data
         await loadContacts();
         
-        // Get current circle assignments
-        const currentAssignments = {};
-        contacts.forEach(contact => {
-            if (contact.circle) {
-                currentAssignments[contact.id] = contact.circle;
-            }
-        });
+        // Get current onboarding state (or create a minimal one)
+        const savedState = typeof OnboardingStepIndicator !== 'undefined' 
+            ? OnboardingStepIndicator.loadState() 
+            : { currentStep: 2, isComplete: false };
         
-        // Create Step2CirclesHandler instance (not in onboarding mode)
-        const step2Handler = new Step2CirclesHandler(contacts, currentAssignments, {
-            isOnboarding: false,
-            onComplete: async (assignments) => {
-                showToast('Circle assignments saved successfully', 'success');
-                // Reload circles visualization
-                await loadCirclesVisualization();
-                // Update uncategorized count badge
-                await loadUncategorizedCount();
-            },
-            onSkip: () => {
-                // Just close the modal
-            },
-            onClose: () => {
-                // Reload circles visualization to show any changes
-                loadCirclesVisualization();
-                // Update uncategorized count badge
-                loadUncategorizedCount();
-            }
-        });
+        // Create Step2CirclesHandler instance with onboarding state
+        const step2Handler = new Step2CirclesHandler(savedState || { currentStep: 2, isComplete: false });
         
-        // Open the flow (starts with QuickStartFlow)
+        // Open the flow
         await step2Handler.openManageCirclesFlow();
         
         // Clear flag after dialog is mounted
@@ -1954,78 +1933,230 @@ async function loadCirclesVisualization() {
             // Clear container
             container.innerHTML = '';
             
-            // If there are uncategorized contacts, show CTA instead of visualizer
+            // If there are uncategorized contacts, show a banner at the top (not replacing the visualization)
             if (uncategorizedCount > 0) {
-                const ctaContainer = document.createElement('div');
-                ctaContainer.className = 'circles-cta-container';
-                ctaContainer.innerHTML = `
-                    <div class="circles-cta-card">
-                        <div class="circles-cta-icon">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                const bannerContainer = document.createElement('div');
+                bannerContainer.className = 'circles-organize-banner';
+                bannerContainer.innerHTML = `
+                    <div class="circles-organize-banner__content">
+                        <div class="circles-organize-banner__icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"/>
                                 <circle cx="12" cy="12" r="6"/>
                                 <circle cx="12" cy="12" r="2"/>
                             </svg>
                         </div>
-                        <h2 class="circles-cta-title">Continue Organizing Your Contacts</h2>
-                        <p class="circles-cta-description">
-                            You have <strong>${uncategorizedCount} contact${uncategorizedCount === 1 ? '' : 's'}</strong> 
-                            waiting to be organized into circles. Complete your setup to see the full visualization.
-                        </p>
+                        <div class="circles-organize-banner__text">
+                            <strong>${uncategorizedCount} contact${uncategorizedCount === 1 ? '' : 's'}</strong> 
+                            waiting to be organized into circles.
+                        </div>
                         <button 
-                            class="circles-cta-button accent"
-                            onclick="openManageCirclesFromDirectory()"
+                            class="circles-organize-banner__button accent"
+                            id="continue-organizing-btn"
                         >
                             Continue Organizing
                         </button>
                         <button 
-                            class="circles-cta-secondary"
-                            onclick="openManageCirclesFlow()"
+                            class="circles-organize-banner__dismiss"
+                            id="dismiss-organize-banner"
+                            aria-label="Dismiss"
                         >
-                            View Current Circles
+                            ×
                         </button>
                     </div>
                 `;
-                container.appendChild(ctaContainer);
-            } else {
-                // All contacts are categorized, show the visualizer
+                container.appendChild(bannerContainer);
                 
-                // Add "Manage Circles" button at the top
-                const buttonContainer = document.createElement('div');
-                buttonContainer.style.marginBottom = '20px';
-                buttonContainer.style.display = 'flex';
-                buttonContainer.style.justifyContent = 'flex-end';
-                buttonContainer.innerHTML = `
-                    <button 
-                        id="manage-circles-btn" 
-                        class="accent"
-                        onclick="openManageCirclesFlow()"
-                        style="padding: 10px 20px; font-size: 14px;"
-                    >
-                        Manage Circles
-                    </button>
-                `;
-                container.appendChild(buttonContainer);
+                // Add event listeners for banner buttons
+                const continueBtn = document.getElementById('continue-organizing-btn');
+                if (continueBtn) {
+                    continueBtn.addEventListener('click', () => {
+                        openManageCirclesFlow();
+                    });
+                }
                 
-                // Create visualizer container
-                const visualizerDiv = document.createElement('div');
-                visualizerDiv.id = 'circles-visualizer';
-                visualizerDiv.style.width = '100%';
-                visualizerDiv.style.minHeight = '900px';
-                visualizerDiv.style.height = 'auto';
-                container.appendChild(visualizerDiv);
+                const dismissBtn = document.getElementById('dismiss-organize-banner');
+                if (dismissBtn) {
+                    dismissBtn.addEventListener('click', () => {
+                        bannerContainer.style.display = 'none';
+                    });
+                }
+            }
+            
+            // Add SearchFilterBar for circles page
+            const searchFilterContainer = document.createElement('div');
+            searchFilterContainer.id = 'circles-search-filter-container';
+            searchFilterContainer.style.marginBottom = '16px';
+            container.appendChild(searchFilterContainer);
+            
+            // Store reference to current contacts for filtering
+            let filteredContacts = [...contacts];
+            
+            // Initialize SearchFilterBar if available
+            if (typeof SearchFilterBar !== 'undefined') {
+                const circlesSearchFilter = new SearchFilterBar(searchFilterContainer, {
+                    placeholder: 'Search contacts or use filters (tag:, group:, location:, source:)',
+                    mode: 'visualizer',
+                    visibleFilters: ['tag', 'group', 'frequency', 'location', 'source'],
+                    data: contacts,
+                    onFetchTags: () => getAvailableTags(),
+                    onFetchGroups: () => groups,
+                    onGetLocations: () => {
+                        const locations = [...new Set(contacts.map(c => c.location).filter(Boolean))];
+                        return locations.sort();
+                    },
+                    onFilteredData: (filtered, text, filters) => {
+                        filteredContacts = filtered;
+                        // Re-render visualizer with filtered contacts
+                        if (circlesVisualizer) {
+                            circlesVisualizer.render(filteredContacts, groups);
+                        }
+                    }
+                });
+                circlesSearchFilter.render();
                 
-                // Initialize CircularVisualizer
-                circlesVisualizer = new CircularVisualizer('circles-visualizer');
-                
-                // Render with contacts and groups
-                circlesVisualizer.render(contacts, groups);
-                
-                // Add contact click handler
-                circlesVisualizer.on('contactClick', (data) => {
-                    handleCircleContactClick(data);
+                // Store reference for cleanup
+                window.circlesSearchFilter = circlesSearchFilter;
+            }
+            
+            // Add controls row with legend and Manage Circles button
+            const controlsRow = document.createElement('div');
+            controlsRow.className = 'circles-controls-row';
+            controlsRow.innerHTML = `
+                <div class="circles-legend">
+                    <div class="legend-item legend-item--clickable legend-item--active" data-circle="inner">
+                        <span class="legend-dot" style="background: #8b5cf6;"></span>
+                        <span class="legend-label">Inner Circle</span>
+                        <span class="legend-count" id="inner-count">0/10</span>
+                    </div>
+                    <div class="legend-item legend-item--clickable legend-item--active" data-circle="close">
+                        <span class="legend-dot" style="background: #3b82f6;"></span>
+                        <span class="legend-label">Close Friends</span>
+                        <span class="legend-count" id="close-count">0/25</span>
+                    </div>
+                    <div class="legend-item legend-item--clickable legend-item--active" data-circle="active">
+                        <span class="legend-dot" style="background: #10b981;"></span>
+                        <span class="legend-label">Active Friends</span>
+                        <span class="legend-count" id="active-count">0/50</span>
+                    </div>
+                    <div class="legend-item legend-item--clickable legend-item--active" data-circle="casual">
+                        <span class="legend-dot" style="background: #f59e0b;"></span>
+                        <span class="legend-label">Casual Network</span>
+                        <span class="legend-count" id="casual-count">0/100</span>
+                    </div>
+                </div>
+                <button 
+                    id="manage-circles-btn" 
+                    class="accent"
+                    onclick="openManageCirclesFlow()"
+                    style="padding: 10px 20px; font-size: 14px;"
+                >
+                    Manage Circles
+                </button>
+            `;
+            container.appendChild(controlsRow);
+            
+            // Add zoom controls row below
+            const zoomRow = document.createElement('div');
+            zoomRow.className = 'circles-zoom-row';
+            zoomRow.innerHTML = `
+                <div class="circles-zoom-controls" id="circles-zoom-controls">
+                    <button class="zoom-btn" id="circles-zoom-in" title="Zoom In">+</button>
+                    <span class="zoom-level" id="circles-zoom-level">100%</span>
+                    <button class="zoom-btn" id="circles-zoom-out" title="Zoom Out">−</button>
+                    <button class="zoom-btn" id="circles-zoom-reset" title="Reset Zoom">↺</button>
+                </div>
+            `;
+            container.appendChild(zoomRow);
+            
+            // Track which circles are visible (all by default)
+            let visibleCircles = new Set(['inner', 'close', 'active', 'casual']);
+            
+            // Add click handlers to legend items
+            controlsRow.querySelectorAll('.legend-item--clickable').forEach(item => {
+                item.addEventListener('click', () => {
+                    const circle = item.dataset.circle;
+                    
+                    if (visibleCircles.has(circle)) {
+                        // If this is the only visible circle, don't allow deselecting
+                        if (visibleCircles.size === 1) {
+                            // Reset to show all circles
+                            visibleCircles = new Set(['inner', 'close', 'active', 'casual']);
+                            controlsRow.querySelectorAll('.legend-item--clickable').forEach(i => {
+                                i.classList.add('legend-item--active');
+                            });
+                        } else {
+                            // Deselect this circle
+                            visibleCircles.delete(circle);
+                            item.classList.remove('legend-item--active');
+                        }
+                    } else {
+                        // Select this circle
+                        visibleCircles.add(circle);
+                        item.classList.add('legend-item--active');
+                    }
+                    
+                    // Update visualizer with visible circles
+                    if (circlesVisualizer) {
+                        circlesVisualizer.setVisibleCircles(Array.from(visibleCircles));
+                    }
+                });
+            });
+            
+            // Update legend counts
+            const circleCounts = {
+                inner: contacts.filter(c => c.circle === 'inner' || c.dunbarCircle === 'inner').length,
+                close: contacts.filter(c => c.circle === 'close' || c.dunbarCircle === 'close').length,
+                active: contacts.filter(c => c.circle === 'active' || c.dunbarCircle === 'active').length,
+                casual: contacts.filter(c => c.circle === 'casual' || c.dunbarCircle === 'casual').length
+            };
+            
+            document.getElementById('inner-count').textContent = `${circleCounts.inner}/10`;
+            document.getElementById('close-count').textContent = `${circleCounts.close}/25`;
+            document.getElementById('active-count').textContent = `${circleCounts.active}/50`;
+            document.getElementById('casual-count').textContent = `${circleCounts.casual}/100`;
+            
+            // Create visualizer container
+            const visualizerDiv = document.createElement('div');
+            visualizerDiv.id = 'circles-visualizer';
+            visualizerDiv.style.width = '100%';
+            container.appendChild(visualizerDiv);
+            
+            // Initialize CircularVisualizer
+            circlesVisualizer = new CircularVisualizer('circles-visualizer');
+            
+            // Connect external zoom controls to visualizer
+            const zoomInBtn = document.getElementById('circles-zoom-in');
+            const zoomOutBtn = document.getElementById('circles-zoom-out');
+            const zoomResetBtn = document.getElementById('circles-zoom-reset');
+            const zoomLevelDisplay = document.getElementById('circles-zoom-level');
+            
+            if (zoomInBtn) {
+                zoomInBtn.addEventListener('click', () => {
+                    circlesVisualizer.zoomIn();
+                    zoomLevelDisplay.textContent = Math.round(circlesVisualizer.zoomLevel * 100) + '%';
                 });
             }
+            if (zoomOutBtn) {
+                zoomOutBtn.addEventListener('click', () => {
+                    circlesVisualizer.zoomOut();
+                    zoomLevelDisplay.textContent = Math.round(circlesVisualizer.zoomLevel * 100) + '%';
+                });
+            }
+            if (zoomResetBtn) {
+                zoomResetBtn.addEventListener('click', () => {
+                    circlesVisualizer.resetZoom();
+                    zoomLevelDisplay.textContent = '100%';
+                });
+            }
+            
+            // Render with contacts and groups
+            circlesVisualizer.render(contacts, groups);
+            
+            // Add contact click handler
+            circlesVisualizer.on('contactClick', (data) => {
+                handleCircleContactClick(data);
+            });
         } else {
             // Fallback if CircularVisualizer is not loaded
             container.innerHTML = `
@@ -6705,6 +6836,39 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * Get available tags from contacts for autocomplete/filtering
+ */
+function getAvailableTags() {
+    const tags = new Set();
+    if (contacts && Array.isArray(contacts)) {
+        contacts.forEach(contact => {
+            if (contact.tags && Array.isArray(contact.tags)) {
+                contact.tags.forEach(tag => {
+                    const tagText = typeof tag === 'string' ? tag : (tag.text || '');
+                    if (tagText) tags.add(tagText);
+                });
+            }
+        });
+    }
+    return Array.from(tags).sort();
+}
+
+/**
+ * Get unique locations from contacts for filtering
+ */
+function getUniqueLocations() {
+    const locations = new Set();
+    if (contacts && Array.isArray(contacts)) {
+        contacts.forEach(contact => {
+            if (contact.location) {
+                locations.add(contact.location);
+            }
+        });
+    }
+    return Array.from(locations).sort();
 }
 
 function sanitizeInput(input) {

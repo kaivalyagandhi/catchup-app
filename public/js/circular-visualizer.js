@@ -64,6 +64,7 @@ class CircularVisualizer {
     this.contacts = [];
     this.groups = [];
     this.activeGroupFilter = null;
+    this.visibleCircles = ['inner', 'close', 'active', 'casual']; // All circles visible by default
     this.viewportSize = 1200; // Increased from 900 to 1200 for larger default view
     this.centerX = 600; // Updated center
     this.centerY = 600; // Updated center
@@ -97,31 +98,6 @@ class CircularVisualizer {
     
     this.container.innerHTML = `
       <div class="circular-visualizer">
-        <div class="visualizer-controls">
-          <div class="group-filter-container" id="${this.containerId}-group-filter" style="display: none;">
-            <label for="${this.containerId}-group-select" class="group-filter-label">Filter by Group:</label>
-            <select id="${this.containerId}-group-select" class="group-filter-select">
-              <option value="">All Contacts</option>
-            </select>
-          </div>
-          <div class="controls-row">
-            <div class="circle-legend">
-              ${CIRCLE_ORDER.map(circleId => this.renderLegendItem(circleId)).join('')}
-            </div>
-            <div class="zoom-controls">
-              <button class="zoom-btn zoom-in" id="${this.containerId}-zoom-in" title="Zoom In (Ctrl/Cmd + +)">
-                <span style="font-size: 18px; font-weight: bold; line-height: 1;">+</span>
-              </button>
-              <span class="zoom-level" id="${this.containerId}-zoom-level">100%</span>
-              <button class="zoom-btn zoom-out" id="${this.containerId}-zoom-out" title="Zoom Out (Ctrl/Cmd + -)">
-                <span style="font-size: 18px; font-weight: bold; line-height: 1;">−</span>
-              </button>
-              <button class="zoom-btn zoom-reset" id="${this.containerId}-zoom-reset" title="Reset Zoom (Ctrl/Cmd + 0)">
-                <span style="font-size: 18px; font-weight: bold; line-height: 1;">↺</span>
-              </button>
-            </div>
-          </div>
-        </div>
         <div class="visualizer-canvas-wrapper">
           <div class="visualizer-canvas" id="${this.containerId}-canvas">
             <svg id="${this.containerId}-svg" class="visualizer-svg">
@@ -140,24 +116,9 @@ class CircularVisualizer {
     `;
     
     this.svg = document.getElementById(`${this.containerId}-svg`);
-    this.setupGroupFilterListener();
-    this.setupZoomControls();
     this.setupKeyboardShortcuts();
   }
 
-  renderLegendItem(circleId) {
-    const circle = CIRCLE_DEFINITIONS[circleId];
-    return `
-      <div class="legend-item" data-circle="${circleId}">
-        <div class="legend-color" style="background: ${circle.color}"></div>
-        <div class="legend-info">
-          <div class="legend-name">${circle.name}</div>
-          <div class="legend-size" id="legend-size-${circleId}">0 / ${circle.recommendedSize}</div>
-        </div>
-      </div>
-    `;
-  }
-  
   handleResize() {
     if (!this.container) return;
     
@@ -191,20 +152,6 @@ class CircularVisualizer {
     
     if (this.contacts.length > 0) {
       this.render(this.contacts, this.groups);
-    }
-  }
-  
-  setupGroupFilterListener() {
-    const select = document.getElementById(`${this.containerId}-group-select`);
-    if (select) {
-      select.addEventListener('change', (e) => {
-        const groupId = e.target.value;
-        if (groupId) {
-          this.showGroupFilter(groupId);
-        } else {
-          this.clearGroupFilter();
-        }
-      });
     }
   }
   
@@ -308,9 +255,6 @@ class CircularVisualizer {
       return;
     }
     
-    // Update group filter dropdown
-    this.updateGroupFilterDropdown();
-    
     const defs = this.svg.querySelector('defs');
     this.svg.innerHTML = '';
     if (defs) {
@@ -321,48 +265,21 @@ class CircularVisualizer {
     this.renderContacts();
     this.updateLegendCounts();
   }
-  
-  updateGroupFilterDropdown() {
-    const container = document.getElementById(`${this.containerId}-group-filter`);
-    const select = document.getElementById(`${this.containerId}-group-select`);
-    
-    if (!container || !select) return;
-    
-    // Hide dropdown if no groups exist
-    if (!this.groups || this.groups.length === 0) {
-      container.style.display = 'none';
-      return;
-    }
-    
-    // Show dropdown and populate with groups
-    container.style.display = 'flex';
-    
-    // Preserve current selection
-    const currentValue = select.value;
-    
-    // Clear and repopulate options
-    select.innerHTML = '<option value="">All Contacts</option>';
-    
-    this.groups.forEach(group => {
-      const option = document.createElement('option');
-      option.value = group.id;
-      option.textContent = group.name;
-      select.appendChild(option);
-    });
-    
-    // Restore selection if it still exists
-    if (currentValue && this.groups.find(g => g.id === currentValue)) {
-      select.value = currentValue;
-    }
-  }
 
   renderCircleZones() {
     const zonesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     zonesGroup.setAttribute('class', 'circle-zones-group');
     
     // Render zones from outermost to innermost with light backgrounds
+    // Only render visible circles
     for (let i = CIRCLE_ORDER.length - 1; i >= 0; i--) {
       const circleId = CIRCLE_ORDER[i];
+      
+      // Skip if this circle is not visible
+      if (!this.visibleCircles.includes(circleId)) {
+        continue;
+      }
+      
       const circleDef = CIRCLE_DEFINITIONS[circleId];
       
       // Create filled zone with light background
@@ -427,6 +344,11 @@ class CircularVisualizer {
     const contactsByCircle = this.groupContactsByCircle();
     
     CIRCLE_ORDER.forEach(circleId => {
+      // Skip if this circle is not visible
+      if (!this.visibleCircles.includes(circleId)) {
+        return;
+      }
+      
       const circleContacts = contactsByCircle[circleId] || [];
       if (circleContacts.length === 0) return;
       
@@ -770,6 +692,15 @@ class CircularVisualizer {
     this.activeGroupFilter = null;
     this.render(this.contacts, this.groups);
   }
+  
+  /**
+   * Set which circles are visible in the visualization
+   * @param {string[]} circles - Array of circle IDs to show (e.g., ['inner', 'close'])
+   */
+  setVisibleCircles(circles) {
+    this.visibleCircles = circles || ['inner', 'close', 'active', 'casual'];
+    this.render(this.contacts, this.groups);
+  }
 
   setupStyles() {
     if (document.getElementById('circular-visualizer-styles')) return;
@@ -823,11 +754,9 @@ class CircularVisualizer {
       
       .circular-visualizer {
         width: 100%;
-        height: 100%;
-        min-height: 100vh;
         display: flex;
         flex-direction: column;
-        background: var(--bg-app);
+        background: transparent;
         border-radius: 0;
         overflow: hidden;
         margin: 0;
@@ -856,6 +785,22 @@ class CircularVisualizer {
         width: 100%;
         overflow-y: auto;
         overflow-x: hidden;
+        position: relative;
+      }
+      
+      .zoom-controls-floating {
+        position: absolute;
+        top: 8px;
+        right: 165px;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bg-surface, #fff);
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 2px solid var(--border-subtle, #e5e7eb);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       }
       
       .zoom-controls {
@@ -870,8 +815,8 @@ class CircularVisualizer {
       }
       
       .zoom-btn {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -881,7 +826,7 @@ class CircularVisualizer {
         cursor: pointer;
         transition: all 0.2s;
         color: var(--text-primary, #333);
-        font-size: 16px;
+        font-size: 14px;
         font-weight: bold;
       }
       
@@ -903,114 +848,23 @@ class CircularVisualizer {
       }
       
       .zoom-level {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
         color: var(--text-primary, #333);
-        min-width: 45px;
+        min-width: 40px;
         text-align: center;
         padding: 0 2px;
       }
       
-      .group-filter-container {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 15px;
-        padding: 12px;
-        background: var(--bg-app);
-        border-radius: 8px;
-        border: 1px solid var(--border-subtle);
-      }
-      
-      .group-filter-label {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--text-primary);
-        white-space: nowrap;
-      }
-      
-      .group-filter-select {
-        flex: 1;
-        padding: 8px 12px;
-        border: 1px solid var(--border-subtle);
-        border-radius: 6px;
-        background: var(--bg-surface);
-        font-size: 14px;
-        color: var(--text-primary);
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      
-      .group-filter-select:hover {
-        border-color: var(--border-default);
-      }
-      
-      .group-filter-select:focus {
-        outline: none;
-        border-color: var(--accent-primary);
-        box-shadow: 0 0 0 3px var(--accent-glow);
-      }
-      
-      .circle-legend {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-      
-      .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        background: var(--bg-app);
-        border-radius: 8px;
-        transition: all 0.2s;
-      }
-      
-      .legend-item:hover {
-        background: var(--bg-hover);
-        transform: translateY(-2px);
-      }
-      
-      .legend-color {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        border: 2px solid var(--bg-surface);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-      
-      .legend-info {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-      
-      .legend-name {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-primary);
-      }
-      
-      .legend-size {
-        font-size: 11px;
-        font-weight: 500;
-        color: var(--text-secondary);
-      }
-      
       .visualizer-canvas {
-        flex: 1;
         position: relative;
-        min-height: 600px;
-        max-height: 80vh;
         display: flex;
         align-items: flex-start;
         justify-content: center;
-        padding: 20px 10px 10px 10px;
+        padding: 10px;
         overflow: auto;
         width: 100%;
-        background: var(--bg-app);
+        background: transparent;
       }
       
       .visualizer-svg {

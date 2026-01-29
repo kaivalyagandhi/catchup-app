@@ -973,6 +973,115 @@
 }
 
 /* ============================================
+   Circles Organize Banner (non-blocking)
+   Shows at top of page without hiding visualization
+   ============================================ */
+
+.circles-organize-banner {
+  margin-bottom: 20px;
+}
+
+.circles-organize-banner__content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--accent-light, #fef3c7) 0%, var(--bg-surface, #fff) 100%);
+  border: 1px solid var(--accent, #d97706);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.circles-organize-banner__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--accent, #d97706);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.circles-organize-banner__icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: white;
+}
+
+.circles-organize-banner__text {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary, #1f2937);
+  line-height: 1.4;
+}
+
+.circles-organize-banner__text strong {
+  color: var(--accent, #d97706);
+  font-weight: 600;
+}
+
+.circles-organize-banner__button {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.circles-organize-banner__button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.circles-organize-banner__dismiss {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: var(--text-muted, #9ca3af);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.circles-organize-banner__dismiss:hover {
+  background: var(--bg-hover, #f3f4f6);
+  color: var(--text-primary, #1f2937);
+}
+
+/* Responsive adjustments for banner */
+@media (max-width: 768px) {
+  .circles-organize-banner__content {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .circles-organize-banner__text {
+    flex-basis: calc(100% - 56px);
+  }
+  
+  .circles-organize-banner__button {
+    flex-basis: 100%;
+    text-align: center;
+  }
+  
+  .circles-organize-banner__dismiss {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+  
+  .circles-organize-banner__content {
+    position: relative;
+    padding-right: 40px;
+  }
+}
+
+/* ============================================
    Education Tips
    Requirements: 19.1, 19.2, 19.6
    ============================================ */
@@ -1028,4 +1137,181 @@
   .education-tip__icon {
     font-size: 20px;
   }
+}
+
+
+/* ============================================
+   Circles Controls Row (Legend + Manage Button)
+   ============================================ */
+
+.circles-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  margin-bottom: 16px;
+}
+
+.circles-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-item--clickable {
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.legend-item--clickable:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+}
+
+.legend-item--clickable.legend-item--active {
+  background: var(--bg-surface, #fff);
+  border-color: var(--border-subtle, #e5e7eb);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.legend-item--clickable:not(.legend-item--active) {
+  opacity: 0.5;
+}
+
+.legend-item--clickable:not(.legend-item--active) .legend-dot {
+  background: var(--text-muted, #9ca3af) !important;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.legend-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #1f2937);
+}
+
+.legend-count {
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  font-weight: 500;
+}
+
+/* Right side controls wrapper - no longer needed, keeping for backwards compatibility */
+.circles-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Zoom controls row - separate row below legend/button */
+.circles-zoom-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 0 16px 0;
+}
+
+/* Zoom controls in controls row */
+.circles-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface, #fff);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 2px solid var(--border-subtle, #e5e7eb);
+}
+
+.circles-zoom-controls .zoom-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-subtle, #ddd);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-primary, #333);
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.circles-zoom-controls .zoom-btn:hover {
+  background: var(--accent-primary, #8b5cf6);
+  border-color: var(--accent-primary, #8b5cf6);
+  color: white;
+}
+
+.circles-zoom-controls .zoom-level {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Responsive adjustments for controls row */
+@media (max-width: 768px) {
+  .circles-controls-row {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .circles-controls-right {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .circles-legend {
+    justify-content: center;
+    gap: 16px;
+  }
+  
+  .legend-item {
+    flex-direction: column;
+    text-align: center;
+    gap: 4px;
+  }
+  
+  .circles-controls-row button {
+    width: auto;
+  }
+}
+
+/* ============================================
+   SearchFilterBar Visualizer Mode Styles
+   ============================================ */
+
+.search-filter-bar--visualizer {
+  background: var(--bg-surface, #fff);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-subtle, #e5e7eb);
+}
+
+.search-filter-bar--visualizer .search-input-wrapper {
+  background: var(--bg-secondary, #f9fafb);
+}
+
+.search-filter-bar--visualizer .filter-chips-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle, #e5e7eb);
 }
