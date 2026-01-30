@@ -223,7 +223,7 @@ router.get(
 
       // Redirect to frontend with token and user info in URL
       // Frontend will extract and store authentication data
-      const redirectUrl = `/?auth_success=true&token=${encodeURIComponent(token)}&userId=${user.id}&userEmail=${encodeURIComponent(user.email)}&isNewUser=${isNewUser}`;
+      const redirectUrl = `/app?auth_success=true&token=${encodeURIComponent(token)}&userId=${user.id}&userEmail=${encodeURIComponent(user.email)}&isNewUser=${isNewUser}`;
       res.redirect(redirectUrl);
     } catch (error) {
       // Log error with context

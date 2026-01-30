@@ -36,29 +36,30 @@ class BatchSuggestionCard {
     card.dataset.batchId = this.batch.id;
     
     card.innerHTML = `
-      <div class="batch-card-header">
-        <div class="batch-card-info">
-          <div class="batch-card-title">
-            <span class="batch-icon">${this.getSignalIcon()}</span>
-            <h3>${this.escapeHtml(this.batch.name)}</h3>
-            <span class="batch-count">${this.batch.contacts.length}</span>
-          </div>
-          <p class="batch-description">${this.escapeHtml(this.batch.description)}</p>
-          <div class="batch-suggestion">
-            <span class="suggestion-label">Suggested Circle:</span>
+      <div class="batch-card-header" role="button" tabindex="0" aria-expanded="false">
+        <div class="batch-card-title">
+          <span class="batch-icon">${this.getSignalIcon()}</span>
+          <h3>${this.escapeHtml(this.batch.name)}</h3>
+          <span class="batch-count">${this.batch.contacts.length}</span>
+        </div>
+        <p class="batch-description">${this.escapeHtml(this.batch.description)}</p>
+        <div class="batch-suggestion">
+          <div class="batch-suggestion-row">
+            <span class="suggestion-label">Suggested:</span>
             <span class="circle-badge circle-badge-${this.batch.suggestedCircle}">
               ${this.getCircleDisplayName(this.batch.suggestedCircle)}
             </span>
-            <span class="signal-strength signal-${this.batch.signalStrength}">
-              ${this.batch.signalStrength} signal
-            </span>
           </div>
+          <span class="signal-strength signal-${this.batch.signalStrength}">
+            ${this.batch.signalStrength} signal
+          </span>
         </div>
-        <button class="batch-expand-btn" aria-label="Expand batch details" aria-expanded="false">
+        <div class="batch-expand-indicator">
+          <span>Click to view contacts</span>
           <svg class="expand-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
           </svg>
-        </button>
+        </div>
       </div>
       
       <div class="batch-card-contacts hidden">
@@ -69,10 +70,10 @@ class BatchSuggestionCard {
       
       <div class="batch-card-actions">
         <button class="batch-btn batch-btn-primary" data-action="accept">
-          Accept Batch (${this.batch.contacts.length})
+          Accept ${this.batch.contacts.length} Contacts
         </button>
         <button class="batch-btn batch-btn-secondary" data-action="skip">
-          Skip
+          Skip Batch
         </button>
       </div>
     `;
@@ -116,28 +117,43 @@ class BatchSuggestionCard {
   attachEventListeners() {
     if (!this.cardElement) return;
     
-    // Expand/collapse button
-    const expandBtn = this.cardElement.querySelector('.batch-expand-btn');
-    if (expandBtn) {
-      expandBtn.addEventListener('click', () => this.toggleExpand());
+    // Expand/collapse on header click
+    const header = this.cardElement.querySelector('.batch-card-header');
+    if (header) {
+      header.addEventListener('click', () => this.toggleExpand());
+      header.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.toggleExpand();
+        }
+      });
     }
     
     // Accept button
     const acceptBtn = this.cardElement.querySelector('[data-action="accept"]');
     if (acceptBtn) {
-      acceptBtn.addEventListener('click', () => this.handleAccept());
+      acceptBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent header click
+        this.handleAccept();
+      });
     }
     
     // Skip button
     const skipBtn = this.cardElement.querySelector('[data-action="skip"]');
     if (skipBtn) {
-      skipBtn.addEventListener('click', () => this.handleSkip());
+      skipBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent header click
+        this.handleSkip();
+      });
     }
     
     // Contact checkboxes (when expanded)
     const checkboxes = this.cardElement.querySelectorAll('.contact-checkbox');
     checkboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', (e) => this.handleCheckboxChange(e));
+      checkbox.addEventListener('change', (e) => {
+        e.stopPropagation(); // Prevent header click
+        this.handleCheckboxChange(e);
+      });
     });
   }
   
@@ -149,17 +165,14 @@ class BatchSuggestionCard {
     this.expanded = !this.expanded;
     
     const contactsContainer = this.cardElement.querySelector('.batch-card-contacts');
-    const expandBtn = this.cardElement.querySelector('.batch-expand-btn');
-    const expandIcon = expandBtn.querySelector('.expand-icon');
+    const header = this.cardElement.querySelector('.batch-card-header');
     
     if (this.expanded) {
       contactsContainer.classList.remove('hidden');
-      expandBtn.setAttribute('aria-expanded', 'true');
-      expandIcon.style.transform = 'rotate(180deg)';
+      header.setAttribute('aria-expanded', 'true');
     } else {
       contactsContainer.classList.add('hidden');
-      expandBtn.setAttribute('aria-expanded', 'false');
-      expandIcon.style.transform = 'rotate(0deg)';
+      header.setAttribute('aria-expanded', 'false');
     }
   }
   
@@ -223,7 +236,7 @@ class BatchSuggestionCard {
       };
       
       // Call batch-accept API endpoint
-      const response = await fetch('/api/contacts/circles/batch-accept', {
+      const response = await fetch('/api/circles/batch-accept', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -301,7 +314,7 @@ class BatchSuggestionCard {
   async undoBatchAssignment(previousState) {
     try {
       // Remove circle assignments for the contacts
-      const response = await fetch('/api/contacts/circles/batch-remove', {
+      const response = await fetch('/api/circles/batch-remove', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

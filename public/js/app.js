@@ -41,12 +41,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check if we're handling a Google SSO redirect
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('auth_success') === 'true' && urlParams.get('token')) {
-        // Keep loading screen visible while Google SSO processes the redirect
-        // Initialize Google SSO to handle the redirect, then it will reload
-        if (typeof initGoogleSSO === 'function') {
-            initGoogleSSO();
-        }
-        return;
+        // Store authentication data immediately
+        const token = urlParams.get('token');
+        const userId = urlParams.get('userId');
+        const userEmail = urlParams.get('userEmail');
+        
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('userId', userId);
+        localStorage.setItem('userEmail', userEmail);
+        
+        // Clear URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        console.log('[Google SSO] Authentication successful, showing main app...');
+        
+        // Don't reload - just proceed with normal auth flow
+        // Fall through to checkAuth() below
     }
     
     // Check auth first and wait for it to complete
@@ -229,14 +239,23 @@ function showMainApp() {
     // Initialize onboarding indicator
     initializeOnboardingIndicator();
     
-    // Restore last visited page from localStorage
+    // Determine initial page from URL or localStorage
+    const path = window.location.pathname;
+    const pageFromUrl = getPageFromPath(path);
     const savedPage = localStorage.getItem('currentPage');
-    if (savedPage && ['directory', 'suggestions', 'edits', 'preferences'].includes(savedPage)) {
-        navigateTo(savedPage);
-    } else {
-        // Default to directory page
-        navigateTo('directory');
+    
+    // Priority: URL > saved page > default (directory)
+    let initialPage = 'directory';
+    if (pageFromUrl && pageFromUrl !== 'directory') {
+        // URL has a specific page, use it
+        initialPage = pageFromUrl;
+    } else if (savedPage && ['directory', 'suggestions', 'edits', 'preferences'].includes(savedPage)) {
+        // No specific page in URL, use saved page
+        initialPage = savedPage;
     }
+    
+    // Navigate to initial page (this will also update the URL)
+    navigateTo(initialPage);
 }
 
 /**
@@ -698,6 +717,9 @@ function logout() {
     // Clear global userId
     window.userId = null;
     
+    // Reset onboarding state check flag
+    onboardingStateChecked = false;
+    
     // Clean up chat components
     if (chatWindow) {
         chatWindow.destroy();
@@ -719,11 +741,34 @@ function logout() {
 }
 
 async function deleteAccount() {
-    if (!confirm('Are you sure you want to delete your account? This will permanently delete your account and all associated data.')) {
-        return;
-    }
+    // Show confirmation toast with action buttons
+    const confirmToast = document.createElement('div');
+    confirmToast.className = 'toast-confirm';
+    confirmToast.innerHTML = `
+        <div class="toast-confirm-content">
+            <h3>Delete Account?</h3>
+            <p>This will permanently delete your account and all associated data. This action cannot be undone.</p>
+            <div class="toast-confirm-actions">
+                <button class="btn-secondary" id="cancel-delete-account">Cancel</button>
+                <button class="btn-danger" id="confirm-delete-account">Delete Account</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(confirmToast);
     
-    if (!confirm('This action cannot be undone. All your contacts, calendar events, suggestions, and voice notes will be permanently deleted. Are you absolutely sure?')) {
+    // Handle confirmation
+    const confirmed = await new Promise((resolve) => {
+        document.getElementById('confirm-delete-account').onclick = () => {
+            confirmToast.remove();
+            resolve(true);
+        };
+        document.getElementById('cancel-delete-account').onclick = () => {
+            confirmToast.remove();
+            resolve(false);
+        };
+    });
+    
+    if (!confirmed) {
         return;
     }
     
@@ -798,6 +843,39 @@ function setupNavigation() {
             }
         }
     });
+    
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', (event) => {
+        if (event.state && event.state.page) {
+            // Navigate without updating history (since we're already handling a history event)
+            navigateTo(event.state.page, false);
+        } else {
+            // Parse URL to determine page
+            const path = window.location.pathname;
+            const page = getPageFromPath(path);
+            navigateTo(page, false);
+        }
+    });
+}
+
+// Helper function to extract page from URL path
+function getPageFromPath(path) {
+    // Remove /app prefix and leading/trailing slashes
+    const cleanPath = path.replace(/^\/app\/?/, '').replace(/\/$/, '');
+    
+    // Map paths to pages
+    const validPages = ['directory', 'suggestions', 'edits', 'preferences'];
+    
+    if (!cleanPath || cleanPath === '') {
+        return 'directory'; // Default to directory
+    }
+    
+    if (validPages.includes(cleanPath)) {
+        return cleanPath;
+    }
+    
+    // If path doesn't match, default to directory
+    return 'directory';
 }
 
 // Responsive Navigation Functions
@@ -846,7 +924,7 @@ function navigateToPage(page) {
     navigateTo(page);
 }
 
-function navigateTo(page) {
+function navigateTo(page, updateHistory = true) {
     // Update active nav item in sidebar
     document.querySelectorAll('.nav-item').forEach(link => {
         link.classList.toggle('active', link.dataset.page === page);
@@ -865,6 +943,12 @@ function navigateTo(page) {
     // Show selected page
     document.getElementById(`${page}-page`).classList.remove('hidden');
     currentPage = page;
+    
+    // Update URL without page reload
+    if (updateHistory) {
+        const url = page === 'directory' ? '/app' : `/app/${page}`;
+        window.history.pushState({ page }, '', url);
+    }
     
     // Save current page to localStorage for persistence across page refreshes
     localStorage.setItem('currentPage', page);
@@ -935,6 +1019,17 @@ function switchDirectoryTab(tab) {
     // Show selected tab content
     document.getElementById(`directory-${tab}-tab`).classList.remove('hidden');
     
+    // Mark group mappings page as visited when user navigates to groups tab
+    if (tab === 'groups') {
+        const userId = window.userId || localStorage.getItem('userId');
+        if (userId) {
+            localStorage.setItem(`group-mappings-visited-${userId}`, 'true');
+            
+            // Check if we should auto-complete step 3 of onboarding
+            checkAndCompleteGroupMappingsStep();
+        }
+    }
+    
     // Load tab data
     switch(tab) {
         case 'contacts':
@@ -952,6 +1047,55 @@ function switchDirectoryTab(tab) {
         case 'archived':
             loadArchivedContacts();
             break;
+    }
+}
+
+/**
+ * Check if group mappings step should be auto-completed
+ * Called when user visits the groups tab
+ */
+async function checkAndCompleteGroupMappingsStep() {
+    // Only auto-complete if onboarding is active
+    if (!window.onboardingController || !window.onboardingController.isOnboardingActive()) {
+        return;
+    }
+    
+    try {
+        const userId = window.userId || localStorage.getItem('userId');
+        const authToken = localStorage.getItem('authToken');
+        
+        if (!userId || !authToken) {
+            return;
+        }
+        
+        // Check if there are any pending group mapping suggestions
+        const response = await fetch(`${window.API_BASE || '/api'}/contacts/google/group-mappings?userId=${userId}`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            return;
+        }
+        
+        const data = await response.json();
+        const mappings = data.mappings || [];
+        
+        // If no mappings to review, mark step 3 as complete
+        if (mappings.length === 0) {
+            await window.onboardingController.markStepComplete('group-mappings');
+            await window.onboardingController.saveProgress();
+            
+            // Update legacy onboarding state
+            if (window.onboardingIndicator) {
+                const currentState = window.onboardingIndicator.state;
+                currentState.steps.groupMappings.complete = true;
+                window.onboardingIndicator.updateState(currentState);
+            }
+        }
+    } catch (error) {
+        console.error('Error checking group mappings step:', error);
     }
 }
 
@@ -1404,7 +1548,16 @@ async function syncContactGroups(contactId, existingGroups) {
 }
 
 async function deleteContact(id) {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
+    const confirmed = await showConfirm(
+        'Are you sure you want to delete this contact?',
+        {
+            title: 'Delete Contact',
+            confirmText: 'Delete',
+            type: 'danger'
+        }
+    );
+    
+    if (!confirmed) return;
     
     const loadingToastId = showToast('Deleting contact...', 'loading');
     
@@ -1440,7 +1593,16 @@ async function deleteContact(id) {
 
 // Test Data Functions
 async function seedTestData() {
-    if (!confirm('This will create test contacts, groups, tags, and suggestions. Continue?')) return;
+    const confirmed = await showConfirm(
+        'This will create test contacts, groups, tags, and suggestions. Continue?',
+        {
+            title: 'Seed Test Data',
+            confirmText: 'Create Test Data',
+            type: 'info'
+        }
+    );
+    
+    if (!confirmed) return;
     
     const loadingToastId = showToast('Loading test data...', 'loading');
     
@@ -1492,7 +1654,16 @@ async function seedTestData() {
 }
 
 async function clearTestData() {
-    if (!confirm('This will delete ALL your contacts, groups, tags, suggestions, and edits. This cannot be undone. Continue?')) return;
+    const confirmed = await showConfirm(
+        'This will delete ALL your contacts, groups, tags, suggestions, and edits. This cannot be undone. Continue?',
+        {
+            title: 'Clear All Data',
+            confirmText: 'Delete Everything',
+            type: 'danger'
+        }
+    );
+    
+    if (!confirmed) return;
     
     const loadingToastId = showToast('Clearing all data...', 'loading');
     
@@ -1591,13 +1762,13 @@ function addTagToContact() {
     const text = input.value.trim();
     
     if (!text) {
-        alert('Please enter a tag');
+        showToast('Please enter a tag', 'error');
         return;
     }
     
     // Check if tag already exists
     if (currentContactTags.some(tag => tag.text.toLowerCase() === text.toLowerCase())) {
-        alert('This tag already exists');
+        showToast('This tag already exists', 'error');
         return;
     }
     
@@ -1622,13 +1793,13 @@ function assignGroupToContact() {
     const groupId = select.value;
     
     if (!groupId) {
-        alert('Please select a group');
+        showToast('Please select a group', 'error');
         return;
     }
     
     // Check if group already assigned
     if (currentContactGroups.includes(groupId)) {
-        alert('This group is already assigned');
+        showToast('This group is already assigned', 'error');
         return;
     }
     
@@ -1735,6 +1906,7 @@ async function loadArchivedContacts() {
 
 // Update archived count badge
 // Requirements: 16.7
+// NOTE: Badge on tab disabled per user request - count shown in page content instead
 async function updateArchivedCountBadge() {
     try {
         const token = localStorage.getItem('authToken');
@@ -1750,15 +1922,14 @@ async function updateArchivedCountBadge() {
         if (response.ok) {
             const result = await response.json();
             const count = result.count || 0;
-            const badge = document.getElementById('archived-count-badge');
             
+            // Store count for use in page content
+            window.archivedContactsCount = count;
+            
+            // Badge on Archived tab disabled - hide it
+            const badge = document.getElementById('archived-count-badge');
             if (badge) {
-                if (count > 0) {
-                    badge.textContent = count;
-                    badge.style.display = 'block';
-                } else {
-                    badge.style.display = 'none';
-                }
+                badge.style.display = 'none';
             }
         }
     } catch (error) {
@@ -1851,20 +2022,21 @@ async function openManageCirclesFlow() {
  */
 async function openManageCirclesFromDirectory() {
     try {
-        // Check if dialog is already open or being opened
+        // Check if dialog is already open
         const existingOverlay = document.querySelector('.manage-circles-overlay');
-        if (existingOverlay || window.isOpeningManageCircles) {
-            console.log('[ManageCircles] Dialog already open or opening, skipping');
+        const existingFlowContainer = document.getElementById('onboarding-flow-container');
+        
+        if (existingOverlay || existingFlowContainer) {
+            console.log('[ManageCircles] Dialog already open, skipping');
             return;
         }
         
-        // Set flag to prevent duplicate opening
-        window.isOpeningManageCircles = true;
+        // Reset the flag in case it got stuck
+        window.isOpeningManageCircles = false;
         
         // Ensure Step2CirclesHandler is available
         if (typeof Step2CirclesHandler === 'undefined') {
             showToast('Circle assignment feature is not available', 'error');
-            window.isOpeningManageCircles = false;
             return;
         }
         
@@ -1881,11 +2053,6 @@ async function openManageCirclesFromDirectory() {
         
         // Open the flow
         await step2Handler.openManageCirclesFlow();
-        
-        // Clear flag after dialog is mounted
-        setTimeout(() => {
-            window.isOpeningManageCircles = false;
-        }, 1000);
         
     } catch (error) {
         console.error('Error opening Manage Circles from Directory:', error);
@@ -1925,8 +2092,11 @@ async function loadCirclesVisualization() {
             }
         }
         
-        // Count uncategorized contacts
-        const uncategorizedCount = contacts.filter(c => !c.circle || c.circle === 'uncategorized').length;
+        // Count uncategorized contacts (consistent with Quick Refine filter)
+        const uncategorizedCount = contacts.filter(c => 
+          (!c.circle || c.circle === 'uncategorized') && 
+          (!c.dunbarCircle || c.dunbarCircle === 'uncategorized')
+        ).length;
         
         // Check if CircularVisualizer is available
         if (typeof CircularVisualizer !== 'undefined') {
@@ -1971,7 +2141,8 @@ async function loadCirclesVisualization() {
                 const continueBtn = document.getElementById('continue-organizing-btn');
                 if (continueBtn) {
                     continueBtn.addEventListener('click', () => {
-                        openManageCirclesFlow();
+                        // Use the AI-powered flow (Quick Start → Batch → Quick Refine)
+                        openManageCirclesFromDirectory();
                     });
                 }
                 
@@ -2048,7 +2219,7 @@ async function loadCirclesVisualization() {
                 <button 
                     id="manage-circles-btn" 
                     class="accent"
-                    onclick="openManageCirclesFlow()"
+                    onclick="openManageCirclesFromDirectory()"
                     style="padding: 10px 20px; font-size: 14px;"
                 >
                     Manage Circles
@@ -2403,7 +2574,7 @@ function showCreateGroupModal() {
 function showEditGroupModal(groupId) {
     const group = allGroups.find(g => g.id === groupId);
     if (!group) {
-        alert('Group not found');
+        showToast('Group not found', 'error');
         return;
     }
     
@@ -4235,7 +4406,7 @@ async function connectCalendar() {
         }
         
         if (!userId) {
-            alert('You must be logged in to connect Google Calendar');
+            showToast('You must be logged in to connect Google Calendar', 'error');
             return;
         }
         
@@ -4244,7 +4415,7 @@ async function connectCalendar() {
         const data = await response.json();
         
         if (!data.authUrl) {
-            alert('Failed to get authorization URL');
+            showToast('Failed to get authorization URL', 'error');
             return;
         }
         
@@ -4252,7 +4423,7 @@ async function connectCalendar() {
         window.location.href = data.authUrl;
     } catch (error) {
         console.error('Error initiating calendar connection:', error);
-        alert('Failed to connect calendar. Please try again.');
+        showToast('Failed to connect calendar. Please try again.', 'error');
     }
 }
 
@@ -4276,7 +4447,7 @@ async function handleCalendarOAuthCallback() {
         
         if (!token) {
             console.error('No authentication token available');
-            alert('You must be logged in to connect Google Calendar. Please log in and try again.');
+            showToast('You must be logged in to connect Google Calendar. Please log in and try again.', 'error');
             window.location.href = '/';
             return;
         }
@@ -4317,7 +4488,7 @@ async function handleCalendarOAuthCallback() {
             loadPreferences();
         }
         
-        alert('Google Calendar connected successfully!');
+        showToast('Google Calendar connected successfully!', 'success');
     } catch (error) {
         console.error('Error handling OAuth callback:', error);
         
@@ -4329,7 +4500,7 @@ async function handleCalendarOAuthCallback() {
             }
         }));
         
-        alert(`Failed to connect calendar: ${error.message}`);
+        showToast(`Failed to connect calendar: ${error.message}`, 'error');
     }
 }
 
@@ -4413,7 +4584,16 @@ async function refreshCalendar() {
 }
 
 async function disconnectCalendar() {
-    if (!confirm('Are you sure you want to disconnect Google Calendar?')) {
+    const confirmed = await showConfirm(
+        'Are you sure you want to disconnect Google Calendar?',
+        {
+            title: 'Disconnect Calendar',
+            confirmText: 'Disconnect',
+            type: 'warning'
+        }
+    );
+    
+    if (!confirmed) {
         return;
     }
     
@@ -4427,7 +4607,7 @@ async function disconnectCalendar() {
         
         if (!token) {
             console.error('No authentication token available');
-            alert('You must be logged in to disconnect Google Calendar.');
+            showToast('You must be logged in to disconnect Google Calendar.', 'error');
             return;
         }
         
@@ -4454,10 +4634,10 @@ async function disconnectCalendar() {
             loadPreferences();
         }
         
-        alert('Google Calendar disconnected successfully!');
+        showToast('Google Calendar disconnected successfully!', 'success');
     } catch (error) {
         console.error('Error disconnecting calendar:', error);
-        alert(`Failed to disconnect calendar: ${error.message}`);
+        showToast(`Failed to disconnect calendar: ${error.message}`, 'error');
     }
 }
 
@@ -5247,26 +5427,19 @@ async function loadPendingSuggestionsCount() {
 /**
  * Update uncategorized contacts count in Directory nav badge
  * Requirements: 10.3, 10.4
+ * NOTE: Badge on tab disabled per user request - count shown in page content instead
  */
 function updateUncategorizedCount(count) {
-    // Update Directory tab badge for uncategorized contacts
+    // Store the count for use in page content
+    window.uncategorizedContactsCount = count;
+    
+    // Badge on Circles tab disabled - count is shown in the "Continue Organizing" banner instead
+    // Remove any existing badge from the tab
     const directoryTab = document.querySelector('[data-tab="circles"]');
     if (directoryTab) {
-        let badge = directoryTab.querySelector('.tab-badge');
-        
-        if (count > 0) {
-            if (!badge) {
-                badge = document.createElement('span');
-                badge.className = 'tab-badge';
-                directoryTab.appendChild(badge);
-            }
-            badge.textContent = count > 99 ? '99+' : count;
-            badge.classList.remove('hidden');
-            badge.title = `${count} uncategorized contact${count !== 1 ? 's' : ''}`;
-        } else {
-            if (badge) {
-                badge.classList.add('hidden');
-            }
+        const badge = directoryTab.querySelector('.tab-badge');
+        if (badge) {
+            badge.remove();
         }
     }
 }
@@ -5791,6 +5964,12 @@ async function loadPreferences() {
     
     // No additional account section needed - everything is in the main template now
     
+    // Add Onboarding section with restart button
+    const onboardingSection = document.createElement('div');
+    onboardingSection.style.marginTop = '30px';
+    onboardingSection.innerHTML = renderOnboardingSection();
+    container.appendChild(onboardingSection);
+    
     // Add About section with version info
     const aboutSection = document.createElement('div');
     aboutSection.style.marginTop = '30px';
@@ -5983,6 +6162,184 @@ async function saveTimezonePreference() {
 }
 
 /**
+ * Restart the onboarding flow
+ * Intelligently checks current state and marks completed steps
+ */
+async function restartOnboarding() {
+    if (!window.onboardingIndicator) {
+        showToast('Onboarding system not initialized', 'error');
+        return;
+    }
+    
+    // Check current integration status
+    let calendarConnected = false;
+    let contactsConnected = false;
+    
+    try {
+        // Check Google Calendar connection
+        const calendarStatus = await checkCalendarConnection();
+        calendarConnected = calendarStatus.connected;
+    } catch (error) {
+        console.error('Error checking calendar connection:', error);
+    }
+    
+    try {
+        // Check Google Contacts connection
+        const contactsStatus = await loadGoogleContactsStatus();
+        contactsConnected = contactsStatus.connected;
+    } catch (error) {
+        console.error('Error checking contacts connection:', error);
+    }
+    
+    // Check if contacts have been categorized
+    let contactsCategorized = 0;
+    let totalContacts = 0;
+    
+    try {
+        const response = await fetch(`${API_BASE}/contacts`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.ok) {
+            const contactsData = await response.json();
+            totalContacts = contactsData.length;
+            contactsCategorized = contactsData.filter(c => c.circle || c.dunbarCircle).length;
+        }
+    } catch (error) {
+        console.error('Error checking contacts:', error);
+    }
+    
+    // Determine which step to start on
+    let currentStep = 1;
+    const step1Complete = calendarConnected && contactsConnected;
+    const step2Complete = totalContacts > 0 && contactsCategorized > 0;
+    
+    if (step1Complete && step2Complete) {
+        currentStep = 3; // Start on Step 3
+    } else if (step1Complete) {
+        currentStep = 2; // Start on Step 2
+    } else {
+        currentStep = 1; // Start on Step 1
+    }
+    
+    // Create fresh state with intelligent defaults
+    const freshState = {
+        userId: window.userId,
+        isComplete: false,
+        currentStep: currentStep,
+        dismissedAt: null,
+        steps: {
+            integrations: {
+                complete: step1Complete,
+                googleCalendar: calendarConnected,
+                googleContacts: contactsConnected
+            },
+            circles: {
+                complete: step2Complete,
+                contactsCategorized: contactsCategorized,
+                totalContacts: totalContacts
+            },
+            groups: {
+                complete: false, // Always reset Step 3 to allow re-review
+                mappingsReviewed: 0,
+                totalMappings: 0
+            }
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+    };
+    
+    // Update the indicator
+    window.onboardingIndicator.updateState(freshState);
+    window.onboardingIndicator.isDismissed = false;
+    
+    // Re-mount to show the indicator
+    const container = document.getElementById('onboarding-indicator-container');
+    if (container) {
+        window.onboardingIndicator.mount(container);
+    }
+    
+    // Refresh preferences page to update the section
+    loadPreferences();
+    
+    // Navigate to the appropriate step
+    if (currentStep === 1) {
+        navigateTo('preferences');
+        showToast('Onboarding restarted! Connect your accounts to continue.', 'success');
+    } else if (currentStep === 2) {
+        navigateTo('directory');
+        setTimeout(() => {
+            if (typeof switchDirectoryTab === 'function') {
+                switchDirectoryTab('circles');
+            }
+        }, 100);
+        showToast('Step 1 already complete! Continue with organizing circles.', 'success');
+    } else if (currentStep === 3) {
+        navigateTo('directory');
+        setTimeout(() => {
+            if (typeof switchDirectoryTab === 'function') {
+                switchDirectoryTab('groups');
+            }
+        }, 100);
+        showToast('Steps 1 & 2 complete! Review group mappings to finish.', 'success');
+    }
+}
+
+/**
+ * Render the Onboarding section with restart option
+ */
+function renderOnboardingSection() {
+    const onboardingState = OnboardingStepIndicator.loadState();
+    const isComplete = onboardingState?.isComplete || false;
+    const isDismissed = onboardingState?.dismissedAt !== null;
+    
+    return `
+        <h4 style="margin-bottom: 15px; font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Onboarding</h4>
+        
+        <div style="padding: 20px; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--bg-surface);">
+            ${isComplete ? `
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--status-success-bg); border-radius: 8px; border-left: 3px solid #10b981;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">✓</span>
+                        <div>
+                            <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Onboarding Complete!</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">You've completed all setup steps.</div>
+                        </div>
+                    </div>
+                </div>
+            ` : isDismissed ? `
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--status-info-bg); border-radius: 8px; border-left: 3px solid var(--status-info);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">ℹ️</span>
+                        <div>
+                            <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Onboarding Dismissed</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">You can restart it anytime below.</div>
+                        </div>
+                    </div>
+                </div>
+            ` : `
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--bg-hover); border-radius: 8px;">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Setup In Progress</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Complete the setup steps in the sidebar to get started.</div>
+                </div>
+            `}
+            
+            <div style="font-size: 13px; color: var(--text-primary); margin-bottom: 12px;">
+                <strong>What's included:</strong>
+            </div>
+            <ul style="margin: 0 0 16px 0; padding-left: 20px; font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+                <li>Connect your Google Calendar and Contacts</li>
+                <li>Organize contacts into relationship circles</li>
+                <li>Review and map Google Contact groups</li>
+            </ul>
+            
+            <button onclick="restartOnboarding()" class="secondary" style="width: 100%;">
+                ${isComplete || isDismissed ? 'Restart Onboarding' : 'Resume Onboarding'}
+            </button>
+        </div>
+    `;
+}
+
+/**
  * Render the About section with version information
  */
 function renderAboutSection() {
@@ -6038,7 +6395,7 @@ function renderAboutSection() {
 }
 
 function savePreferences() {
-    alert('Preferences saved!');
+    showToast('Preferences saved!', 'success');
 }
 
 /**
@@ -7091,6 +7448,101 @@ function hideToast(toastId) {
     }
 }
 
+/**
+ * Show a confirmation dialog (non-blocking alternative to window.confirm)
+ * @param {string} message - The confirmation message
+ * @param {Object} options - Optional configuration
+ * @param {string} options.title - Dialog title (default: "Confirm")
+ * @param {string} options.confirmText - Confirm button text (default: "Confirm")
+ * @param {string} options.cancelText - Cancel button text (default: "Cancel")
+ * @param {string} options.type - Dialog type: 'warning', 'danger', 'info' (default: 'warning')
+ * @returns {Promise<boolean>} - Resolves to true if confirmed, false if cancelled
+ */
+function showConfirm(message, options = {}) {
+    return new Promise((resolve) => {
+        const {
+            title = 'Confirm',
+            confirmText = 'Confirm',
+            cancelText = 'Cancel',
+            type = 'warning'
+        } = options;
+        
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'confirm-dialog-overlay';
+        
+        // Create dialog
+        const dialog = document.createElement('div');
+        dialog.className = `confirm-dialog confirm-dialog-${type}`;
+        dialog.innerHTML = `
+            <div class="confirm-dialog-header">
+                <h3>${escapeHtml(title)}</h3>
+            </div>
+            <div class="confirm-dialog-body">
+                <p>${escapeHtml(message)}</p>
+            </div>
+            <div class="confirm-dialog-footer">
+                <button class="btn-secondary confirm-dialog-cancel">${escapeHtml(cancelText)}</button>
+                <button class="btn-primary confirm-dialog-confirm ${type === 'danger' ? 'btn-danger' : ''}">${escapeHtml(confirmText)}</button>
+            </div>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+        
+        // Animate in
+        setTimeout(() => {
+            overlay.classList.add('show');
+        }, 10);
+        
+        // Handle confirm
+        const confirmBtn = dialog.querySelector('.confirm-dialog-confirm');
+        confirmBtn.onclick = () => {
+            cleanup();
+            resolve(true);
+        };
+        
+        // Handle cancel
+        const cancelBtn = dialog.querySelector('.confirm-dialog-cancel');
+        cancelBtn.onclick = () => {
+            cleanup();
+            resolve(false);
+        };
+        
+        // Handle overlay click
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                cleanup();
+                resolve(false);
+            }
+        };
+        
+        // Handle escape key
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                cleanup();
+                resolve(false);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        // Cleanup function
+        function cleanup() {
+            document.removeEventListener('keydown', escapeHandler);
+            overlay.classList.remove('show');
+            setTimeout(() => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+                document.body.style.overflow = '';
+            }, 300);
+        }
+    });
+}
+
 // Circle Management Integration
 // Helper function to get circle information (Simplified 4-circle system)
 function getCircleInfo(circleId) {
@@ -7540,8 +7992,16 @@ function restoreDirectoryState() {
     }
 }
 
-// Check if user should be prompted for onboarding
-async function checkOnboardingStatus() {
+// Flag to track if we've already checked onboarding state (to avoid repeated 404s)
+let onboardingStateChecked = false;
+
+// Check if user should be prompted for onboarding (API call)
+async function checkOnboardingStateFromAPI() {
+    // Only check once per session to avoid repeated 404 errors
+    if (onboardingStateChecked) {
+        return;
+    }
+    
     try {
         // Only check if user is authenticated
         if (!authToken || !userId) {
@@ -7559,12 +8019,18 @@ async function checkOnboardingStatus() {
             window.onboardingController.initialize(authToken, userId);
         }
         
-        // Get onboarding state
+        // Mark as checked before the API call
+        onboardingStateChecked = true;
+        
+        // Get onboarding state (returns null if no state exists - this is expected)
         const state = await window.onboardingController.resumeOnboarding();
         
         // Onboarding popups disabled - users can manually access onboarding via the UI
     } catch (error) {
-        console.error('Error checking onboarding status:', error);
+        // Only log unexpected errors, not 404s (which are expected when no onboarding exists)
+        if (!error.message?.includes('404') && !error.message?.includes('Not Found')) {
+            console.error('Error checking onboarding status:', error);
+        }
         // Silently fail - don't interrupt user experience
     }
 }

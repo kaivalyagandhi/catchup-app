@@ -35,6 +35,11 @@ class Step3GroupMappingHandler {
    * Requirements: 5.1
    */
   async navigateToStep() {
+    // Mark group mappings page as visited
+    if (this.userId) {
+      localStorage.setItem(`group-mappings-visited-${this.userId}`, 'true');
+    }
+    
     // Navigate to Directory > Groups tab
     window.location.hash = '#directory/groups';
     
@@ -133,27 +138,39 @@ class Step3GroupMappingHandler {
   /**
    * Handle empty mappings gracefully
    * Requirements: 5.2
+   * 
+   * When there are no mappings, automatically mark Step 3 as complete
    */
-  handleEmptyMappings() {
+  async handleEmptyMappings() {
     const container = this.getOrCreateContainer();
+    
+    // Mark Step 3 as complete since there's nothing to review
+    if (!this.state.steps.groups.complete) {
+      this.state.steps.groups.complete = true;
+      this.state.steps.groups.totalMappings = 0;
+      this.state.steps.groups.mappingsReviewed = 0;
+      await this.stateManager.saveState(this.userId, this.state);
+      
+      // Check if all onboarding is complete
+      await this.checkAndCompleteOnboarding();
+    }
     
     container.innerHTML = `
       <div class="empty-state" style="text-align: center; padding: 60px 20px;">
-        <div style="font-size: 48px; margin-bottom: 16px;">📋</div>
-        <h3 style="margin: 0 0 12px 0; color: var(--text-primary);">No Group Mappings Available</h3>
+        <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+        <h3 style="margin: 0 0 12px 0; color: var(--text-primary);">No Group Mappings to Review</h3>
         <p style="margin: 0 0 24px 0; color: var(--text-secondary); max-width: 400px; margin-left: auto; margin-right: auto;">
-          We couldn't find any Google Contact groups to map, or you don't have Google Contacts connected yet.
+          You don't have any Google Contact groups to map, or you haven't connected Google Contacts yet. This step is complete!
         </p>
-        <button class="btn-primary" id="complete-onboarding-btn">
-          Complete Onboarding
-        </button>
+        ${!this.state.isComplete ? `
+          <button class="btn-primary" onclick="navigateTo('preferences')">
+            Continue Setup
+          </button>
+        ` : `
+          <p style="color: var(--text-success); font-weight: 600;">🎉 Onboarding Complete!</p>
+        `}
       </div>
     `;
-    
-    // Add event listener for complete button
-    document.getElementById('complete-onboarding-btn').addEventListener('click', () => {
-      this.completeOnboarding();
-    });
   }
   
   /**
@@ -627,6 +644,10 @@ class Step3GroupMappingHandler {
   /**
    * Update progress and check for completion
    * Requirements: 5.5
+   * 
+   * Step 3 is complete when:
+   * 1. At least one mapping has been reviewed (accepted or rejected), OR
+   * 2. There are no mappings to review (user has seen the page)
    */
   async updateProgress() {
     const reviewed = this.mappings.filter(m => m.reviewed).length;
@@ -634,40 +655,55 @@ class Step3GroupMappingHandler {
     // Update state
     this.state.steps.groups.mappingsReviewed = reviewed;
     
-    // Check if all mappings reviewed
-    // Requirements: 5.5
-    if (reviewed === this.mappings.length) {
+    // Check if Step 3 should be marked complete
+    // Complete if: at least one mapping reviewed OR no mappings exist
+    const shouldComplete = reviewed > 0 || this.mappings.length === 0;
+    
+    if (shouldComplete && !this.state.steps.groups.complete) {
       this.state.steps.groups.complete = true;
       await this.stateManager.saveState(this.userId, this.state);
       
-      // Mark onboarding as complete
-      // Requirements: 5.5
-      await this.markOnboardingComplete();
+      // Mark onboarding as complete if all steps are done
+      await this.checkAndCompleteOnboarding();
     } else {
       await this.stateManager.saveState(this.userId, this.state);
     }
   }
   
   /**
-   * Mark Step 3 complete and onboarding as complete
+   * Check if all onboarding steps are complete and mark onboarding as complete
    * Requirements: 5.5
    */
+  async checkAndCompleteOnboarding() {
+    // Check if all steps are complete
+    const allStepsComplete = 
+      this.state.steps.integrations.complete &&
+      this.state.steps.circles.complete &&
+      this.state.steps.groups.complete;
+    
+    if (allStepsComplete && !this.state.isComplete) {
+      this.state.isComplete = true;
+      await this.stateManager.saveState(this.userId, this.state);
+      
+      // Update global onboarding indicator if it exists
+      if (window.onboardingIndicator) {
+        window.onboardingIndicator.updateState(this.state);
+      }
+      
+      // Show completion message
+      if (typeof showToast === 'function') {
+        showToast('🎉 Onboarding complete! You\'re all set.', 'success');
+      }
+    }
+  }
+  
+  /**
+   * Mark Step 3 complete and onboarding as complete
+   * Requirements: 5.5
+   * @deprecated Use checkAndCompleteOnboarding instead
+   */
   async markOnboardingComplete() {
-    this.state.isComplete = true;
-    this.state.steps.groups.complete = true;
-    await this.stateManager.saveState(this.userId, this.state);
-    
-    // Hide onboarding indicator
-    // Requirements: 5.5
-    const indicator = document.querySelector('.onboarding-indicator');
-    if (indicator) {
-      indicator.style.display = 'none';
-    }
-    
-    // Update global onboarding indicator if it exists
-    if (window.onboardingIndicator) {
-      window.onboardingIndicator.updateState(this.state);
-    }
+    await this.checkAndCompleteOnboarding();
   }
   
   /**

@@ -191,28 +191,30 @@ class QuickRefineCard {
       }
       
       .circle-buttons {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
+        display: flex;
+        flex-direction: row;
+        gap: 0.375rem;
         width: 100%;
-        max-width: 400px;
-        margin-bottom: 1.5rem;
+        max-width: 550px;
+        margin-bottom: 0.75rem;
       }
       
       .circle-btn {
-        padding: 1rem;
-        border-radius: 12px;
+        flex: 1;
+        padding: 0.375rem 0.25rem;
+        border-radius: 6px;
         border: 2px solid var(--border-color, #e5e7eb);
         background: var(--bg-secondary, #ffffff);
-        font-size: 1rem;
-        font-weight: 500;
+        font-size: 0.6875rem;
+        font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.5rem;
-        min-height: 80px;
+        gap: 0.125rem;
+        min-height: 52px;
+        position: relative;
       }
       
       .circle-btn:hover {
@@ -265,16 +267,32 @@ class QuickRefineCard {
       }
       
       .circle-btn-icon {
-        font-size: 1.5rem;
+        font-size: 1.125rem;
       }
       
       .circle-btn-label {
-        font-size: 0.875rem;
+        font-size: 0.6875rem;
+        line-height: 1.1;
+        text-align: center;
       }
       
       .circle-btn-capacity {
-        font-size: 0.75rem;
+        font-size: 0.625rem;
         opacity: 0.7;
+        line-height: 1;
+      }
+      
+      .circle-btn-shortcut {
+        position: absolute;
+        top: 0.125rem;
+        right: 0.125rem;
+        background: rgba(0, 0, 0, 0.1);
+        color: var(--text-secondary, #6b7280);
+        font-size: 0.5rem;
+        font-weight: 700;
+        padding: 0.0625rem 0.1875rem;
+        border-radius: 2px;
+        line-height: 1;
       }
       
       .quick-refine-actions {
@@ -350,18 +368,26 @@ class QuickRefineCard {
         }
         
         .circle-buttons {
-          grid-template-columns: repeat(2, 1fr);
-          gap: 0.75rem;
+          flex-direction: row;
+          gap: 0.25rem;
         }
         
         .circle-btn {
-          padding: 0.75rem;
-          min-height: 70px;
-          font-size: 0.875rem;
+          padding: 0.5rem 0.25rem;
+          min-height: 60px;
+          font-size: 0.625rem;
         }
         
         .circle-btn-icon {
-          font-size: 1.25rem;
+          font-size: 1rem;
+        }
+        
+        .circle-btn-label {
+          font-size: 0.625rem;
+        }
+        
+        .circle-btn-capacity {
+          font-size: 0.5625rem;
         }
         
         .contact-avatar {
@@ -403,6 +429,9 @@ class QuickRefineCard {
       return;
     }
     
+    // Remove old keyboard listeners before re-rendering
+    this.removeKeyboardListeners();
+    
     if (this.contacts.length === 0 || this.currentIndex >= this.contacts.length) {
       container.innerHTML = this.renderComplete();
       this.attachCompleteListeners();
@@ -438,7 +467,7 @@ class QuickRefineCard {
             ${this.renderLastContact(contact)}
             <div class="swipe-hint">
               <span class="swipe-hint-arrow">←</span>
-              <span>Swipe to assign</span>
+              <span>Swipe or use 1-4 keys</span>
               <span class="swipe-hint-arrow">→</span>
             </div>
           </div>
@@ -446,21 +475,25 @@ class QuickRefineCard {
         
         <div class="circle-buttons">
           <button class="circle-btn circle-btn-inner" data-circle="inner">
+            <span class="circle-btn-shortcut">1</span>
             <span class="circle-btn-icon">💜</span>
             <span class="circle-btn-label">Inner Circle</span>
             <span class="circle-btn-capacity">0-10</span>
           </button>
           <button class="circle-btn circle-btn-close" data-circle="close">
+            <span class="circle-btn-shortcut">2</span>
             <span class="circle-btn-icon">💗</span>
             <span class="circle-btn-label">Close Friends</span>
             <span class="circle-btn-capacity">11-25</span>
           </button>
           <button class="circle-btn circle-btn-active" data-circle="active">
+            <span class="circle-btn-shortcut">3</span>
             <span class="circle-btn-icon">💚</span>
             <span class="circle-btn-label">Active Friends</span>
             <span class="circle-btn-capacity">26-50</span>
           </button>
           <button class="circle-btn circle-btn-casual" data-circle="casual">
+            <span class="circle-btn-shortcut">4</span>
             <span class="circle-btn-icon">💙</span>
             <span class="circle-btn-label">Casual Network</span>
             <span class="circle-btn-capacity">51-100</span>
@@ -469,10 +502,10 @@ class QuickRefineCard {
         
         <div class="quick-refine-actions">
           <button class="refine-btn refine-btn-skip" id="skip-contact">
-            Skip
+            Skip (S)
           </button>
           <button class="refine-btn refine-btn-done" id="done-refining">
-            Done for Now
+            Done for Now (D)
           </button>
         </div>
       </div>
@@ -569,6 +602,73 @@ class QuickRefineCard {
     const card = document.getElementById('current-contact-card');
     if (card) {
       this.attachTouchListeners(card);
+    }
+    
+    // Keyboard shortcuts
+    this.attachKeyboardListeners();
+  }
+  
+  /**
+   * Attach keyboard event listeners for shortcuts
+   * Requirements: 7.4
+   * 
+   * Keyboard shortcuts:
+   * - 1: Assign to Inner Circle
+   * - 2: Assign to Close Friends
+   * - 3: Assign to Active Friends
+   * - 4: Assign to Casual Network
+   * - S or Space: Skip contact
+   * - D or Enter: Done for now
+   */
+  attachKeyboardListeners() {
+    this.keyboardHandler = (e) => {
+      // Don't trigger if user is typing in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      // Prevent default for keys we handle
+      const handledKeys = ['1', '2', '3', '4', 's', 'd', ' ', 'Enter'];
+      if (handledKeys.includes(e.key)) {
+        e.preventDefault();
+      }
+      
+      switch(e.key) {
+        case '1':
+          this.handleAssignment('inner');
+          break;
+        case '2':
+          this.handleAssignment('close');
+          break;
+        case '3':
+          this.handleAssignment('active');
+          break;
+        case '4':
+          this.handleAssignment('casual');
+          break;
+        case 's':
+        case 'S':
+        case ' ':
+          this.handleSkip();
+          break;
+        case 'd':
+        case 'D':
+        case 'Enter':
+          this.handleDone();
+          break;
+      }
+    };
+    
+    document.addEventListener('keydown', this.keyboardHandler);
+  }
+  
+  /**
+   * Remove keyboard event listeners
+   */
+  removeKeyboardListeners() {
+    if (this.keyboardHandler) {
+      document.removeEventListener('keydown', this.keyboardHandler);
+      this.keyboardHandler = null;
     }
   }
   
@@ -877,6 +977,9 @@ class QuickRefineCard {
    * Destroy the component
    */
   destroy() {
+    // Remove keyboard listeners
+    this.removeKeyboardListeners();
+    
     const container = document.getElementById(this.containerId);
     if (container) {
       container.innerHTML = '';

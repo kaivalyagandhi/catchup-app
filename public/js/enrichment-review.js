@@ -1334,9 +1334,13 @@ class EnrichmentReview {
     }
     
     // Show confirmation
-    const confirmed = confirm(
-      `Apply ${acceptedItems.length} selected enrichment item${acceptedItems.length !== 1 ? 's' : ''}?\n\n` +
-      'This will update your contact information.'
+    const confirmed = await showConfirm(
+      `Apply ${acceptedItems.length} selected enrichment item${acceptedItems.length !== 1 ? 's' : ''}? This will update your contact information.`,
+      {
+        title: 'Apply Enrichment',
+        confirmText: 'Apply',
+        type: 'info'
+      }
     );
     
     if (!confirmed) return;
@@ -1971,9 +1975,13 @@ class EnrichmentReview {
     }
     
     // Show confirmation
-    const confirmed = confirm(
-      `Apply ${acceptedCount} selected enrichment item${acceptedCount !== 1 ? 's' : ''}?\n\n` +
-      'This will update your contact information.'
+    const confirmed = await showConfirm(
+      `Apply ${acceptedCount} selected enrichment item${acceptedCount !== 1 ? 's' : ''}? This will update your contact information.`,
+      {
+        title: 'Apply Enrichment',
+        confirmText: 'Apply',
+        type: 'info'
+      }
     );
     
     if (!confirmed) return;

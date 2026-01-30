@@ -471,7 +471,15 @@ class GroupsTable {
     }
 
     // Confirm deletion
-    const confirmed = confirm(`Are you sure you want to delete the group "${group.name}"? This will remove the group from all contacts.`);
+    const confirmed = await showConfirm(
+      `Are you sure you want to delete the group "${group.name}"? This will remove the group from all contacts.`,
+      {
+        title: 'Delete Group',
+        confirmText: 'Delete',
+        type: 'danger'
+      }
+    );
+    
     if (!confirmed) {
       return;
     }
@@ -848,7 +856,15 @@ class GroupsTable {
    */
   async removeContactFromGroup(groupId, contactId, contactName) {
     // Confirm removal
-    const confirmed = confirm(`Remove ${contactName} from this group?`);
+    const confirmed = await showConfirm(
+      `Remove ${contactName} from this group?`,
+      {
+        title: 'Remove Contact',
+        confirmText: 'Remove',
+        type: 'warning'
+      }
+    );
+    
     if (!confirmed) {
       return;
     }

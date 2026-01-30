@@ -266,12 +266,12 @@ class TwilioTestingUI {
     const toNumber = phoneInput.value.trim();
     
     if (!toNumber) {
-      alert('Please enter a phone number');
+      showToast('Please enter a phone number', 'error');
       return;
     }
     
     if (!toNumber.startsWith('+')) {
-      alert('Phone number must include country code (e.g., +15555551234)');
+      showToast('Phone number must include country code (e.g., +15555551234)', 'error');
       return;
     }
     

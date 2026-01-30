@@ -249,7 +249,16 @@ class WeeklyCatchupUI {
   async skipSession() {
     if (!this.currentSession) return;
 
-    if (!confirm('Are you sure you want to skip this week\'s catchup? Unreviewed contacts will be included in next week\'s session.')) {
+    const confirmed = await showConfirm(
+      'Are you sure you want to skip this week\'s catchup? Unreviewed contacts will be included in next week\'s session.',
+      {
+        title: 'Skip Weekly Catchup',
+        confirmText: 'Skip',
+        type: 'warning'
+      }
+    );
+    
+    if (!confirmed) {
       return;
     }
 

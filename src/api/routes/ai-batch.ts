@@ -126,7 +126,7 @@ router.get(
     // Requirements 6.2:
     // - High signal (Close Friends): 5+ shared calendar events OR metadata richness score >= 40
     // - Medium signal (Active Friends): 2-4 shared calendar events OR metadata richness score 20-39
-    // - Low signal (Casual Network): 0-1 shared calendar events AND metadata richness score < 20
+    // - Low signal (Casual Network): Everything else (0-1 shared calendar events OR metadata richness score < 20)
 
     const highSignalContacts = scoredContacts.filter(
       contact => contact.calendarEventCount >= 5 || contact.metadataScore >= 40
@@ -134,14 +134,15 @@ router.get(
 
     const mediumSignalContacts = scoredContacts.filter(
       contact =>
-        (contact.calendarEventCount >= 2 && contact.calendarEventCount <= 4) ||
-        (contact.metadataScore >= 20 && contact.metadataScore < 40)
-    ).filter(contact => !highSignalContacts.includes(contact)); // Exclude high signal
+        !highSignalContacts.includes(contact) && (
+          (contact.calendarEventCount >= 2 && contact.calendarEventCount <= 4) ||
+          (contact.metadataScore >= 20 && contact.metadataScore < 40)
+        )
+    );
 
+    // Low signal: everyone not in high or medium
     const lowSignalContacts = scoredContacts.filter(
-      contact =>
-        contact.calendarEventCount <= 1 &&
-        contact.metadataScore < 20
+      contact => !highSignalContacts.includes(contact) && !mediumSignalContacts.includes(contact)
     );
 
     // 5. Create batches with suggested circles

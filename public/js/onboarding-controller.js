@@ -108,7 +108,7 @@ class OnboardingController {
       });
 
       if (response.status === 404) {
-        // No onboarding session exists
+        // No onboarding session exists - this is expected, not an error
         return null;
       }
 
@@ -123,8 +123,12 @@ class OnboardingController {
       
       return this.state;
     } catch (error) {
-      this.emit('error', error);
-      throw error;
+      // Don't emit error for expected 404s
+      if (!error.message?.includes('404')) {
+        this.emit('error', error);
+      }
+      // Return null instead of throwing for graceful handling
+      return null;
     }
   }
 

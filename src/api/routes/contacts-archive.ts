@@ -19,7 +19,7 @@ const contactRepository = new PostgresContactRepository();
  */
 router.get('/archived', authenticate, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = (req as any).userId;
 
     const archivedContacts = await contactRepository.findArchived(userId);
 
@@ -44,7 +44,7 @@ router.get('/archived', authenticate, async (req: Request, res: Response) => {
  */
 router.post('/archive/preview', authenticate, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = (req as any).userId;
     const { contactIds } = req.body;
 
     if (!contactIds || !Array.isArray(contactIds)) {
@@ -77,7 +77,7 @@ router.post('/archive/preview', authenticate, async (req: Request, res: Response
  */
 router.post('/archive', authenticate, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = (req as any).userId;
     const { contactIds } = req.body;
 
     if (!contactIds || !Array.isArray(contactIds)) {
@@ -117,7 +117,7 @@ router.post('/archive', authenticate, async (req: Request, res: Response) => {
  */
 router.post('/:id/restore', authenticate, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = (req as any).userId;
     const { id } = req.params;
 
     const restoredCount = await contactRepository.restoreContacts(userId, [id]);
@@ -149,7 +149,7 @@ router.post('/:id/restore', authenticate, async (req: Request, res: Response) =>
  */
 router.post('/restore/bulk', authenticate, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = (req as any).userId;
     const { contactIds } = req.body;
 
     if (!contactIds || !Array.isArray(contactIds)) {

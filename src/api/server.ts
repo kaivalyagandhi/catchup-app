@@ -123,8 +123,9 @@ export function createServer(): Express {
   app.use('/api/auth/google', googleSSORouter);
   app.use('/api/auth/statistics', authStatisticsRouter);
   app.use('/api/audit', auditRouter);
-  app.use('/api/contacts', contactsRouter);
+  // Archive routes must come before general contacts routes to avoid /:id matching 'archive'
   app.use('/api/contacts', contactsArchiveRouter);
+  app.use('/api/contacts', contactsRouter);
   app.use('/api/groups-tags', groupsTagsRouter);
   app.use('/api/suggestions', suggestionsRouter);
   app.use('/api/calendar/oauth', googleCalendarOAuthRouter);
@@ -159,69 +160,50 @@ export function createServer(): Express {
     console.error('Failed to register test data routes:', error);
   }
 
-  // Root route - serve landing page for unauthenticated users, dashboard for authenticated
+  // Root route - serve landing page (marketing/welcome page)
   app.get('/', (req: Request, res: Response) => {
-    // Check for JWT token in Authorization header
-    const authHeader = req.headers.authorization;
-    let isAuthenticated = false;
-
-    if (authHeader) {
-      const parts = authHeader.split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer') {
-        try {
-          const token = parts[1];
-          const secret = process.env.JWT_SECRET;
-          if (secret) {
-            jwt.verify(token, secret);
-            isAuthenticated = true;
-          }
-        } catch (error) {
-          // Token invalid or expired, treat as unauthenticated
-          isAuthenticated = false;
-        }
+    const landingPath = path.join(process.cwd(), 'public', 'landing.html');
+    
+    fs.readFile(landingPath, 'utf8', (err, html) => {
+      if (err) {
+        console.error('Error reading landing.html:', err);
+        res.status(500).send('Internal Server Error');
+        return;
       }
-    }
 
-    // Serve appropriate page based on auth status
-    if (isAuthenticated) {
-      // Authenticated user - serve dashboard (index.html)
-      const indexPath = path.join(process.cwd(), 'public', 'index.html');
-      
-      fs.readFile(indexPath, 'utf8', (err, html) => {
-        if (err) {
-          console.error('Error reading index.html:', err);
-          res.status(500).send('Internal Server Error');
-          return;
-        }
-
-        // Inject test mode status and version info
-        const testModeEnabled = isTestModeEnabled();
-        const testModeScript = `<script>window.__TEST_MODE_ENABLED__ = ${testModeEnabled};</script>`;
-        const versionInfo = getVersionInfo();
-        const versionScript = `<script>window.__VERSION_INFO__ = ${JSON.stringify(versionInfo)};</script>`;
-        const modifiedHtml = html.replace('<head>', `<head>\n    ${testModeScript}\n    ${versionScript}`);
-
-        res.setHeader('Content-Type', 'text/html');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(modifiedHtml);
-      });
-    } else {
-      // Unauthenticated user - serve landing page
-      const landingPath = path.join(process.cwd(), 'public', 'landing.html');
-      
-      fs.readFile(landingPath, 'utf8', (err, html) => {
-        if (err) {
-          console.error('Error reading landing.html:', err);
-          res.status(500).send('Internal Server Error');
-          return;
-        }
-
-        res.setHeader('Content-Type', 'text/html');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.send(html);
-      });
-    }
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.send(html);
+    });
   });
+
+  // App routes - serve the main application
+  // Handle /app and /app/:page routes (SPA routing)
+  const serveApp = (req: Request, res: Response) => {
+    const indexPath = path.join(process.cwd(), 'public', 'index.html');
+    
+    fs.readFile(indexPath, 'utf8', (err, html) => {
+      if (err) {
+        console.error('Error reading index.html:', err);
+        res.status(500).send('Internal Server Error');
+        return;
+      }
+
+      // Inject test mode status and version info
+      const testModeEnabled = isTestModeEnabled();
+      const testModeScript = `<script>window.__TEST_MODE_ENABLED__ = ${testModeEnabled};</script>`;
+      const versionInfo = getVersionInfo();
+      const versionScript = `<script>window.__VERSION_INFO__ = ${JSON.stringify(versionInfo)};</script>`;
+      const modifiedHtml = html.replace('<head>', `<head>\n    ${testModeScript}\n    ${versionScript}`);
+
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.send(modifiedHtml);
+    });
+  };
+  
+  app.get('/app', serveApp);
+  app.get('/app/:page', serveApp);
 
   // Serve index.html for all other routes (SPA support)
   // Inject test mode status and version info server-side to avoid flash of unstyled content

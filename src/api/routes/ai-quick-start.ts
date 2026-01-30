@@ -79,8 +79,10 @@ router.get('/quick-start-suggestions', async (req: AuthenticatedRequest, res: Re
           calendarEvents
         );
 
-        // Only include contacts with >= 85% confidence (Inner Circle candidates)
-        if (suggestion.confidence >= 85) {
+        // Only include contacts with >= 60% confidence (Inner Circle candidates)
+        // Note: Lowered from 85% to 60% to include contacts with good metadata
+        // but no calendar events (common for test data or new users)
+        if (suggestion.confidence >= 60) {
           // Count calendar events for this contact
           const calendarEventCount = contact.email
             ? calendarEvents.filter((event) =>

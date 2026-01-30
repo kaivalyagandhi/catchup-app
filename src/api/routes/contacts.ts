@@ -445,26 +445,4 @@ router.post('/circles/bulk', async (req: Request, res: Response): Promise<void> 
   }
 });
 
-// GET /contacts/archived - Get all archived contacts
-// Requirements: 12.2
-router.get('/archived', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId } = req.query;
-    if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
-      return;
-    }
-    const contactService = new ContactServiceImpl();
-    const contacts = await contactService.listContacts(userId as string, { archived: true });
-    res.json({
-      success: true,
-      contacts,
-      count: contacts.length,
-    });
-  } catch (error) {
-    console.error('Error fetching archived contacts:', error);
-    res.status(500).json({ error: 'Failed to fetch archived contacts' });
-  }
-});
-
 export default router;

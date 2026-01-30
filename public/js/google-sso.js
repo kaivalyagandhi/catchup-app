@@ -34,28 +34,8 @@ async function initGoogleSSO() {
     // Check test mode status to show/hide email/password form
     await checkTestMode();
     
-    // Handle auth success from redirect (new flow)
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('auth_success') === 'true' && urlParams.get('token')) {
-        const token = urlParams.get('token');
-        const userId = urlParams.get('userId');
-        const userEmail = urlParams.get('userEmail');
-        const isNewUser = urlParams.get('isNewUser') === 'true';
-        
-        // Store authentication data
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('userId', userId);
-        localStorage.setItem('userEmail', userEmail);
-        
-        // Clear URL parameters
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
-        console.log('[Google SSO] Authentication successful, reloading...');
-        
-        // Reload to show authenticated app
-        window.location.reload();
-        return;
-    }
+    // Note: Auth success redirect is now handled in app.js before this function is called
+    // This prevents double-reload issues
     
     // Handle OAuth callback if present in URL (old flow - keeping for compatibility)
     if (window.location.search.includes('code=') && window.location.search.includes('state=')) {

@@ -282,7 +282,7 @@ class PreferenceSettingUI {
     const selectedRadio = document.querySelector('input[name="frequency"]:checked');
     
     if (!selectedRadio) {
-      alert('Please select a frequency preference');
+      showToast('Please select a frequency preference', 'error');
       return;
     }
     
@@ -299,7 +299,7 @@ class PreferenceSettingUI {
       this.showCurrentContact();
     } catch (error) {
       console.error('Error saving preference:', error);
-      alert('Failed to save preference. Please try again.');
+      showToast('Failed to save preference. Please try again.', 'error');
     }
   }
   
@@ -322,7 +322,7 @@ class PreferenceSettingUI {
       this.showCurrentContact();
     } catch (error) {
       console.error('Error skipping preference:', error);
-      alert('Failed to skip preference. Please try again.');
+      showToast('Failed to skip preference. Please try again.', 'error');
     }
   }
   
@@ -337,9 +337,13 @@ class PreferenceSettingUI {
       return;
     }
     
-    const confirmed = confirm(
-      `Skip setting preferences for ${remaining.length} contact(s)? ` +
-      `Default frequencies will be applied based on their circle.`
+    const confirmed = await showConfirm(
+      `Skip setting preferences for ${remaining.length} contact(s)? Default frequencies will be applied based on their circle.`,
+      {
+        title: 'Skip Preferences',
+        confirmText: 'Skip',
+        type: 'warning'
+      }
     );
     
     if (!confirmed) return;
@@ -357,7 +361,7 @@ class PreferenceSettingUI {
       this.showCompletionState();
     } catch (error) {
       console.error('Error skipping all preferences:', error);
-      alert('Failed to skip preferences. Please try again.');
+      showToast('Failed to skip preferences. Please try again.', 'error');
     }
   }
   

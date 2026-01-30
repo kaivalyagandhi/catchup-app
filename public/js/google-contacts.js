@@ -336,7 +336,16 @@ async function pollSyncStatus(jobId) {
  * Requirements: 7.1
  */
 async function disconnectGoogleContacts() {
-    if (!confirm('Are you sure you want to disconnect Google Contacts? Your existing contacts will be preserved, but automatic syncing will stop.')) {
+    const confirmed = await showConfirm(
+      'Are you sure you want to disconnect Google Contacts? Your existing contacts will be preserved, but automatic syncing will stop.',
+      {
+        title: 'Disconnect Google Contacts',
+        confirmText: 'Disconnect',
+        type: 'warning'
+      }
+    );
+    
+    if (!confirmed) {
         return;
     }
     

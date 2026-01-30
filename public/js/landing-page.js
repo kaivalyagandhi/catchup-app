@@ -37,7 +37,7 @@
     // Update final CTA to "Go to Dashboard"
     const finalCta = document.getElementById('final-cta');
     if (finalCta) {
-      finalCta.href = '/index.html';
+      finalCta.href = '/app';
       finalCta.innerHTML = 'Go to Dashboard';
     }
   }
@@ -110,8 +110,8 @@
       // Store the token
       localStorage.setItem('authToken', token);
       
-      // Redirect to dashboard
-      window.location.href = '/index.html';
+      // Redirect to app
+      window.location.href = '/app';
     }
   }
 

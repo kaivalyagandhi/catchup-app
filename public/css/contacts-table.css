@@ -441,6 +441,46 @@
   transform: scale(1.1);
 }
 
+/* Archive button */
+.btn-archive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-secondary, #6b7280);
+  transition: all 0.2s ease;
+  opacity: 0.7;
+  margin-right: 4px;
+}
+
+.btn-archive:hover {
+  background-color: var(--bg-hover, #f3f4f6);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+[data-theme="dark"] .btn-archive {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .btn-archive:hover {
+  background-color: var(--bg-hover);
+}
+
+/* Contact actions cell */
+.contact-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
 /* Empty State */
 .contacts-table .empty-state td {
   padding: 60px 20px;

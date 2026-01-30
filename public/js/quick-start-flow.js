@@ -43,104 +43,116 @@ class QuickStartFlow {
       }
       
       .quick-start-header {
-        text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
+      }
+      
+      .quick-start-header-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 2rem;
+      }
+      
+      .quick-start-header-text {
+        flex: 1;
       }
       
       .quick-start-header h2 {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
         font-weight: 600;
         color: var(--text-primary, #1f2937);
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.25rem;
       }
       
       .quick-start-header p {
-        font-size: 1rem;
+        font-size: 0.9375rem;
         color: var(--text-secondary, #6b7280);
+        margin: 0;
       }
       
-      .quick-start-suggestions {
-        background: var(--bg-secondary, #ffffff);
+      .quick-start-preview-compact {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
         border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        color: white;
+        font-weight: 600;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+      }
+      
+      .preview-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+      }
+      
+      .preview-count {
+        font-size: 1.25rem;
+        font-weight: 700;
+      }
+      
+      .quick-start-suggestions-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
         margin-bottom: 1.5rem;
       }
       
       .suggestion-item {
         display: flex;
-        align-items: center;
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-color, #e5e7eb);
-        transition: background-color 0.2s;
-      }
-      
-      .suggestion-item:last-child {
-        border-bottom: none;
+        align-items: flex-start;
+        padding: 0.625rem 0.75rem;
+        border: 2px solid var(--border-color, #e5e7eb);
+        border-radius: 8px;
+        background: var(--bg-secondary, #ffffff);
+        transition: all 0.2s;
+        cursor: pointer;
       }
       
       .suggestion-item:hover {
-        background-color: var(--bg-hover, #f9fafb);
+        border-color: var(--primary-color, #3b82f6);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
       }
       
       .suggestion-item.selected {
         background-color: var(--bg-selected, #eff6ff);
-        border-left: 3px solid var(--primary-color, #3b82f6);
+        border-color: var(--primary-color, #3b82f6);
       }
       
       .suggestion-checkbox {
-        margin-right: 1rem;
-        width: 20px;
-        height: 20px;
+        margin-right: 0.625rem;
+        width: 16px;
+        height: 16px;
         cursor: pointer;
-        /* Ensure touch-friendly tap target */
-        padding: 12px;
-        margin: -12px 1rem -12px -12px;
+        flex-shrink: 0;
+        margin-top: 1px;
       }
       
       .suggestion-content {
         flex: 1;
+        min-width: 0;
       }
       
       .suggestion-name {
-        font-size: 1rem;
-        font-weight: 500;
+        font-size: 0.9375rem;
+        font-weight: 600;
         color: var(--text-primary, #1f2937);
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.125rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       
       .suggestion-reasons {
-        font-size: 0.875rem;
+        font-size: 0.8125rem;
         color: var(--text-secondary, #6b7280);
-        margin-bottom: 0.5rem;
-      }
-      
-      .suggestion-confidence {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-      
-      .confidence-bar {
-        flex: 1;
-        height: 6px;
-        background-color: var(--bg-tertiary, #e5e7eb);
-        border-radius: 3px;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
         overflow: hidden;
-      }
-      
-      .confidence-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #10b981, #3b82f6);
-        transition: width 0.3s ease;
-      }
-      
-      .confidence-value {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--text-primary, #1f2937);
-        min-width: 45px;
-        text-align: right;
       }
       
       .quick-start-actions {
@@ -231,95 +243,19 @@ class QuickStartFlow {
         margin-bottom: 0.5rem;
       }
       
-      .mini-visualizer {
-        margin-top: 2rem;
-        padding: 1.5rem;
-        background: var(--bg-secondary, #ffffff);
-        border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      }
-      
-      .mini-visualizer h3 {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--text-primary, #1f2937);
-        margin-bottom: 1rem;
-        text-align: center;
-      }
-      
-      .circle-preview {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 1rem;
-      }
-      
-      .circle-stat {
-        text-align: center;
-      }
-      
-      .circle-stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #8b5cf6;
-      }
-      
-      .circle-stat-label {
-        font-size: 0.875rem;
-        color: var(--text-secondary, #6b7280);
-        margin-top: 0.25rem;
-      }
-      
       /* Mobile responsive - Requirements 20.1, 20.4 */
       @media (max-width: 768px) {
         .quick-start-flow {
           padding: 1rem;
         }
         
-        .quick-start-header h2 {
-          font-size: 1.5rem;
-        }
-        
-        .quick-start-header p {
-          font-size: 0.9375rem;
-        }
-        
-        .quick-start-suggestions {
-          padding: 1rem;
-        }
-        
-        .quick-start-actions {
+        .quick-start-header-main {
           flex-direction: column;
-          gap: 0.75rem;
+          gap: 1rem;
         }
         
-        .quick-start-btn {
-          width: 100%;
-          min-height: 44px; /* Touch-friendly minimum */
-          padding: 0.875rem 1.5rem;
-        }
-        
-        .suggestion-item {
-          padding: 0.875rem;
-        }
-        
-        .suggestion-checkbox {
-          min-width: 44px; /* Touch-friendly minimum */
-          min-height: 44px;
-          width: 24px;
-          height: 24px;
-        }
-        
-        .circle-preview {
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-      }
-      
-      /* Extra small devices (320px and up) */
-      @media (max-width: 480px) {
-        .quick-start-flow {
-          padding: 0.75rem;
+        .quick-start-preview-compact {
+          align-self: flex-start;
         }
         
         .quick-start-header h2 {
@@ -330,26 +266,63 @@ class QuickStartFlow {
           font-size: 0.875rem;
         }
         
-        .quick-start-suggestions {
-          padding: 0.75rem;
-          border-radius: 8px;
+        .quick-start-suggestions-grid {
+          grid-template-columns: 1fr;
+          gap: 0.625rem;
         }
         
         .suggestion-item {
           padding: 0.75rem;
         }
         
+        .quick-start-actions {
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        
+        .quick-start-btn {
+          width: 100%;
+          min-height: 44px;
+          padding: 0.875rem 1.5rem;
+        }
+        
+        .suggestion-checkbox {
+          min-width: 44px;
+          min-height: 44px;
+          width: 20px;
+          height: 20px;
+        }
+      }
+      
+      /* Extra small devices (320px and up) */
+      @media (max-width: 480px) {
+        .quick-start-flow {
+          padding: 0.75rem;
+        }
+        
+        .quick-start-header h2 {
+          font-size: 1.125rem;
+        }
+        
+        .quick-start-header p {
+          font-size: 0.8125rem;
+        }
+        
+        .suggestion-item {
+          padding: 0.625rem;
+        }
+        
         .suggestion-name {
-          font-size: 0.9375rem;
+          font-size: 0.875rem;
         }
         
         .suggestion-reasons {
-          font-size: 0.8125rem;
+          font-size: 0.75rem;
         }
         
         .confidence-value {
-          font-size: 0.8125rem;
-          min-width: 40px;
+          font-size: 0.75rem;
+          min-width: 35px;
         }
         
         .quick-start-btn {
@@ -357,16 +330,12 @@ class QuickStartFlow {
           padding: 0.875rem 1.25rem;
         }
         
-        .mini-visualizer {
-          padding: 1rem;
-        }
-        
-        .circle-stat-value {
-          font-size: 1.75rem;
-        }
-        
-        .circle-stat-label {
+        .preview-label {
           font-size: 0.8125rem;
+        }
+        
+        .preview-count {
+          font-size: 1.125rem;
         }
       }
       
@@ -380,8 +349,8 @@ class QuickStartFlow {
           margin-bottom: 1rem;
         }
         
-        .mini-visualizer {
-          margin-top: 1rem;
+        .quick-start-suggestions-grid {
+          grid-template-columns: repeat(2, 1fr);
         }
       }
     `;
@@ -441,12 +410,14 @@ class QuickStartFlow {
       // Render suggestions or empty state
       if (this.contacts.length === 0) {
         container.innerHTML = this.renderEmpty();
+        this.attachEventListeners(); // Attach listeners for skip button
       } else {
         container.innerHTML = this.renderSuggestions();
         this.attachEventListeners();
       }
     } catch (error) {
       container.innerHTML = this.renderError(error.message);
+      this.attachEventListeners(); // Attach listeners for retry/skip buttons
     }
   }
   
@@ -504,18 +475,29 @@ class QuickStartFlow {
       : `<h2>Your Closest Connections</h2>
          <p>We found ${this.contacts.length} contacts who are likely your closest friends</p>`;
     
+    const innerCircleCount = this.isReviewMode 
+      ? Array.from(this.selectedContacts.values()).filter(v => v).length
+      : this.contacts.length;
+    
     return `
       <div class="quick-start-flow">
         <div class="quick-start-header">
-          ${header}
+          <div class="quick-start-header-main">
+            <div class="quick-start-header-text">
+              ${header}
+            </div>
+            <div class="quick-start-preview-compact">
+              <span class="preview-label">Inner Circle:</span>
+              <span class="preview-count">${innerCircleCount}/10</span>
+            </div>
+          </div>
         </div>
         
-        <div class="quick-start-suggestions">
+        <div class="quick-start-suggestions-grid">
           ${this.contacts.map((contact, index) => this.renderSuggestionItem(contact, index)).join('')}
         </div>
         
         ${this.renderActions()}
-        ${this.renderMiniVisualizer()}
       </div>
     `;
   }
@@ -535,12 +517,6 @@ class QuickStartFlow {
         <div class="suggestion-content">
           <div class="suggestion-name">${this.escapeHtml(contact.name)}</div>
           <div class="suggestion-reasons">${this.formatReasons(contact.reasons)}</div>
-          <div class="suggestion-confidence">
-            <div class="confidence-bar">
-              <div class="confidence-fill" style="width: ${contact.confidence}%"></div>
-            </div>
-            <div class="confidence-value">${contact.confidence}%</div>
-          </div>
         </div>
       </div>
     `;
@@ -572,24 +548,6 @@ class QuickStartFlow {
         <button class="quick-start-btn btn-text" id="skip-quick-start">
           Skip for Now
         </button>
-      </div>
-    `;
-  }
-  
-  renderMiniVisualizer() {
-    const innerCircleCount = this.isReviewMode 
-      ? Array.from(this.selectedContacts.values()).filter(v => v).length
-      : this.contacts.length;
-    
-    return `
-      <div class="mini-visualizer">
-        <h3>Inner Circle Preview</h3>
-        <div class="circle-preview">
-          <div class="circle-stat">
-            <div class="circle-stat-value">${innerCircleCount}</div>
-            <div class="circle-stat-label">of 10 spots</div>
-          </div>
-        </div>
       </div>
     `;
   }
@@ -656,10 +614,10 @@ class QuickStartFlow {
       acceptBtn.textContent = `Add ${selectedCount} to Inner Circle`;
     }
     
-    // Update mini visualizer
-    const miniViz = document.querySelector('.mini-visualizer');
-    if (miniViz) {
-      miniViz.innerHTML = this.renderMiniVisualizer().match(/<div class="mini-visualizer">([\s\S]*)<\/div>/)[1];
+    // Update compact preview count
+    const previewCount = document.querySelector('.preview-count');
+    if (previewCount) {
+      previewCount.textContent = `${selectedCount}/10`;
     }
   }
   
@@ -716,7 +674,7 @@ class QuickStartFlow {
    */
   async batchAssignToCircle(contactIds, circle) {
     try {
-      const response = await fetch('/api/contacts/circles/batch-accept', {
+      const response = await fetch('/api/circles/batch-accept', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

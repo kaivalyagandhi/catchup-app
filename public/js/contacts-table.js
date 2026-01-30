@@ -179,6 +179,7 @@ class ContactsTable {
           <td class="contact-groups editable" data-field="groups" data-type="multiselect" data-label="Groups">${groupsBadges}</td>
           <td class="contact-source" data-label="Source">${sourceBadge}</td>
           <td class="contact-actions" data-label="Actions">
+            <button class="btn-archive" data-contact-id="${contact.id}" title="Archive contact">📦</button>
             <button class="btn-delete" data-contact-id="${contact.id}" title="Delete contact">×</button>
           </td>
         </tr>
@@ -1246,6 +1247,28 @@ class ContactsTable {
    * (Extracted from attachEventListeners for reuse)
    */
   attachRowEventListeners() {
+    // Archive button handlers
+    this.container.querySelectorAll('.btn-archive').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const contactId = e.target.dataset.contactId;
+        const contact = this.data.find(c => c.id === contactId);
+        const contactName = contact ? contact.name : 'this contact';
+        
+        const confirmed = await showConfirm(
+          `Archive ${contactName}? You can restore it later from the Archived tab.`,
+          {
+            title: 'Archive Contact',
+            confirmText: 'Archive',
+            type: 'warning'
+          }
+        );
+        
+        if (confirmed) {
+          await this.archiveContact(contactId);
+        }
+      });
+    });
+
     // Delete button handlers
     this.container.querySelectorAll('.btn-delete').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -1266,6 +1289,62 @@ class ContactsTable {
         this.startEdit(cell);
       });
     });
+  }
+
+  /**
+   * Archive a contact (soft delete)
+   * Requirements: 15.1, 15.2
+   */
+  async archiveContact(contactId) {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch('/api/contacts/archive', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ contactIds: [contactId] })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to archive contact');
+      }
+
+      const result = await response.json();
+      
+      // Show success message
+      if (typeof showToast === 'function') {
+        showToast('Contact archived successfully', 'success');
+      }
+
+      // Remove from local data
+      this.data = this.data.filter(c => c.id !== contactId);
+      this.filteredData = this.filteredData.filter(c => c.id !== contactId);
+
+      // Re-render
+      this.render();
+
+      // Update archived count badge
+      if (typeof updateArchivedCountBadge === 'function') {
+        updateArchivedCountBadge();
+      }
+
+      // Dispatch event for other components
+      window.dispatchEvent(new CustomEvent('contactArchived', { 
+        detail: { contactId } 
+      }));
+
+    } catch (error) {
+      console.error('Error archiving contact:', error);
+      if (typeof showToast === 'function') {
+        showToast('Failed to archive contact', 'error');
+      }
+    }
   }
 
   /**

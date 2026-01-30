@@ -496,10 +496,15 @@ class TagsTable {
     const contactCount = this.getContactCount(tag);
 
     // Confirm deletion
-    const confirmed = confirm(
-      `Are you sure you want to delete the tag "${tag.text}"? ` +
-      `This will remove the tag from ${contactCount} contact(s).`
+    const confirmed = await showConfirm(
+      `Are you sure you want to delete the tag "${tag.text}"? This will remove the tag from ${contactCount} contact(s).`,
+      {
+        title: 'Delete Tag',
+        confirmText: 'Delete',
+        type: 'danger'
+      }
     );
+    
     if (!confirmed) {
       return;
     }
@@ -882,7 +887,15 @@ class TagsTable {
     }
 
     // Confirm removal
-    const confirmed = confirm(`Remove "${tag.text}" tag from ${contactName}?`);
+    const confirmed = await showConfirm(
+      `Remove "${tag.text}" tag from ${contactName}?`,
+      {
+        title: 'Remove Tag',
+        confirmText: 'Remove',
+        type: 'warning'
+      }
+    );
+    
     if (!confirmed) {
       return;
     }

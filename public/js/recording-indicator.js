@@ -486,12 +486,15 @@ class RecordingIndicator {
    * @returns {Promise<boolean>} - True if user wants to continue, false otherwise
    */
   async showNavigationWarning() {
-    return new Promise((resolve) => {
-      const confirmed = window.confirm(
-        'Recording is in progress. If you leave this page, your recording will be lost. Do you want to stop recording and leave?'
-      );
-      resolve(confirmed);
-    });
+    return await showConfirm(
+      'Recording is in progress. If you leave this page, your recording will be lost. Do you want to stop recording and leave?',
+      {
+        title: 'Recording in Progress',
+        confirmText: 'Stop & Leave',
+        cancelText: 'Continue Recording',
+        type: 'warning'
+      }
+    );
   }
 
   /**
