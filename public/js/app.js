@@ -366,8 +366,18 @@ function initializeOnboardingIndicator() {
     // Load saved onboarding state
     const savedState = OnboardingStepIndicator.loadState();
     
+    // Ensure userId is set in state
+    if (savedState && window.userId) {
+        savedState.userId = window.userId;
+    }
+    
     // Create indicator with saved state or default
     onboardingIndicator = new OnboardingStepIndicator(savedState);
+    
+    // Set userId if not already set
+    if (window.userId && !onboardingIndicator.state.userId) {
+        onboardingIndicator.state.userId = window.userId;
+    }
     
     // Mount to sidebar container
     const container = document.getElementById('onboarding-indicator-container');

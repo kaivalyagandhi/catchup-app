@@ -663,8 +663,23 @@ class Step3GroupMappingHandler {
       this.state.steps.groups.complete = true;
       await this.stateManager.saveState(this.userId, this.state);
       
-      // Mark onboarding as complete if all steps are done
+      // Update onboarding indicator UI (Requirement 5.4)
+      if (window.onboardingIndicator) {
+        window.onboardingIndicator.updateState(this.state);
+      }
+      
+      // Show success toast notification (Requirement 5.5)
+      if (typeof showToast === 'function') {
+        showToast('✓ Step 3 complete!', 'success');
+      }
+      
+      // Mark onboarding as complete if all steps are done (Requirement 5.4)
       await this.checkAndCompleteOnboarding();
+      
+      // Refresh reviewed groups section if it exists
+      if (window.reviewedGroupsSection) {
+        await window.reviewedGroupsSection.render();
+      }
     } else {
       await this.stateManager.saveState(this.userId, this.state);
     }

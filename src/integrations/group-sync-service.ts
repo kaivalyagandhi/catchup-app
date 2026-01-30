@@ -460,12 +460,18 @@ export class GroupSyncService {
       console.log(`Created new CatchUp group ${catchupGroupId} with name "${groupName}"`);
     }
 
-    // Update mapping with CatchUp group ID, status, and excluded members
-    await this.groupMappingRepository.update(mapping.id, userId, {
-      catchupGroupId,
-      mappingStatus: 'approved',
-      excludedMembers, // Store excluded members for future sync conflict prevention
-    });
+    // Update mapping with CatchUp group ID, status, reviewed_at timestamp, and excluded members
+    const pool = await import('../db/connection').then((m) => m.default);
+    await pool.query(
+      `UPDATE google_contact_groups 
+       SET catchup_group_id = $1, 
+           mapping_status = $2, 
+           excluded_members = $3,
+           reviewed_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $4 AND user_id = $5`,
+      [catchupGroupId, 'approved', excludedMembers, mapping.id, userId]
+    );
 
     console.log(`Approved mapping ${mappingId}`);
   }
@@ -488,11 +494,17 @@ export class GroupSyncService {
       throw new Error('Group mapping not found');
     }
 
-    // Update mapping status to rejected and disable sync
-    await this.groupMappingRepository.update(mapping.id, userId, {
-      mappingStatus: 'rejected',
-      syncEnabled: false,
-    });
+    // Update mapping status to rejected, disable sync, and set reviewed_at timestamp
+    const pool = await import('../db/connection').then((m) => m.default);
+    await pool.query(
+      `UPDATE google_contact_groups 
+       SET mapping_status = $1, 
+           sync_enabled = $2,
+           reviewed_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3 AND user_id = $4`,
+      ['rejected', false, mapping.id, userId]
+    );
 
     console.log(`Rejected mapping ${mappingId}`);
   }

@@ -57,9 +57,31 @@
     }
   }
 
+  // Handle Google Sign-In
+  async function handleGoogleSignIn(e) {
+    e.preventDefault();
+    
+    try {
+      // Fetch the authorization URL from the backend
+      const response = await fetch('/api/auth/google/authorize');
+      
+      if (!response.ok) {
+        throw new Error('Failed to get authorization URL');
+      }
+      
+      const data = await response.json();
+      
+      // Redirect to Google's OAuth page
+      window.location.href = data.authUrl;
+    } catch (error) {
+      console.error('Error initiating Google sign-in:', error);
+      alert('Failed to start sign-in process. Please try again.');
+    }
+  }
+
   // Handle CTA button clicks
   function setupCTAHandlers() {
-    // Primary CTA
+    // Primary CTA - Google Sign-In
     const primaryCta = document.getElementById('primary-cta');
     if (primaryCta) {
       primaryCta.addEventListener('click', function(e) {
@@ -70,10 +92,13 @@
             event_label: 'Primary Hero CTA'
           });
         }
+        
+        // Handle Google sign-in
+        handleGoogleSignIn(e);
       });
     }
 
-    // Final CTA
+    // Final CTA - Google Sign-In
     const finalCta = document.getElementById('final-cta');
     if (finalCta) {
       finalCta.addEventListener('click', function(e) {
@@ -84,6 +109,14 @@
             event_label: 'Final CTA'
           });
         }
+        
+        // Check if user is logged in
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) {
+          // Handle Google sign-in
+          handleGoogleSignIn(e);
+        }
+        // Otherwise, let the default href="/app" work
       });
     }
 

@@ -133,6 +133,8 @@ export function createServer(): Express {
   app.use('/api/calendar', calendarRouter);
   app.use('/api/contacts/oauth', googleContactsOAuthRouter);
   app.use('/api/contacts/sync', googleContactsSyncRouter);
+  // Alias for google-contacts routes (for backward compatibility)
+  app.use('/api/google-contacts', googleContactsSyncRouter);
   app.use('/api/voice-notes', voiceNotesRouter);
   app.use('/api/preferences', preferencesRouter);
   app.use('/api/account', accountRouter);

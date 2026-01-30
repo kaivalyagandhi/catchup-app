@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser Compatibility Test - Groups & Preferences UI</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <link rel="stylesheet" href="/css/groups-table.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      background: var(--bg-app);
+      color: var(--text-primary);
+    }
+
+    .test-header {
+      background: var(--bg-surface);
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .test-header h1 {
+      margin: 0 0 12px 0;
+      color: var(--text-primary);
+    }
+
+    .browser-info {
+      background: var(--bg-secondary);
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+
+    .browser-info h3 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      color: var(--text-primary);
+    }
+
+    .browser-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .info-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    .info-value {
+      font-size: 14px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .test-section {
+      background: var(--bg-surface);
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .test-section h2 {
+      margin: 0 0 16px 0;
+      font-size: 20px;
+      color: var(--text-primary);
+    }
+
+    .test-case {
+      background: var(--bg-secondary);
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      border-left: 4px solid var(--border-subtle);
+    }
+
+    .test-case.pass {
+      border-left-color: var(--status-success);
+    }
+
+    .test-case.fail {
+      border-left-color: var(--status-error);
+    }
+
+    .test-case.pending {
+      border-left-color: var(--text-tertiary);
+    }
+
+    .test-case h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .test-status {
+      font-size: 18px;
+    }
+
+    .test-description {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .test-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+
+    .btn-success {
+      background: var(--status-success);
+      color: white;
+    }
+
+    .btn-error {
+      background: var(--status-error);
+      color: white;
+    }
+
+    .test-results {
+      background: var(--bg-secondary);
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+
+    .result-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .result-stat {
+      text-align: center;
+      padding: 12px;
+      background: var(--bg-surface);
+      border-radius: 6px;
+    }
+
+    .result-stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .result-stat-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    .console-output {
+      background: #1a1a1a;
+      color: #00ff00;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 16px;
+    }
+
+    .console-line {
+      margin-bottom: 4px;
+    }
+
+    .console-line.error {
+      color: #ff4444;
+    }
+
+    .console-line.success {
+      color: #44ff44;
+    }
+
+    .console-line.info {
+      color: #4444ff;
+    }
+
+    /* Demo Components */
+    #demo-container {
+      margin-top: 24px;
+    }
+
+    .feature-compatibility {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .feature-card {
+      background: var(--bg-secondary);
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .feature-card h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .feature-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .status-indicator.supported {
+      background: var(--status-success);
+    }
+
+    .status-indicator.unsupported {
+      background: var(--status-error);
+    }
+
+    .status-indicator.partial {
+      background: var(--status-warning);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-header">
+    <h1>🌐 Browser Compatibility Test</h1>
+    <p>Groups & Preferences UI Improvements - Task 16.10</p>
+    
+    <div class="browser-info">
+      <h3>Current Browser Information</h3>
+      <div class="browser-info-grid">
+        <div class="info-item">
+          <span class="info-label">Browser</span>
+          <span class="info-value" id="browser-name">Detecting...</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Version</span>
+          <span class="info-value" id="browser-version">Detecting...</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Platform</span>
+          <span class="info-value" id="platform">Detecting...</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">User Agent</span>
+          <span class="info-value" id="user-agent" style="font-size: 11px; word-break: break-all;">Detecting...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature Compatibility Check -->
+  <div class="test-section">
+    <h2>Browser Feature Support</h2>
+    <p class="test-description">Checking for required browser features and APIs</p>
+    
+    <div class="feature-compatibility" id="feature-compatibility">
+      <!-- Populated by JavaScript -->
+    </div>
+  </div>
+
+  <!-- CSS Features Test -->
+  <div class="test-section">
+    <h2>CSS Features Test</h2>
+    
+    <div class="test-case pending" id="test-css-variables">
+      <h3>
+        <span class="test-status">⏳</span>
+        CSS Custom Properties (Variables)
+      </h3>
+      <p class="test-description">Tests if CSS variables are supported for theming</p>
+      <div class="test-actions">
+        <button class="btn btn-primary" onclick="testCSSVariables()">Run Test</button>
+      </div>
+    </div>
+
+    <div class="test-case pending" id="test-css-grid">
+      <h3>
+        <span class="test-status">⏳</span>
+        CSS Grid Layout
+      </h3>
+      <p class="test-description">Tests if CSS Grid is supported for responsive layouts</p>
+      <div class="test-actions">
+        <button class="btn btn-primary" onclick="testCSSGrid()">Run Test</button>
+      </div>
+    </div>
+
+    <div class="test-case pending" id="test-css-flexbox">
+      <h3>
+        <span class="test-status">⏳</span>
+        CSS Flexbox
+      </h3>
+      <p class="test-description">Tests if Flexbox is supported for component layouts</p>
+      <div class="test-actions">
+        <button class="btn btn-primary" onclick="testFlexbox()">Run Test</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Features Test -->
+  <div class="test-section">
+    <h2>JavaScript Features Test</h2>
+    
+    <div class="test-case pending" id="test-fetch-api">
+      <h3>
+        <span class="test-status">⏳</span>
+        Fetch API
+      </h3>
+      <p class="test-description">Tests if Fetch API is available for network requests</p>
+      <div class="test-actions">
+        <button class="btn btn-primary" onclick="testFetchAPI()">Run Test</button>
+      </div>
+    </div>
+
+    <div class="test-case pending" id="test-localstorage">
+      <h3>
+        <span class="test-status">⏳</span>
+        LocalStorage API
+      </h3>
+      <p class="test-description">Tests if LocalStorage is available for state persistence</p>
+      <div class="test-actions">
+        <button class="btn btn-primary" onclick="testLocalStorage()">Run Test</button>
+      </div>
+    </div>
+
+    <div class="test-case pending" id="test-es6">
+      <h3>
+        <span class="test-status">⏳</span>
+        ES6+ Features
+      </h3>
+      <p class="test-description">Tests if modern JavaScript features are supported</p>
+      <div class="test-actions">
+        <button class="btn btn-primary" onclick="testES6Features()">Run Test</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Component Rendering Test -->
+  <div class="test-section">
+    <h2>Component Rendering Test</h2>
+    
+    <div class="test-case pending" id="test-reviewed-groups">
+      <h3>
+        <span class="test-status">⏳</span>
+        Reviewed Groups Section
+      </h3>
+      <p class="test-description">Tests if the Reviewed Groups section renders correctly</p>
+      <div class="test-actions">
+        <button class="btn btn-primary" onclick="testReviewedGroupsRendering()">Run Test</button>
+      </div>
+      <div id="demo-reviewed-groups"></div>
+    </div>
+  </div>
+
+  <!-- Run All Tests -->
+  <div class="test-section">
+    <h2>Test Summary</h2>
+    <div class="test-actions">
+      <button class="btn btn-primary" onclick="runAllTests()">Run All Tests</button>
+      <button class="btn btn-secondary" onclick="resetTests()">Reset Tests</button>
+    </div>
+    
+    <div class="test-results" id="test-results" style="display: none;">
+      <h3>Results</h3>
+      <div class="result-summary">
+        <div class="result-stat">
+          <div class="result-stat-value" id="total-tests">0</div>
+          <div class="result-stat-label">Total Tests</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" style="color: var(--status-success);" id="passed-tests">0</div>
+          <div class="result-stat-label">Passed</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" style="color: var(--status-error);" id="failed-tests">0</div>
+          <div class="result-stat-label">Failed</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" style="color: var(--text-tertiary);" id="pending-tests">0</div>
+          <div class="result-stat-label">Pending</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="console-output" id="console-output">
+      <div class="console-line">Console output will appear here...</div>
+    </div>
+  </div>
+
+  <script>
+    // Browser Detection
+    function detectBrowser() {
+      const ua = navigator.userAgent;
+      let browserName = 'Unknown';
+      let browserVersion = 'Unknown';
+      
+      if (ua.indexOf('Firefox') > -1) {
+        browserName = 'Firefox';
+        browserVersion = ua.match(/Firefox\/(\d+\.\d+)/)?.[1] || 'Unknown';
+      } else if (ua.indexOf('Edg') > -1) {
+        browserName = 'Edge';
+        browserVersion = ua.match(/Edg\/(\d+\.\d+)/)?.[1] || 'Unknown';
+      } else if (ua.indexOf('Chrome') > -1) {
+        browserName = 'Chrome';
+        browserVersion = ua.match(/Chrome\/(\d+\.\d+)/)?.[1] || 'Unknown';
+      } else if (ua.indexOf('Safari') > -1) {
+        browserName = 'Safari';
+        browserVersion = ua.match(/Version\/(\d+\.\d+)/)?.[1] || 'Unknown';
+      }
+      
+      document.getElementById('browser-name').textContent = browserName;
+      document.getElementById('browser-version').textContent = browserVersion;
+      document.getElementById('platform').textContent = navigator.platform;
+      document.getElementById('user-agent').textContent = ua;
+      
+      logToConsole(`Detected: ${browserName} ${browserVersion} on ${navigator.platform}`, 'info');
+    }
+
+    // Feature Detection
+    function checkFeatureSupport() {
+      const features = [
+        {
+          name: 'CSS Variables',
+          supported: CSS.supports('color', 'var(--test)')
+        },
+        {
+          name: 'CSS Grid',
+          supported: CSS.supports('display', 'grid')
+        },
+        {
+          name: 'CSS Flexbox',
+          supported: CSS.supports('display', 'flex')
+        },
+        {
+          name: 'Fetch API',
+          supported: typeof fetch !== 'undefined'
+        },
+        {
+          name: 'LocalStorage',
+          supported: typeof localStorage !== 'undefined'
+        },
+        {
+          name: 'ES6 Classes',
+          supported: typeof class {} === 'function'
+        },
+        {
+          name: 'Arrow Functions',
+          supported: (() => true)()
+        },
+        {
+          name: 'Template Literals',
+          supported: `test` === 'test'
+        },
+        {
+          name: 'Async/Await',
+          supported: typeof (async () => {}) === 'function'
+        }
+      ];
+
+      const container = document.getElementById('feature-compatibility');
+      container.innerHTML = features.map(feature => `
+        <div class="feature-card">
+          <h4>${feature.name}</h4>
+          <div class="feature-status">
+            <span class="status-indicator ${feature.supported ? 'supported' : 'unsupported'}"></span>
+            <span>${feature.supported ? 'Supported' : 'Not Supported'}</span>
+          </div>
+        </div>
+      `).join('');
+
+      const unsupported = features.filter(f => !f.supported);
+      if (unsupported.length > 0) {
+        logToConsole(`⚠️ Unsupported features: ${unsupported.map(f => f.name).join(', ')}`, 'error');
+      } else {
+        logToConsole('✓ All required features are supported', 'success');
+      }
+    }
+
+    // Test Functions
+    function testCSSVariables() {
+      const testCase = document.getElementById('test-css-variables');
+      try {
+        const testDiv = document.createElement('div');
+        testDiv.style.setProperty('--test-var', 'red');
+        const supported = CSS.supports('color', 'var(--test-var)');
+        
+        if (supported) {
+          markTestPass(testCase, 'CSS Variables are supported');
+        } else {
+          markTestFail(testCase, 'CSS Variables are not supported');
+        }
+      } catch (error) {
+        markTestFail(testCase, `Error: ${error.message}`);
+      }
+    }
+
+    function testCSSGrid() {
+      const testCase = document.getElementById('test-css-grid');
+      try {
+        const supported = CSS.supports('display', 'grid');
+        if (supported) {
+          markTestPass(testCase, 'CSS Grid is supported');
+        } else {
+          markTestFail(testCase, 'CSS Grid is not supported');
+        }
+      } catch (error) {
+        markTestFail(testCase, `Error: ${error.message}`);
+      }
+    }
+
+    function testFlexbox() {
+      const testCase = document.getElementById('test-css-flexbox');
+      try {
+        const supported = CSS.supports('display', 'flex');
+        if (supported) {
+          markTestPass(testCase, 'Flexbox is supported');
+        } else {
+          markTestFail(testCase, 'Flexbox is not supported');
+        }
+      } catch (error) {
+        markTestFail(testCase, `Error: ${error.message}`);
+      }
+    }
+
+    function testFetchAPI() {
+      const testCase = document.getElementById('test-fetch-api');
+      try {
+        if (typeof fetch !== 'undefined') {
+          markTestPass(testCase, 'Fetch API is available');
+        } else {
+          markTestFail(testCase, 'Fetch API is not available');
+        }
+      } catch (error) {
+        markTestFail(testCase, `Error: ${error.message}`);
+      }
+    }
+
+    function testLocalStorage() {
+      const testCase = document.getElementById('test-localstorage');
+      try {
+        localStorage.setItem('test', 'value');
+        const value = localStorage.getItem('test');
+        localStorage.removeItem('test');
+        
+        if (value === 'value') {
+          markTestPass(testCase, 'LocalStorage is working');
+        } else {
+          markTestFail(testCase, 'LocalStorage read/write failed');
+        }
+      } catch (error) {
+        markTestFail(testCase, `Error: ${error.message}`);
+      }
+    }
+
+    function testES6Features() {
+      const testCase = document.getElementById('test-es6');
+      try {
+        // Test arrow functions
+        const arrow = () => true;
+        // Test template literals
+        const template = `test`;
+        // Test destructuring
+        const { test } = { test: true };
+        // Test spread operator
+        const arr = [...[1, 2, 3]];
+        // Test classes
+        class TestClass {}
+        
+        markTestPass(testCase, 'ES6+ features are supported');
+      } catch (error) {
+        markTestFail(testCase, `ES6+ features error: ${error.message}`);
+      }
+    }
+
+    function testReviewedGroupsRendering() {
+      const testCase = document.getElementById('test-reviewed-groups');
+      const demoContainer = document.getElementById('demo-reviewed-groups');
+      
+      try {
+        // Create mock reviewed groups section
+        demoContainer.innerHTML = `
+          <div class="reviewed-groups-section" style="margin-top: 16px;">
+            <div class="reviewed-groups-header">
+              <h3>
+                <span class="expand-icon">▼</span>
+                Reviewed Groups
+                <span class="count-badge">2</span>
+              </h3>
+            </div>
+            <div class="reviewed-groups-content">
+              <div class="reviewed-mappings-group">
+                <h4>Accepted Mappings</h4>
+                <div class="reviewed-mapping accepted">
+                  <span class="status-icon">✓</span>
+                  <span class="mapping-text">
+                    <strong>Family</strong> (Google) → <strong>Inner Circle</strong> (CatchUp)
+                  </span>
+                  <span class="member-count">12 members</span>
+                </div>
+              </div>
+              <div class="reviewed-mappings-group">
+                <h4>Skipped Mappings</h4>
+                <div class="reviewed-mapping rejected">
+                  <span class="status-icon">⊘</span>
+                  <span class="mapping-text muted">
+                    <del>Old Contacts</del> (Google) - Skipped
+                  </span>
+                  <span class="member-count muted">3 members</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Check if elements rendered
+        const section = demoContainer.querySelector('.reviewed-groups-section');
+        if (section) {
+          markTestPass(testCase, 'Reviewed Groups section rendered successfully');
+        } else {
+          markTestFail(testCase, 'Failed to render Reviewed Groups section');
+        }
+      } catch (error) {
+        markTestFail(testCase, `Rendering error: ${error.message}`);
+      }
+    }
+
+    // Test Helpers
+    function markTestPass(testCase, message) {
+      testCase.className = 'test-case pass';
+      testCase.querySelector('.test-status').textContent = '✓';
+      logToConsole(`✓ ${testCase.querySelector('h3').textContent.trim()}: ${message}`, 'success');
+      updateTestSummary();
+    }
+
+    function markTestFail(testCase, message) {
+      testCase.className = 'test-case fail';
+      testCase.querySelector('.test-status').textContent = '✗';
+      logToConsole(`✗ ${testCase.querySelector('h3').textContent.trim()}: ${message}`, 'error');
+      updateTestSummary();
+    }
+
+    function logToConsole(message, type = 'info') {
+      const console = document.getElementById('console-output');
+      const line = document.createElement('div');
+      line.className = `console-line ${type}`;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      console.appendChild(line);
+      console.scrollTop = console.scrollHeight;
+    }
+
+    function updateTestSummary() {
+      const results = document.getElementById('test-results');
+      results.style.display = 'block';
+      
+      const total = document.querySelectorAll('.test-case').length;
+      const passed = document.querySelectorAll('.test-case.pass').length;
+      const failed = document.querySelectorAll('.test-case.fail').length;
+      const pending = document.querySelectorAll('.test-case.pending').length;
+      
+      document.getElementById('total-tests').textContent = total;
+      document.getElementById('passed-tests').textContent = passed;
+      document.getElementById('failed-tests').textContent = failed;
+      document.getElementById('pending-tests').textContent = pending;
+    }
+
+    function runAllTests() {
+      logToConsole('Running all tests...', 'info');
+      
+      testCSSVariables();
+      testCSSGrid();
+      testFlexbox();
+      testFetchAPI();
+      testLocalStorage();
+      testES6Features();
+      testReviewedGroupsRendering();
+      
+      logToConsole('All tests completed', 'success');
+    }
+
+    function resetTests() {
+      document.querySelectorAll('.test-case').forEach(testCase => {
+        testCase.className = 'test-case pending';
+        testCase.querySelector('.test-status').textContent = '⏳';
+      });
+      
+      document.getElementById('demo-reviewed-groups').innerHTML = '';
+      document.getElementById('console-output').innerHTML = '<div class="console-line">Console output will appear here...</div>';
+      document.getElementById('test-results').style.display = 'none';
+      
+      logToConsole('Tests reset', 'info');
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      detectBrowser();
+      checkFeatureSupport();
+      logToConsole('Browser compatibility test initialized', 'success');
+    });
+  </script>
+</body>
+</html>

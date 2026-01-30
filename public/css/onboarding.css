@@ -47,9 +47,9 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 12px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   width: 100%;
 }
 
@@ -59,6 +59,66 @@
   color: var(--text-primary);
   text-align: left;
   margin: 0;
+}
+
+/* Header Actions Container */
+.onboarding-indicator__header-actions {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+/* Icon Buttons in Header - No background, just icons */
+.onboarding-indicator__icon-btn {
+  background: none !important;
+  border: none !important;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, transform 0.15s ease;
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0;
+  min-width: unset !important;
+  flex: unset !important;
+}
+
+.onboarding-indicator__icon-btn:hover {
+  color: var(--text-primary);
+}
+
+.onboarding-indicator__icon-btn:active {
+  transform: scale(0.9);
+}
+
+.onboarding-indicator__icon-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+  fill: none;
+  stroke: currentColor;
+}
+
+/* Finish Later Icon Button */
+.onboarding-indicator__finish-later.onboarding-indicator__icon-btn {
+  /* Inherits from icon-btn */
+}
+
+.onboarding-indicator__finish-later.onboarding-indicator__icon-btn:hover {
+  color: var(--text-primary);
+}
+
+/* Dismiss Icon Button */
+.onboarding-indicator__dismiss-btn.onboarding-indicator__icon-btn {
+  /* Inherits from icon-btn */
+}
+
+.onboarding-indicator__dismiss-btn.onboarding-indicator__icon-btn:hover {
+  color: #ef4444;
 }
 
 .onboarding-indicator__dismiss {
@@ -1869,4 +1929,220 @@
 .contact-grid::-webkit-scrollbar-thumb:hover,
 .manage-circles-modal::-webkit-scrollbar-thumb:hover {
   background: var(--border-hover);
+}
+
+
+/* ============================================================================
+   ONBOARDING MODAL FOOTER BUTTONS
+   Requirements: Groups & Preferences UI Improvements - 7.1-7.7
+   ============================================================================ */
+
+/* Collapsed State - "Continue Onboarding" Button (similar to Preferences CTA) */
+.onboarding-collapsed {
+  padding: 16px;
+  margin: 16px;
+  animation: fadeIn 0.3s ease;
+}
+
+.onboarding-continue-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.onboarding-continue-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+.onboarding-continue-btn:active {
+  transform: translateY(0);
+}
+
+.onboarding-continue-btn svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+}
+
+/* Resume CTA (for dismissed state) */
+.onboarding-resume-cta {
+  padding: 0;
+  background: transparent;
+  border: none;
+  margin: 0;
+}
+
+.onboarding-resume-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.onboarding-resume-btn:hover {
+  background: var(--bg-hover);
+}
+
+.onboarding-resume-btn:active {
+  background: var(--bg-active);
+}
+
+.onboarding-resume-btn svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+}
+
+/* Modal Footer Container (Legacy - kept for backward compatibility) */
+.onboarding-indicator__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Finish Later Button - Secondary Style (Legacy) */
+.onboarding-indicator__finish-later:not(.onboarding-indicator__icon-btn) {
+  flex: 1;
+  padding: 10px 20px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.onboarding-indicator__finish-later:not(.onboarding-indicator__icon-btn):hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+}
+
+.onboarding-indicator__finish-later:not(.onboarding-indicator__icon-btn):focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.onboarding-indicator__finish-later:not(.onboarding-indicator__icon-btn):active {
+  transform: translateY(1px);
+}
+
+/* Dismiss Button - Tertiary/Text Style (Legacy) */
+.onboarding-indicator__dismiss-btn:not(.onboarding-indicator__icon-btn) {
+  flex: 1;
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.onboarding-indicator__dismiss-btn:not(.onboarding-indicator__icon-btn):hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.onboarding-indicator__dismiss-btn:not(.onboarding-indicator__icon-btn):focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.onboarding-indicator__dismiss-btn:not(.onboarding-indicator__icon-btn):active {
+  transform: translateY(1px);
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .onboarding-indicator__footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .onboarding-indicator__finish-later:not(.onboarding-indicator__icon-btn),
+  .onboarding-indicator__dismiss-btn:not(.onboarding-indicator__icon-btn) {
+    width: 100%;
+  }
+  
+  .onboarding-collapsed,
+  .onboarding-resume-cta {
+    margin: 12px;
+  }
+}
+
+/* Dark Theme Support (Espresso) */
+@media (prefers-color-scheme: dark) {
+  .onboarding-indicator__finish-later:not(.onboarding-indicator__icon-btn) {
+    background: var(--bg-secondary);
+    border-color: var(--border-subtle);
+    color: var(--text-primary);
+  }
+  
+  .onboarding-indicator__finish-later:not(.onboarding-indicator__icon-btn):hover {
+    background: var(--bg-hover);
+    border-color: var(--border-default);
+  }
+  
+  .onboarding-indicator__dismiss-btn:not(.onboarding-indicator__icon-btn) {
+    color: var(--text-secondary);
+  }
+  
+  .onboarding-indicator__dismiss-btn:not(.onboarding-indicator__icon-btn):hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+  
+  .onboarding-collapsed,
+  .onboarding-resume-cta {
+    background: var(--bg-surface);
+    border-color: var(--border-subtle);
+  }
+  
+  .onboarding-continue-btn,
+  .onboarding-resume-btn {
+    background: var(--bg-secondary);
+    border-color: var(--border-subtle);
+    color: var(--text-primary);
+  }
+  
+  .onboarding-continue-btn:hover,
+  .onboarding-resume-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-default);
+  }
 }

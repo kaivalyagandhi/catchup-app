@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding UI Improvements Test</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <link rel="stylesheet" href="/css/onboarding.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: var(--bg-app);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .test-container {
+      max-width: 300px;
+      margin: 0 auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    
+    h1 {
+      color: var(--text-primary);
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    
+    .test-section {
+      margin-bottom: 30px;
+    }
+    
+    .test-section h2 {
+      color: var(--text-primary);
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    
+    .test-description {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+    
+    #onboarding-container {
+      background: var(--bg-app);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      max-width: 400px;
+      animation: slideInRight 0.3s ease;
+      z-index: 10000;
+    }
+    
+    .toast.info {
+      border-left: 4px solid var(--accent-primary);
+    }
+    
+    .toast.error {
+      border-left: 4px solid var(--status-error);
+    }
+    
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .controls button {
+      padding: 10px 16px;
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    
+    .controls button:hover {
+      background: var(--accent-hover);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Onboarding UI Test</h1>
+    
+    <div class="test-section">
+      <h2>Test Instructions</h2>
+      <div class="test-description">
+        <p><strong>1. Icon Buttons:</strong> Minimize and Dismiss should be just icons without background (no button UI).</p>
+        <p><strong>2. Dismiss Toast:</strong> Clicking Dismiss should show a confirmation, then a toast explaining you can continue from Preferences.</p>
+        <p><strong>3. Minimize Style:</strong> Clicking Minimize should collapse into a button similar to the Preferences CTA.</p>
+      </div>
+    </div>
+    
+    <div id="onboarding-container"></div>
+    
+    <div class="controls">
+      <button onclick="resetOnboarding()">Reset Onboarding</button>
+      <button onclick="testMinimize()">Test Minimize</button>
+      <button onclick="testDismiss()">Test Dismiss</button>
+    </div>
+  </div>
+
+  <script src="/js/onboarding-step-indicator.js"></script>
+  <script>
+    // Mock showToast function
+    window.showToast = function(message, type = 'info', duration = 3000) {
+      console.log(`Toast [${type}]: ${message}`);
+      
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideInRight 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    };
+    
+    // Initialize onboarding indicator
+    let indicator;
+    
+    function initOnboarding() {
+      const container = document.getElementById('onboarding-container');
+      
+      // Create indicator with test state
+      indicator = new OnboardingStepIndicator({
+        isComplete: false,
+        currentStep: 1,
+        dismissedAt: null,
+        collapsedAt: null,
+        steps: {
+          integrations: {
+            complete: false,
+            googleCalendar: false,
+            googleContacts: false
+          },
+          circles: {
+            complete: false,
+            contactsCategorized: 0,
+            totalContacts: 10
+          },
+          groups: {
+            complete: false,
+            mappingsReviewed: 0,
+            totalMappings: 5
+          }
+        }
+      });
+      
+      indicator.mount(container);
+      console.log('✓ Onboarding indicator initialized');
+    }
+    
+    function resetOnboarding() {
+      localStorage.removeItem('catchup-onboarding');
+      sessionStorage.removeItem('catchup-onboarding');
+      delete window.__onboardingState;
+      
+      initOnboarding();
+      console.log('✓ Onboarding reset');
+      showToast('Onboarding reset successfully', 'info');
+    }
+    
+    function testMinimize() {
+      if (indicator) {
+        indicator.handleFinishLater();
+        console.log('✓ Minimize clicked - should show collapsed state');
+      }
+    }
+    
+    function testDismiss() {
+      if (indicator) {
+        indicator.handleDismissWithConfirmation();
+        console.log('✓ Dismiss clicked - should show confirmation dialog');
+      }
+    }
+    
+    // Initialize on load
+    initOnboarding();
+    
+    console.log('=== Onboarding UI Improvements Test ===');
+    console.log('1. Check that Minimize and Dismiss are just icons (no background)');
+    console.log('2. Click Dismiss to see confirmation dialog and toast');
+    console.log('3. Click Minimize to see collapsed state (similar to Preferences button)');
+  </script>
+</body>
+</html>

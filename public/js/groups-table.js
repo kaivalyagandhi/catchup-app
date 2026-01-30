@@ -64,6 +64,9 @@ class GroupsTable {
           </tbody>
         </table>
       </div>
+      
+      <!-- Reviewed Groups Section (Requirements: Groups & Preferences UI Improvements - 4.1) -->
+      <div id="reviewed-groups-container"></div>
     `;
 
     this.container.innerHTML = tableHTML;
@@ -72,6 +75,9 @@ class GroupsTable {
     
     // Initialize Google Mappings Review (Requirements 15.2, 15.4)
     this.initializeMappingsReview();
+    
+    // Initialize Reviewed Groups Section (Requirements: Groups & Preferences UI Improvements - 4.2)
+    this.initializeReviewedGroupsSection();
   }
 
   /**
@@ -1023,6 +1029,28 @@ class GroupsTable {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  /**
+   * Initialize Reviewed Groups Section
+   * Requirements: Groups & Preferences UI Improvements - 4.2
+   */
+  async initializeReviewedGroupsSection() {
+    const container = this.container.querySelector('#reviewed-groups-container');
+    
+    if (!container) {
+      return;
+    }
+
+    // Check if ReviewedGroupsSection is available
+    if (typeof ReviewedGroupsSection === 'undefined') {
+      console.warn('ReviewedGroupsSection component not loaded');
+      return;
+    }
+
+    // Create and render reviewed groups section
+    window.reviewedGroupsSection = new ReviewedGroupsSection(container);
+    await window.reviewedGroupsSection.render();
   }
 }
 

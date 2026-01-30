@@ -280,6 +280,54 @@ router.get(
 );
 
 /**
+ * GET /api/contacts/sync/reviewed-mappings
+ * Get all reviewed group mappings (accepted and rejected)
+ * Requirements: Groups & Preferences UI Improvements - 1.1
+ */
+router.get(
+  '/reviewed-mappings',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.userId) {
+        res.status(401).json({ error: 'Not authenticated' });
+        return;
+      }
+
+      const pool = await import('../../db/connection').then((m) => m.default);
+
+      // Query reviewed mappings (approved or rejected)
+      const result = await pool.query(
+        `SELECT 
+          gcg.id,
+          gcg.google_resource_name as google_group_id,
+          gcg.google_name as google_group_name,
+          gcg.catchup_group_id,
+          g.name as catchup_group_name,
+          gcg.mapping_status as status,
+          gcg.reviewed_at,
+          gcg.member_count
+        FROM google_contact_groups gcg
+        LEFT JOIN groups g ON g.id = gcg.catchup_group_id
+        WHERE gcg.user_id = $1
+          AND gcg.mapping_status IN ('approved', 'rejected')
+        ORDER BY gcg.reviewed_at DESC`,
+        [req.userId]
+      );
+
+      res.json({ mappings: result.rows });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('Error getting reviewed mappings:', errorMsg);
+      res.status(500).json({
+        error: 'Failed to get reviewed mappings',
+        details: errorMsg,
+      });
+    }
+  }
+);
+
+/**
  * GET /api/contacts/groups/mappings/pending
  * Get all pending group mapping suggestions (legacy endpoint)
  *
