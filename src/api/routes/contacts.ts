@@ -8,6 +8,37 @@ const router = Router();
 // IMPORTANT: Specific routes must come BEFORE parameterized routes
 // Otherwise /contacts/groups will match /contacts/:id with id="groups"
 
+// GET /circle-counts - Get circle counts for all four circles
+// Requirements: 3.1 (Onboarding Flow Improvements)
+// Used by: step2-circles-handler.js checkInnerCircleCapacity()
+router.get('/circle-counts', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
+    }
+
+    const { CircleAssignmentServiceImpl } = await import('../../contacts/circle-assignment-service');
+    const circleService = new CircleAssignmentServiceImpl();
+    const distribution = await circleService.getCircleDistribution(userId as string);
+    
+    // Return only the four circle counts as expected by the frontend
+    const circleCounts = {
+      inner: distribution.inner,
+      close: distribution.close,
+      active: distribution.active,
+      casual: distribution.casual
+    };
+    
+    res.json(circleCounts);
+  } catch (error) {
+    console.error('Error fetching circle counts:', error);
+    // Return default counts on error as specified in design.md
+    res.status(500).json({ inner: 0, close: 0, active: 0, casual: 0 });
+  }
+});
+
 // Group management endpoints
 
 // GET /groups - List all groups for a user
@@ -332,6 +363,44 @@ router.post('/:id/circle', async (req: Request, res: Response): Promise<void> =>
   } catch (error) {
     console.error('Error assigning contact to circle:', error);
     res.status(500).json({ error: 'Failed to assign contact to circle' });
+  }
+});
+
+// PUT /contacts/:id/circle - Update contact circle assignment
+// Requirements: 5.4 (CircleListView manual mode)
+router.put('/:id/circle', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, circle } = req.body;
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+
+    // Allow null/undefined circle to remove from circle (uncategorize)
+    if (circle !== null && circle !== undefined) {
+      const validCircles = ['inner', 'close', 'active', 'casual'];
+      if (!validCircles.includes(circle)) {
+        res.status(400).json({ 
+          error: `Invalid circle. Must be one of: ${validCircles.join(', ')} or null` 
+        });
+        return;
+      }
+    }
+
+    const contactService = new ContactServiceImpl();
+    const contact = await contactService.updateContact(req.params.id, userId, { 
+      dunbarCircle: circle
+    });
+
+    if (!contact) {
+      res.status(404).json({ error: 'Contact not found' });
+      return;
+    }
+    
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error updating contact circle:', error);
+    res.status(500).json({ error: 'Failed to update contact circle' });
   }
 });
 

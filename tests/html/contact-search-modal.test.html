@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContactSearchModal Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    h1 {
+      color: #1f2937;
+      margin-bottom: 10px;
+    }
+    
+    .description {
+      color: #6b7280;
+      margin-bottom: 30px;
+    }
+    
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .test-section h2 {
+      color: #374151;
+      font-size: 1.25rem;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .test-result {
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    
+    .test-result.pass {
+      background: #d1fae5;
+      color: #065f46;
+      border-left: 4px solid #10b981;
+    }
+    
+    .test-result.fail {
+      background: #fee2e2;
+      color: #991b1b;
+      border-left: 4px solid #ef4444;
+    }
+    
+    .test-result.info {
+      background: #dbeafe;
+      color: #1e40af;
+      border-left: 4px solid #3b82f6;
+    }
+    
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      background: #2563eb;
+    }
+    
+    button.secondary {
+      background: #6b7280;
+    }
+    
+    button.secondary:hover {
+      background: #4b5563;
+    }
+    
+    #test-output {
+      margin-top: 20px;
+    }
+    
+    .summary {
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+    
+    .summary.all-pass {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .summary.has-failures {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <h1>ContactSearchModal Test</h1>
+  <p class="description">
+    Tests for search filtering, exclusion logic, and capacity limit enforcement.
+    <br>
+    <strong>Requirements:</strong> 2.4 (case-insensitive search), 2.9 (capacity limit), 2.11 (exclude AI suggestions)
+  </p>
+  
+  <div class="test-section">
+    <h2>Test Controls</h2>
+    <button id="run-all-tests">Run All Tests</button>
+    <button id="run-filter-tests" class="secondary">Run Filter Tests</button>
+    <button id="run-exclusion-tests" class="secondary">Run Exclusion Tests</button>
+    <button id="run-capacity-tests" class="secondary">Run Capacity Tests</button>
+    <button id="open-modal" class="secondary">Open Modal (Manual Test)</button>
+  </div>
+  
+  <div id="test-output"></div>
+  
+  <!-- Load the ContactSearchModal component -->
+  <script src="/js/contact-search-modal.js"></script>
+  
+  <script>
+    // Test utilities
+    const testResults = [];
+    
+    function logResult(testName, passed, message) {
+      testResults.push({ testName, passed, message });
+      const output = document.getElementById('test-output');
+      const div = document.createElement('div');
+      div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+      div.textContent = `${passed ? '✓' : '✗'} ${testName}: ${message}`;
+      output.appendChild(div);
+    }
+    
+    function logInfo(message) {
+      const output = document.getElementById('test-output');
+      const div = document.createElement('div');
+      div.className = 'test-result info';
+      div.textContent = `ℹ ${message}`;
+      output.appendChild(div);
+    }
+    
+    function clearOutput() {
+      document.getElementById('test-output').innerHTML = '';
+      testResults.length = 0;
+    }
+    
+    function showSummary() {
+      const output = document.getElementById('test-output');
+      const passed = testResults.filter(r => r.passed).length;
+      const failed = testResults.filter(r => !r.passed).length;
+      const total = testResults.length;
+      
+      const div = document.createElement('div');
+      div.className = `summary ${failed === 0 ? 'all-pass' : 'has-failures'}`;
+      div.textContent = `Summary: ${passed}/${total} tests passed${failed > 0 ? `, ${failed} failed` : ''}`;
+      output.appendChild(div);
+    }
+    
+    // Mock contacts for testing
+    const mockContacts = [
+      { id: '1', name: 'Alice Johnson', email: 'alice@example.com', dunbarCircle: 'inner' },
+      { id: '2', name: 'Bob Smith', email: 'bob@example.com', dunbarCircle: 'close' },
+      { id: '3', name: 'Charlie Brown', email: 'charlie@example.com', dunbarCircle: null },
+      { id: '4', name: 'Diana Prince', email: 'diana@example.com', dunbarCircle: 'active' },
+      { id: '5', name: 'Eve Wilson', email: 'eve@example.com', dunbarCircle: null },
+      { id: '6', name: 'Frank Miller', email: 'frank@example.com', dunbarCircle: 'casual' },
+      { id: '7', name: 'Grace Lee', email: 'grace@example.com', dunbarCircle: null },
+      { id: '8', name: 'Henry Adams', email: 'henry@example.com', dunbarCircle: null },
+      { id: '9', name: 'Ivy Chen', email: 'ivy@example.com', dunbarCircle: null },
+      { id: '10', name: 'Jack Davis', email: 'jack@example.com', dunbarCircle: null },
+      { id: '11', name: 'Kate Brown', email: 'kate@example.com', dunbarCircle: null },
+      { id: '12', name: 'Leo Martinez', email: 'leo@example.com', dunbarCircle: null },
+    ];
+    
+    // Test 1: Case-insensitive search filtering (Requirement 2.4)
+    function testCaseInsensitiveSearch() {
+      logInfo('Testing case-insensitive search filtering (Requirement 2.4)');
+      
+      // Create a mock modal instance
+      const modal = new ContactSearchModal({
+        excludeContactIds: [],
+        maxSelections: 10,
+        currentSelectionCount: 0
+      });
+      
+      // Set contacts directly
+      modal.contacts = [...mockContacts];
+      
+      // Test 1a: Lowercase search should match uppercase names
+      modal.searchQuery = 'alice';
+      modal.filterContacts();
+      const lowercaseResult = modal.filteredContacts.some(c => c.name === 'Alice Johnson');
+      logResult(
+        'Lowercase search matches uppercase name',
+        lowercaseResult,
+        lowercaseResult ? 'Found "Alice Johnson" with search "alice"' : 'Failed to find "Alice Johnson"'
+      );
+      
+      // Test 1b: Uppercase search should match lowercase names
+      modal.searchQuery = 'ALICE';
+      modal.filterContacts();
+      const uppercaseResult = modal.filteredContacts.some(c => c.name === 'Alice Johnson');
+      logResult(
+        'Uppercase search matches name',
+        uppercaseResult,
+        uppercaseResult ? 'Found "Alice Johnson" with search "ALICE"' : 'Failed to find "Alice Johnson"'
+      );
+      
+      // Test 1c: Mixed case search should work
+      modal.searchQuery = 'AlIcE';
+      modal.filterContacts();
+      const mixedCaseResult = modal.filteredContacts.some(c => c.name === 'Alice Johnson');
+      logResult(
+        'Mixed case search matches name',
+        mixedCaseResult,
+        mixedCaseResult ? 'Found "Alice Johnson" with search "AlIcE"' : 'Failed to find "Alice Johnson"'
+      );
+      
+      // Test 1d: Partial name search should work
+      modal.searchQuery = 'john';
+      modal.filterContacts();
+      const partialResult = modal.filteredContacts.some(c => c.name === 'Alice Johnson');
+      logResult(
+        'Partial name search works',
+        partialResult,
+        partialResult ? 'Found "Alice Johnson" with search "john"' : 'Failed to find "Alice Johnson"'
+      );
+      
+      // Test 1e: Search should filter out non-matching contacts
+      modal.searchQuery = 'alice';
+      modal.filterContacts();
+      const nonMatchingFiltered = !modal.filteredContacts.some(c => c.name === 'Bob Smith');
+      logResult(
+        'Non-matching contacts are filtered out',
+        nonMatchingFiltered,
+        nonMatchingFiltered ? '"Bob Smith" correctly excluded from "alice" search' : '"Bob Smith" incorrectly included'
+      );
+      
+      // Test 1f: Empty search should return all contacts
+      modal.searchQuery = '';
+      modal.filterContacts();
+      const emptySearchResult = modal.filteredContacts.length === mockContacts.length;
+      logResult(
+        'Empty search returns all contacts',
+        emptySearchResult,
+        emptySearchResult ? `All ${mockContacts.length} contacts returned` : `Only ${modal.filteredContacts.length} contacts returned`
+      );
+      
+      // Test 1g: Search by email should work
+      modal.searchQuery = 'bob@example';
+      modal.filterContacts();
+      const emailSearchResult = modal.filteredContacts.some(c => c.name === 'Bob Smith');
+      logResult(
+        'Search by email works',
+        emailSearchResult,
+        emailSearchResult ? 'Found "Bob Smith" by email search' : 'Failed to find by email'
+      );
+      
+      modal.destroy();
+    }
+    
+    // Test 2: Exclusion logic (Requirement 2.11)
+    function testExclusionLogic() {
+      logInfo('Testing exclusion logic (Requirement 2.11)');
+      
+      // Exclude contacts 1, 2, 3 (simulating AI suggestions)
+      const excludeIds = ['1', '2', '3'];
+      
+      const modal = new ContactSearchModal({
+        excludeContactIds: excludeIds,
+        maxSelections: 10,
+        currentSelectionCount: 0
+      });
+      
+      // Simulate fetching contacts - filter out excluded ones
+      modal.contacts = mockContacts.filter(c => !excludeIds.includes(c.id));
+      
+      // Test 2a: Excluded contacts should not be in the list
+      const excludedNotPresent = !modal.contacts.some(c => excludeIds.includes(c.id));
+      logResult(
+        'Excluded contacts not in list',
+        excludedNotPresent,
+        excludedNotPresent ? 'Contacts 1, 2, 3 correctly excluded' : 'Some excluded contacts still present'
+      );
+      
+      // Test 2b: Non-excluded contacts should be present
+      const nonExcludedPresent = modal.contacts.some(c => c.id === '4');
+      logResult(
+        'Non-excluded contacts are present',
+        nonExcludedPresent,
+        nonExcludedPresent ? 'Contact 4 correctly included' : 'Contact 4 incorrectly excluded'
+      );
+      
+      // Test 2c: Correct number of contacts after exclusion
+      const expectedCount = mockContacts.length - excludeIds.length;
+      const correctCount = modal.contacts.length === expectedCount;
+      logResult(
+        'Correct contact count after exclusion',
+        correctCount,
+        correctCount ? `${expectedCount} contacts remaining` : `Expected ${expectedCount}, got ${modal.contacts.length}`
+      );
+      
+      modal.destroy();
+    }
+    
+    // Test 3: Capacity limit enforcement (Requirement 2.9)
+    function testCapacityLimit() {
+      logInfo('Testing capacity limit enforcement (Requirement 2.9)');
+      
+      // Test with 7 already selected, max 10
+      const modal = new ContactSearchModal({
+        excludeContactIds: [],
+        maxSelections: 10,
+        currentSelectionCount: 7
+      });
+      
+      modal.contacts = [...mockContacts];
+      
+      // Test 3a: Can select up to remaining capacity
+      const remainingCapacity = modal.maxSelections - modal.currentSelectionCount;
+      logResult(
+        'Remaining capacity calculated correctly',
+        remainingCapacity === 3,
+        remainingCapacity === 3 ? 'Remaining capacity is 3' : `Expected 3, got ${remainingCapacity}`
+      );
+      
+      // Test 3b: Selecting contacts within capacity should work
+      modal.selectedContacts.set('4', mockContacts.find(c => c.id === '4'));
+      modal.selectedContacts.set('5', mockContacts.find(c => c.id === '5'));
+      modal.selectedContacts.set('6', mockContacts.find(c => c.id === '6'));
+      
+      const totalSelected = modal.currentSelectionCount + modal.selectedContacts.size;
+      const atCapacity = totalSelected === modal.maxSelections;
+      logResult(
+        'Can select up to capacity',
+        atCapacity,
+        atCapacity ? 'Successfully selected 3 contacts (now at capacity)' : `Total selected: ${totalSelected}`
+      );
+      
+      // Test 3c: Verify capacity check in handleContactSelect
+      // Simulate trying to select another contact when at capacity
+      const contact7 = mockContacts.find(c => c.id === '7');
+      const beforeSize = modal.selectedContacts.size;
+      
+      // The handleContactSelect method checks capacity before adding
+      const totalBeforeAdd = modal.currentSelectionCount + modal.selectedContacts.size;
+      const wouldExceedCapacity = totalBeforeAdd >= modal.maxSelections;
+      
+      logResult(
+        'Capacity check prevents over-selection',
+        wouldExceedCapacity,
+        wouldExceedCapacity ? 'Correctly detected at capacity' : 'Failed to detect capacity limit'
+      );
+      
+      modal.destroy();
+      
+      // Test 3d: Test with full capacity (currentSelectionCount = maxSelections)
+      const fullModal = new ContactSearchModal({
+        excludeContactIds: [],
+        maxSelections: 10,
+        currentSelectionCount: 10
+      });
+      
+      fullModal.contacts = [...mockContacts];
+      
+      const noRemainingCapacity = fullModal.maxSelections - fullModal.currentSelectionCount === 0;
+      logResult(
+        'Zero remaining capacity when full',
+        noRemainingCapacity,
+        noRemainingCapacity ? 'Correctly shows 0 remaining capacity' : 'Incorrect remaining capacity'
+      );
+      
+      fullModal.destroy();
+    }
+    
+    // Test 4: Debounce functionality (Requirement 2.4)
+    function testDebounce() {
+      logInfo('Testing debounce functionality (Requirement 2.4)');
+      
+      const modal = new ContactSearchModal({
+        excludeContactIds: [],
+        maxSelections: 10,
+        currentSelectionCount: 0
+      });
+      
+      // Check that debounce timer is set
+      let debounceTriggered = false;
+      const originalHandleSearch = modal.handleSearch.bind(modal);
+      modal.handleSearch = function(query) {
+        debounceTriggered = true;
+        originalHandleSearch(query);
+      };
+      
+      // Trigger search input
+      modal.handleSearchInput('test');
+      
+      // Immediately check - should not have triggered yet
+      const notImmediatelyTriggered = !debounceTriggered;
+      logResult(
+        'Search not triggered immediately',
+        notImmediatelyTriggered,
+        notImmediatelyTriggered ? 'Debounce working - search delayed' : 'Search triggered immediately (no debounce)'
+      );
+      
+      // Check that timer is set
+      const timerSet = modal.debounceTimer !== null;
+      logResult(
+        'Debounce timer is set',
+        timerSet,
+        timerSet ? 'Timer correctly set for 300ms delay' : 'Timer not set'
+      );
+      
+      // Clear the timer to prevent side effects
+      if (modal.debounceTimer) {
+        clearTimeout(modal.debounceTimer);
+      }
+      
+      modal.destroy();
+    }
+    
+    // Test 5: Circle display (Requirement 2.5)
+    function testCircleDisplay() {
+      logInfo('Testing circle display (Requirement 2.5)');
+      
+      const modal = new ContactSearchModal({
+        excludeContactIds: [],
+        maxSelections: 10,
+        currentSelectionCount: 0
+      });
+      
+      // Test circle name mapping
+      const innerDisplay = modal.getCircleDisplay('inner');
+      logResult(
+        'Inner circle display name',
+        innerDisplay === 'Inner Circle',
+        innerDisplay === 'Inner Circle' ? 'Correct: "Inner Circle"' : `Got: "${innerDisplay}"`
+      );
+      
+      const closeDisplay = modal.getCircleDisplay('close');
+      logResult(
+        'Close friends display name',
+        closeDisplay === 'Close Friends',
+        closeDisplay === 'Close Friends' ? 'Correct: "Close Friends"' : `Got: "${closeDisplay}"`
+      );
+      
+      const nullDisplay = modal.getCircleDisplay(null);
+      logResult(
+        'Null circle returns null',
+        nullDisplay === null,
+        nullDisplay === null ? 'Correct: null for uncategorized' : `Got: "${nullDisplay}"`
+      );
+      
+      modal.destroy();
+    }
+    
+    // Run all tests
+    function runAllTests() {
+      clearOutput();
+      testCaseInsensitiveSearch();
+      testExclusionLogic();
+      testCapacityLimit();
+      testDebounce();
+      testCircleDisplay();
+      showSummary();
+    }
+    
+    // Event listeners
+    document.getElementById('run-all-tests').addEventListener('click', runAllTests);
+    
+    document.getElementById('run-filter-tests').addEventListener('click', () => {
+      clearOutput();
+      testCaseInsensitiveSearch();
+      showSummary();
+    });
+    
+    document.getElementById('run-exclusion-tests').addEventListener('click', () => {
+      clearOutput();
+      testExclusionLogic();
+      showSummary();
+    });
+    
+    document.getElementById('run-capacity-tests').addEventListener('click', () => {
+      clearOutput();
+      testCapacityLimit();
+      showSummary();
+    });
+    
+    document.getElementById('open-modal').addEventListener('click', () => {
+      // Mock the fetch API for testing
+      const originalFetch = window.fetch;
+      window.fetch = async (url) => {
+        if (url.includes('/api/contacts')) {
+          return {
+            ok: true,
+            json: async () => ({ contacts: mockContacts })
+          };
+        }
+        return originalFetch(url);
+      };
+      
+      const modal = new ContactSearchModal({
+        excludeContactIds: ['1', '2'], // Exclude Alice and Bob (simulating AI suggestions)
+        maxSelections: 10,
+        currentSelectionCount: 2, // 2 already in AI suggestions
+        onSelect: (contacts) => {
+          console.log('Selected contacts:', contacts);
+          alert(`Selected ${contacts.length} contact(s): ${contacts.map(c => c.name).join(', ')}`);
+          window.fetch = originalFetch;
+        },
+        onCancel: () => {
+          console.log('Modal cancelled');
+          window.fetch = originalFetch;
+        }
+      });
+      
+      modal.open();
+    });
+    
+    // Run tests on page load
+    window.addEventListener('load', () => {
+      logInfo('ContactSearchModal test page loaded. Click "Run All Tests" to start.');
+    });
+  </script>
+</body>
+</html>

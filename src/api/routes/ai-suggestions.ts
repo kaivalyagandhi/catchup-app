@@ -11,6 +11,105 @@ router.use(authenticate);
 const VALID_CIRCLES = ['inner', 'close', 'active', 'casual'];
 
 /**
+ * GET /api/ai/circle-suggestions
+ * Get circle suggestions grouped by circle type (inner, close, active)
+ * Returns suggestions in format: { inner: [], close: [], active: [] }
+ * Each suggestion has: { contactId, name, confidence, reasons }
+ */
+router.get('/circle-suggestions', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.userId!;
+    console.log('[AI Suggestions] GET /circle-suggestions for userId:', userId);
+
+    // Get all uncategorized contacts
+    const { PostgresContactRepository } = await import('../../contacts/repository');
+    const contactRepo = new PostgresContactRepository();
+    const uncategorized = await contactRepo.findUncategorized(userId);
+    
+    console.log('[AI Suggestions] Found uncategorized contacts:', uncategorized.length);
+    
+    if (uncategorized.length === 0) {
+      console.log('[AI Suggestions] No uncategorized contacts, returning empty suggestions');
+      res.json({ suggestions: { inner: [], close: [], active: [] } });
+      return;
+    }
+
+    // Limit to first 50 uncategorized contacts for performance
+    const targetContacts = uncategorized.slice(0, 50);
+    const targetContactIds = targetContacts.map((c: any) => c.id);
+
+    const aiService = new PostgresAISuggestionService();
+    
+    // Set a timeout for AI processing (15 seconds for GET)
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('AI suggestion timeout')), 15000);
+    });
+
+    const suggestionsPromise = aiService.batchAnalyze(userId, targetContactIds);
+
+    try {
+      const flatSuggestions = await Promise.race([suggestionsPromise, timeoutPromise]) as any[];
+      
+      console.log('[AI Suggestions] Got flat suggestions:', flatSuggestions.length);
+      
+      // Group suggestions by circle
+      const grouped: { inner: any[], close: any[], active: any[] } = {
+        inner: [],
+        close: [],
+        active: []
+      };
+      
+      // Create a map of contact IDs to names
+      const contactNameMap = new Map<string, string>();
+      targetContacts.forEach((c: any) => {
+        contactNameMap.set(c.id, c.name || 'Unknown');
+      });
+      
+      // Group suggestions by their suggested circle
+      flatSuggestions.forEach((suggestion: any) => {
+        const circle = suggestion.suggestedCircle || suggestion.circle;
+        console.log('[AI Suggestions] Processing suggestion:', suggestion.contactId, 'circle:', circle);
+        if (circle && grouped[circle as keyof typeof grouped]) {
+          grouped[circle as keyof typeof grouped].push({
+            contactId: suggestion.contactId,
+            name: contactNameMap.get(suggestion.contactId) || 'Unknown',
+            confidence: suggestion.confidence || 0.7,
+            reasons: suggestion.factors?.map((f: any) => f.description) || suggestion.reasons || ['AI suggested']
+          });
+        }
+      });
+      
+      // Sort each circle by confidence (highest first) and limit to 5 per circle
+      Object.keys(grouped).forEach(circle => {
+        grouped[circle as keyof typeof grouped] = grouped[circle as keyof typeof grouped]
+          .sort((a, b) => b.confidence - a.confidence)
+          .slice(0, 5);
+      });
+      
+      console.log('[AI Suggestions] Grouped suggestions:', {
+        inner: grouped.inner.length,
+        close: grouped.close.length,
+        active: grouped.active.length
+      });
+      
+      res.json({ suggestions: grouped });
+    } catch (timeoutError) {
+      console.error('AI suggestion timeout:', timeoutError);
+      res.json({ 
+        suggestions: { inner: [], close: [], active: [] },
+        warning: 'AI suggestion service timed out.'
+      });
+    }
+  } catch (error) {
+    console.error('Error getting circle suggestions:', error);
+    res.json({ 
+      suggestions: { inner: [], close: [], active: [] },
+      error: 'Failed to get AI suggestions.'
+    });
+  }
+});
+
+/**
  * POST /api/ai/circle-suggestions
  * Generate circle suggestions for contacts
  * Analyze communication frequency, recency, calendar co-attendance

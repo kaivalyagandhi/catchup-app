@@ -76,7 +76,7 @@ class OnboardingStepIndicator {
            role="navigation" 
            aria-label="Onboarding progress">
         <div class="sr-only" aria-live="polite" aria-atomic="true">
-          ${completedSteps} of 3 steps completed
+          ${completedSteps} of 2 steps completed
         </div>
         <div class="onboarding-indicator__row onboarding-indicator__header">
           <h2 class="onboarding-indicator__title" id="onboarding-title">Get Started</h2>

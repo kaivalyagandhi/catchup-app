@@ -47,8 +47,8 @@ class Step2CirclesHandler {
   
   /**
    * Open the new simplified circle assignment flow
-   * QuickStartFlow → BatchSuggestions → QuickRefine
-   * Requirements: 5.1, 6.1, 7.1
+   * QuickStartFlow → QuickRefine (Smart Batching removed per Requirement 1.1)
+   * Requirements: 3.2, 3.3, 3.4, 3.5, 5.1, 6.1, 7.1
    */
   async openManageCirclesFlow() {
     try {
@@ -67,8 +67,16 @@ class Step2CirclesHandler {
       // Fetch contacts
       await this.fetchContacts();
       
-      // Start with Quick Start Flow
-      await this.startQuickStartFlow();
+      // Check saved mode preference (Requirement 5.9, 6.6)
+      const savedMode = localStorage.getItem('circle-management-mode');
+      // Map old mode names to new ones
+      let initialMode = 'organize';
+      if (savedMode === 'swipe') {
+        initialMode = 'swipe';
+      }
+      
+      // Create the modal container with mode toggle (Requirement 6.1)
+      await this.createModalWithModeToggle(initialMode);
       
       // Set up event listeners for progress tracking
       this.setupEventListeners();
@@ -83,10 +91,11 @@ class Step2CirclesHandler {
   }
   
   /**
-   * Start the Quick Start Flow (Step 1 of new flow)
-   * Requirements: 5.1, 5.6, 5.7, 5.8, 5.9, 19.1, 19.2
+   * Create the modal container with mode toggle at the top
+   * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5
+   * @param {string} initialMode - Initial mode ('ai-assisted' or 'manual')
    */
-  async startQuickStartFlow() {
+  async createModalWithModeToggle(initialMode) {
     // Create container for the flow
     const container = document.createElement('div');
     container.id = 'onboarding-flow-container';
@@ -94,36 +103,135 @@ class Step2CirclesHandler {
     container.innerHTML = `
       <div class="manage-circles-modal">
         <div class="manage-circles__header">
-          <h2>Organize Your Circles - Step 1 of 3</h2>
-          <button class="btn-close" id="flow-close" aria-label="Close">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px;">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <div class="education-tip">
-          <div class="education-tip__icon">💡</div>
-          <div class="education-tip__content">
-            <strong>Understanding Circles:</strong> Based on Dunbar's number research, humans naturally maintain relationships in layers. 
-            Your <strong>Inner Circle</strong> (~5 people) includes your closest relationships - those you see or talk to weekly.
-            <a href="#" class="education-tip__learn-more" id="learn-more-circles">Learn more about circles</a>
+          <h2>Organize Your Circles</h2>
+          <div class="manage-circles__header-actions">
+            <button class="btn-secondary btn-sm" id="flow-skip">Skip for Now</button>
+            <button class="btn-primary btn-sm" id="flow-done">Done</button>
           </div>
         </div>
-        <div id="quick-start-container"></div>
+        <div class="manage-circles__mode-toggle-container" id="mode-toggle-container"></div>
+        <div id="mode-content-container"></div>
       </div>
     `;
     
     document.body.appendChild(container);
     
-    // Add close button handler
-    const closeBtn = document.getElementById('flow-close');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => this.closeFlow());
+    // Add header button handlers
+    const skipBtn = document.getElementById('flow-skip');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', () => {
+        this.handleSkip();
+        this.closeFlow();
+      });
     }
     
+    const doneBtn = document.getElementById('flow-done');
+    if (doneBtn) {
+      doneBtn.addEventListener('click', () => this.handleFlowComplete());
+    }
+    
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+    
+    // Initialize Mode Toggle component (Requirement 6.1, 6.2, 6.3)
+    if (typeof ModeToggle !== 'undefined') {
+      this.modeToggle = new ModeToggle({
+        containerId: 'mode-toggle-container',
+        defaultMode: initialMode,
+        onModeChange: (newMode, previousMode) => this.handleModeChange(newMode, previousMode)
+      });
+      this.modeToggle.mount();
+    } else {
+      console.warn('[Step2] ModeToggle component not loaded, defaulting to AI-Assisted mode');
+    }
+    
+    // Load the appropriate content based on mode
+    await this.loadModeContent(initialMode);
+  }
+  
+  /**
+   * Handle mode change from the toggle
+   * Requirements: 6.4, 6.5, 6.8
+   * @param {string} newMode - The new mode ('organize' or 'swipe')
+   * @param {string} previousMode - The previous mode
+   */
+  async handleModeChange(newMode, previousMode) {
+    console.log(`[Step2] Mode changed from ${previousMode} to ${newMode}`);
+    
+    // Clean up current mode components before switching (Requirement 6.8 - preserve progress)
+    this.cleanupCurrentModeComponents();
+    
+    // Load the new mode content
+    await this.loadModeContent(newMode);
+  }
+  
+  /**
+   * Clean up current mode components
+   */
+  cleanupCurrentModeComponents() {
+    // Clean up Quick Start Flow
+    if (this.quickStartFlow) {
+      if (typeof this.quickStartFlow.destroy === 'function') {
+        this.quickStartFlow.destroy();
+      }
+      this.quickStartFlow = null;
+    }
+    
+    // Clean up Quick Refine Card
+    if (this.quickRefineCard) {
+      if (typeof this.quickRefineCard.destroy === 'function') {
+        this.quickRefineCard.destroy();
+      }
+      this.quickRefineCard = null;
+    }
+    
+    // Clean up Circle List View
+    if (this.circleListView) {
+      if (typeof this.circleListView.destroy === 'function') {
+        this.circleListView.destroy();
+      }
+      this.circleListView = null;
+    }
+  }
+  
+  /**
+   * Load content based on the selected mode
+   * Requirements: 6.4, 6.5
+   * @param {string} mode - The mode to load ('organize' or 'swipe')
+   */
+  async loadModeContent(mode) {
+    const contentContainer = document.getElementById('mode-content-container');
+    if (!contentContainer) return;
+    
+    if (mode === 'swipe') {
+      // Load Swipe Mode with QuickRefineCard
+      await this.loadSwipeModeContent(contentContainer);
+    } else {
+      // Load unified Organize Mode (merged AI + Manual)
+      await this.loadOrganizeModeContent(contentContainer);
+    }
+  }
+  
+  /**
+   * Load unified Organize Mode content with CircleListView + AI Suggestions
+   * Merges AI Suggestions and Manual Review into one view
+   * @param {HTMLElement} contentContainer - Container to render into
+   */
+  async loadOrganizeModeContent(contentContainer) {
+    contentContainer.innerHTML = `
+      <div class="education-tip">
+        <div class="education-tip__icon">✨</div>
+        <div class="education-tip__content">
+          <strong>Organize Your Circles:</strong> Your contacts are shown below with AI suggestions (dotted outline).
+          Click ✓ to accept a suggestion, or use the search bar to find and add contacts manually.
+          <a href="#" class="education-tip__learn-more" id="learn-more-organize">Learn more about circles</a>
+        </div>
+      </div>
+      <div id="circle-list-view-container"></div>
+    `;
+    
     // Add learn more handler
-    const learnMoreBtn = document.getElementById('learn-more-circles');
+    const learnMoreBtn = document.getElementById('learn-more-organize');
     if (learnMoreBtn) {
       learnMoreBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -131,232 +239,166 @@ class Step2CirclesHandler {
       });
     }
     
-    // Prevent body scroll
-    document.body.style.overflow = 'hidden';
+    // Fetch AI suggestions for Inner, Close, and Active circles
+    const aiSuggestions = await this.fetchCircleSuggestions();
     
-    // Initialize Quick Start Flow
-    if (typeof QuickStartFlow === 'undefined') {
-      console.error('QuickStartFlow component not loaded');
-      if (typeof showToast === 'function') {
-        showToast('Quick Start component not available', 'error');
-      }
-      return;
-    }
-    
-    this.quickStartFlow = new QuickStartFlow({
-      containerId: 'quick-start-container',
-      userId: window.userId || localStorage.getItem('userId'),
-      onAcceptAll: (contactIds, circle) => {
-        console.log('Quick Start: Accept All', contactIds, circle);
-        this.handleQuickStartComplete(contactIds);
-      },
-      onReview: () => {
-        console.log('Quick Start: Review mode activated');
-      },
-      onSkip: () => {
-        console.log('Quick Start: Skipped');
-        this.startBatchSuggestionsFlow();
-      },
-      onComplete: (result) => {
-        console.log('Quick Start: Complete', result);
-        this.startBatchSuggestionsFlow();
-      }
-    });
-    
-    await this.quickStartFlow.render();
-  }
-  
-  /**
-   * Handle Quick Start completion and move to Batch Suggestions
-   * Requirements: 5.10, 6.1
-   */
-  async handleQuickStartComplete(assignedContactIds) {
-    // Update progress
-    this.updateProgress();
-    
-    // Move to Batch Suggestions
-    await this.startBatchSuggestionsFlow();
-  }
-  
-  /**
-   * Start the Batch Suggestions Flow (Step 2 of new flow)
-   * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 19.1, 19.3
-   */
-  async startBatchSuggestionsFlow() {
-    const container = document.getElementById('onboarding-flow-container');
-    if (!container) return;
-    
-    // Update header
-    const header = container.querySelector('.manage-circles__header h2');
-    if (header) {
-      header.textContent = 'Organize Your Circles - Step 2 of 3';
-    }
-    
-    // Update education tip
-    const educationTip = container.querySelector('.education-tip__content');
-    if (educationTip) {
-      educationTip.innerHTML = `
-        <strong>Smart Batching:</strong> We've grouped contacts by relationship signals (family, work, hobbies, etc.). 
-        Assign entire groups to circles with one click to save time.
-        <a href="#" class="education-tip__learn-more" id="learn-more-batching">Learn more</a>
+    // Initialize CircleListView component with AI suggestions
+    if (typeof CircleListView !== 'undefined') {
+      this.circleListView = new CircleListView({
+        containerId: 'circle-list-view-container',
+        userId: window.userId || localStorage.getItem('userId'),
+        aiSuggestions: aiSuggestions, // Pass AI suggestions
+        onContactMove: async (contactId, targetCircle) => {
+          await this.handleContactAssigned(contactId, targetCircle);
+        },
+        onContactRemove: async (contactId) => {
+          await this.handleContactAssigned(contactId, null);
+        },
+        onSuggestionAccept: async (contactId, circle) => {
+          await this.handleContactAssigned(contactId, circle);
+        },
+        onSave: () => this.handleFlowComplete(),
+        onCancel: () => {
+          this.handleSkip();
+          this.closeFlow();
+        }
+      });
+      await this.circleListView.mount();
+    } else {
+      console.error('[Step2] CircleListView component not loaded');
+      contentContainer.innerHTML = `
+        <div class="error-state">
+          <p>Failed to load circle organizer. Please refresh and try again.</p>
+        </div>
       `;
-      
-      // Re-attach learn more handler
-      const learnMoreBtn = document.getElementById('learn-more-batching');
-      if (learnMoreBtn) {
-        learnMoreBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          this.showBatchingEducation();
-        });
-      }
     }
-    
-    // Clear previous content
-    const contentContainer = document.getElementById('quick-start-container');
-    if (!contentContainer) return;
-    
-    contentContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading batch suggestions...</p></div>';
-    
-    // Check if BatchSuggestionCard component is available
-    if (typeof BatchSuggestionCard === 'undefined') {
-      console.error('BatchSuggestionCard component not loaded');
-      // Fall back to Quick Refine
-      await this.startQuickRefineFlow();
-      return;
-    }
-    
+  }
+  
+  /**
+   * Fetch AI suggestions for Inner, Close, and Active circles
+   * @returns {Promise<Object>} Suggestions grouped by circle
+   */
+  async fetchCircleSuggestions() {
     try {
-      // Fetch batch suggestions
-      const response = await fetch(`/api/ai/batch-suggestions?userId=${window.userId || localStorage.getItem('userId')}`, {
+      const userId = window.userId || localStorage.getItem('userId');
+      const authToken = localStorage.getItem('authToken');
+      
+      if (!userId || !authToken) {
+        console.log('[Step2] No userId or authToken, returning empty suggestions');
+        return { inner: [], close: [], active: [] };
+      }
+      
+      console.log('[Step2] Fetching AI suggestions for userId:', userId);
+      const response = await fetch(`/api/ai/circle-suggestions?userId=${userId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${authToken}`
         }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch batch suggestions');
+        console.warn('[Step2] Failed to fetch AI suggestions, status:', response.status);
+        return { inner: [], close: [], active: [] };
       }
       
       const data = await response.json();
-      const batches = data.batches || [];
-      
-      if (batches.length === 0) {
-        // No batches, move to Quick Refine
-        await this.startQuickRefineFlow();
-        return;
-      }
-      
-      // Render batch suggestions
+      console.log('[Step2] AI suggestions response:', data);
+      const suggestions = data.suggestions || { inner: [], close: [], active: [] };
+      console.log('[Step2] Parsed suggestions:', suggestions);
+      return suggestions;
+    } catch (error) {
+      console.error('[Step2] Error fetching AI suggestions:', error);
+      return { inner: [], close: [], active: [] };
+    }
+  }
+  
+  /**
+   * Load Manual Mode content with CircleListView
+   * Requirements: 5.3, 5.4, 5.5, 5.6, 5.7, 6.4
+   * @param {HTMLElement} contentContainer - Container to render into
+   */
+  async loadManualModeContent(contentContainer) {
+    contentContainer.innerHTML = `
+      <div class="education-tip">
+        <div class="education-tip__icon">📋</div>
+        <div class="education-tip__content">
+          <strong>Manual Review:</strong> Organize contacts by searching and assigning them to circles directly.
+          Click on a contact chip to remove it, or use the search bar to find and add contacts.
+          <a href="#" class="education-tip__learn-more" id="learn-more-manual">Learn more about circles</a>
+        </div>
+      </div>
+      <div id="circle-list-view-container"></div>
+    `;
+    
+    // Add learn more handler
+    const learnMoreBtn = document.getElementById('learn-more-manual');
+    if (learnMoreBtn) {
+      learnMoreBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showCirclesEducation();
+      });
+    }
+    
+    // Initialize CircleListView component
+    if (typeof CircleListView !== 'undefined') {
+      this.circleListView = new CircleListView({
+        containerId: 'circle-list-view-container',
+        userId: window.userId || localStorage.getItem('userId'),
+        onContactMove: async (contactId, targetCircle) => {
+          await this.handleContactAssigned(contactId, targetCircle);
+        },
+        onContactRemove: async (contactId) => {
+          await this.handleContactAssigned(contactId, null);
+        },
+        onSave: () => this.handleFlowComplete(),
+        onCancel: () => {
+          this.handleSkip();
+          this.closeFlow();
+        }
+      });
+      await this.circleListView.mount();
+    } else {
+      console.error('[Step2] CircleListView component not loaded');
       contentContainer.innerHTML = `
-        <div class="batch-suggestions-container">
-          <div class="batch-suggestions-header">
-            <h3>Smart Batching by Relationship Signals</h3>
-            <p>We've grouped your contacts based on relationship strength. Review and accept each batch.</p>
-          </div>
-          <div id="batch-cards-container"></div>
-          <div class="batch-actions">
-            <button class="btn-primary" id="batch-done">Done with Batches</button>
-            <button class="btn-text" id="batch-skip">Skip to Manual Review</button>
-          </div>
+        <div class="error-state">
+          <p>Manual mode is not available. Please try AI Suggestions mode.</p>
         </div>
       `;
-      
-      // Render each batch card
-      const batchCardsContainer = document.getElementById('batch-cards-container');
-      this.batchCards = [];
-      
-      batches.forEach((batch, index) => {
-        const card = new BatchSuggestionCard(batch, {
-          onAccept: (result) => {
-            console.log('Batch accepted:', result);
-            this.handleBatchAccepted(result.batchId, result.contactIds, result.circle);
-          },
-          onSkip: (result) => {
-            console.log('Batch skipped:', result);
-          }
-        });
-        
-        // render() returns the card element - append it to the container
-        const cardElement = card.render();
-        batchCardsContainer.appendChild(cardElement);
-        this.batchCards.push(card);
+    }
+  }
+  
+  /**
+   * Load Swipe Mode content with QuickRefineCard
+   * @param {HTMLElement} contentContainer - Container to render into
+   */
+  async loadSwipeModeContent(contentContainer) {
+    contentContainer.innerHTML = `
+      <div class="education-tip">
+        <div class="education-tip__icon">👆</div>
+        <div class="education-tip__content">
+          <strong>Swipe Mode:</strong> Quickly categorize contacts one at a time. Use keyboard shortcuts (1-4) to assign circles, S to skip, A to archive, D when done.
+          <a href="#" class="education-tip__learn-more" id="learn-more-swipe">Learn more</a>
+        </div>
+      </div>
+      <div id="quick-refine-container"><div class="loading-state"><div class="spinner"></div><p>Loading contacts...</p></div></div>
+    `;
+    
+    // Add learn more handler
+    const learnMoreBtn = document.getElementById('learn-more-swipe');
+    if (learnMoreBtn) {
+      learnMoreBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showRefineEducation();
       });
-      
-      // Add event listeners
-      const doneBtn = document.getElementById('batch-done');
-      if (doneBtn) {
-        doneBtn.addEventListener('click', () => this.startQuickRefineFlow());
-      }
-      
-      const skipBtn = document.getElementById('batch-skip');
-      if (skipBtn) {
-        skipBtn.addEventListener('click', () => this.startQuickRefineFlow());
-      }
-      
-    } catch (error) {
-      console.error('Error loading batch suggestions:', error);
-      // Fall back to Quick Refine
-      await this.startQuickRefineFlow();
     }
-  }
-  
-  /**
-   * Handle batch acceptance
-   * Requirements: 6.8, 6.9
-   */
-  async handleBatchAccepted(batchId, contactIds, circle) {
-    // Update progress
-    this.updateProgress();
-    
-    // Show undo toast if available
-    if (typeof UndoToast !== 'undefined') {
-      // Undo toast will be handled by the BatchSuggestionCard component
-    }
-  }
-  
-  /**
-   * Start the Quick Refine Flow (Step 3 of new flow)
-   * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 19.1, 19.4
-   */
-  async startQuickRefineFlow() {
-    const container = document.getElementById('onboarding-flow-container');
-    if (!container) return;
-    
-    // Update header
-    const header = container.querySelector('.manage-circles__header h2');
-    if (header) {
-      header.textContent = 'Organize Your Circles - Step 3 of 3';
-    }
-    
-    // Update education tip
-    const educationTip = container.querySelector('.education-tip__content');
-    if (educationTip) {
-      educationTip.innerHTML = `
-        <strong>Quick Refine:</strong> Use 1-4 keys to assign, S to skip, D when done.
-        <a href="#" class="education-tip__learn-more" id="learn-more-refine">Learn more</a>
-      `;
-      
-      // Re-attach learn more handler
-      const learnMoreBtn = document.getElementById('learn-more-refine');
-      if (learnMoreBtn) {
-        learnMoreBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          this.showRefineEducation();
-        });
-      }
-    }
-    
-    // Clear previous content
-    const contentContainer = document.getElementById('quick-start-container');
-    if (!contentContainer) return;
-    
-    contentContainer.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading remaining contacts...</p></div>';
     
     // Check if QuickRefineCard component is available
     if (typeof QuickRefineCard === 'undefined') {
       console.error('QuickRefineCard component not loaded');
-      // Fall back to completion
-      await this.handleFlowComplete();
+      contentContainer.innerHTML = `
+        <div class="error-state">
+          <p>Swipe mode is not available. Please try another mode.</p>
+        </div>
+      `;
       return;
     }
     
@@ -379,13 +421,30 @@ class Step2CirclesHandler {
       );
       
       if (uncategorized.length === 0) {
-        // All contacts categorized, complete the flow
-        await this.handleFlowComplete();
+        // All contacts categorized
+        const quickRefineContainer = document.getElementById('quick-refine-container');
+        if (quickRefineContainer) {
+          quickRefineContainer.innerHTML = `
+            <div class="quick-refine-empty">
+              <div class="quick-refine-empty-icon">🎉</div>
+              <h3>All Done!</h3>
+              <p>All your contacts are already organized into circles.</p>
+              <button class="refine-btn refine-btn-done" id="swipe-mode-done">Continue</button>
+            </div>
+          `;
+          const doneBtn = document.getElementById('swipe-mode-done');
+          if (doneBtn) {
+            doneBtn.addEventListener('click', () => this.handleFlowComplete());
+          }
+        }
         return;
       }
       
       // Render Quick Refine
-      contentContainer.innerHTML = '<div id="quick-refine-container"></div>';
+      const quickRefineContainer = document.getElementById('quick-refine-container');
+      if (quickRefineContainer) {
+        quickRefineContainer.innerHTML = '';
+      }
       
       this.quickRefineCard = new QuickRefineCard(uncategorized, {
         containerId: 'quick-refine-container',
@@ -394,11 +453,11 @@ class Step2CirclesHandler {
           this.handleContactAssigned(contactId, circle);
         },
         onDone: () => {
-          console.log('Quick Refine: Done');
+          console.log('Swipe Mode: Done');
           this.handleFlowComplete();
         },
         onSkip: () => {
-          console.log('Quick Refine: Skipped');
+          console.log('Swipe Mode: Skipped');
           this.handleFlowComplete();
         }
       });
@@ -406,9 +465,332 @@ class Step2CirclesHandler {
       await this.quickRefineCard.render();
       
     } catch (error) {
-      console.error('Error loading Quick Refine:', error);
-      // Complete the flow anyway
-      await this.handleFlowComplete();
+      console.error('Error loading Swipe Mode:', error);
+      const quickRefineContainer = document.getElementById('quick-refine-container');
+      if (quickRefineContainer) {
+        quickRefineContainer.innerHTML = `
+          <div class="error-state">
+            <p>Failed to load contacts. Please try again.</p>
+          </div>
+        `;
+      }
+    }
+  }
+  
+  /**
+   * Load AI-Assisted Mode content
+   * Requirements: 3.2, 3.3, 3.4, 3.5, 6.5
+   * @param {HTMLElement} contentContainer - Container to render into
+   */
+  async loadAIAssistedModeContent(contentContainer) {
+    // Initialize tracking arrays for step indicator (Requirements 7.2, 7.3, 7.7)
+    this.skippedSteps = [];
+    this.completedSteps = [];
+    
+    // Check Inner Circle capacity (Requirements 3.1, 3.2, 3.3, 3.4, 3.5)
+    const capacityInfo = await this.checkInnerCircleCapacity();
+    
+    if (capacityInfo.isFull) {
+      // Inner Circle is at capacity (>= 10), show message
+      contentContainer.innerHTML = `
+        <div class="education-tip">
+          <div class="education-tip__icon">✅</div>
+          <div class="education-tip__content">
+            <strong>Inner Circle Full:</strong> Your Inner Circle already has ${capacityInfo.count} contacts.
+            You can use Manual Review mode to reorganize, or Swipe Mode to categorize remaining contacts.
+          </div>
+        </div>
+        <div class="quick-refine-empty">
+          <div class="quick-refine-empty-icon">🎉</div>
+          <h3>Inner Circle Complete!</h3>
+          <p>Your Inner Circle is at capacity. Switch to another mode to continue organizing.</p>
+          <div class="quick-start-actions" style="margin-top: 2rem;">
+            <button class="quick-start-btn btn-primary" id="ai-mode-done">Done</button>
+          </div>
+        </div>
+      `;
+      
+      const doneBtn = document.getElementById('ai-mode-done');
+      if (doneBtn) {
+        doneBtn.addEventListener('click', () => this.handleFlowComplete());
+      }
+      return;
+    }
+    
+    // Start with Quick Start Flow (with capacity limit for 8-9 contacts) (Requirement 3.5)
+    await this.loadQuickStartContent(contentContainer, capacityInfo.remaining);
+  }
+  
+  /**
+   * Render dynamic step indicator with step names, checkmarks, and skip handling
+   * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7
+   * @param {number} currentStep - Current step number (1-based)
+   * @param {number} totalSteps - Total number of steps
+   * @param {Array<string>} skippedSteps - Array of skipped step names
+   * @param {Array<string>} completedSteps - Array of completed step names
+   * @returns {string} HTML for the step indicator
+   */
+  renderStepIndicator(currentStep, totalSteps, skippedSteps = [], completedSteps = []) {
+    // Define all possible steps in the AI-Assisted flow
+    const allSteps = [
+      { id: 'quick-start', name: 'AI Quick Start', number: 1 },
+      { id: 'quick-refine', name: 'Quick Refine', number: 2 }
+    ];
+    
+    // Filter out skipped steps to get active steps
+    const activeSteps = allSteps.filter(step => !skippedSteps.includes(step.id));
+    
+    // Recalculate step numbers based on active steps
+    activeSteps.forEach((step, index) => {
+      step.displayNumber = index + 1;
+    });
+    
+    // Calculate actual total steps (excluding skipped)
+    const actualTotalSteps = activeSteps.length;
+    
+    // Find the current step in active steps
+    const currentStepIndex = currentStep - 1;
+    const currentStepData = activeSteps[currentStepIndex];
+    
+    // Build the step indicator HTML
+    const stepsHtml = activeSteps.map((step, index) => {
+      const isCompleted = completedSteps.includes(step.id) || index < currentStepIndex;
+      const isCurrent = index === currentStepIndex;
+      const isUpcoming = index > currentStepIndex;
+      
+      let statusClass = '';
+      let statusIcon = '';
+      
+      if (isCompleted) {
+        statusClass = 'step-indicator__step--completed';
+        statusIcon = '<span class="step-indicator__checkmark">✓</span>';
+      } else if (isCurrent) {
+        statusClass = 'step-indicator__step--current';
+        statusIcon = `<span class="step-indicator__number">${step.displayNumber}</span>`;
+      } else if (isUpcoming) {
+        statusClass = 'step-indicator__step--upcoming';
+        statusIcon = `<span class="step-indicator__number">${step.displayNumber}</span>`;
+      }
+      
+      return `
+        <div class="step-indicator__step ${statusClass}">
+          <div class="step-indicator__icon-wrapper">
+            ${statusIcon}
+          </div>
+          <span class="step-indicator__name">${step.name}</span>
+        </div>
+        ${index < activeSteps.length - 1 ? '<div class="step-indicator__connector"></div>' : ''}
+      `;
+    }).join('');
+    
+    // Add skipped steps indicator if any steps were skipped
+    let skippedIndicator = '';
+    if (skippedSteps.length > 0) {
+      const skippedNames = allSteps
+        .filter(step => skippedSteps.includes(step.id))
+        .map(step => step.name)
+        .join(', ');
+      skippedIndicator = `
+        <div class="step-indicator__skipped-notice">
+          <span class="step-indicator__skipped-icon">⏭️</span>
+          <span class="step-indicator__skipped-text">Skipped: ${skippedNames}</span>
+        </div>
+      `;
+    }
+    
+    return `
+      <div class="step-indicator-enhanced">
+        <div class="step-indicator__steps">
+          ${stepsHtml}
+        </div>
+        ${skippedIndicator}
+      </div>
+    `;
+  }
+  
+  /**
+   * Load Quick Start content into the container
+   * @param {HTMLElement} contentContainer - Container to render into
+   * @param {number} remainingCapacity - Remaining Inner Circle capacity
+   */
+  async loadQuickStartContent(contentContainer, remainingCapacity = 10) {
+    // Track that Quick Start is not skipped
+    this.skippedSteps = this.skippedSteps || [];
+    this.completedSteps = this.completedSteps || [];
+    
+    contentContainer.innerHTML = `
+      <div class="education-tip">
+        <div class="education-tip__icon">💡</div>
+        <div class="education-tip__content">
+          <strong>Understanding Circles:</strong> Based on Dunbar's number research, humans naturally maintain relationships in layers. 
+          Your <strong>Inner Circle</strong> (~5 people) includes your closest relationships - those you see or talk to weekly.
+          ${remainingCapacity < 10 ? `<br><em>Note: You have room for ${remainingCapacity} more contact${remainingCapacity === 1 ? '' : 's'} in your Inner Circle.</em>` : ''}
+          <a href="#" class="education-tip__learn-more" id="learn-more-circles">Learn more about circles</a>
+        </div>
+      </div>
+      <div id="quick-start-container"></div>
+    `;
+    
+    // Add learn more handler
+    const learnMoreBtn = document.getElementById('learn-more-circles');
+    if (learnMoreBtn) {
+      learnMoreBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showCirclesEducation();
+      });
+    }
+    
+    // Initialize Quick Start Flow
+    if (typeof QuickStartFlow === 'undefined') {
+      console.error('QuickStartFlow component not loaded');
+      if (typeof showToast === 'function') {
+        showToast('Quick Start component not available', 'error');
+      }
+      return;
+    }
+    
+    this.quickStartFlow = new QuickStartFlow({
+      containerId: 'quick-start-container',
+      userId: window.userId || localStorage.getItem('userId'),
+      maxSuggestions: remainingCapacity,
+      onAcceptAll: (contactIds, circle) => {
+        console.log('Quick Start: Accept All', contactIds, circle);
+        this.handleQuickStartComplete(contactIds);
+      },
+      onReview: () => {
+        console.log('Quick Start: Review mode activated');
+      },
+      onSkip: () => {
+        console.log('Quick Start: Skipped');
+        this.handleFlowComplete();
+      },
+      onComplete: (result) => {
+        console.log('Quick Start: Complete', result);
+        this.handleFlowComplete();
+      }
+    });
+    
+    await this.quickStartFlow.render();
+  }
+  
+  /**
+   * Transition from Quick Start to completion
+   * @deprecated Quick Refine is now a separate mode (Swipe Mode)
+   */
+  async transitionToQuickRefine() {
+    // Quick Refine is now accessed via Swipe Mode toggle
+    // Just complete the AI Suggestions flow
+    await this.handleFlowComplete();
+  }
+  
+  /**
+   * Open Manual Mode for circle management (legacy method - now handled by mode toggle)
+   * Requirements: 5.3, 5.9, 6.4
+   * @deprecated Use createModalWithModeToggle() with 'manual' mode instead
+   */
+  async openManualMode() {
+    // This method is now deprecated - mode switching is handled by the mode toggle
+    // Redirect to the new modal with mode toggle
+    await this.createModalWithModeToggle('manual');
+    this.setupEventListeners();
+  }
+  
+  /**
+   * Check if Inner Circle is at capacity
+   * Returns capacity information for the Inner Circle
+   * Requirements: 3.1
+   * @returns {Promise<{count: number, capacity: number, isFull: boolean, remaining: number}>}
+   */
+  async checkInnerCircleCapacity() {
+    try {
+      const userId = window.userId || localStorage.getItem('userId');
+      const authToken = localStorage.getItem('authToken');
+      
+      if (!userId || !authToken) {
+        console.warn('[Step2] User not authenticated, returning default capacity');
+        return { count: 0, capacity: 10, isFull: false, remaining: 10 };
+      }
+      
+      const response = await fetch(`/api/contacts/circle-counts?userId=${userId}`, {
+        headers: { 
+          'Authorization': `Bearer ${authToken}` 
+        }
+      });
+      
+      if (!response.ok) {
+        console.warn('[Step2] Failed to fetch circle counts, returning default capacity');
+        return { count: 0, capacity: 10, isFull: false, remaining: 10 };
+      }
+      
+      const data = await response.json();
+      const innerCount = data.inner || 0;
+      const capacity = 10; // Dunbar's Inner Circle capacity
+      
+      return {
+        count: innerCount,
+        capacity,
+        isFull: innerCount >= capacity,
+        remaining: Math.max(0, capacity - innerCount)
+      };
+    } catch (error) {
+      console.error('Error checking Inner Circle capacity:', error);
+      return { count: 0, capacity: 10, isFull: false, remaining: 10 };
+    }
+  }
+  
+  /**
+   * Start the Quick Start Flow (Step 1 of new flow)
+   * Requirements: 3.5, 5.1, 5.6, 5.7, 5.8, 5.9, 19.1, 19.2
+   * @param {number} [remainingCapacity=10] - Remaining Inner Circle capacity (for 8-9 contacts case)
+   * @deprecated Use createModalWithModeToggle() instead - this method is kept for backward compatibility
+   */
+  async startQuickStartFlow(remainingCapacity = 10) {
+    // If modal doesn't exist, create it with mode toggle
+    const existingContainer = document.getElementById('onboarding-flow-container');
+    if (!existingContainer) {
+      await this.createModalWithModeToggle('ai-assisted');
+      return;
+    }
+    
+    // If modal exists, just load the Quick Start content
+    const contentContainer = document.getElementById('mode-content-container');
+    if (contentContainer) {
+      await this.loadQuickStartContent(contentContainer, remainingCapacity);
+    }
+  }
+  
+  /**
+   * Handle Quick Start completion
+   * Requirements: 5.10, 1.1, 1.2
+   */
+  async handleQuickStartComplete(assignedContactIds) {
+    // Update progress
+    this.updateProgress();
+    
+    // Complete the flow - user can switch to Swipe Mode if they want to continue
+    await this.handleFlowComplete();
+  }
+  
+  // NOTE: startBatchSuggestionsFlow() and handleBatchAccepted() methods removed
+  // per Requirements 1.1, 1.4 - Smart Batching step eliminated from the flow
+  // Flow now proceeds directly from AI Quick Start to Quick Refine
+
+  /**
+   * Start the Quick Refine Flow (now Swipe Mode)
+   * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 19.1, 19.4
+   * @deprecated Use mode toggle to switch to 'swipe' mode instead
+   */
+  async startQuickRefineFlow() {
+    // If modal doesn't exist, create it with mode toggle and go to Swipe Mode
+    const existingContainer = document.getElementById('onboarding-flow-container');
+    if (!existingContainer) {
+      await this.createModalWithModeToggle('swipe');
+      return;
+    }
+    
+    // If modal exists, switch to swipe mode
+    if (this.modeToggle && typeof this.modeToggle.setMode === 'function') {
+      this.modeToggle.setMode('swipe');
     }
   }
   
@@ -506,21 +888,66 @@ class Step2CirclesHandler {
     // Restore body scroll
     document.body.style.overflow = '';
     
-    // Clean up components
+    // Clean up Mode Toggle component
+    if (this.modeToggle) {
+      if (typeof this.modeToggle.destroy === 'function') {
+        this.modeToggle.destroy();
+      }
+      this.modeToggle = null;
+    }
+    
+    // Clean up Quick Start Flow
     if (this.quickStartFlow) {
-      this.quickStartFlow.destroy();
+      if (typeof this.quickStartFlow.destroy === 'function') {
+        this.quickStartFlow.destroy();
+      }
       this.quickStartFlow = null;
     }
     
-    if (this.batchCards) {
-      this.batchCards.forEach(card => card.destroy && card.destroy());
-      this.batchCards = null;
-    }
+    // NOTE: batchCards cleanup removed - Smart Batching eliminated per Requirement 1.4
     
+    // Clean up Quick Refine Card
     if (this.quickRefineCard) {
-      this.quickRefineCard.destroy && this.quickRefineCard.destroy();
+      if (typeof this.quickRefineCard.destroy === 'function') {
+        this.quickRefineCard.destroy();
+      }
       this.quickRefineCard = null;
     }
+    
+    // Clean up Circle List View
+    if (this.circleListView) {
+      if (typeof this.circleListView.destroy === 'function') {
+        this.circleListView.destroy();
+      }
+      this.circleListView = null;
+    }
+    
+    // Trigger visualization refresh
+    this.refreshVisualization();
+  }
+  
+  /**
+   * Refresh the circles visualization after modal closes
+   */
+  refreshVisualization() {
+    // Dispatch custom event for visualization refresh
+    window.dispatchEvent(new CustomEvent('contacts-updated'));
+    
+    // Also try to refresh the circular visualizer directly if available
+    if (typeof window.circularVisualizer !== 'undefined' && window.circularVisualizer) {
+      if (typeof window.circularVisualizer.refresh === 'function') {
+        window.circularVisualizer.refresh();
+      } else if (typeof window.circularVisualizer.loadContacts === 'function') {
+        window.circularVisualizer.loadContacts();
+      }
+    }
+    
+    // Try refreshing via the app's refresh mechanism
+    if (typeof refreshContacts === 'function') {
+      refreshContacts();
+    }
+    
+    console.log('[Step2] Triggered visualization refresh');
   }
   
   /**
@@ -1228,59 +1655,8 @@ class Step2CirclesHandler {
           </div>
         `
       },
-      batching: {
-        title: 'Smart Batching',
-        html: `
-          <div class="education-section">
-            <h3>Save Time with Batch Assignment</h3>
-            <p>We've analyzed your contacts and grouped them by relationship signals to help you organize faster.</p>
-          </div>
-          
-          <div class="education-features">
-            <div class="feature-item">
-              <div class="feature-icon">👨‍👩‍👧‍👦</div>
-              <div class="feature-content">
-                <h4>Family Groups</h4>
-                <p>Contacts identified as family members based on shared last names and relationship indicators.</p>
-              </div>
-            </div>
-            
-            <div class="feature-item">
-              <div class="feature-icon">💼</div>
-              <div class="feature-content">
-                <h4>Work Colleagues</h4>
-                <p>People from the same company or with similar job titles and professional connections.</p>
-              </div>
-            </div>
-            
-            <div class="feature-item">
-              <div class="feature-icon">🎯</div>
-              <div class="feature-content">
-                <h4>Shared Interests</h4>
-                <p>Contacts grouped by hobbies, activities, or common interests you've mentioned.</p>
-              </div>
-            </div>
-            
-            <div class="feature-item">
-              <div class="feature-icon">📅</div>
-              <div class="feature-content">
-                <h4>Calendar Overlap</h4>
-                <p>People you frequently meet with based on shared calendar events.</p>
-              </div>
-            </div>
-          </div>
-          
-          <div class="education-tips">
-            <h3>How to Use Batching</h3>
-            <ul>
-              <li><strong>Review each batch:</strong> Check if the suggested circle makes sense</li>
-              <li><strong>Accept or skip:</strong> Accept entire batches with one click, or skip to review individually</li>
-              <li><strong>Expand to see details:</strong> Click on a batch to see all contacts before accepting</li>
-              <li><strong>It's flexible:</strong> You can always adjust assignments later</li>
-            </ul>
-          </div>
-        `
-      },
+      // NOTE: 'batching' education content removed per Requirement 1.4, 1.5
+      // Smart Batching UI components have been eliminated from the flow
       refine: {
         title: 'Quick Refine',
         html: `
@@ -1317,13 +1693,8 @@ class Step2CirclesHandler {
     return content[topic] || content.circles;
   }
   
-  /**
-   * Show batching education
-   * Requirements: 19.1, 19.3
-   */
-  showBatchingEducation() {
-    this.showEducationModal('batching');
-  }
+  // NOTE: showBatchingEducation() method removed per Requirement 1.4
+  // Smart Batching UI components have been eliminated from the flow
   
   /**
    * Show refine education
