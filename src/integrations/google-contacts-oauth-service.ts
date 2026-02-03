@@ -179,6 +179,19 @@ export class GoogleContactsOAuthService {
   }
 
   /**
+   * Get refresh token for user
+   */
+  async getRefreshToken(userId: string): Promise<string | undefined> {
+    const token = await getToken(userId, PROVIDER);
+
+    if (!token) {
+      throw new Error('User has not connected Google Contacts');
+    }
+
+    return token.refreshToken;
+  }
+
+  /**
    * Disconnect and revoke tokens
    * Clears OAuth tokens and sync state while preserving contacts
    */

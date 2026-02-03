@@ -95,11 +95,19 @@ export interface GeminiConfig {
 /**
  * Default Gemini configuration
  *
- * Uses gemini-2.0-flash-lite for higher free tier rate limits (30 RPM vs 10 RPM).
- * Lower temperature (0.2) ensures more consistent entity extraction.
+ * Uses gemini-2.5-flash for voice notes entity extraction.
+ * This is a more powerful model needed for complex structured extraction:
+ * - Context-aware entity extraction from transcripts
+ * - Multi-contact disambiguation
+ * - Nuanced understanding of relationships and context
+ * 
+ * Pricing: $0.30/1M input tokens, $2.50/1M output tokens
+ * Worth the extra cost for accuracy in voice notes/edits feature.
+ * 
+ * Lower temperature (0.2) ensures more consistent extraction.
  */
 export const DEFAULT_GEMINI_CONFIG: Omit<GeminiConfig, 'apiKey'> = {
-  model: process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite',
+  model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
   temperature: 0.2, // Lower temperature for more consistent extraction
   topP: 0.8,
   topK: 40,

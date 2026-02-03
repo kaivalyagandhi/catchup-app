@@ -11,7 +11,7 @@ All project documentation has been organized into `docs/` folder.
 
 **Features**: `docs/features/`
 - `directory-page/` - Contact management UI
-- `google-integrations/` - Google SSO, Calendar, Contacts
+- `google-integrations/` - Google SSO, Calendar, Contacts, Sync Optimization
 - `enrichment/` - Pending edits and AI enrichment
 - `voice-notes/` - Voice transcription and processing
 - `onboarding/` - Contact onboarding flow
@@ -76,3 +76,28 @@ Current steering files in `.kiro/steering/`:
 **Need manual testing?** → `tests/html/` for HTML test files
 **Need historical context?** → `docs/archive/`
 **Need TODO tracking?** → `docs/development/UNIMPLEMENTED_FEATURES.md`
+
+## Google Sync Optimization
+
+The Google Sync Optimization feature is fully implemented and documented:
+
+**Key Documentation**:
+- **Architecture**: `.kiro/steering/google-integrations.md` (Section 4)
+- **Admin Guide**: `docs/features/google-integrations/ADMIN_GUIDE.md`
+- **Monitoring**: `docs/features/google-integrations/MONITORING.md`
+- **Deployment**: `docs/development/SYNC_OPTIMIZATION_DEPLOYMENT.md`
+- **Local Testing**: `docs/testing/SYNC_OPTIMIZATION_LOCAL_TESTING.md`
+- **Integration Summary**: `docs/features/google-integrations/SYNC_ORCHESTRATION_INTEGRATION.md`
+
+**Key Components**:
+- Token Health Monitor: `src/integrations/token-health-monitor.ts`
+- Circuit Breaker Manager: `src/integrations/circuit-breaker-manager.ts`
+- Adaptive Sync Scheduler: `src/integrations/adaptive-sync-scheduler.ts`
+- Calendar Webhook Manager: `src/integrations/calendar-webhook-manager.ts`
+- Sync Orchestrator: `src/integrations/sync-orchestrator.ts`
+- Admin Dashboard: `public/admin/sync-health.html`
+
+**Admin Tools**:
+- Promote admin: `npm run promote-admin -- promote user@example.com`
+- Admin dashboard: `/admin/sync-health.html`
+- Test script: `scripts/test-sync-optimization.sh`

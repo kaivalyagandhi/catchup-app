@@ -6,6 +6,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import * as schedulingPreferencesService from '../../scheduling/scheduling-preferences-service';
 import * as preferencesRepository from '../../scheduling/preferences-repository';
 
@@ -14,15 +15,13 @@ const router = Router();
 /**
  * GET /api/scheduling/preferences - Get user scheduling preferences
  */
-router.get('/preferences', async (req: Request, res: Response) => {
+router.get('/preferences', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.query;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const preferences = await schedulingPreferencesService.getPreferences(userId as string);
+    const preferences = await schedulingPreferencesService.getPreferences(req.userId);
     
     if (!preferences) {
       // Return default preferences if none exist
@@ -46,10 +45,13 @@ router.get('/preferences', async (req: Request, res: Response) => {
 /**
  * PUT /api/scheduling/preferences - Save user scheduling preferences
  */
-router.put('/preferences', async (req: Request, res: Response) => {
+router.put('/preferences', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
     const {
-      userId,
       preferredDays,
       preferredTimeRanges,
       preferredDurations,
@@ -58,11 +60,7 @@ router.put('/preferences', async (req: Request, res: Response) => {
       applyByDefault,
     } = req.body;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
-
-    const preferences = await schedulingPreferencesService.savePreferences(userId, {
+    const preferences = await schedulingPreferencesService.savePreferences(req.userId, {
       preferredDays,
       preferredTimeRanges,
       preferredDurations,
@@ -173,16 +171,13 @@ router.get('/preferences/suggested-slots', async (req: Request, res: Response) =
  * GET /api/scheduling/privacy - Get user calendar sharing privacy settings
  * Requirements: 8.5, 8.6
  */
-router.get('/privacy', async (req: Request, res: Response) => {
+router.get('/privacy', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Get userId from query or auth header
-    const userId = req.query.userId as string || (req as any).userId;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const privacySettings = await preferencesRepository.getPrivacySettings(userId);
+    const privacySettings = await preferencesRepository.getPrivacySettings(req.userId);
     
     if (!privacySettings) {
       // Return default privacy settings (private by default)

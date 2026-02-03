@@ -92,6 +92,11 @@ This document provides an organized overview of all documentation in the CatchUp
 - [CALENDAR_EMAIL_DEBUG.md](features/google-integrations/CALENDAR_EMAIL_DEBUG.md) - Email debugging
 - [CALENDAR_EMAIL_STATUS_UPDATE.md](features/google-integrations/CALENDAR_EMAIL_STATUS_UPDATE.md) - Status updates
 
+**Sync Optimization**:
+- [ADMIN_GUIDE.md](features/google-integrations/ADMIN_GUIDE.md) - Admin dashboard and sync health monitoring
+- [MONITORING.md](features/google-integrations/MONITORING.md) - Metrics, alerts, and observability
+- [SYNC_ORCHESTRATION_INTEGRATION.md](features/google-integrations/SYNC_ORCHESTRATION_INTEGRATION.md) - Orchestration layer integration
+
 **General**:
 - [GOOGLE_CLOUD_SETUP_GUIDE.md](features/google-integrations/GOOGLE_CLOUD_SETUP_GUIDE.md) - Cloud setup
 - [GOOGLE_INTEGRATION_VISUAL_TESTING_GUIDE.md](features/google-integrations/GOOGLE_INTEGRATION_VISUAL_TESTING_GUIDE.md) - Visual testing
@@ -248,6 +253,10 @@ See [docs/examples/README.md](examples/README.md) for detailed documentation on 
 - [test-sync-routes.md](testing/test-sync-routes.md)
 - [test-webhook-integration.md](testing/test-webhook-integration.md)
 
+**Sync Optimization Testing**:
+- [SYNC_OPTIMIZATION_LOCAL_TESTING.md](testing/SYNC_OPTIMIZATION_LOCAL_TESTING.md) - Local testing guide
+- [SYNC_OPTIMIZATION_TESTING_SUMMARY.md](testing/SYNC_OPTIMIZATION_TESTING_SUMMARY.md) - Testing summary
+
 **Manual Test Files** (`tests/html/`):
 
 HTML files for manual testing and verification of features in isolation. See [tests/html/README.md](../tests/html/README.md) for complete documentation.
@@ -284,7 +293,9 @@ To use manual test files, start the dev server (`npm run dev`) and navigate to `
 **Implementation**:
 - [IMPLEMENTATION_CHECKLIST.md](development/IMPLEMENTATION_CHECKLIST.md) - Implementation checklist
 - [IMPLEMENTATION_COMPLETE.md](development/IMPLEMENTATION_COMPLETE.md) - Completion status
+**Deployment**:
 - [DEPLOYMENT_CHECKLIST.md](development/DEPLOYMENT_CHECKLIST.md) - Deployment checklist
+- [SYNC_OPTIMIZATION_DEPLOYMENT.md](development/SYNC_OPTIMIZATION_DEPLOYMENT.md) - Sync optimization deployment guide
 - [MIGRATION_COMPLETE.md](development/MIGRATION_COMPLETE.md) - Migration status
 - [MERGE_VERIFICATION_SUMMARY.md](development/MERGE_VERIFICATION_SUMMARY.md) - Merge verification
 

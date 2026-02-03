@@ -2,7 +2,13 @@
  * Calendar Sync Job Processor
  *
  * Scheduled job that refreshes calendar data from Google Calendar.
- * Runs every 30 minutes per user to keep availability predictions up to date.
+ * Runs with adaptive frequency based on change detection.
+ *
+ * Now integrated with SyncOrchestrator for optimization features:
+ * - Token health validation before sync
+ * - Circuit breaker pattern to prevent repeated failures
+ * - Adaptive scheduling based on change detection
+ * - Comprehensive metrics recording
  *
  * Requirements: 7.8, 8.1
  */
@@ -11,18 +17,18 @@ import Bull from 'bull';
 import { CalendarSyncJobData, CalendarSyncResult } from '../types';
 import * as oauthRepository from '../../integrations/oauth-repository';
 import * as calendarService from '../../calendar/calendar-service';
-import { DateRange } from '../../types';
-
-const SYNC_WINDOW_DAYS = 30; // Sync calendar data for next 30 days
+import { syncOrchestrator } from '../../integrations/sync-orchestrator';
 
 /**
  * Process calendar sync job
  *
- * Refreshes calendar data by:
- * 1. Getting user's OAuth token
- * 2. Syncing calendar list from Google
- * 3. Fetching events from selected calendars
- * 4. Updating availability predictions
+ * Executes sync operation through SyncOrchestrator which handles:
+ * - Token health validation
+ * - Circuit breaker checks
+ * - Adaptive scheduling
+ * - Metrics recording
+ *
+ * Requirements: 1.1, 1.4, 2.2, 5.1, 5.2, 10.5
  */
 export async function processCalendarSync(
   job: Bull.Job<CalendarSyncJobData>
@@ -48,40 +54,52 @@ export async function processCalendarSync(
       return result;
     }
 
-    // Define date range for sync (next 30 days)
-    const now = new Date();
-    const endDate = new Date(now);
-    endDate.setDate(endDate.getDate() + SYNC_WINDOW_DAYS);
-
-    const dateRange: DateRange = {
-      start: now,
-      end: endDate,
-    };
-
-    // Sync calendars from Google first
-    await calendarService.syncCalendarsFromGoogle(userId, token.accessToken, token.refreshToken);
-
-    // Refresh calendar data (fetch events and calculate free slots)
-    const availableSlots = await calendarService.getFreeTimeSlots(
+    // Execute sync through orchestrator
+    // This adds token health checks, circuit breaker, adaptive scheduling, and metrics
+    console.log(`Executing calendar sync through orchestrator for user ${userId}`);
+    const orchestratorResult = await syncOrchestrator.executeSyncJob({
       userId,
-      token.accessToken,
-      dateRange,
-      token.refreshToken
-    );
+      integrationType: 'google_calendar',
+      syncType: 'incremental', // Calendar syncs are always incremental
+      accessToken: token.accessToken,
+      refreshToken: token.refreshToken,
+      bypassCircuitBreaker: false, // Respect circuit breaker for scheduled syncs
+    });
+
+    // Check if sync was skipped
+    if (orchestratorResult.result === 'skipped') {
+      console.log(
+        `Sync skipped for user ${userId}: ${orchestratorResult.skipReason || 'unknown reason'}`
+      );
+      result.errors.push(
+        `Sync skipped: ${orchestratorResult.skipReason || 'unknown reason'}`
+      );
+      return result;
+    }
+
+    // Check if sync failed
+    if (!orchestratorResult.success) {
+      const errorMessage = orchestratorResult.errorMessage || 'Sync failed';
+      console.error(`Sync failed for user ${userId}: ${errorMessage}`);
+      result.errors.push(errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    // Sync calendar list from Google (to update calendar metadata)
+    await calendarService.syncCalendarsFromGoogle(userId, token.accessToken, token.refreshToken);
 
     // Get calendar count
     const calendars = await calendarService.listUserCalendars(userId);
     result.calendarsRefreshed = calendars.length;
 
-    // Estimate events processed (rough calculation based on available slots)
-    // This is an approximation since we don't have direct access to event count
-    result.eventsProcessed = Math.max(
-      0,
-      Math.floor((SYNC_WINDOW_DAYS * 24 - availableSlots.length) / 2)
-    );
+    // Get events processed from orchestrator
+    result.eventsProcessed = orchestratorResult.itemsProcessed || 0;
 
     console.log(
-      `Calendar sync complete for user ${userId} - refreshed ${result.calendarsRefreshed} calendars, ~${result.eventsProcessed} events processed, ${availableSlots.length} free slots identified`
+      `Calendar sync complete for user ${userId} - ` +
+        `refreshed ${result.calendarsRefreshed} calendars, ` +
+        `${result.eventsProcessed} events processed, ` +
+        `API calls saved: ${orchestratorResult.apiCallsSaved || 0}`
     );
 
     return result;

@@ -211,17 +211,29 @@ async function fetchEventsFromGoogle(
 
   for (const calendarId of calendarIds) {
     try {
-      const response = await calendar.events.list({
-        calendarId,
-        timeMin: dateRange.start.toISOString(),
-        timeMax: dateRange.end.toISOString(),
-        singleEvents: true,
-        orderBy: 'startTime',
-      });
+      let pageToken: string | undefined;
+      let eventsProcessed = 0;
+      
+      do {
+        const response = await calendar.events.list({
+          calendarId,
+          timeMin: dateRange.start.toISOString(),
+          timeMax: dateRange.end.toISOString(),
+          singleEvents: true,
+          orderBy: 'startTime',
+          maxResults: 250, // Fetch in smaller pages for memory efficiency
+          pageToken,
+        });
 
-      if (response.data.items) {
-        allEvents.push(...response.data.items.map((event) => ({ event, calendarId })));
-      }
+        if (response.data.items && response.data.items.length > 0) {
+          allEvents.push(...response.data.items.map((event) => ({ event, calendarId })));
+          eventsProcessed += response.data.items.length;
+        }
+        
+        pageToken = response.data.nextPageToken || undefined;
+      } while (pageToken);
+      
+      console.log(`Fetched ${eventsProcessed} events from calendar ${calendarId} (${dateRange.start.toISOString().split('T')[0]} to ${dateRange.end.toISOString().split('T')[0]})`);
     } catch (error) {
       console.error(`Error fetching events from calendar ${calendarId}:`, error);
       // Continue with other calendars even if one fails
@@ -240,36 +252,53 @@ async function syncEventsToCache(
   calendarIds: string[],
   dateRange: DateRange
 ): Promise<void> {
-  // Fetch events from Google
+  const BATCH_SIZE = 100; // Process events in batches of 100
+  
+  // Fetch events from Google (already batched internally)
   const googleEvents = await fetchEventsFromGoogle(auth, calendarIds, dateRange);
+  
+  console.log(`Processing ${googleEvents.length} events in batches of ${BATCH_SIZE}`);
 
-  // Convert to our format
-  const eventsToCache = googleEvents
-    .map(({ event, calendarId }) => {
-      if (!event.id) return null;
+  // Process events in batches to prevent memory issues
+  for (let i = 0; i < googleEvents.length; i += BATCH_SIZE) {
+    const batch = googleEvents.slice(i, i + BATCH_SIZE);
+    
+    // Convert batch to our format
+    const eventsToCache = batch
+      .map(({ event, calendarId }) => {
+        if (!event.id) return null;
 
-      // Skip all-day events or events without proper time data
-      const startTime = event.start?.dateTime;
-      const endTime = event.end?.dateTime;
-      const isAllDay = !!(event.start?.date || event.end?.date);
+        // Skip all-day events or events without proper time data
+        const startTime = event.start?.dateTime;
+        const endTime = event.end?.dateTime;
+        const isAllDay = !!(event.start?.date || event.end?.date);
 
-      return {
-        googleEventId: event.id,
-        calendarId,
-        summary: event.summary || null,
-        description: event.description || null,
-        startTime: startTime ? new Date(startTime) : new Date(event.start?.date || ''),
-        endTime: endTime ? new Date(endTime) : new Date(event.end?.date || ''),
-        timezone: event.start?.timeZone || 'UTC',
-        isAllDay,
-        isBusy: event.transparency !== 'transparent',
-        location: event.location || null,
-      };
-    })
-    .filter((e): e is NonNullable<typeof e> => e !== null);
+        return {
+          googleEventId: event.id,
+          calendarId,
+          summary: event.summary || null,
+          description: event.description || null,
+          startTime: startTime ? new Date(startTime) : new Date(event.start?.date || ''),
+          endTime: endTime ? new Date(endTime) : new Date(event.end?.date || ''),
+          timezone: event.start?.timeZone || 'UTC',
+          isAllDay,
+          isBusy: event.transparency !== 'transparent',
+          location: event.location || null,
+        };
+      })
+      .filter((e): e is NonNullable<typeof e> => e !== null);
 
-  // Store in database
-  await calendarEventsRepository.upsertEvents(userId, eventsToCache);
+    // Store batch in database
+    if (eventsToCache.length > 0) {
+      await calendarEventsRepository.upsertEvents(userId, eventsToCache);
+      console.log(`Synced batch ${Math.floor(i / BATCH_SIZE) + 1}: ${eventsToCache.length} events`);
+    }
+    
+    // Allow garbage collection between batches
+    if (global.gc) {
+      global.gc();
+    }
+  }
 
   // Update last sync time
   await calendarEventsRepository.updateLastSyncTime(userId);
@@ -277,7 +306,7 @@ async function syncEventsToCache(
   // Clean up old events
   await calendarEventsRepository.deleteOldEvents(userId);
 
-  console.log(`Synced ${eventsToCache.length} calendar events for user ${userId}`);
+  console.log(`Completed syncing ${googleEvents.length} calendar events for user ${userId}`);
 }
 
 /**
@@ -515,11 +544,18 @@ export async function forceRefreshCalendarEvents(
     const calendarIds = selectedCalendars.map((cal) => cal.calendarId);
     const auth = getAuthenticatedClient(accessToken, refreshToken);
 
-    // Sync next 30 days
+    // Smart sync range: 2 weeks past + current week + 2 months future
+    // This captures recent context and upcoming availability
+    const now = new Date();
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const twoMonthsFromNow = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+    
     const syncRange: DateRange = {
-      start: new Date(),
-      end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      start: twoWeeksAgo,
+      end: twoMonthsFromNow,
     };
+    
+    console.log(`Syncing calendar events from ${syncRange.start.toISOString()} to ${syncRange.end.toISOString()}`);
 
     await syncEventsToCache(userId, auth, calendarIds, syncRange);
 

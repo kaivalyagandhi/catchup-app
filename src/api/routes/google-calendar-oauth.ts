@@ -185,28 +185,29 @@ router.get('/callback', async (req: Request, res: Response) => {
       // Don't fail the OAuth flow if schedule initialization fails
     }
 
-    // Trigger initial calendar sync and suggestion regeneration
+    // Trigger initial calendar sync and suggestion regeneration in background
     try {
-      const { forceRefreshCalendarEvents } = await import('../../calendar/calendar-service');
-      await forceRefreshCalendarEvents(
-        userId,
-        tokens.access_token,
-        tokens.refresh_token || undefined
-      );
-
-      // Enqueue suggestion regeneration
       const { enqueueJob, QUEUE_NAMES } = await import('../../jobs/queue');
+      
+      // Enqueue calendar sync job (non-blocking)
+      await enqueueJob(QUEUE_NAMES.CALENDAR_SYNC, {
+        userId: userId,
+        reason: 'oauth_reconnect',
+      });
+      console.log(`Calendar sync job queued for user ${userId}`);
+      
+      // Enqueue suggestion regeneration
       await enqueueJob(QUEUE_NAMES.SUGGESTION_REGENERATION, {
         userId: userId,
         reason: 'calendar_sync',
       });
-      console.log(`Initial calendar sync and suggestion regeneration queued for user ${userId}`);
-    } catch (syncError) {
-      console.error('Failed to sync calendar or enqueue suggestion regeneration:', syncError);
-      // Don't fail the OAuth flow if sync fails
+      console.log(`Suggestion regeneration queued for user ${userId}`);
+    } catch (jobError) {
+      console.error('Failed to enqueue background jobs:', jobError);
+      // Don't fail the OAuth flow if job queueing fails
     }
 
-    // Redirect to frontend with success
+    // Redirect to frontend with success immediately (don't wait for sync)
     res.redirect('/?calendar_success=true');
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);

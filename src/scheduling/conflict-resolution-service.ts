@@ -5,7 +5,7 @@
  * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 7.10, 7.11
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getGeminiClient } from '../integrations/google-gemini-config';
 import * as schedulingRepository from './scheduling-repository';
 import * as availabilityCollectionService from './availability-collection-service';
 import {
@@ -16,18 +16,6 @@ import {
   ConflictAnalysis,
   SlotOverlap,
 } from '../types/scheduling';
-
-/**
- * Initialize Gemini client
- */
-function getGeminiClient(): GoogleGenerativeAI | null {
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) {
-    console.warn('GOOGLE_GEMINI_API_KEY not set, AI suggestions will be disabled');
-    return null;
-  }
-  return new GoogleGenerativeAI(apiKey);
-}
 
 /**
  * Analyze conflicts and generate suggestions
@@ -84,6 +72,7 @@ export async function analyzeConflicts(
 
 /**
  * Generate AI suggestions for conflict resolution
+ * Uses Gemini 2.5 Flash-Lite Preview for cost-effective suggestions
  */
 async function generateAISuggestions(
   plan: CatchupPlan,
@@ -91,13 +80,20 @@ async function generateAISuggestions(
   initiatorAvailability: string[],
   overlaps: Map<string, SlotOverlap>
 ): Promise<ConflictSuggestion[]> {
-  const genAI = getGeminiClient();
-  if (!genAI) {
-    return generateFallbackSuggestions(plan, overlaps);
-  }
-
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const genAI = getGeminiClient();
+    
+    // Use Gemini 2.5 Flash-Lite Preview - cheapest model with good performance
+    // Input: $0.10/1M tokens, Output: $0.40/1M tokens
+    const model = genAI.getGenerativeModel({ 
+      model: process.env.GEMINI_SCHEDULING_MODEL || 'gemini-2.5-flash-lite-preview',
+      generationConfig: {
+        temperature: 0.3, // Low temperature for consistent suggestions
+        topP: 0.8,
+        topK: 40,
+        maxOutputTokens: 1024,
+      }
+    });
 
     // Build availability summary (limit to top 20 slots by overlap count)
     const sortedSlots = Array.from(overlaps.entries())

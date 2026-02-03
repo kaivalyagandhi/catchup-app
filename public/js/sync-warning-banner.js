@@ -79,10 +79,11 @@ class SyncWarningBanner {
     // Check immediately
     this.checkSyncHealth();
 
-    // Check every 30 seconds
+    // Check once per day (24 hours = 86400000 milliseconds)
+    // Daily checks are sufficient to catch sync issues while minimizing server load
     this.checkInterval = setInterval(() => {
       this.checkSyncHealth();
-    }, 30000);
+    }, 86400000);
   }
 
   /**
@@ -102,7 +103,7 @@ class SyncWarningBanner {
     try {
       const response = await fetch('/api/contacts/sync/comprehensive-health', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
       });
 

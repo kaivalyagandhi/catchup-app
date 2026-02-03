@@ -1418,10 +1418,12 @@ class Step2CirclesHandler {
       }
       
       // Update legacy onboarding state
-      if (window.onboardingIndicator) {
+      if (window.onboardingIndicator && window.onboardingIndicator.state) {
         const currentState = window.onboardingIndicator.state;
-        currentState.steps.groupMappings.complete = true;
-        window.onboardingIndicator.updateState(currentState);
+        if (currentState.steps && currentState.steps.groups) {
+          currentState.steps.groups.complete = true;
+          window.onboardingIndicator.updateState(currentState);
+        }
       }
       
       if (typeof showToast === 'function') {

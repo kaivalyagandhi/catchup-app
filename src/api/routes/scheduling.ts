@@ -6,6 +6,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import * as schedulingService from '../../scheduling/scheduling-service';
 import * as conflictResolutionService from '../../scheduling/conflict-resolution-service';
 import { CreatePlanData, PlanFilters, FinalizePlanData } from '../../types/scheduling';
@@ -76,16 +77,15 @@ router.get('/plans', async (req: Request, res: Response) => {
 /**
  * GET /api/scheduling/plans/:id - Get plan details
  */
-router.get('/plans/:id', async (req: Request, res: Response) => {
+router.get('/plans/:id', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { userId } = req.query;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const plan = await schedulingService.getPlanById(id, userId as string);
+    const plan = await schedulingService.getPlanById(id, req.userId);
     if (!plan) {
       return res.status(404).json({ error: 'Plan not found' });
     }
@@ -184,16 +184,15 @@ router.delete('/plans/:id', async (req: Request, res: Response) => {
 /**
  * GET /api/scheduling/plans/:id/ai-suggestions - Get AI suggestions for conflict resolution
  */
-router.get('/plans/:id/ai-suggestions', async (req: Request, res: Response) => {
+router.get('/plans/:id/ai-suggestions', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { userId } = req.query;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const analysis = await conflictResolutionService.analyzeConflicts(id, userId as string);
+    const analysis = await conflictResolutionService.analyzeConflicts(id, req.userId);
     res.json(analysis);
   } catch (error: any) {
     console.error('Error getting AI suggestions:', error);

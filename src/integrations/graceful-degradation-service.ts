@@ -103,7 +103,7 @@ export class GracefulDegradationService {
     let query = `
       SELECT 
         ce.*,
-        (SELECT last_sync_at FROM calendar_sync_state WHERE user_id = $1) as last_synced_at
+        (SELECT last_calendar_sync FROM users WHERE id = $1) as last_synced_at
       FROM calendar_events ce
       WHERE ce.user_id = $1
     `;
@@ -164,10 +164,11 @@ export class GracefulDegradationService {
       );
       lastSuccessfulSync = result.rows[0]?.last_sync || null;
     } else {
+      // Calendar sync time is stored in users table
       const result = await pool.query(
-        `SELECT last_sync_at as last_sync
-         FROM calendar_sync_state
-         WHERE user_id = $1`,
+        `SELECT last_calendar_sync as last_sync
+         FROM users
+         WHERE id = $1`,
         [userId]
       );
       lastSuccessfulSync = result.rows[0]?.last_sync || null;

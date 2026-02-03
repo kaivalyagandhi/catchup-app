@@ -6,6 +6,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import * as availabilityCollectionService from '../../scheduling/availability-collection-service';
 import { SubmitAvailabilityData } from '../../types/scheduling';
 
@@ -122,18 +123,17 @@ router.post('/plans/:id/initiator-availability', async (req: Request, res: Respo
  * GET /api/scheduling/plans/:id/availability - Get all availability for dashboard
  * This endpoint requires authentication
  */
-router.get('/plans/:id/availability', async (req: Request, res: Response) => {
+router.get('/plans/:id/availability', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { userId } = req.query;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
     const availability = await availabilityCollectionService.getAvailabilityForPlan(
       id,
-      userId as string
+      req.userId
     );
     res.json(availability);
   } catch (error: any) {
@@ -149,16 +149,15 @@ router.get('/plans/:id/availability', async (req: Request, res: Response) => {
  * GET /api/scheduling/plans/:id/overlaps - Get overlap calculations
  * This endpoint requires authentication
  */
-router.get('/plans/:id/overlaps', async (req: Request, res: Response) => {
+router.get('/plans/:id/overlaps', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { userId } = req.query;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const overlaps = await availabilityCollectionService.calculateOverlaps(id, userId as string);
+    const overlaps = await availabilityCollectionService.calculateOverlaps(id, req.userId);
     
     // Convert Map to object for JSON serialization
     const overlapsObj: Record<string, any> = {};

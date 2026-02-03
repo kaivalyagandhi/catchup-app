@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateThemeIcon();
     }
     
-    // Check if we're handling a Google SSO redirect
+    // Check if we're handling a Google SSO redirect or OAuth redirects
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('auth_success') === 'true' && urlParams.get('token')) {
         // Store authentication data immediately
@@ -58,6 +58,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Don't reload - just proceed with normal auth flow
         // Fall through to checkAuth() below
     }
+    
+    // Check if we're handling OAuth redirects BEFORE checking auth
+    const hasCalendarRedirect = urlParams.get('calendar_success') === 'true' || urlParams.get('calendar_error');
+    const hasContactsRedirect = urlParams.get('contacts_success') === 'true' || urlParams.get('contacts_error');
     
     // Check auth first and wait for it to complete
     checkAuth();
@@ -80,6 +84,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (urlParams.get('calendar_error')) {
         const error = urlParams.get('calendar_error');
         window.history.replaceState({}, document.title, window.location.pathname);
+        // Navigate to preferences page even on error
+        navigateTo('preferences');
         setTimeout(() => {
             showToast(`Failed to connect calendar: ${error}`, 'error');
         }, 500);
@@ -101,6 +107,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (urlParams.get('contacts_error')) {
         const error = urlParams.get('contacts_error');
         window.history.replaceState({}, document.title, window.location.pathname);
+        // Navigate to preferences page even on error
+        navigateTo('preferences');
         setTimeout(() => {
             showToast(`Failed to connect contacts: ${error}`, 'error');
         }, 500);
@@ -241,6 +249,18 @@ function showMainApp() {
     
     // Initialize sync warning banner
     initializeSyncWarningBanner();
+    
+    // Check if we're handling an OAuth redirect - if so, don't override navigation
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasOAuthRedirect = urlParams.get('calendar_success') === 'true' || 
+                            urlParams.get('calendar_error') ||
+                            urlParams.get('contacts_success') === 'true' ||
+                            urlParams.get('contacts_error');
+    
+    if (hasOAuthRedirect) {
+        // OAuth redirect will handle navigation, don't override it
+        return;
+    }
     
     // Determine initial page from URL or localStorage
     const path = window.location.pathname;
@@ -415,11 +435,6 @@ function initializeSyncWarningBanner() {
     window.syncWarningBanner.init();
     
     console.log('Sync warning banner initialized');
-}
-    initializeStep2Handler();
-    
-    // Initialize Step 3 handler if on Step 3 and on groups page
-    initializeStep3Handler();
 }
 
 /**

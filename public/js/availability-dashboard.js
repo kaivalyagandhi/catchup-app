@@ -936,7 +936,9 @@ class AvailabilityDashboard {
         throw new Error('Failed to get AI suggestions');
       }
       
-      this.aiSuggestions = await response.json();
+      const data = await response.json();
+      // Extract suggestions array from ConflictAnalysis response
+      this.aiSuggestions = data.suggestions || [];
       this.isLoadingAI = false;
       
       // Re-render suggestions section
@@ -1101,7 +1103,15 @@ class AvailabilityDashboard {
    */
   formatDateTime(dateTime) {
     if (!dateTime) return '';
-    const date = new Date(dateTime);
+    
+    // Convert from YYYY-MM-DD_HH:mm format to ISO format
+    const isoDateTime = dateTime.replace('_', 'T') + ':00';
+    const date = new Date(isoDateTime);
+    
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    
     return date.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',

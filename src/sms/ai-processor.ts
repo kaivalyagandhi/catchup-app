@@ -61,7 +61,7 @@ export class AIProcessor {
 
     try {
       const model = this.geminiClient.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp',
+        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite-preview',
         generationConfig: {
           temperature: 0.2,
           topP: 0.8,
@@ -229,7 +229,7 @@ If no information is found for a category, return an empty array or empty string
 
     try {
       const model = this.geminiClient.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp',
+        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite-preview',
         generationConfig: {
           temperature: 0.2,
           topP: 0.8,
@@ -309,7 +309,7 @@ If no information is found for a category, return an empty array or empty string
 
     try {
       const model = this.geminiClient.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp',
+        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite-preview',
         generationConfig: {
           temperature: 0.2,
           topP: 0.8,
