@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Sync Health Dashboard Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #2c2c2c;
+      margin-bottom: 20px;
+    }
+    .section {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .section h2 {
+      margin-top: 0;
+      color: #555;
+    }
+    .test-step {
+      margin: 10px 0;
+      padding: 10px;
+      background: white;
+      border-left: 4px solid #8b7355;
+      border-radius: 4px;
+    }
+    .note {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .success {
+      background: #d4edda;
+      border-left: 4px solid #28a745;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    button {
+      background: #8b7355;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #6d5a43;
+    }
+    code {
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Admin Sync Health Dashboard Test</h1>
+
+  <div class="note">
+    <strong>⚠️ Prerequisites:</strong>
+    <ul>
+      <li>Backend server must be running (<code>npm run dev</code>)</li>
+      <li>You must be logged in as an admin user</li>
+      <li>Database must have sync health data (run some syncs first)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Test Instructions</h2>
+    
+    <div class="test-step">
+      <strong>Step 1: Check Admin Access</strong>
+      <p>Verify you have admin privileges. If not, use the promote-admin script:</p>
+      <code>npm run promote-admin -- your-email@example.com</code>
+    </div>
+
+    <div class="test-step">
+      <strong>Step 2: Open Dashboard</strong>
+      <p>Click the button below to open the admin sync health dashboard:</p>
+      <button onclick="openDashboard()">Open Sync Health Dashboard</button>
+    </div>
+
+    <div class="test-step">
+      <strong>Step 3: Verify Metrics Display</strong>
+      <p>Check that the following metrics are displayed:</p>
+      <ul>
+        <li>✓ Total Users count</li>
+        <li>✓ Active Integrations (Contacts & Calendar)</li>
+        <li>✓ Invalid Tokens count</li>
+        <li>✓ Open Circuit Breakers count</li>
+        <li>✓ Sync Success Rate bar charts</li>
+        <li>✓ API Calls Saved breakdown</li>
+        <li>✓ Persistent Failures table</li>
+      </ul>
+    </div>
+
+    <div class="test-step">
+      <strong>Step 4: Test Integration Filter</strong>
+      <p>Use the dropdown to filter by:</p>
+      <ul>
+        <li>All Integrations (default)</li>
+        <li>Google Contacts only</li>
+        <li>Google Calendar only</li>
+      </ul>
+      <p>Verify metrics update accordingly.</p>
+    </div>
+
+    <div class="test-step">
+      <strong>Step 5: Test Manual Refresh</strong>
+      <p>Click the "🔄 Refresh Now" button and verify:</p>
+      <ul>
+        <li>Loading indicator appears</li>
+        <li>Metrics update</li>
+        <li>"Last updated" timestamp changes</li>
+        <li>Countdown timer resets to 5:00</li>
+      </ul>
+    </div>
+
+    <div class="test-step">
+      <strong>Step 6: Test Auto-Refresh</strong>
+      <p>Wait for the countdown timer to reach 0:00 and verify:</p>
+      <ul>
+        <li>Dashboard automatically refreshes</li>
+        <li>Countdown resets to 5:00</li>
+        <li>"Last updated" timestamp updates</li>
+      </ul>
+      <p><em>Note: This takes 5 minutes. You can skip this test if time is limited.</em></p>
+    </div>
+
+    <div class="test-step">
+      <strong>Step 7: Test CSV Export</strong>
+      <p>Click the "📥 Export CSV" button and verify:</p>
+      <ul>
+        <li>CSV file downloads</li>
+        <li>Filename includes timestamp</li>
+        <li>File contains all metrics</li>
+        <li>Persistent failures are included</li>
+      </ul>
+    </div>
+
+    <div class="test-step">
+      <strong>Step 8: Test Persistent Failures</strong>
+      <p>If there are persistent failures in the table:</p>
+      <ul>
+        <li>Click "View Details" link</li>
+        <li>Verify user sync status is displayed</li>
+        <li>Check both Contacts and Calendar status</li>
+      </ul>
+    </div>
+
+    <div class="test-step">
+      <strong>Step 9: Test Responsive Design</strong>
+      <p>Resize browser window and verify:</p>
+      <ul>
+        <li>Metrics grid adapts to screen size</li>
+        <li>Tables are scrollable on mobile</li>
+        <li>Controls stack vertically on small screens</li>
+      </ul>
+    </div>
+
+    <div class="test-step">
+      <strong>Step 10: Test Error Handling</strong>
+      <p>Test error scenarios:</p>
+      <ul>
+        <li>Log out and try to access dashboard (should show 403 error)</li>
+        <li>Stop backend server and refresh (should show connection error)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>API Testing</h2>
+    
+    <div class="test-step">
+      <strong>Test API Endpoint Directly</strong>
+      <p>Open browser console and run:</p>
+      <button onclick="testAPI()">Test API Endpoint</button>
+      <p>Check console for response data.</p>
+    </div>
+
+    <div class="test-step">
+      <strong>Test with Integration Filter</strong>
+      <button onclick="testAPIWithFilter('google_contacts')">Test Contacts Filter</button>
+      <button onclick="testAPIWithFilter('google_calendar')">Test Calendar Filter</button>
+      <p>Check console for filtered response data.</p>
+    </div>
+  </div>
+
+  <div class="success">
+    <strong>✅ Expected Results:</strong>
+    <ul>
+      <li>Dashboard loads without errors</li>
+      <li>All metrics display correctly</li>
+      <li>Filters work as expected</li>
+      <li>Auto-refresh works every 5 minutes</li>
+      <li>CSV export generates valid file</li>
+      <li>Persistent failures table shows users with issues</li>
+      <li>View Details shows comprehensive user status</li>
+    </ul>
+  </div>
+
+  <script>
+    function openDashboard() {
+      window.open('/admin/sync-health.html', '_blank');
+    }
+
+    async function testAPI() {
+      console.log('Testing /api/admin/sync-health endpoint...');
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('❌ No auth token found. Please log in first.');
+          alert('Please log in first');
+          return;
+        }
+
+        const response = await fetch('/api/admin/sync-health', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          console.error(`❌ API request failed: ${response.status} ${response.statusText}`);
+          const error = await response.json();
+          console.error('Error details:', error);
+          alert(`API Error: ${response.status} - ${error.error || response.statusText}`);
+          return;
+        }
+
+        const data = await response.json();
+        console.log('✅ API Response:', data);
+        console.log('Total Users:', data.totalUsers);
+        console.log('Active Integrations:', data.activeIntegrations);
+        console.log('Invalid Tokens:', data.invalidTokens);
+        console.log('Open Circuit Breakers:', data.openCircuitBreakers);
+        console.log('Sync Success Rate (24h):', data.syncSuccessRate24h);
+        console.log('API Calls Saved:', data.apiCallsSaved);
+        console.log('Persistent Failures:', data.persistentFailures.length);
+        
+        alert('✅ API test successful! Check console for details.');
+      } catch (error) {
+        console.error('❌ API test failed:', error);
+        alert('API test failed: ' + error.message);
+      }
+    }
+
+    async function testAPIWithFilter(integrationType) {
+      console.log(`Testing /api/admin/sync-health with filter: ${integrationType}...`);
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('❌ No auth token found. Please log in first.');
+          alert('Please log in first');
+          return;
+        }
+
+        const response = await fetch(`/api/admin/sync-health?integration_type=${integrationType}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          console.error(`❌ API request failed: ${response.status} ${response.statusText}`);
+          const error = await response.json();
+          console.error('Error details:', error);
+          alert(`API Error: ${response.status} - ${error.error || response.statusText}`);
+          return;
+        }
+
+        const data = await response.json();
+        console.log(`✅ API Response (${integrationType}):`, data);
+        
+        alert(`✅ API test with ${integrationType} filter successful! Check console for details.`);
+      } catch (error) {
+        console.error('❌ API test failed:', error);
+        alert('API test failed: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -16,6 +16,7 @@ All project documentation has been organized into `docs/` folder.
 - `voice-notes/` - Voice transcription and processing
 - `onboarding/` - Contact onboarding flow
 - `sms-mms/` - SMS/MMS enrichment via Twilio
+- `scheduling/` - Group scheduling and availability coordination
 
 **Testing**: `docs/testing/`
 - Testing guides, checklists, verification procedures

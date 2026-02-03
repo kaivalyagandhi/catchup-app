@@ -21,7 +21,8 @@
     "db:init": "bash scripts/init-migrations.sh",
     "db:migrate": "bash scripts/run-migrations.sh",
     "db:test": "ts-node -e \"require('./src/db/connection').testConnection()\"",
-    "test:load": "ts-node scripts/load-test-sms.ts"
+    "test:load": "ts-node scripts/load-test-sms.ts",
+    "promote-admin": "ts-node scripts/promote-admin.ts"
   },
   "repository": {
     "type": "git",

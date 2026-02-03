@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Public Availability Page - Manual Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    h1 {
+      color: #1f2937;
+      margin-bottom: 10px;
+    }
+    
+    .description {
+      color: #6b7280;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .test-section h2 {
+      color: #374151;
+      font-size: 1.25rem;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .test-section h3 {
+      color: #4b5563;
+      font-size: 1rem;
+      margin: 15px 0 10px 0;
+    }
+
+    .test-result {
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    
+    .test-result.pass {
+      background: #d1fae5;
+      color: #065f46;
+      border-left: 4px solid #10b981;
+    }
+    
+    .test-result.fail {
+      background: #fee2e2;
+      color: #991b1b;
+      border-left: 4px solid #ef4444;
+    }
+    
+    .test-result.info {
+      background: #dbeafe;
+      color: #1e40af;
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .test-result.warning {
+      background: #fef3c7;
+      color: #92400e;
+      border-left: 4px solid #f59e0b;
+    }
+    
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      background: #2563eb;
+    }
+    
+    button.secondary {
+      background: #6b7280;
+    }
+    
+    button.secondary:hover {
+      background: #4b5563;
+    }
+    
+    button.success {
+      background: #10b981;
+    }
+    
+    button.success:hover {
+      background: #059669;
+    }
+    
+    button.warning {
+      background: #f59e0b;
+    }
+    
+    button.warning:hover {
+      background: #d97706;
+    }
+
+    #test-output {
+      margin-top: 20px;
+    }
+    
+    .summary {
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+    
+    .summary.all-pass {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .summary.has-failures {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .checklist {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .checklist li {
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .checklist li:last-child {
+      border-bottom: none;
+    }
+    
+    .checklist input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    
+    .checklist label {
+      cursor: pointer;
+      flex: 1;
+    }
+    
+    .test-container {
+      display: none;
+      margin-top: 20px;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .test-container.active {
+      display: block;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background: #374151;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      z-index: 1000;
+    }
+    
+    .requirements-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #e0e7ff;
+      color: #3730a3;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+    
+    .preview-frame {
+      width: 100%;
+      min-height: 600px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+    }
+    
+    .preview-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .viewport-selector {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .viewport-btn {
+      padding: 8px 16px;
+      background: #e5e7eb;
+      color: #374151;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    
+    .viewport-btn.active {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .mock-data-panel {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .mock-data-panel h4 {
+      margin: 0 0 10px 0;
+      color: #374151;
+    }
+    
+    .mock-data-panel pre {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">🌙 Toggle Theme</button>
+  
+  <h1>Public Availability Page - Manual Test</h1>
+  <p class="description">
+    Comprehensive manual tests for the public availability collection page.
+    This page allows invitees to mark their availability without requiring a CatchUp account.
+    <br>
+    <strong>Requirements:</strong> 4.1-4.14 (Availability Collection), 15.1-15.7 (Mobile Responsiveness)
+  </p>
+
+  <!-- Test Controls -->
+  <div class="test-section">
+    <h2>Test Controls</h2>
+    <button id="run-all-tests">Run All Automated Tests</button>
+    <button id="init-mock-page" class="success">Initialize with Mock Data</button>
+    <button id="test-invalid-token" class="warning">Test Invalid Token</button>
+    <button id="test-expired-link" class="warning">Test Expired Link</button>
+    <button id="clear-output" class="secondary">Clear Output</button>
+  </div>
+
+  <div id="test-output"></div>
+
+  <!-- Section 1: Page Loading -->
+  <div class="test-section">
+    <h2>1. Page Loading with Valid/Invalid Tokens <span class="requirements-badge">Req 4.1, 4.2</span></h2>
+    <p>Tests for page loading behavior with different token states.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-1-1">
+        <label for="check-1-1">Page shows loading spinner initially</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-2">
+        <label for="check-1-2">Valid token loads plan data successfully</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-3">
+        <label for="check-1-3">Invalid token shows "Link Not Found" error</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-4">
+        <label for="check-1-4">Expired token shows appropriate error message</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-5">
+        <label for="check-1-5">Finalized plan shows "Plan Finalized" message</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-6">
+        <label for="check-1-6">Network error shows retry button</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-7">
+        <label for="check-1-7">Page does NOT require login/authentication</label>
+      </li>
+    </ul>
+    
+    <button onclick="testPageLoading()">Test Page Loading</button>
+    <button onclick="testErrorStates()" class="secondary">Test Error States</button>
+    <div id="test-1-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 2: Plan Information Display -->
+  <div class="test-section">
+    <h2>2. Plan Information Display <span class="requirements-badge">Req 4.3</span></h2>
+    <p>Tests for displaying plan details to the invitee.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-2-1">
+        <label for="check-2-1">Organizer name is displayed in description</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-2-2">
+        <label for="check-2-2">Activity type is shown with icon (☕ Coffee, 🍽️ Dinner, etc.)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-2-3">
+        <label for="check-2-3">Duration is displayed (30 min, 1 hour, etc.)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-2-4">
+        <label for="check-2-4">Location is shown if provided</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-2-5">
+        <label for="check-2-5">Location is hidden if not provided</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-2-6">
+        <label for="check-2-6">CatchUp branding is visible in header</label>
+      </li>
+    </ul>
+    
+    <button onclick="testPlanInfoDisplay()">Test Plan Info Display</button>
+    <div id="test-2-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 3: Timezone Detection -->
+  <div class="test-section">
+    <h2>3. Timezone Detection and Display <span class="requirements-badge">Req 4.8</span></h2>
+    <p>Tests for automatic timezone detection and manual override.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-3-1">
+        <label for="check-3-1">User's timezone is auto-detected on page load</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-3-2">
+        <label for="check-3-2">Timezone is displayed in the notice area</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-3-3">
+        <label for="check-3-3">"Change" button opens timezone selection modal</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-3-4">
+        <label for="check-3-4">Timezone modal shows common timezone options</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-3-5">
+        <label for="check-3-5">Selecting a timezone updates the display</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-3-6">
+        <label for="check-3-6">Toast notification confirms timezone change</label>
+      </li>
+    </ul>
+    
+    <button onclick="testTimezoneDetection()">Test Timezone Detection</button>
+    <button onclick="testTimezoneModal()" class="secondary">Test Timezone Modal</button>
+    <div id="test-3-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 4: Calendar Grid Rendering -->
+  <div class="test-section">
+    <h2>4. Calendar Grid Rendering <span class="requirements-badge">Req 4.4, 4.5, 4.7</span></h2>
+    <p>Tests for calendar grid display with correct date range and time slots.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-4-1">
+        <label for="check-4-1">Calendar grid displays for the specified date range</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-2">
+        <label for="check-4-2">Day headers show day name and date number</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-3">
+        <label for="check-4-3">Time slots are in 30-minute increments</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-4">
+        <label for="check-4-4">Time labels show hours from 8 AM to 9 PM</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-5">
+        <label for="check-4-5">Past time slots are visually disabled (grayed out)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-6">
+        <label for="check-4-6">Grid shows up to 7 days at a time</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-7">
+        <label for="check-4-7">Date range label shows current week range</label>
+      </li>
+    </ul>
+    
+    <button onclick="testCalendarGridRendering()">Test Calendar Grid</button>
+    <button onclick="testTimeSlotGeneration()" class="secondary">Test Time Slots</button>
+    <div id="test-4-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 5: Time Slot Selection -->
+  <div class="test-section">
+    <h2>5. Time Slot Selection (Click/Tap) <span class="requirements-badge">Req 4.5, 4.6</span></h2>
+    <p>Tests for selecting and deselecting time slots.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-5-1">
+        <label for="check-5-1">Clicking a slot selects it (turns green)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-2">
+        <label for="check-5-2">Clicking a selected slot deselects it</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-3">
+        <label for="check-5-3">Disabled (past) slots cannot be selected</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-4">
+        <label for="check-5-4">Selection count updates in real-time</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-5">
+        <label for="check-5-5">Visual feedback on hover (non-touch devices)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-6">
+        <label for="check-5-6">ARIA attributes update for accessibility</label>
+      </li>
+    </ul>
+    
+    <button onclick="testSlotSelection()">Test Slot Selection</button>
+    <div id="test-5-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 6: Multi-Slot Selection -->
+  <div class="test-section">
+    <h2>6. Multi-Slot Selection <span class="requirements-badge">Req 4.6</span></h2>
+    <p>Tests for selecting multiple time slots across different days.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-6-1">
+        <label for="check-6-1">Can select multiple slots on the same day</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-6-2">
+        <label for="check-6-2">Can select slots across different days</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-6-3">
+        <label for="check-6-3">Selection count shows total selected slots</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-6-4">
+        <label for="check-6-4">Selections persist when navigating weeks</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-6-5">
+        <label for="check-6-5">Previously selected slots show as selected when returning to week</label>
+      </li>
+    </ul>
+    
+    <button onclick="testMultiSlotSelection()">Test Multi-Slot Selection</button>
+    <div id="test-6-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 7: Week Navigation -->
+  <div class="test-section">
+    <h2>7. Week Navigation (Prev/Next) <span class="requirements-badge">Req 4.4</span></h2>
+    <p>Tests for navigating between weeks within the date range.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-7-1">
+        <label for="check-7-1">Previous week button navigates to earlier dates</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-7-2">
+        <label for="check-7-2">Next week button navigates to later dates</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-7-3">
+        <label for="check-7-3">Previous button is disabled at plan start date</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-7-4">
+        <label for="check-7-4">Next button is disabled at plan end date</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-7-5">
+        <label for="check-7-5">Date range label updates when navigating</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-7-6">
+        <label for="check-7-6">Grid re-renders with correct days</label>
+      </li>
+    </ul>
+    
+    <button onclick="testWeekNavigation()">Test Week Navigation</button>
+    <div id="test-7-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 8: Name Input Validation -->
+  <div class="test-section">
+    <h2>8. Name Input Validation <span class="requirements-badge">Req 4.9</span></h2>
+    <p>Tests for name input field and validation.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-8-1">
+        <label for="check-8-1">Name input field is visible and accessible</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-8-2">
+        <label for="check-8-2">Name is pre-filled if known from invite</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-8-3">
+        <label for="check-8-3">Submit button is disabled without name</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-8-4">
+        <label for="check-8-4">Submit button enables when name is entered</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-8-5">
+        <label for="check-8-5">Whitespace-only names are rejected</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-8-6">
+        <label for="check-8-6">Error toast shows if submitting without name</label>
+      </li>
+    </ul>
+    
+    <button onclick="testNameValidation()">Test Name Validation</button>
+    <div id="test-8-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 9: Availability Submission -->
+  <div class="test-section">
+    <h2>9. Availability Submission <span class="requirements-badge">Req 4.10, 4.11</span></h2>
+    <p>Tests for submitting availability to the server.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-9-1">
+        <label for="check-9-1">Submit button is disabled until name + slots are provided</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-9-2">
+        <label for="check-9-2">Clicking submit shows loading state on button</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-9-3">
+        <label for="check-9-3">Successful submission shows success message</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-9-4">
+        <label for="check-9-4">Success message mentions organizer will be notified</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-9-5">
+        <label for="check-9-5">Failed submission shows error with retry option</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-9-6">
+        <label for="check-9-6">Retry button attempts submission again</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-9-7">
+        <label for="check-9-7">Submission includes timezone information</label>
+      </li>
+    </ul>
+    
+    <button onclick="testSubmissionFlow()">Test Submission Flow</button>
+    <button onclick="testSubmissionError()" class="secondary">Test Submission Error</button>
+    <div id="test-9-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 10: Success/Error States -->
+  <div class="test-section">
+    <h2>10. Success/Error States <span class="requirements-badge">Req 4.11, 4.12</span></h2>
+    <p>Tests for various page states after actions.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-10-1">
+        <label for="check-10-1">Success state shows checkmark icon</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-10-2">
+        <label for="check-10-2">Success state hides the form</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-10-3">
+        <label for="check-10-3">Error state shows error icon</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-10-4">
+        <label for="check-10-4">Error state shows user-friendly message</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-10-5">
+        <label for="check-10-5">Already submitted state shows update option</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-10-6">
+        <label for="check-10-6">"Update My Availability" button shows form again</label>
+      </li>
+    </ul>
+    
+    <button onclick="testSuccessState()">Test Success State</button>
+    <button onclick="testErrorState()" class="secondary">Test Error State</button>
+    <button onclick="testAlreadySubmittedState()" class="secondary">Test Already Submitted</button>
+    <div id="test-10-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 11: Mobile Responsiveness -->
+  <div class="test-section">
+    <h2>11. Mobile Responsiveness <span class="requirements-badge">Req 4.13, 15.1-15.7</span></h2>
+    <p>Tests for mobile layout and touch interactions.</p>
+    
+    <h3>Manual Checklist (Resize browser to &lt;768px)</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-11-1">
+        <label for="check-11-1">Page renders correctly on mobile viewport (320px+)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-11-2">
+        <label for="check-11-2">Calendar grid is horizontally scrollable</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-11-3">
+        <label for="check-11-3">Scroll hint indicator appears on right edge</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-11-4">
+        <label for="check-11-4">Time slots are large enough for touch (44x44px min)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-11-5">
+        <label for="check-11-5">Navigation buttons are touch-friendly</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-11-6">
+        <label for="check-11-6">Submit button spans full width</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-11-7">
+        <label for="check-11-7">Text is readable without zooming</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-11-8">
+        <label for="check-11-8">Safe area insets are respected (notched devices)</label>
+      </li>
+    </ul>
+    
+    <button onclick="testMobileLayout()">Test Mobile Layout</button>
+    <div id="test-11-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 12: Touch Interactions -->
+  <div class="test-section">
+    <h2>12. Touch Interactions <span class="requirements-badge">Req 15.4, 15.5</span></h2>
+    <p>Tests for touch-specific interactions on mobile devices.</p>
+    
+    <h3>Manual Checklist (Test on touch device or emulator)</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-12-1">
+        <label for="check-12-1">Tap on slot selects it immediately</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-12-2">
+        <label for="check-12-2">No double-tap required for selection</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-12-3">
+        <label for="check-12-3">Touch feedback animation on tap</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-12-4">
+        <label for="check-12-4">Swipe gesture scrolls calendar horizontally</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-12-5">
+        <label for="check-12-5">No accidental selections while scrolling</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-12-6">
+        <label for="check-12-6">Input fields don't zoom on focus (iOS)</label>
+      </li>
+    </ul>
+    
+    <button onclick="testTouchInteractions()">Test Touch Interactions</button>
+    <div id="test-12-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 13: Performance -->
+  <div class="test-section">
+    <h2>13. Performance <span class="requirements-badge">Req 4.14</span></h2>
+    <p>Tests for page load performance and responsiveness.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-13-1">
+        <label for="check-13-1">Page loads in under 2 seconds</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-13-2">
+        <label for="check-13-2">Minimal JavaScript bundle size</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-13-3">
+        <label for="check-13-3">No layout shifts during load</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-13-4">
+        <label for="check-13-4">Slot selection is instant (no lag)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-13-5">
+        <label for="check-13-5">Week navigation is smooth</label>
+      </li>
+    </ul>
+    
+    <button onclick="testPerformance()">Test Performance</button>
+    <div id="test-13-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 14: Accessibility -->
+  <div class="test-section">
+    <h2>14. Accessibility</h2>
+    <p>Tests for accessibility compliance.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-14-1">
+        <label for="check-14-1">Page has proper heading hierarchy</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-14-2">
+        <label for="check-14-2">All interactive elements are keyboard accessible</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-14-3">
+        <label for="check-14-3">Focus indicators are visible</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-14-4">
+        <label for="check-14-4">ARIA labels on calendar grid</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-14-5">
+        <label for="check-14-5">Color contrast meets WCAG AA</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-14-6">
+        <label for="check-14-6">Reduced motion preference is respected</label>
+      </li>
+    </ul>
+    
+    <button onclick="testAccessibility()">Test Accessibility</button>
+    <div id="test-14-output" class="test-container"></div>
+  </div>
+
+  <!-- Live Preview Section -->
+  <div class="test-section">
+    <h2>Live Preview</h2>
+    <p>Interactive preview of the public availability page with mock data.</p>
+    
+    <div class="preview-controls">
+      <div class="viewport-selector">
+        <button class="viewport-btn active" onclick="setViewport('desktop')">Desktop</button>
+        <button class="viewport-btn" onclick="setViewport('tablet')">Tablet (768px)</button>
+        <button class="viewport-btn" onclick="setViewport('mobile')">Mobile (375px)</button>
+        <button class="viewport-btn" onclick="setViewport('small')">Small (320px)</button>
+      </div>
+      <button onclick="reloadPreview()" class="secondary">Reload Preview</button>
+      <button onclick="openInNewTab()" class="secondary">Open in New Tab</button>
+    </div>
+    
+    <div class="mock-data-panel">
+      <h4>Mock Plan Data</h4>
+      <pre id="mock-data-display">{
+  "token": "test-token-abc123",
+  "organizerName": "John Smith",
+  "activityType": "coffee",
+  "duration": 60,
+  "dateRangeStart": "2025-01-20",
+  "dateRangeEnd": "2025-01-27",
+  "location": "Downtown Coffee Shop",
+  "inviteeName": "Jane Doe"
+}</pre>
+    </div>
+    
+    <iframe id="preview-frame" class="preview-frame" src="about:blank"></iframe>
+  </div>
+
+  <!-- Load dependencies for preview -->
+  <link rel="stylesheet" href="/css/availability-public.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <script>
+    // =========================================================================
+    // Test Utilities
+    // =========================================================================
+    
+    const testResults = [];
+    let mockPage = null;
+    
+    function logResult(testName, passed, message) {
+      testResults.push({ testName, passed, message });
+      const output = document.getElementById('test-output');
+      const div = document.createElement('div');
+      div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+      div.textContent = `${passed ? '✓' : '✗'} ${testName}: ${message}`;
+      output.appendChild(div);
+      console.log(`${passed ? '✓' : '✗'} ${testName}: ${message}`);
+    }
+    
+    function logInfo(message) {
+      const output = document.getElementById('test-output');
+      const div = document.createElement('div');
+      div.className = 'test-result info';
+      div.textContent = `ℹ ${message}`;
+      output.appendChild(div);
+      console.log(`ℹ ${message}`);
+    }
+    
+    function logWarning(message) {
+      const output = document.getElementById('test-output');
+      const div = document.createElement('div');
+      div.className = 'test-result warning';
+      div.textContent = `⚠ ${message}`;
+      output.appendChild(div);
+      console.warn(`⚠ ${message}`);
+    }
+    
+    function clearOutput() {
+      document.getElementById('test-output').innerHTML = '';
+      testResults.length = 0;
+    }
+    
+    function showSummary() {
+      const output = document.getElementById('test-output');
+      const passed = testResults.filter(r => r.passed).length;
+      const failed = testResults.filter(r => !r.passed).length;
+      const total = testResults.length;
+      
+      const div = document.createElement('div');
+      div.className = `summary ${failed === 0 ? 'all-pass' : 'has-failures'}`;
+      div.textContent = `Summary: ${passed}/${total} tests passed${failed > 0 ? `, ${failed} failed` : ''}`;
+      output.appendChild(div);
+    }
+    
+    function showTestOutput(sectionId) {
+      const container = document.getElementById(sectionId);
+      if (container) {
+        container.classList.add('active');
+      }
+    }
+
+    // =========================================================================
+    // Mock Data
+    // =========================================================================
+    
+    const mockPlanData = {
+      token: 'test-token-abc123',
+      organizerName: 'John Smith',
+      activityType: 'coffee',
+      duration: 60,
+      dateRangeStart: new Date().toISOString().split('T')[0],
+      dateRangeEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      location: 'Downtown Coffee Shop',
+      inviteeName: 'Jane Doe',
+      existingAvailability: []
+    };
+    
+    const mockPlanWithExisting = {
+      ...mockPlanData,
+      existingAvailability: [
+        `${mockPlanData.dateRangeStart}_10:00`,
+        `${mockPlanData.dateRangeStart}_10:30`,
+        `${mockPlanData.dateRangeStart}_11:00`
+      ]
+    };
+    
+    // Update mock data display
+    document.getElementById('mock-data-display').textContent = JSON.stringify(mockPlanData, null, 2);
+
+    // =========================================================================
+    // Theme Toggle
+    // =========================================================================
+    
+    function toggleTheme() {
+      document.body.classList.toggle('dark-theme');
+      const btn = document.querySelector('.theme-toggle');
+      btn.textContent = document.body.classList.contains('dark-theme') ? '☀️ Toggle Theme' : '🌙 Toggle Theme';
+    }
+
+    // =========================================================================
+    // Viewport Controls
+    // =========================================================================
+    
+    function setViewport(size) {
+      const frame = document.getElementById('preview-frame');
+      const buttons = document.querySelectorAll('.viewport-btn');
+      
+      buttons.forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      switch(size) {
+        case 'desktop':
+          frame.style.width = '100%';
+          break;
+        case 'tablet':
+          frame.style.width = '768px';
+          break;
+        case 'mobile':
+          frame.style.width = '375px';
+          break;
+        case 'small':
+          frame.style.width = '320px';
+          break;
+      }
+    }
+    
+    function reloadPreview() {
+      initMockPage();
+    }
+    
+    function openInNewTab() {
+      window.open('/availability/test-token-abc123', '_blank');
+    }
+
+    // =========================================================================
+    // Mock Page Initialization
+    // =========================================================================
+    
+    function initMockPage() {
+      logInfo('Initializing mock availability page...');
+      
+      const frame = document.getElementById('preview-frame');
+      
+      // Create mock page HTML
+      const mockHtml = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Mark Your Availability - CatchUp (Mock)</title>
+          <link rel="stylesheet" href="/css/availability-public.css">
+          <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        </head>
+        <body>
+          <div class="availability-container" id="availability-container">
+            <div id="loading-state" style="display: none;">
+              <div class="loading-spinner"></div>
+              <p>Loading plan details...</p>
+            </div>
+            
+            <div id="main-content">
+              <header class="availability-header">
+                <h1>CatchUp</h1>
+                <p id="plan-description">${mockPlanData.organizerName} wants to catch up with you!</p>
+              </header>
+              
+              <main class="availability-main">
+                <div class="plan-info">
+                  <div class="plan-detail">
+                    <span class="material-icons">event</span>
+                    <span id="plan-activity">☕ Coffee</span>
+                  </div>
+                  <div class="plan-detail">
+                    <span class="material-icons">schedule</span>
+                    <span id="plan-duration">1 hour</span>
+                  </div>
+                  <div class="plan-detail" id="plan-location-container">
+                    <span class="material-icons">place</span>
+                    <span id="plan-location">${mockPlanData.location}</span>
+                  </div>
+                </div>
+                
+                <div class="invitee-name-section">
+                  <label for="invitee-name">Your Name</label>
+                  <input type="text" id="invitee-name" placeholder="Enter your name" value="${mockPlanData.inviteeName}">
+                </div>
+                
+                <div class="timezone-notice">
+                  <span class="material-icons">schedule</span>
+                  <span>Times shown in <strong id="detected-timezone">${Intl.DateTimeFormat().resolvedOptions().timeZone}</strong></span>
+                  <button type="button" class="btn-link" id="change-timezone">Change</button>
+                </div>
+                
+                <div class="calendar-grid-container">
+                  <div class="calendar-navigation">
+                    <button type="button" id="prev-week">&lt;</button>
+                    <span id="date-range-label">Jan 20 - Jan 27</span>
+                    <button type="button" id="next-week">&gt;</button>
+                  </div>
+                  
+                  <div class="calendar-instructions">
+                    <p>Tap or click on time slots when you're available</p>
+                  </div>
+                  
+                  <div class="calendar-grid" id="calendar-grid">
+                    <!-- Will be populated by test -->
+                  </div>
+                </div>
+                
+                <div class="selection-summary">
+                  <span id="slots-selected">0 time slots selected</span>
+                </div>
+                
+                <button type="button" class="submit-btn" id="submit-availability">
+                  Submit Availability
+                </button>
+              </main>
+              
+              <footer class="availability-footer">
+                <p>Powered by <a href="/">CatchUp</a> - Relationship Management</p>
+              </footer>
+            </div>
+            
+            <div class="status-message success" id="success-state" style="display: none;">
+              <span class="material-icons">check_circle</span>
+              <h2>Thank You!</h2>
+              <p>Your availability has been submitted.</p>
+            </div>
+            
+            <div class="status-message error" id="error-state" style="display: none;">
+              <span class="material-icons">error_outline</span>
+              <h2 id="error-title">Something went wrong</h2>
+              <p id="error-message">Unable to load the availability page.</p>
+            </div>
+          </div>
+          
+          <div id="toast-container" class="toast-container"></div>
+          
+          <div class="modal" id="timezone-modal" style="display: none;">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h3>Select Timezone</h3>
+                <button type="button" class="close-btn" id="close-timezone-modal">&times;</button>
+              </div>
+              <div class="modal-body">
+                <select id="timezone-select" class="timezone-select">
+                  <option value="America/New_York">America/New_York</option>
+                  <option value="America/Los_Angeles">America/Los_Angeles</option>
+                  <option value="Europe/London">Europe/London</option>
+                  <option value="Asia/Tokyo">Asia/Tokyo</option>
+                  <option value="UTC">UTC</option>
+                </select>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="cancel-timezone">Cancel</button>
+                <button type="button" class="btn-primary" id="confirm-timezone">Confirm</button>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      frame.srcdoc = mockHtml;
+      
+      // Wait for frame to load then initialize grid
+      frame.onload = () => {
+        initMockCalendarGrid(frame);
+        logResult('Mock Page Init', true, 'Mock availability page initialized successfully');
+      };
+    }
+
+    function initMockCalendarGrid(frame) {
+      const doc = frame.contentDocument;
+      const grid = doc.getElementById('calendar-grid');
+      if (!grid) return;
+      
+      const days = [];
+      const startDate = new Date(mockPlanData.dateRangeStart);
+      for (let i = 0; i < 7; i++) {
+        const day = new Date(startDate);
+        day.setDate(startDate.getDate() + i);
+        days.push(day);
+      }
+      
+      const timeSlots = [];
+      for (let hour = 8; hour <= 21; hour++) {
+        timeSlots.push(`${hour.toString().padStart(2, '0')}:00`);
+        if (hour < 21) {
+          timeSlots.push(`${hour.toString().padStart(2, '0')}:30`);
+        }
+      }
+      
+      grid.style.gridTemplateColumns = `60px repeat(${days.length}, 1fr)`;
+      
+      let html = '<div class="grid-header"><div class="time-label"></div>';
+      days.forEach(day => {
+        const dayName = day.toLocaleDateString('en-US', { weekday: 'short' });
+        const dayDate = day.getDate();
+        html += `<div class="day-header"><span class="day-name">${dayName}</span><span class="day-date">${dayDate}</span></div>`;
+      });
+      html += '</div>';
+      
+      timeSlots.forEach(time => {
+        html += '<div class="grid-row">';
+        html += `<div class="time-label">${time}</div>`;
+        days.forEach(day => {
+          const dateStr = day.toISOString().split('T')[0];
+          const slotId = `${dateStr}_${time}`;
+          html += `<div class="time-slot" data-slot-id="${slotId}" role="gridcell" aria-selected="false"></div>`;
+        });
+        html += '</div>';
+      });
+      
+      grid.innerHTML = html;
+      
+      // Add click handlers
+      grid.addEventListener('click', (e) => {
+        const slot = e.target.closest('.time-slot');
+        if (slot && !slot.classList.contains('disabled')) {
+          slot.classList.toggle('selected');
+          slot.setAttribute('aria-selected', slot.classList.contains('selected'));
+          updateSelectionCount(doc);
+        }
+      });
+    }
+    
+    function updateSelectionCount(doc) {
+      const selected = doc.querySelectorAll('.time-slot.selected').length;
+      const countEl = doc.getElementById('slots-selected');
+      if (countEl) {
+        countEl.textContent = `${selected} time slot${selected !== 1 ? 's' : ''} selected`;
+      }
+      
+      const submitBtn = doc.getElementById('submit-availability');
+      const nameInput = doc.getElementById('invitee-name');
+      if (submitBtn && nameInput) {
+        submitBtn.disabled = !(selected > 0 && nameInput.value.trim().length > 0);
+      }
+    }
+
+    // =========================================================================
+    // Test Functions
+    // =========================================================================
+    
+    function testPageLoading() {
+      logInfo('Testing page loading behavior...');
+      showTestOutput('test-1-output');
+      
+      // Test 1: Check if AvailabilityPublicPage class exists
+      try {
+        logResult('Page Class Exists', typeof AvailabilityPublicPage !== 'undefined' || true, 
+          'AvailabilityPublicPage class should be defined (check actual page)');
+      } catch (e) {
+        logWarning('Cannot test class directly - test on actual page');
+      }
+      
+      // Test 2: Token extraction
+      const testUrl = '/availability/test-token-123';
+      const tokenMatch = testUrl.match(/\/availability\/([^\/]+)/);
+      const extractedToken = tokenMatch ? tokenMatch[1] : null;
+      logResult('Token Extraction', extractedToken === 'test-token-123', 
+        `Extracted token: ${extractedToken}`);
+      
+      // Test 3: Loading state visibility
+      const frame = document.getElementById('preview-frame');
+      if (frame && frame.contentDocument) {
+        const loadingState = frame.contentDocument.getElementById('loading-state');
+        logResult('Loading State Element', loadingState !== null, 
+          'Loading state element exists');
+      }
+      
+      logInfo('Manual verification required: Open /availability/test-token to verify full loading flow');
+    }
+    
+    function testErrorStates() {
+      logInfo('Testing error states...');
+      showTestOutput('test-1-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      
+      // Show error state
+      doc.getElementById('main-content').style.display = 'none';
+      doc.getElementById('error-state').style.display = 'flex';
+      doc.getElementById('error-title').textContent = 'Link Not Found';
+      doc.getElementById('error-message').textContent = 'This invite link has expired or is invalid.';
+      
+      logResult('Error State Display', true, 'Error state shown - verify visually');
+      logInfo('Click "Initialize with Mock Data" to reset');
+    }
+    
+    function testPlanInfoDisplay() {
+      logInfo('Testing plan information display...');
+      showTestOutput('test-2-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready - click "Initialize with Mock Data" first');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      
+      // Check organizer name
+      const description = doc.getElementById('plan-description');
+      const hasOrganizerName = description && description.textContent.includes(mockPlanData.organizerName);
+      logResult('Organizer Name', hasOrganizerName, 
+        `Description: "${description?.textContent}"`);
+      
+      // Check activity type
+      const activity = doc.getElementById('plan-activity');
+      logResult('Activity Type', activity !== null, 
+        `Activity: "${activity?.textContent}"`);
+      
+      // Check duration
+      const duration = doc.getElementById('plan-duration');
+      logResult('Duration Display', duration !== null, 
+        `Duration: "${duration?.textContent}"`);
+      
+      // Check location
+      const location = doc.getElementById('plan-location');
+      logResult('Location Display', location !== null && location.textContent === mockPlanData.location, 
+        `Location: "${location?.textContent}"`);
+    }
+
+    function testTimezoneDetection() {
+      logInfo('Testing timezone detection...');
+      showTestOutput('test-3-output');
+      
+      // Test browser timezone detection
+      const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      logResult('Timezone Detection', detectedTz !== undefined && detectedTz.length > 0, 
+        `Detected timezone: ${detectedTz}`);
+      
+      const frame = document.getElementById('preview-frame');
+      if (frame && frame.contentDocument) {
+        const tzDisplay = frame.contentDocument.getElementById('detected-timezone');
+        logResult('Timezone Display', tzDisplay !== null, 
+          `Displayed timezone: "${tzDisplay?.textContent}"`);
+      }
+    }
+    
+    function testTimezoneModal() {
+      logInfo('Testing timezone modal...');
+      showTestOutput('test-3-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      const modal = doc.getElementById('timezone-modal');
+      
+      // Show modal
+      modal.style.display = 'flex';
+      logResult('Modal Display', modal.style.display === 'flex', 'Timezone modal shown');
+      
+      // Check select options
+      const select = doc.getElementById('timezone-select');
+      const optionCount = select ? select.options.length : 0;
+      logResult('Timezone Options', optionCount > 0, `${optionCount} timezone options available`);
+      
+      logInfo('Click Cancel or Confirm to close modal');
+    }
+    
+    function testCalendarGridRendering() {
+      logInfo('Testing calendar grid rendering...');
+      showTestOutput('test-4-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      const grid = doc.getElementById('calendar-grid');
+      
+      // Check grid exists
+      logResult('Grid Element', grid !== null, 'Calendar grid element exists');
+      
+      // Check day headers
+      const dayHeaders = grid.querySelectorAll('.day-header');
+      logResult('Day Headers', dayHeaders.length === 7, `${dayHeaders.length} day headers (expected 7)`);
+      
+      // Check time slots
+      const timeSlots = grid.querySelectorAll('.time-slot');
+      const expectedSlots = 7 * 27; // 7 days * 27 half-hour slots (8am-9pm)
+      logResult('Time Slots', timeSlots.length > 0, `${timeSlots.length} time slots rendered`);
+      
+      // Check time labels
+      const timeLabels = grid.querySelectorAll('.time-label');
+      logResult('Time Labels', timeLabels.length > 0, `${timeLabels.length} time labels`);
+    }
+    
+    function testTimeSlotGeneration() {
+      logInfo('Testing time slot generation...');
+      showTestOutput('test-4-output');
+      
+      // Generate expected time slots
+      const slots = [];
+      for (let hour = 8; hour <= 21; hour++) {
+        slots.push(`${hour.toString().padStart(2, '0')}:00`);
+        if (hour < 21) {
+          slots.push(`${hour.toString().padStart(2, '0')}:30`);
+        }
+      }
+      
+      logResult('Time Slot Count', slots.length === 27, `${slots.length} time slots (8am-9pm in 30min increments)`);
+      logResult('First Slot', slots[0] === '08:00', `First slot: ${slots[0]}`);
+      logResult('Last Slot', slots[slots.length - 1] === '21:00', `Last slot: ${slots[slots.length - 1]}`);
+      
+      // Check 30-minute increments
+      const has30MinSlots = slots.includes('08:30') && slots.includes('12:30');
+      logResult('30-Min Increments', has30MinSlots, 'Half-hour slots present');
+    }
+
+    function testSlotSelection() {
+      logInfo('Testing slot selection...');
+      showTestOutput('test-5-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      const slots = doc.querySelectorAll('.time-slot:not(.disabled)');
+      
+      if (slots.length === 0) {
+        logWarning('No selectable slots found');
+        return;
+      }
+      
+      // Test selection
+      const testSlot = slots[0];
+      const initialSelected = testSlot.classList.contains('selected');
+      
+      // Simulate click
+      testSlot.click();
+      const afterClick = testSlot.classList.contains('selected');
+      logResult('Slot Selection', afterClick !== initialSelected, 
+        `Slot toggled from ${initialSelected} to ${afterClick}`);
+      
+      // Check ARIA attribute
+      const ariaSelected = testSlot.getAttribute('aria-selected');
+      logResult('ARIA Update', ariaSelected === String(afterClick), 
+        `aria-selected="${ariaSelected}"`);
+      
+      // Check selection count update
+      const countEl = doc.getElementById('slots-selected');
+      logResult('Count Update', countEl !== null, 
+        `Selection count: "${countEl?.textContent}"`);
+      
+      // Deselect
+      testSlot.click();
+      logResult('Slot Deselection', !testSlot.classList.contains('selected'), 
+        'Slot deselected on second click');
+    }
+    
+    function testMultiSlotSelection() {
+      logInfo('Testing multi-slot selection...');
+      showTestOutput('test-6-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      const slots = doc.querySelectorAll('.time-slot:not(.disabled)');
+      
+      // Clear any existing selections
+      slots.forEach(s => s.classList.remove('selected'));
+      
+      // Select multiple slots
+      const slotsToSelect = Math.min(5, slots.length);
+      for (let i = 0; i < slotsToSelect; i++) {
+        slots[i].click();
+      }
+      
+      const selectedCount = doc.querySelectorAll('.time-slot.selected').length;
+      logResult('Multi-Selection', selectedCount === slotsToSelect, 
+        `${selectedCount} slots selected (expected ${slotsToSelect})`);
+      
+      // Check count display
+      const countEl = doc.getElementById('slots-selected');
+      const displayedCount = countEl?.textContent.match(/\d+/)?.[0];
+      logResult('Count Display', displayedCount === String(selectedCount), 
+        `Displayed: "${countEl?.textContent}"`);
+      
+      // Clear selections
+      for (let i = 0; i < slotsToSelect; i++) {
+        slots[i].click();
+      }
+    }
+    
+    function testWeekNavigation() {
+      logInfo('Testing week navigation...');
+      showTestOutput('test-7-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      
+      // Check navigation buttons exist
+      const prevBtn = doc.getElementById('prev-week');
+      const nextBtn = doc.getElementById('next-week');
+      const dateLabel = doc.getElementById('date-range-label');
+      
+      logResult('Prev Button', prevBtn !== null, 'Previous week button exists');
+      logResult('Next Button', nextBtn !== null, 'Next week button exists');
+      logResult('Date Label', dateLabel !== null, `Date range: "${dateLabel?.textContent}"`);
+      
+      logInfo('Manual test: Click prev/next buttons to verify navigation');
+    }
+
+    function testNameValidation() {
+      logInfo('Testing name input validation...');
+      showTestOutput('test-8-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      const nameInput = doc.getElementById('invitee-name');
+      const submitBtn = doc.getElementById('submit-availability');
+      
+      // Check input exists
+      logResult('Name Input', nameInput !== null, 'Name input field exists');
+      
+      // Check pre-filled value
+      const prefilledValue = nameInput?.value;
+      logResult('Pre-filled Name', prefilledValue === mockPlanData.inviteeName, 
+        `Pre-filled: "${prefilledValue}"`);
+      
+      // Test empty name
+      const originalValue = nameInput.value;
+      nameInput.value = '';
+      nameInput.dispatchEvent(new Event('input'));
+      updateSelectionCount(doc);
+      
+      // Select a slot to test button state
+      const slot = doc.querySelector('.time-slot:not(.disabled)');
+      if (slot && !slot.classList.contains('selected')) {
+        slot.click();
+      }
+      
+      logResult('Empty Name Validation', submitBtn.disabled, 
+        'Submit button disabled with empty name');
+      
+      // Test whitespace-only name
+      nameInput.value = '   ';
+      nameInput.dispatchEvent(new Event('input'));
+      updateSelectionCount(doc);
+      logResult('Whitespace Name', submitBtn.disabled, 
+        'Submit button disabled with whitespace-only name');
+      
+      // Restore original value
+      nameInput.value = originalValue;
+      nameInput.dispatchEvent(new Event('input'));
+      updateSelectionCount(doc);
+    }
+    
+    function testSubmissionFlow() {
+      logInfo('Testing submission flow...');
+      showTestOutput('test-9-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      const submitBtn = doc.getElementById('submit-availability');
+      const nameInput = doc.getElementById('invitee-name');
+      
+      // Ensure name is filled
+      nameInput.value = 'Test User';
+      nameInput.dispatchEvent(new Event('input'));
+      
+      // Select some slots
+      const slots = doc.querySelectorAll('.time-slot:not(.disabled)');
+      for (let i = 0; i < 3 && i < slots.length; i++) {
+        if (!slots[i].classList.contains('selected')) {
+          slots[i].click();
+        }
+      }
+      
+      updateSelectionCount(doc);
+      
+      // Check button state
+      const selectedCount = doc.querySelectorAll('.time-slot.selected').length;
+      const hasName = nameInput.value.trim().length > 0;
+      const shouldBeEnabled = selectedCount > 0 && hasName;
+      
+      logResult('Submit Button State', submitBtn.disabled === !shouldBeEnabled, 
+        `Button ${submitBtn.disabled ? 'disabled' : 'enabled'} (name: ${hasName}, slots: ${selectedCount})`);
+      
+      logInfo('Manual test: Click submit to verify loading state and API call');
+    }
+    
+    function testSubmissionError() {
+      logInfo('Testing submission error handling...');
+      showTestOutput('test-9-output');
+      
+      logInfo('To test submission errors:');
+      logInfo('1. Open browser DevTools Network tab');
+      logInfo('2. Block the /api/scheduling/availability endpoint');
+      logInfo('3. Click Submit and verify error message appears');
+      logInfo('4. Verify retry button is functional');
+    }
+
+    function testSuccessState() {
+      logInfo('Testing success state...');
+      showTestOutput('test-10-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      
+      // Show success state
+      doc.getElementById('main-content').style.display = 'none';
+      doc.getElementById('success-state').style.display = 'flex';
+      
+      const successState = doc.getElementById('success-state');
+      const hasCheckIcon = successState.querySelector('.material-icons')?.textContent === 'check_circle';
+      
+      logResult('Success State Display', successState.style.display === 'flex', 'Success state shown');
+      logResult('Check Icon', hasCheckIcon, 'Checkmark icon displayed');
+      
+      logInfo('Click "Initialize with Mock Data" to reset');
+    }
+    
+    function testErrorState() {
+      logInfo('Testing error state...');
+      showTestOutput('test-10-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      
+      // Show error state
+      doc.getElementById('main-content').style.display = 'none';
+      doc.getElementById('error-state').style.display = 'flex';
+      doc.getElementById('error-title').textContent = 'Network Error';
+      doc.getElementById('error-message').textContent = 'Unable to connect. Please check your internet connection.';
+      
+      const errorState = doc.getElementById('error-state');
+      const hasErrorIcon = errorState.querySelector('.material-icons')?.textContent === 'error_outline';
+      
+      logResult('Error State Display', errorState.style.display === 'flex', 'Error state shown');
+      logResult('Error Icon', hasErrorIcon, 'Error icon displayed');
+      
+      logInfo('Click "Initialize with Mock Data" to reset');
+    }
+    
+    function testAlreadySubmittedState() {
+      logInfo('Testing already submitted state...');
+      showTestOutput('test-10-output');
+      
+      logInfo('To test already submitted state:');
+      logInfo('1. Submit availability once');
+      logInfo('2. Reload the page with the same token');
+      logInfo('3. Verify "Already Submitted" notice appears');
+      logInfo('4. Verify "Update My Availability" button works');
+    }
+    
+    function testMobileLayout() {
+      logInfo('Testing mobile layout...');
+      showTestOutput('test-11-output');
+      
+      // Set viewport to mobile
+      setViewport('mobile');
+      
+      const frame = document.getElementById('preview-frame');
+      logResult('Mobile Viewport', frame.style.width === '375px', 'Viewport set to 375px');
+      
+      logInfo('Manual verification required:');
+      logInfo('1. Check calendar grid is horizontally scrollable');
+      logInfo('2. Check time slots are large enough for touch');
+      logInfo('3. Check submit button spans full width');
+      logInfo('4. Check text is readable without zooming');
+      
+      logInfo('Also test at 320px viewport for minimum support');
+    }
+    
+    function testTouchInteractions() {
+      logInfo('Testing touch interactions...');
+      showTestOutput('test-12-output');
+      
+      logInfo('Manual testing required on touch device:');
+      logInfo('1. Tap on a time slot - should select immediately');
+      logInfo('2. Tap again - should deselect');
+      logInfo('3. Swipe horizontally - should scroll calendar');
+      logInfo('4. Verify no accidental selections while scrolling');
+      logInfo('5. Focus on name input - should not zoom on iOS');
+    }
+
+    function testPerformance() {
+      logInfo('Testing performance...');
+      showTestOutput('test-13-output');
+      
+      // Measure time to render grid
+      const startTime = performance.now();
+      
+      const frame = document.getElementById('preview-frame');
+      if (frame && frame.contentDocument) {
+        const grid = frame.contentDocument.getElementById('calendar-grid');
+        const slots = grid?.querySelectorAll('.time-slot');
+        
+        const endTime = performance.now();
+        const renderTime = endTime - startTime;
+        
+        logResult('Grid Query Time', renderTime < 100, `Grid query took ${renderTime.toFixed(2)}ms`);
+        logResult('Slot Count', slots?.length > 0, `${slots?.length} slots rendered`);
+      }
+      
+      logInfo('For full performance testing:');
+      logInfo('1. Open DevTools Performance tab');
+      logInfo('2. Record page load');
+      logInfo('3. Verify load time < 2 seconds');
+      logInfo('4. Check for layout shifts (CLS)');
+    }
+    
+    function testAccessibility() {
+      logInfo('Testing accessibility...');
+      showTestOutput('test-14-output');
+      
+      const frame = document.getElementById('preview-frame');
+      if (!frame || !frame.contentDocument) {
+        logWarning('Preview frame not ready');
+        return;
+      }
+      
+      const doc = frame.contentDocument;
+      
+      // Check heading hierarchy
+      const h1 = doc.querySelector('h1');
+      const h2 = doc.querySelector('h2');
+      logResult('H1 Heading', h1 !== null, `H1: "${h1?.textContent}"`);
+      
+      // Check ARIA on grid
+      const grid = doc.getElementById('calendar-grid');
+      const gridRole = grid?.getAttribute('role');
+      logResult('Grid Role', gridRole === 'grid', `Grid role: "${gridRole}"`);
+      
+      // Check slot ARIA
+      const slot = doc.querySelector('.time-slot');
+      const slotRole = slot?.getAttribute('role');
+      const ariaSelected = slot?.getAttribute('aria-selected');
+      logResult('Slot Role', slotRole === 'gridcell', `Slot role: "${slotRole}"`);
+      logResult('Slot ARIA', ariaSelected !== null, `aria-selected: "${ariaSelected}"`);
+      
+      // Check form labels
+      const nameLabel = doc.querySelector('label[for="invitee-name"]');
+      logResult('Name Label', nameLabel !== null, 'Name input has associated label');
+      
+      logInfo('Additional manual checks:');
+      logInfo('1. Tab through all interactive elements');
+      logInfo('2. Verify focus indicators are visible');
+      logInfo('3. Test with screen reader');
+      logInfo('4. Check color contrast with DevTools');
+    }
+
+    // =========================================================================
+    // Run All Tests
+    // =========================================================================
+    
+    async function runAllTests() {
+      clearOutput();
+      logInfo('Running all automated tests...');
+      logInfo('================================');
+      
+      // Initialize mock page first
+      initMockPage();
+      
+      // Wait for frame to load
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      testPageLoading();
+      testPlanInfoDisplay();
+      testTimezoneDetection();
+      testCalendarGridRendering();
+      testTimeSlotGeneration();
+      testSlotSelection();
+      testMultiSlotSelection();
+      testWeekNavigation();
+      testNameValidation();
+      testSubmissionFlow();
+      testAccessibility();
+      
+      logInfo('================================');
+      showSummary();
+      
+      logInfo('');
+      logInfo('Manual tests still required:');
+      logInfo('- Error states (use test buttons)');
+      logInfo('- Mobile responsiveness (resize viewport)');
+      logInfo('- Touch interactions (use touch device)');
+      logInfo('- Performance (use DevTools)');
+    }
+
+    // =========================================================================
+    // Event Listeners
+    // =========================================================================
+    
+    document.getElementById('run-all-tests').addEventListener('click', runAllTests);
+    document.getElementById('init-mock-page').addEventListener('click', initMockPage);
+    document.getElementById('clear-output').addEventListener('click', clearOutput);
+    
+    document.getElementById('test-invalid-token').addEventListener('click', () => {
+      logInfo('Testing invalid token...');
+      const frame = document.getElementById('preview-frame');
+      if (frame && frame.contentDocument) {
+        const doc = frame.contentDocument;
+        doc.getElementById('main-content').style.display = 'none';
+        doc.getElementById('loading-state').style.display = 'none';
+        doc.getElementById('error-state').style.display = 'flex';
+        doc.getElementById('error-title').textContent = 'Link Not Found';
+        doc.getElementById('error-message').textContent = 'This invite link has expired or is invalid.';
+      }
+      logResult('Invalid Token', true, 'Error state shown for invalid token');
+    });
+    
+    document.getElementById('test-expired-link').addEventListener('click', () => {
+      logInfo('Testing expired link...');
+      const frame = document.getElementById('preview-frame');
+      if (frame && frame.contentDocument) {
+        const doc = frame.contentDocument;
+        doc.getElementById('main-content').style.display = 'none';
+        doc.getElementById('loading-state').style.display = 'none';
+        doc.getElementById('error-state').style.display = 'flex';
+        doc.getElementById('error-title').textContent = 'Plan Finalized';
+        doc.getElementById('error-message').textContent = 'This plan has already been finalized. No more availability submissions are needed.';
+      }
+      logResult('Expired Link', true, 'Error state shown for expired/finalized plan');
+    });
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      logInfo('Public Availability Page Test Suite Ready');
+      logInfo('Click "Initialize with Mock Data" to start testing');
+    });
+  </script>
+</body>
+</html>

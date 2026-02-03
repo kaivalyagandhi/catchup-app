@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Mark your availability for a CatchUp plan">
+    <meta name="theme-color" content="#D97706">
+    
+    <title>Mark Your Availability - CatchUp</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    
+    <!-- Google Fonts - Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/css/availability-public.css">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+    <div class="availability-container" id="availability-container">
+        <!-- Loading State (shown initially) -->
+        <div class="loading-state" id="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading plan details...</p>
+        </div>
+        
+        <!-- Main Content (hidden initially) -->
+        <div id="main-content" style="display: none;">
+            <header class="availability-header">
+                <h1>CatchUp</h1>
+                <p id="plan-description">Mark your availability</p>
+            </header>
+            
+            <main class="availability-main">
+                <!-- Plan Info -->
+                <div class="plan-info" id="plan-info">
+                    <div class="plan-detail">
+                        <span class="material-icons">event</span>
+                        <span id="plan-activity">Catchup</span>
+                    </div>
+                    <div class="plan-detail">
+                        <span class="material-icons">schedule</span>
+                        <span id="plan-duration">1 hour</span>
+                    </div>
+                    <div class="plan-detail" id="plan-location-container" style="display: none;">
+                        <span class="material-icons">place</span>
+                        <span id="plan-location"></span>
+                    </div>
+                </div>
+                
+                <!-- Invitee Name Section -->
+                <div class="invitee-name-section">
+                    <label for="invitee-name">Your Name</label>
+                    <input type="text" 
+                           id="invitee-name" 
+                           placeholder="Enter your name"
+                           autocomplete="name"
+                           required>
+                </div>
+                
+                <!-- Timezone Notice -->
+                <div class="timezone-notice">
+                    <span class="material-icons">schedule</span>
+                    <span>Times shown in <strong id="detected-timezone">UTC</strong></span>
+                    <button type="button" class="btn-link" id="change-timezone">Change</button>
+                </div>
+                
+                <!-- Calendar Grid Container -->
+                <div class="calendar-grid-container">
+                    <div class="calendar-navigation">
+                        <button type="button" id="prev-week" aria-label="Previous week">&lt;</button>
+                        <span id="date-range-label">Loading...</span>
+                        <button type="button" id="next-week" aria-label="Next week">&gt;</button>
+                    </div>
+                    
+                    <div class="calendar-instructions">
+                        <p>Tap or click on time slots when you're available</p>
+                    </div>
+                    
+                    <div class="calendar-grid" id="calendar-grid" role="grid" aria-label="Availability calendar">
+                        <!-- Dynamically populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Selection Summary -->
+                <div class="selection-summary">
+                    <span id="slots-selected">0 time slots selected</span>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="button" 
+                        class="submit-btn" 
+                        id="submit-availability" 
+                        disabled
+                        aria-describedby="submit-help">
+                    Submit Availability
+                </button>
+                <p id="submit-help" class="help-text" style="display: none;">
+                    Please select at least one time slot and enter your name
+                </p>
+            </main>
+            
+            <footer class="availability-footer">
+                <p>Powered by <a href="/" target="_blank">CatchUp</a> - Relationship Management</p>
+            </footer>
+        </div>
+        
+        <!-- Error State (hidden initially) -->
+        <div class="status-message error" id="error-state" style="display: none;">
+            <span class="material-icons">error_outline</span>
+            <h2 id="error-title">Something went wrong</h2>
+            <p id="error-message">Unable to load the availability page.</p>
+            <button type="button" class="btn-secondary" id="retry-btn" style="display: none;">
+                Try Again
+            </button>
+        </div>
+        
+        <!-- Success State (hidden initially) -->
+        <div class="status-message success" id="success-state" style="display: none;">
+            <span class="material-icons">check_circle</span>
+            <h2>Thank You!</h2>
+            <p id="success-message">Your availability has been submitted. The organizer will be notified.</p>
+        </div>
+        
+        <!-- Already Submitted State (hidden initially) -->
+        <div class="status-message" id="already-submitted-state" style="display: none;">
+            <span class="material-icons">info</span>
+            <h2>Already Submitted</h2>
+            <p>You've already submitted your availability for this plan.</p>
+            <button type="button" class="btn-secondary" id="update-availability-btn">
+                Update My Availability
+            </button>
+        </div>
+    </div>
+    
+    <!-- Timezone Selection Modal -->
+    <div class="modal" id="timezone-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Timezone</h3>
+                <button type="button" class="close-btn" id="close-timezone-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <select id="timezone-select" class="timezone-select">
+                    <!-- Populated by JavaScript -->
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="cancel-timezone">Cancel</button>
+                <button type="button" class="btn-primary" id="confirm-timezone">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <!-- Scripts -->
+    <script src="/js/availability-public.js"></script>
+</body>
+</html>

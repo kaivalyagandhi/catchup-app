@@ -239,6 +239,9 @@ function showMainApp() {
     // Initialize onboarding indicator
     initializeOnboardingIndicator();
     
+    // Initialize sync warning banner
+    initializeSyncWarningBanner();
+    
     // Determine initial page from URL or localStorage
     const path = window.location.pathname;
     const pageFromUrl = getPageFromPath(path);
@@ -395,6 +398,24 @@ function initializeOnboardingIndicator() {
     initializeStep1Handler();
     
     // Initialize Step 2 handler if on Step 2 and on circles page
+}
+
+/**
+ * Initialize the sync warning banner
+ * Requirements: 9.1, 9.6 - Graceful degradation
+ */
+function initializeSyncWarningBanner() {
+    // Only initialize if component exists and not already initialized
+    if (window.syncWarningBanner || typeof SyncWarningBanner === 'undefined') {
+        return;
+    }
+    
+    // Create and initialize banner
+    window.syncWarningBanner = new SyncWarningBanner();
+    window.syncWarningBanner.init();
+    
+    console.log('Sync warning banner initialized');
+}
     initializeStep2Handler();
     
     // Initialize Step 3 handler if on Step 3 and on groups page
@@ -975,6 +996,9 @@ function navigateTo(page, updateHistory = true) {
             break;
         case 'suggestions':
             loadSuggestions();
+            break;
+        case 'scheduling':
+            loadSchedulingPage();
             break;
         case 'edits':
             loadEditsPage();
@@ -3741,6 +3765,66 @@ async function removeContactFromTag(contactId) {
 let currentSuggestionFilter = 'all';
 let allSuggestions = []; // Store all suggestions for filtering
 
+// Scheduling Page Management
+let schedulingPageInstance = null;
+
+async function loadSchedulingPage() {
+    // Initialize scheduling page if not already done
+    if (!schedulingPageInstance && window.SchedulingPage) {
+        schedulingPageInstance = new window.SchedulingPage({
+            containerId: 'scheduling-page',
+            userId: window.userId || localStorage.getItem('userId')
+        });
+    }
+    
+    if (schedulingPageInstance) {
+        await schedulingPageInstance.init();
+    } else {
+        // Fallback if SchedulingPage class is not loaded
+        const container = document.getElementById('scheduling-page');
+        if (container) {
+            container.innerHTML = `
+                <div class="scheduling-page">
+                    <div class="empty-state">
+                        <span class="material-icons">event_busy</span>
+                        <h3>Scheduling Coming Soon</h3>
+                        <p>The scheduling feature is being set up.</p>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    // Update notification badge
+    updateSchedulingBadge();
+}
+
+async function updateSchedulingBadge() {
+    try {
+        const userId = window.userId || localStorage.getItem('userId');
+        const response = await fetch(`/api/scheduling/notifications/unread-count?userId=${userId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const badge = document.getElementById('scheduling-badge');
+            if (badge) {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Failed to update scheduling badge:', error);
+    }
+}
+
 async function loadSuggestions(statusFilter) {
     const container = document.getElementById('suggestions-list');
     
@@ -4384,7 +4468,15 @@ async function loadCalendar() {
                     <h3>Google Calendar Connected</h3>
                     <p>Your calendar is synced and ready for smart scheduling</p>
                     ${emailDisplay}
-                    <button onclick="disconnectCalendar()" class="btn-secondary">Disconnect Calendar</button>
+                    <div class="calendar-actions">
+                        <button onclick="syncCalendarNow()" class="btn-primary" id="sync-calendar-btn">
+                            <span class="btn-text">Sync Now</span>
+                            <span class="btn-loading" style="display: none;">
+                                <span class="spinner"></span> Syncing...
+                            </span>
+                        </button>
+                        <button onclick="disconnectCalendar()" class="btn-secondary">Disconnect Calendar</button>
+                    </div>
                 </div>
             `;
         } else {
@@ -4551,23 +4643,50 @@ async function refreshCalendar() {
     btn.innerHTML = '⏳ Syncing...';
     
     try {
-        const response = await fetch(`${API_BASE}/calendar/api/refresh`, {
+        // Use new manual sync endpoint (Requirement 7.1)
+        const response = await fetch(`${API_BASE}/sync/manual`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${authToken}`
-            }
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                integrationType: 'calendar'
+            })
         });
         
         if (!response.ok) {
             const errorData = await response.json();
+            
+            // Handle specific error cases (Requirement 7.3)
+            if (response.status === 401 || response.status === 403) {
+                showToast('Calendar sync failed. Please reconnect your calendar.', 'error');
+                // Show reconnect option
+                if (errorData.reauthUrl) {
+                    setTimeout(() => {
+                        const reconnect = confirm('Would you like to reconnect your calendar now?');
+                        if (reconnect) {
+                            window.location.href = errorData.reauthUrl;
+                        }
+                    }, 1000);
+                }
+                return;
+            } else if (response.status === 429) {
+                // Rate limit error (Requirement 7.4)
+                showToast('Please wait a moment before syncing again.', 'warning');
+                return;
+            }
+            
             throw new Error(errorData.error || 'Failed to refresh calendar');
         }
         
         const data = await response.json();
         console.log('Calendar refreshed:', data);
         
-        // Show success feedback with event count
-        btn.innerHTML = `✓ ${data.eventCount} events`;
+        // Show success feedback
+        btn.innerHTML = `✓ Synced`;
+        showToast('Calendar synced successfully!', 'success');
+        
         setTimeout(() => {
             btn.innerHTML = originalText;
             btn.disabled = false;
@@ -4589,7 +4708,86 @@ async function refreshCalendar() {
             btn.innerHTML = originalText;
             btn.disabled = false;
         }, 2000);
-        alert(`Failed to refresh calendar: ${error.message}`);
+        showToast(`Failed to refresh calendar: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Manually trigger calendar sync
+ * Requirements: 7.1, 7.5
+ */
+async function syncCalendarNow() {
+    const btn = document.getElementById('sync-calendar-btn');
+    if (!btn) return;
+    
+    // Show loading state
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+    if (btnText) btnText.style.display = 'none';
+    if (btnLoading) btnLoading.style.display = 'inline-flex';
+    btn.disabled = true;
+    
+    try {
+        // Ensure we have a valid auth token
+        let token = authToken;
+        if (!token) {
+            token = localStorage.getItem('authToken');
+        }
+        
+        if (!token) {
+            showToast('You must be logged in to sync calendar.', 'error');
+            return;
+        }
+        
+        const response = await fetch('/api/sync/manual', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                integrationType: 'calendar'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            // Handle specific error cases (Requirement 7.3)
+            if (response.status === 401 || response.status === 403) {
+                showToast('Calendar sync failed. Please reconnect your calendar.', 'error');
+                // Show reconnect option
+                if (data.reauthUrl) {
+                    setTimeout(() => {
+                        const reconnect = confirm('Would you like to reconnect your calendar now?');
+                        if (reconnect) {
+                            window.location.href = data.reauthUrl;
+                        }
+                    }, 1000);
+                }
+            } else if (response.status === 429) {
+                // Rate limit error (Requirement 7.4)
+                showToast('Please wait a moment before syncing again.', 'warning');
+            } else {
+                throw new Error(data.error || 'Failed to sync calendar');
+            }
+            return;
+        }
+        
+        showToast('Calendar synced successfully!', 'success');
+        
+        // Reload calendar events if on calendar page
+        if (currentPage === 'calendar') {
+            loadCalendar();
+        }
+    } catch (error) {
+        console.error('Error syncing calendar:', error);
+        showToast(`Failed to sync calendar: ${error.message}`, 'error');
+    } finally {
+        // Reset button state
+        if (btnText) btnText.style.display = 'inline';
+        if (btnLoading) btnLoading.style.display = 'none';
+        btn.disabled = false;
     }
 }
 

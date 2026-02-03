@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scheduling Page - Manual Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    h1 {
+      color: #1f2937;
+      margin-bottom: 10px;
+    }
+    
+    .description {
+      color: #6b7280;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .test-section h2 {
+      color: #374151;
+      font-size: 1.25rem;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .test-section h3 {
+      color: #4b5563;
+      font-size: 1rem;
+      margin: 15px 0 10px 0;
+    }
+    
+    .test-result {
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    
+    .test-result.pass {
+      background: #d1fae5;
+      color: #065f46;
+      border-left: 4px solid #10b981;
+    }
+    
+    .test-result.fail {
+      background: #fee2e2;
+      color: #991b1b;
+      border-left: 4px solid #ef4444;
+    }
+    
+    .test-result.info {
+      background: #dbeafe;
+      color: #1e40af;
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .test-result.warning {
+      background: #fef3c7;
+      color: #92400e;
+      border-left: 4px solid #f59e0b;
+    }
+    
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      background: #2563eb;
+    }
+    
+    button.secondary {
+      background: #6b7280;
+    }
+    
+    button.secondary:hover {
+      background: #4b5563;
+    }
+    
+    button.success {
+      background: #10b981;
+    }
+    
+    button.success:hover {
+      background: #059669;
+    }
+    
+    #test-output {
+      margin-top: 20px;
+    }
+    
+    .summary {
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+    
+    .summary.all-pass {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .summary.has-failures {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .checklist {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .checklist li {
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .checklist li:last-child {
+      border-bottom: none;
+    }
+    
+    .checklist input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    
+    .checklist label {
+      cursor: pointer;
+      flex: 1;
+    }
+    
+    .test-container {
+      display: none;
+      margin-top: 20px;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .test-container.active {
+      display: block;
+    }
+    
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background: #374151;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      z-index: 1000;
+    }
+    
+    .requirements-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #e0e7ff;
+      color: #3730a3;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">🌙 Toggle Theme</button>
+  
+  <h1>Scheduling Page - Manual Test</h1>
+  <p class="description">
+    Comprehensive manual tests for the Group Scheduling feature page.
+    <br>
+    <strong>Requirements:</strong> 1.1-1.8 (Navigation), 2.1-2.17 (Plan Creation), 10.1-10.10 (View Plans), 
+    12.1-12.8 (Plan Management), 15.1-15.7 (Mobile Responsiveness)
+  </p>
+
+  <!-- Test Controls -->
+  <div class="test-section">
+    <h2>Test Controls</h2>
+    <button id="run-all-tests">Run All Automated Tests</button>
+    <button id="init-scheduling-page" class="success">Initialize Scheduling Page</button>
+    <button id="open-plan-modal" class="secondary">Open Plan Creation Modal</button>
+    <button id="clear-output" class="secondary">Clear Output</button>
+  </div>
+
+  <div id="test-output"></div>
+
+  <!-- Section 1: Page Initialization -->
+  <div class="test-section">
+    <h2>1. Page Initialization and Loading <span class="requirements-badge">Req 1.1-1.8</span></h2>
+    <p>Tests for scheduling page initialization, loading states, and error handling.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-1-1">
+        <label for="check-1-1">Page loads without errors (check console)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-2">
+        <label for="check-1-2">Loading spinner appears while fetching data</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-3">
+        <label for="check-1-3">"New Plan" button is visible and clickable</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-4">
+        <label for="check-1-4">View toggle (calendar/list) is visible</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-5">
+        <label for="check-1-5">Filter buttons (All, Pending, Scheduled, Past) are visible</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-6">
+        <label for="check-1-6">Quick action buttons for circles are visible</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-1-7">
+        <label for="check-1-7">Error state shows retry button on API failure</label>
+      </li>
+    </ul>
+    
+    <button onclick="testPageInitialization()">Test Page Initialization</button>
+    <button onclick="testLoadingState()" class="secondary">Test Loading State</button>
+    <button onclick="testErrorState()" class="secondary">Test Error State</button>
+    <div id="test-1-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 2: View Toggle -->
+  <div class="test-section">
+    <h2>2. View Toggle (Calendar/List) <span class="requirements-badge">Req 1.6, 1.7</span></h2>
+    <p>Tests for switching between calendar and list views with localStorage persistence.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-2-1">
+        <label for="check-2-1">Calendar view button shows calendar icon</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-2-2">
+        <label for="check-2-2">List view button shows list icon</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-2-3">
+        <label for="check-2-3">Clicking calendar view shows monthly calendar grid</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-2-4">
+        <label for="check-2-4">Clicking list view shows plan cards</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-2-5">
+        <label for="check-2-5">Active view button is highlighted</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-2-6">
+        <label for="check-2-6">View preference persists after page refresh</label>
+      </li>
+    </ul>
+    
+    <button onclick="testViewToggle()">Test View Toggle</button>
+    <button onclick="testViewPersistence()" class="secondary">Test Persistence</button>
+    <div id="test-2-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 3: Filter Buttons -->
+  <div class="test-section">
+    <h2>3. Filter Buttons <span class="requirements-badge">Req 10.4, 10.5</span></h2>
+    <p>Tests for filtering plans by status (All, Pending, Scheduled, Past).</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-3-1">
+        <label for="check-3-1">"All" filter shows all plans</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-3-2">
+        <label for="check-3-2">"Pending" filter shows only collecting_availability plans</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-3-3">
+        <label for="check-3-3">"Scheduled" filter shows only scheduled plans</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-3-4">
+        <label for="check-3-4">"Past" filter shows completed, cancelled, and archived plans</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-3-5">
+        <label for="check-3-5">Active filter button is highlighted</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-3-6">
+        <label for="check-3-6">Empty state shows when no plans match filter</label>
+      </li>
+    </ul>
+    
+    <button onclick="testFilterButtons()">Test Filter Buttons</button>
+    <div id="test-3-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 4: Plan Creation Flow -->
+  <div class="test-section">
+    <h2>4. Plan Creation Flow <span class="requirements-badge">Req 2.1-2.17</span></h2>
+    <p>Tests for the multi-step plan creation modal (Contacts → Details → Share Links).</p>
+    
+    <h3>Step 1: Contact Selection</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-4-1">
+        <label for="check-4-1">Contact search input is visible and functional</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-2">
+        <label for="check-4-2">Circle filter buttons work (Inner Circle, Close Friends, etc.)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-3">
+        <label for="check-4-3">Group filter dropdown works</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-4">
+        <label for="check-4-4">"Add All Visible" button adds all filtered contacts</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-5">
+        <label for="check-4-5">Selected contacts appear as chips</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-6">
+        <label for="check-4-6">Can remove selected contacts by clicking X</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-7">
+        <label for="check-4-7">"Next" button is disabled until at least one contact is selected</label>
+      </li>
+    </ul>
+    
+    <h3>Step 2: Plan Details</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-4-8">
+        <label for="check-4-8">Activity type dropdown works (Coffee, Dinner, Video Call, etc.)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-9">
+        <label for="check-4-9">Duration dropdown works (30min, 1hr, 2hr, Half day)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-10">
+        <label for="check-4-10">Date range inputs work with validation (max 14 days)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-11">
+        <label for="check-4-11">Attendance type toggle works (Must Attend / Nice to Have)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-12">
+        <label for="check-4-12">Location input accepts text</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-13">
+        <label for="check-4-13">Favorite locations chips are clickable (if preferences exist)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-14">
+        <label for="check-4-14">"Apply Preferences" banner appears if user has saved preferences</label>
+      </li>
+    </ul>
+    
+    <h3>Step 3: Share Links</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-4-15">
+        <label for="check-4-15">Success message is displayed</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-16">
+        <label for="check-4-16">Invite links are generated for each invitee</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-17">
+        <label for="check-4-17">Copy button copies individual link to clipboard</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-18">
+        <label for="check-4-18">"Copy All Links" button works</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-19">
+        <label for="check-4-19">"Mark Your Availability" prompt is visible</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-4-20">
+        <label for="check-4-20">Next steps instructions are displayed</label>
+      </li>
+    </ul>
+    
+    <button onclick="testPlanCreationModal()">Test Plan Creation Modal</button>
+    <button onclick="testContactPicker()" class="secondary">Test Contact Picker</button>
+    <button onclick="testDateValidation()" class="secondary">Test Date Validation</button>
+    <div id="test-4-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 5: Plan Details Modal -->
+  <div class="test-section">
+    <h2>5. Plan Details Modal <span class="requirements-badge">Req 6.1-6.10, 10.7</span></h2>
+    <p>Tests for viewing plan details, availability dashboard, and AI suggestions.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-5-1">
+        <label for="check-5-1">Clicking "View Details" opens plan details modal</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-2">
+        <label for="check-5-2">Plan metadata is displayed (activity, duration, date range)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-3">
+        <label for="check-5-3">Participant list shows response status</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-4">
+        <label for="check-5-4">Invite links are displayed with copy buttons</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-5">
+        <label for="check-5-5">Availability dashboard shows when availability is collected</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-6">
+        <label for="check-5-6">Overlap highlighting shows times when all can attend</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-7">
+        <label for="check-5-7">"Get AI Help" button triggers AI suggestions</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-5-8">
+        <label for="check-5-8">AI suggestions panel displays recommendations</label>
+      </li>
+    </ul>
+    
+    <button onclick="testPlanDetailsModal()">Test Plan Details Modal</button>
+    <button onclick="testAvailabilityDashboard()" class="secondary">Test Availability Dashboard</button>
+    <div id="test-5-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 6: Edit Plan -->
+  <div class="test-section">
+    <h2>6. Edit Plan Functionality <span class="requirements-badge">Req 12.1, 12.2, 12.7</span></h2>
+    <p>Tests for editing non-finalized plans.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-6-1">
+        <label for="check-6-1">"Edit Plan" button is visible for non-finalized plans</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-6-2">
+        <label for="check-6-2">Can edit date range</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-6-3">
+        <label for="check-6-3">Can edit activity type</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-6-4">
+        <label for="check-6-4">Can edit duration</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-6-5">
+        <label for="check-6-5">Can edit location</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-6-6">
+        <label for="check-6-6">Can add new invitees</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-6-7">
+        <label for="check-6-7">Can remove invitees (before they respond)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-6-8">
+        <label for="check-6-8">Edit button is NOT visible for finalized plans</label>
+      </li>
+    </ul>
+    
+    <button onclick="testEditPlan()">Test Edit Plan</button>
+    <div id="test-6-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 7: Cancel Plan -->
+  <div class="test-section">
+    <h2>7. Cancel Plan Functionality <span class="requirements-badge">Req 12.2, 12.3, 12.4</span></h2>
+    <p>Tests for cancelling plans and invalidating invite links.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-7-1">
+        <label for="check-7-1">"Cancel Plan" button is visible</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-7-2">
+        <label for="check-7-2">Confirmation dialog appears before cancellation</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-7-3">
+        <label for="check-7-3">Plan status changes to "Cancelled" after confirmation</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-7-4">
+        <label for="check-7-4">Invite links are invalidated (test by opening old link)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-7-5">
+        <label for="check-7-5">Cancelled plan appears in "Past" filter</label>
+      </li>
+    </ul>
+    
+    <button onclick="testCancelPlan()">Test Cancel Plan</button>
+    <div id="test-7-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 8: Reminder Functionality -->
+  <div class="test-section">
+    <h2>8. Reminder Functionality <span class="requirements-badge">Req 12.5</span></h2>
+    <p>Tests for sending reminders to invitees who haven't responded.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-8-1">
+        <label for="check-8-1">"Send Reminders" button is visible when invitees haven't responded</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-8-2">
+        <label for="check-8-2">Button shows count of pending invitees</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-8-3">
+        <label for="check-8-3">Clicking button creates reminder notifications</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-8-4">
+        <label for="check-8-4">Success toast appears after sending reminders</label>
+      </li>
+    </ul>
+    
+    <button onclick="testReminders()">Test Reminders</button>
+    <div id="test-8-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 9: Archive/Unarchive -->
+  <div class="test-section">
+    <h2>9. Archive/Unarchive Functionality <span class="requirements-badge">Req 10.10</span></h2>
+    <p>Tests for archiving completed plans and viewing archived plans.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-9-1">
+        <label for="check-9-1">Archive button appears on past/completed plans</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-9-2">
+        <label for="check-9-2">Archived plans show "Archived" badge</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-9-3">
+        <label for="check-9-3">Archived plans appear in "Past" filter</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-9-4">
+        <label for="check-9-4">Unarchive button restores plan from archive</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-9-5">
+        <label for="check-9-5">Auto-archive triggers for plans completed 7+ days ago</label>
+      </li>
+    </ul>
+    
+    <button onclick="testArchive()">Test Archive</button>
+    <div id="test-9-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 10: Empty States -->
+  <div class="test-section">
+    <h2>10. Empty States <span class="requirements-badge">Task 14.4</span></h2>
+    <p>Tests for empty state guidance and first-time user experience.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-10-1">
+        <label for="check-10-1">First-time user sees welcoming empty state with illustration</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-10-2">
+        <label for="check-10-2">Empty state shows feature highlights (Share links, Collect availability, AI finds time)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-10-3">
+        <label for="check-10-3">"Create Your First Plan" CTA button is prominent</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-10-4">
+        <label for="check-10-4">Tip about quick actions is displayed</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-10-5">
+        <label for="check-10-5">Filtered empty state shows context-aware message</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-10-6">
+        <label for="check-10-6">"Show All Plans" button appears in filtered empty state</label>
+      </li>
+    </ul>
+    
+    <button onclick="testEmptyStates()">Test Empty States</button>
+    <div id="test-10-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 11: Individual Plans -->
+  <div class="test-section">
+    <h2>11. Individual Plan Support <span class="requirements-badge">Req 11.1-11.6</span></h2>
+    <p>Tests for one-on-one catchup plans with simplified flow.</p>
+    
+    <h3>Manual Checklist</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-11-1">
+        <label for="check-11-1">Can create plan with single contact</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-11-2">
+        <label for="check-11-2">Individual plan shows "One-on-One Catchup" banner</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-11-3">
+        <label for="check-11-3">Attendance type selection is skipped for individual plans</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-11-4">
+        <label for="check-11-4">Individual plans show person icon (not group icon)</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-11-5">
+        <label for="check-11-5">Can convert individual plan to group by adding contacts</label>
+      </li>
+    </ul>
+    
+    <button onclick="testIndividualPlans()">Test Individual Plans</button>
+    <div id="test-11-output" class="test-container"></div>
+  </div>
+
+  <!-- Section 12: Mobile Responsiveness -->
+  <div class="test-section">
+    <h2>12. Mobile Responsiveness <span class="requirements-badge">Req 15.1-15.7</span></h2>
+    <p>Tests for mobile layout and touch interactions.</p>
+    
+    <h3>Manual Checklist (Resize browser to &lt;768px)</h3>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="check-12-1">
+        <label for="check-12-1">Page renders correctly on mobile viewport</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-12-2">
+        <label for="check-12-2">Plan cards stack vertically</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-12-3">
+        <label for="check-12-3">Filter buttons wrap to multiple lines</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-12-4">
+        <label for="check-12-4">Plan creation modal is full-screen on mobile</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-12-5">
+        <label for="check-12-5">Calendar view adapts to smaller screen</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-12-6">
+        <label for="check-12-6">Touch targets are at least 44x44px</label>
+      </li>
+      <li>
+        <input type="checkbox" id="check-12-7">
+        <label for="check-12-7">Horizontal scroll hint appears on availability grid</label>
+      </li>
+    </ul>
+    
+    <button onclick="testMobileResponsiveness()">Test Mobile Layout</button>
+    <div id="test-12-output" class="test-container"></div>
+  </div>
+
+  <!-- Load dependencies -->
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <link rel="stylesheet" href="/css/scheduling.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <!-- Scheduling Page Container -->
+  <div class="test-section">
+    <h2>Live Scheduling Page Preview</h2>
+    <div id="scheduling-page" style="min-height: 400px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;"></div>
+  </div>
+
+  <!-- Load scheduling components -->
+  <script src="/js/contact-picker.js"></script>
+  <script src="/js/plan-creation-modal.js"></script>
+  <script src="/js/scheduling-page.js"></script>
+  <script src="/js/availability-dashboard.js"></script>
+  <script src="/js/plan-calendar-view.js"></script>
+  <script src="/js/scheduling-preferences.js"></script>
+  <script src="/js/scheduling-notifications.js"></script>
+  <script src="/js/scheduling-privacy.js"></script>
+  <script src="/js/initiator-availability-modal.js"></script>
+  
+  <script>
+    // =========================================================================
+    // Test Utilities
+    // =========================================================================
+    
+    const testResults = [];
+    let schedulingPage = null;
+    
+    function logResult(testName, passed, message) {
+      testResults.push({ testName, passed, message });
+      const output = document.getElementById('test-output');
+      const div = document.createElement('div');
+      div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+      div.textContent = `${passed ? '✓' : '✗'} ${testName}: ${message}`;
+      output.appendChild(div);
+      console.log(`${passed ? '✓' : '✗'} ${testName}: ${message}`);
+    }
+    
+    function logInfo(message) {
+      const output = document.getElementById('test-output');
+      const div = document.createElement('div');
+      div.className = 'test-result info';
+      div.textContent = `ℹ ${message}`;
+      output.appendChild(div);
+      console.log(`ℹ ${message}`);
+    }
+    
+    function logWarning(message) {
+      const output = document.getElementById('test-output');
+      const div = document.createElement('div');
+      div.className = 'test-result warning';
+      div.textContent = `⚠ ${message}`;
+      output.appendChild(div);
+      console.warn(`⚠ ${message}`);
+    }
+    
+    function clearOutput() {
+      document.getElementById('test-output').innerHTML = '';
+      testResults.length = 0;
+    }
+    
+    function showSummary() {
+      const output = document.getElementById('test-output');
+      const passed = testResults.filter(r => r.passed).length;
+      const failed = testResults.filter(r => !r.passed).length;
+      const total = testResults.length;
+      
+      const div = document.createElement('div');
+      div.className = `summary ${failed === 0 ? 'all-pass' : 'has-failures'}`;
+      div.textContent = `Summary: ${passed}/${total} tests passed${failed > 0 ? `, ${failed} failed` : ''}`;
+      output.appendChild(div);
+    }
+    
+    function showTestOutput(sectionId) {
+      const container = document.getElementById(sectionId);
+      if (container) {
+        container.classList.add('active');
+      }
+    }
+
+    // =========================================================================
+    // Mock Data
+    // =========================================================================
+    
+    const mockPlans = [
+      {
+        id: 'plan-1',
+        userId: 'test-user',
+        status: 'collecting_availability',
+        activityType: 'Coffee',
+        duration: 60,
+        dateRangeStart: new Date().toISOString().split('T')[0],
+        dateRangeEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        invitees: [
+          { contactId: '1', contactName: 'Alice Johnson', attendanceType: 'must_attend', hasResponded: true },
+          { contactId: '2', contactName: 'Bob Smith', attendanceType: 'must_attend', hasResponded: false }
+        ],
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'plan-2',
+        userId: 'test-user',
+        status: 'scheduled',
+        activityType: 'Dinner',
+        duration: 120,
+        dateRangeStart: new Date().toISOString().split('T')[0],
+        dateRangeEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        finalizedTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+        invitees: [
+          { contactId: '3', contactName: 'Charlie Brown', attendanceType: 'must_attend', hasResponded: true },
+          { contactId: '4', contactName: 'Diana Prince', attendanceType: 'nice_to_have', hasResponded: true }
+        ],
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'plan-3',
+        userId: 'test-user',
+        status: 'completed',
+        activityType: 'Video Call',
+        duration: 30,
+        dateRangeStart: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        dateRangeEnd: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        finalizedTime: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        invitees: [
+          { contactId: '5', contactName: 'Eve Wilson', attendanceType: 'must_attend', hasResponded: true }
+        ],
+        createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    ];
+    
+    const mockContacts = [
+      { id: '1', name: 'Alice Johnson', email: 'alice@example.com', dunbarCircle: 'inner' },
+      { id: '2', name: 'Bob Smith', email: 'bob@example.com', dunbarCircle: 'close' },
+      { id: '3', name: 'Charlie Brown', email: 'charlie@example.com', dunbarCircle: 'active' },
+      { id: '4', name: 'Diana Prince', email: 'diana@example.com', dunbarCircle: 'casual' },
+      { id: '5', name: 'Eve Wilson', email: 'eve@example.com', dunbarCircle: null },
+      { id: '6', name: 'Frank Miller', email: 'frank@example.com', dunbarCircle: 'inner' },
+      { id: '7', name: 'Grace Lee', email: 'grace@example.com', dunbarCircle: 'close' },
+      { id: '8', name: 'Henry Adams', email: 'henry@example.com', dunbarCircle: null }
+    ];
+    
+    const mockPreferences = {
+      preferredDays: ['Monday', 'Wednesday', 'Friday'],
+      preferredTimeRanges: ['morning', 'evening'],
+      defaultDuration: 60,
+      defaultActivityType: 'coffee',
+      favoriteLocations: ['Central Perk', 'The Office', 'Zoom'],
+      applyByDefault: true
+    };
+
+    // =========================================================================
+    // Mock Fetch API
+    // =========================================================================
+    
+    const originalFetch = window.fetch;
+    
+    function setupMockFetch() {
+      window.fetch = async (url, options = {}) => {
+        console.log('Mock fetch:', url, options.method || 'GET');
+        
+        // Plans endpoints
+        if (url.includes('/api/scheduling/plans') && !url.includes('/finalize') && !url.includes('/cancel')) {
+          if (options.method === 'POST') {
+            const body = JSON.parse(options.body);
+            const newPlan = {
+              id: 'plan-new-' + Date.now(),
+              ...body,
+              status: 'collecting_availability',
+              createdAt: new Date().toISOString()
+            };
+            return {
+              ok: true,
+              json: async () => ({
+                plan: newPlan,
+                inviteLinks: body.invitees.map((inv, i) => ({
+                  contactId: inv.contactId,
+                  contactName: mockContacts.find(c => c.id === inv.contactId)?.name || `Contact ${i}`,
+                  attendanceType: inv.attendanceType,
+                  url: `${window.location.origin}/availability/token-${Date.now()}-${i}`,
+                  token: `token-${Date.now()}-${i}`
+                }))
+              })
+            };
+          }
+          return {
+            ok: true,
+            json: async () => mockPlans
+          };
+        }
+        
+        // Contacts endpoint
+        if (url.includes('/api/contacts') && !url.includes('/groups')) {
+          return {
+            ok: true,
+            json: async () => ({ contacts: mockContacts })
+          };
+        }
+        
+        // Groups endpoint
+        if (url.includes('/api/contacts/groups')) {
+          return {
+            ok: true,
+            json: async () => [
+              { id: 'group-1', name: 'Work Friends' },
+              { id: 'group-2', name: 'Book Club' },
+              { id: 'group-3', name: 'Gym Buddies' }
+            ]
+          };
+        }
+        
+        // Preferences endpoint
+        if (url.includes('/api/scheduling/preferences')) {
+          return {
+            ok: true,
+            json: async () => mockPreferences
+          };
+        }
+        
+        // Privacy endpoint
+        if (url.includes('/api/scheduling/privacy')) {
+          return {
+            ok: true,
+            json: async () => ({ shareWithInnerCircle: false })
+          };
+        }
+        
+        // Notifications endpoint
+        if (url.includes('/api/scheduling/notifications')) {
+          return {
+            ok: true,
+            json: async () => ({ count: 3 })
+          };
+        }
+        
+        // Auto-archive endpoint
+        if (url.includes('/api/scheduling/auto-archive')) {
+          return { ok: true, json: async () => ({ archived: 0 }) };
+        }
+        
+        // Archived plans endpoint
+        if (url.includes('/api/scheduling/plans/archived')) {
+          return { ok: true, json: async () => [] };
+        }
+        
+        // Default fallback
+        console.warn('Unhandled mock fetch:', url);
+        return { ok: true, json: async () => ({}) };
+      };
+    }
+    
+    function restoreFetch() {
+      window.fetch = originalFetch;
+    }
+
+    // =========================================================================
+    // Test Functions
+    // =========================================================================
+    
+    // Test 1: Page Initialization
+    async function testPageInitialization() {
+      clearOutput();
+      logInfo('Testing page initialization...');
+      showTestOutput('test-1-output');
+      
+      setupMockFetch();
+      
+      try {
+        // Check if SchedulingPage class exists
+        const classExists = typeof SchedulingPage !== 'undefined';
+        logResult('SchedulingPage class exists', classExists, 
+          classExists ? 'Class is defined' : 'Class not found - check script loading');
+        
+        if (!classExists) return;
+        
+        // Create instance
+        schedulingPage = new SchedulingPage({
+          containerId: 'scheduling-page',
+          userId: 'test-user'
+        });
+        
+        logResult('SchedulingPage instance created', !!schedulingPage, 
+          schedulingPage ? 'Instance created successfully' : 'Failed to create instance');
+        
+        // Initialize
+        await schedulingPage.init();
+        
+        // Check container has content
+        const container = document.getElementById('scheduling-page');
+        const hasContent = container && container.innerHTML.length > 0;
+        logResult('Page rendered content', hasContent, 
+          hasContent ? 'Container has content' : 'Container is empty');
+        
+        // Check for key elements
+        const hasHeader = container.querySelector('.scheduling-header') !== null;
+        logResult('Header rendered', hasHeader, 
+          hasHeader ? 'Header element found' : 'Header not found');
+        
+        const hasNewPlanBtn = container.querySelector('#new-plan-btn') !== null;
+        logResult('New Plan button rendered', hasNewPlanBtn, 
+          hasNewPlanBtn ? 'Button found' : 'Button not found');
+        
+        const hasViewToggle = container.querySelector('.view-toggle') !== null;
+        logResult('View toggle rendered', hasViewToggle, 
+          hasViewToggle ? 'View toggle found' : 'View toggle not found');
+        
+        const hasFilters = container.querySelector('.filter-buttons') !== null;
+        logResult('Filter buttons rendered', hasFilters, 
+          hasFilters ? 'Filter buttons found' : 'Filter buttons not found');
+        
+      } catch (error) {
+        logResult('Page initialization', false, `Error: ${error.message}`);
+        console.error(error);
+      }
+      
+      showSummary();
+    }
+    
+    // Test Loading State
+    function testLoadingState() {
+      clearOutput();
+      logInfo('Testing loading state...');
+      showTestOutput('test-1-output');
+      
+      if (!schedulingPage) {
+        logWarning('Initialize scheduling page first');
+        return;
+      }
+      
+      schedulingPage.renderLoadingState();
+      
+      const container = document.getElementById('scheduling-page');
+      const hasSpinner = container.querySelector('.loading-spinner') !== null;
+      logResult('Loading spinner displayed', hasSpinner, 
+        hasSpinner ? 'Spinner found' : 'Spinner not found');
+      
+      const hasLoadingText = container.innerHTML.includes('Loading');
+      logResult('Loading text displayed', hasLoadingText, 
+        hasLoadingText ? 'Loading text found' : 'Loading text not found');
+      
+      showSummary();
+    }
+    
+    // Test Error State
+    function testErrorState() {
+      clearOutput();
+      logInfo('Testing error state...');
+      showTestOutput('test-1-output');
+      
+      if (!schedulingPage) {
+        logWarning('Initialize scheduling page first');
+        return;
+      }
+      
+      schedulingPage.loadError = 'Test error message';
+      schedulingPage.renderErrorState();
+      
+      const container = document.getElementById('scheduling-page');
+      const hasErrorState = container.querySelector('.error-state') !== null;
+      logResult('Error state displayed', hasErrorState, 
+        hasErrorState ? 'Error state found' : 'Error state not found');
+      
+      const hasRetryBtn = container.querySelector('#retry-load-btn') !== null;
+      logResult('Retry button displayed', hasRetryBtn, 
+        hasRetryBtn ? 'Retry button found' : 'Retry button not found');
+      
+      showSummary();
+    }
+
+    // Test 2: View Toggle
+    async function testViewToggle() {
+      clearOutput();
+      logInfo('Testing view toggle functionality...');
+      showTestOutput('test-2-output');
+      
+      if (!schedulingPage) {
+        await testPageInitialization();
+      }
+      
+      const container = document.getElementById('scheduling-page');
+      
+      // Test calendar view
+      const calendarBtn = container.querySelector('.view-btn[data-view="calendar"]');
+      if (calendarBtn) {
+        calendarBtn.click();
+        await new Promise(r => setTimeout(r, 100));
+        
+        const isCalendarActive = calendarBtn.classList.contains('active');
+        logResult('Calendar button activates', isCalendarActive, 
+          isCalendarActive ? 'Calendar button is active' : 'Calendar button not active');
+        
+        const hasCalendarView = container.querySelector('.plan-calendar-view') !== null;
+        logResult('Calendar view rendered', hasCalendarView, 
+          hasCalendarView ? 'Calendar view found' : 'Calendar view not found');
+      }
+      
+      // Test list view
+      const listBtn = container.querySelector('.view-btn[data-view="list"]');
+      if (listBtn) {
+        listBtn.click();
+        await new Promise(r => setTimeout(r, 100));
+        
+        const isListActive = listBtn.classList.contains('active');
+        logResult('List button activates', isListActive, 
+          isListActive ? 'List button is active' : 'List button not active');
+        
+        const hasListView = container.querySelector('.plans-list') !== null || 
+                           container.querySelector('.empty-state') !== null;
+        logResult('List view rendered', hasListView, 
+          hasListView ? 'List view found' : 'List view not found');
+      }
+      
+      showSummary();
+    }
+    
+    // Test View Persistence
+    function testViewPersistence() {
+      clearOutput();
+      logInfo('Testing view preference persistence...');
+      showTestOutput('test-2-output');
+      
+      // Save calendar preference
+      localStorage.setItem('scheduling-view-preference', 'calendar');
+      const savedCalendar = localStorage.getItem('scheduling-view-preference');
+      logResult('Calendar preference saved', savedCalendar === 'calendar', 
+        savedCalendar === 'calendar' ? 'Saved correctly' : `Got: ${savedCalendar}`);
+      
+      // Save list preference
+      localStorage.setItem('scheduling-view-preference', 'list');
+      const savedList = localStorage.getItem('scheduling-view-preference');
+      logResult('List preference saved', savedList === 'list', 
+        savedList === 'list' ? 'Saved correctly' : `Got: ${savedList}`);
+      
+      logInfo('Refresh the page to verify persistence');
+      showSummary();
+    }
+    
+    // Test 3: Filter Buttons
+    async function testFilterButtons() {
+      clearOutput();
+      logInfo('Testing filter buttons...');
+      showTestOutput('test-3-output');
+      
+      if (!schedulingPage) {
+        await testPageInitialization();
+      }
+      
+      const container = document.getElementById('scheduling-page');
+      const filters = ['all', 'pending', 'scheduled', 'past'];
+      
+      for (const filter of filters) {
+        const btn = container.querySelector(`.filter-btn[data-filter="${filter}"]`);
+        if (btn) {
+          btn.click();
+          await new Promise(r => setTimeout(r, 100));
+          
+          const isActive = btn.classList.contains('active');
+          logResult(`${filter} filter activates`, isActive, 
+            isActive ? `${filter} button is active` : `${filter} button not active`);
+          
+          // Check current filter state
+          const currentFilter = schedulingPage.currentFilter;
+          logResult(`${filter} filter state updated`, currentFilter === filter, 
+            currentFilter === filter ? 'State matches' : `Expected ${filter}, got ${currentFilter}`);
+        } else {
+          logResult(`${filter} filter button exists`, false, 'Button not found');
+        }
+      }
+      
+      showSummary();
+    }
+
+    // Test 4: Plan Creation Modal
+    async function testPlanCreationModal() {
+      clearOutput();
+      logInfo('Testing plan creation modal...');
+      showTestOutput('test-4-output');
+      
+      setupMockFetch();
+      
+      try {
+        // Check if PlanCreationModal class exists
+        const classExists = typeof PlanCreationModal !== 'undefined';
+        logResult('PlanCreationModal class exists', classExists, 
+          classExists ? 'Class is defined' : 'Class not found');
+        
+        if (!classExists) return;
+        
+        // Create and open modal
+        const modal = new PlanCreationModal({
+          userId: 'test-user',
+          onPlanCreated: (plan) => {
+            console.log('Plan created:', plan);
+            logInfo('Plan created callback triggered');
+          }
+        });
+        
+        await modal.open();
+        
+        // Check modal is displayed
+        const modalElement = document.querySelector('.plan-creation-modal');
+        logResult('Modal opened', !!modalElement, 
+          modalElement ? 'Modal is visible' : 'Modal not found');
+        
+        // Check step indicator
+        const stepIndicator = document.querySelector('.step-indicator');
+        logResult('Step indicator visible', !!stepIndicator, 
+          stepIndicator ? 'Step indicator found' : 'Step indicator not found');
+        
+        // Check step 1 is active
+        const step1Active = document.querySelector('.step[data-step="1"].active');
+        logResult('Step 1 is active', !!step1Active, 
+          step1Active ? 'Step 1 active' : 'Step 1 not active');
+        
+        // Check contact picker container
+        const pickerContainer = document.querySelector('#contact-picker-container');
+        logResult('Contact picker container exists', !!pickerContainer, 
+          pickerContainer ? 'Container found' : 'Container not found');
+        
+        // Check footer buttons
+        const nextBtn = document.querySelector('#modal-next');
+        logResult('Next button exists', !!nextBtn, 
+          nextBtn ? 'Next button found' : 'Next button not found');
+        
+        const cancelBtn = document.querySelector('#modal-cancel');
+        logResult('Cancel button exists', !!cancelBtn, 
+          cancelBtn ? 'Cancel button found' : 'Cancel button not found');
+        
+        // Close modal for cleanup
+        modal.handleClose();
+        
+      } catch (error) {
+        logResult('Plan creation modal test', false, `Error: ${error.message}`);
+        console.error(error);
+      }
+      
+      showSummary();
+    }
+    
+    // Test Contact Picker
+    async function testContactPicker() {
+      clearOutput();
+      logInfo('Testing contact picker...');
+      showTestOutput('test-4-output');
+      
+      setupMockFetch();
+      
+      try {
+        const classExists = typeof ContactPicker !== 'undefined';
+        logResult('ContactPicker class exists', classExists, 
+          classExists ? 'Class is defined' : 'Class not found');
+        
+        if (!classExists) return;
+        
+        // Create test container
+        let testContainer = document.getElementById('contact-picker-test');
+        if (!testContainer) {
+          testContainer = document.createElement('div');
+          testContainer.id = 'contact-picker-test';
+          document.getElementById('test-4-output').appendChild(testContainer);
+        }
+        
+        const picker = new ContactPicker({
+          containerId: 'contact-picker-test',
+          userId: 'test-user',
+          onSelectionChange: (contacts) => {
+            console.log('Selection changed:', contacts);
+          }
+        });
+        
+        await picker.init();
+        
+        // Check search input
+        const searchInput = testContainer.querySelector('.contact-search-input');
+        logResult('Search input rendered', !!searchInput, 
+          searchInput ? 'Search input found' : 'Search input not found');
+        
+        // Check circle filters
+        const circleFilters = testContainer.querySelectorAll('.circle-filter-btn');
+        logResult('Circle filters rendered', circleFilters.length > 0, 
+          circleFilters.length > 0 ? `${circleFilters.length} filters found` : 'No filters found');
+        
+        // Check contacts grid
+        const contactsGrid = testContainer.querySelector('.contacts-grid');
+        logResult('Contacts grid rendered', !!contactsGrid, 
+          contactsGrid ? 'Grid found' : 'Grid not found');
+        
+      } catch (error) {
+        logResult('Contact picker test', false, `Error: ${error.message}`);
+        console.error(error);
+      }
+      
+      showSummary();
+    }
+    
+    // Test Date Validation
+    function testDateValidation() {
+      clearOutput();
+      logInfo('Testing date range validation...');
+      showTestOutput('test-4-output');
+      
+      // Test valid range (7 days)
+      const start = new Date();
+      const end7Days = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const valid7Days = (end7Days - start) / (24 * 60 * 60 * 1000) <= 14;
+      logResult('7-day range is valid', valid7Days, 
+        valid7Days ? '7 days is within 14-day limit' : '7 days exceeds limit');
+      
+      // Test max range (14 days)
+      const end14Days = new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const valid14Days = (end14Days - start) / (24 * 60 * 60 * 1000) <= 14;
+      logResult('14-day range is valid', valid14Days, 
+        valid14Days ? '14 days is at limit' : '14 days exceeds limit');
+      
+      // Test invalid range (15 days)
+      const end15Days = new Date(start.getTime() + 15 * 24 * 60 * 60 * 1000);
+      const invalid15Days = (end15Days - start) / (24 * 60 * 60 * 1000) > 14;
+      logResult('15-day range is invalid', invalid15Days, 
+        invalid15Days ? '15 days correctly exceeds limit' : '15 days incorrectly allowed');
+      
+      // Test end before start
+      const endBeforeStart = end7Days < start;
+      logResult('End before start is invalid', !endBeforeStart, 
+        !endBeforeStart ? 'End is after start' : 'End is before start');
+      
+      showSummary();
+    }
+
+    // Test 5: Plan Details Modal
+    async function testPlanDetailsModal() {
+      clearOutput();
+      logInfo('Testing plan details modal...');
+      showTestOutput('test-5-output');
+      
+      if (!schedulingPage) {
+        await testPageInitialization();
+      }
+      
+      // Check if viewPlanDetails method exists
+      const hasMethod = typeof schedulingPage.viewPlanDetails === 'function';
+      logResult('viewPlanDetails method exists', hasMethod, 
+        hasMethod ? 'Method found' : 'Method not found');
+      
+      if (hasMethod && mockPlans.length > 0) {
+        try {
+          await schedulingPage.viewPlanDetails(mockPlans[0].id);
+          
+          // Check for plan details modal
+          const detailsModal = document.querySelector('.plan-details-modal');
+          logResult('Plan details modal opened', !!detailsModal, 
+            detailsModal ? 'Modal found' : 'Modal not found');
+        } catch (error) {
+          logWarning(`Could not open plan details: ${error.message}`);
+        }
+      }
+      
+      showSummary();
+    }
+    
+    // Test Availability Dashboard
+    async function testAvailabilityDashboard() {
+      clearOutput();
+      logInfo('Testing availability dashboard...');
+      showTestOutput('test-5-output');
+      
+      const classExists = typeof AvailabilityDashboard !== 'undefined';
+      logResult('AvailabilityDashboard class exists', classExists, 
+        classExists ? 'Class is defined' : 'Class not found');
+      
+      if (!classExists) {
+        showSummary();
+        return;
+      }
+      
+      // Create test container
+      let testContainer = document.getElementById('availability-dashboard-test');
+      if (!testContainer) {
+        testContainer = document.createElement('div');
+        testContainer.id = 'availability-dashboard-test';
+        document.getElementById('test-5-output').appendChild(testContainer);
+      }
+      
+      try {
+        const dashboard = new AvailabilityDashboard({
+          containerId: 'availability-dashboard-test',
+          planId: 'plan-1',
+          userId: 'test-user'
+        });
+        
+        logResult('Dashboard instance created', !!dashboard, 
+          dashboard ? 'Instance created' : 'Failed to create');
+        
+      } catch (error) {
+        logResult('Dashboard creation', false, `Error: ${error.message}`);
+      }
+      
+      showSummary();
+    }
+    
+    // Test 6: Edit Plan
+    function testEditPlan() {
+      clearOutput();
+      logInfo('Testing edit plan functionality...');
+      showTestOutput('test-6-output');
+      
+      if (!schedulingPage) {
+        logWarning('Initialize scheduling page first');
+        showSummary();
+        return;
+      }
+      
+      // Check if openEditPlanModal method exists
+      const hasMethod = typeof schedulingPage.openEditPlanModal === 'function';
+      logResult('openEditPlanModal method exists', hasMethod, 
+        hasMethod ? 'Method found' : 'Method not found');
+      
+      logInfo('Manual test: Click "Edit Plan" on a non-finalized plan card');
+      showSummary();
+    }
+    
+    // Test 7: Cancel Plan
+    function testCancelPlan() {
+      clearOutput();
+      logInfo('Testing cancel plan functionality...');
+      showTestOutput('test-7-output');
+      
+      if (!schedulingPage) {
+        logWarning('Initialize scheduling page first');
+        showSummary();
+        return;
+      }
+      
+      // Check if cancelPlan method exists
+      const hasMethod = typeof schedulingPage.cancelPlan === 'function';
+      logResult('cancelPlan method exists', hasMethod, 
+        hasMethod ? 'Method found' : 'Method not found');
+      
+      logInfo('Manual test: Click "Cancel Plan" and verify confirmation dialog');
+      showSummary();
+    }
+    
+    // Test 8: Reminders
+    function testReminders() {
+      clearOutput();
+      logInfo('Testing reminder functionality...');
+      showTestOutput('test-8-output');
+      
+      if (!schedulingPage) {
+        logWarning('Initialize scheduling page first');
+        showSummary();
+        return;
+      }
+      
+      // Check if sendReminders method exists
+      const hasMethod = typeof schedulingPage.sendReminders === 'function';
+      logResult('sendReminders method exists', hasMethod, 
+        hasMethod ? 'Method found' : 'Method not found');
+      
+      logInfo('Manual test: Click "Send Reminders" on a plan with pending invitees');
+      showSummary();
+    }
+
+    // Test 9: Archive
+    function testArchive() {
+      clearOutput();
+      logInfo('Testing archive functionality...');
+      showTestOutput('test-9-output');
+      
+      if (!schedulingPage) {
+        logWarning('Initialize scheduling page first');
+        showSummary();
+        return;
+      }
+      
+      // Check if archivePlan method exists
+      const hasArchiveMethod = typeof schedulingPage.archivePlan === 'function';
+      logResult('archivePlan method exists', hasArchiveMethod, 
+        hasArchiveMethod ? 'Method found' : 'Method not found');
+      
+      // Check if unarchivePlan method exists
+      const hasUnarchiveMethod = typeof schedulingPage.unarchivePlan === 'function';
+      logResult('unarchivePlan method exists', hasUnarchiveMethod, 
+        hasUnarchiveMethod ? 'Method found' : 'Method not found');
+      
+      logInfo('Manual test: Archive a completed plan and verify it appears in Past filter');
+      showSummary();
+    }
+    
+    // Test 10: Empty States
+    async function testEmptyStates() {
+      clearOutput();
+      logInfo('Testing empty states...');
+      showTestOutput('test-10-output');
+      
+      setupMockFetch();
+      
+      // Override mock to return empty plans
+      const emptyFetch = window.fetch;
+      window.fetch = async (url, options) => {
+        if (url.includes('/api/scheduling/plans') && !options?.method) {
+          return { ok: true, json: async () => [] };
+        }
+        return emptyFetch(url, options);
+      };
+      
+      try {
+        const emptyPage = new SchedulingPage({
+          containerId: 'scheduling-page',
+          userId: 'test-user-empty'
+        });
+        
+        await emptyPage.init();
+        
+        const container = document.getElementById('scheduling-page');
+        
+        // Check for welcome empty state
+        const hasWelcomeState = container.querySelector('.empty-state-welcome') !== null;
+        logResult('Welcome empty state displayed', hasWelcomeState, 
+          hasWelcomeState ? 'Welcome state found' : 'Welcome state not found');
+        
+        // Check for CTA button
+        const hasCTA = container.querySelector('#empty-state-new-plan-btn') !== null;
+        logResult('CTA button displayed', hasCTA, 
+          hasCTA ? 'CTA button found' : 'CTA button not found');
+        
+        // Check for feature highlights
+        const hasFeatures = container.querySelector('.empty-state-features') !== null;
+        logResult('Feature highlights displayed', hasFeatures, 
+          hasFeatures ? 'Features found' : 'Features not found');
+        
+        // Check for hint
+        const hasHint = container.querySelector('.empty-state-hint') !== null;
+        logResult('Tip/hint displayed', hasHint, 
+          hasHint ? 'Hint found' : 'Hint not found');
+        
+      } catch (error) {
+        logResult('Empty state test', false, `Error: ${error.message}`);
+      }
+      
+      // Restore original mock
+      setupMockFetch();
+      showSummary();
+    }
+    
+    // Test 11: Individual Plans
+    function testIndividualPlans() {
+      clearOutput();
+      logInfo('Testing individual plan support...');
+      showTestOutput('test-11-output');
+      
+      try {
+        const modal = new PlanCreationModal({
+          userId: 'test-user'
+        });
+        
+        // Simulate single contact selection
+        modal.selectedContacts.set('1', { id: '1', name: 'Alice Johnson' });
+        
+        const isIndividual = modal.isIndividualPlan();
+        logResult('Single contact detected as individual plan', isIndividual, 
+          isIndividual ? 'Correctly identified' : 'Not identified as individual');
+        
+        // Simulate multiple contacts
+        modal.selectedContacts.set('2', { id: '2', name: 'Bob Smith' });
+        
+        const isGroup = !modal.isIndividualPlan();
+        logResult('Multiple contacts detected as group plan', isGroup, 
+          isGroup ? 'Correctly identified' : 'Incorrectly identified as individual');
+        
+      } catch (error) {
+        logResult('Individual plan test', false, `Error: ${error.message}`);
+      }
+      
+      showSummary();
+    }
+    
+    // Test 12: Mobile Responsiveness
+    function testMobileResponsiveness() {
+      clearOutput();
+      logInfo('Testing mobile responsiveness...');
+      showTestOutput('test-12-output');
+      
+      const currentWidth = window.innerWidth;
+      logInfo(`Current viewport width: ${currentWidth}px`);
+      
+      if (currentWidth >= 768) {
+        logWarning('Resize browser to < 768px to test mobile layout');
+      } else {
+        logResult('Mobile viewport detected', true, `Width: ${currentWidth}px`);
+      }
+      
+      // Check for responsive CSS classes
+      const container = document.getElementById('scheduling-page');
+      if (container) {
+        const computedStyle = window.getComputedStyle(container);
+        logInfo(`Container padding: ${computedStyle.padding}`);
+      }
+      
+      logInfo('Manual checks required:');
+      logInfo('- Plan cards should stack vertically');
+      logInfo('- Filter buttons should wrap');
+      logInfo('- Modal should be full-screen');
+      logInfo('- Touch targets should be >= 44x44px');
+      
+      showSummary();
+    }
+
+    // =========================================================================
+    // Run All Tests
+    // =========================================================================
+    
+    async function runAllTests() {
+      clearOutput();
+      logInfo('Running all automated tests...');
+      
+      await testPageInitialization();
+      await testViewToggle();
+      await testFilterButtons();
+      await testPlanCreationModal();
+      testDateValidation();
+      testIndividualPlans();
+      
+      logInfo('');
+      logInfo('Automated tests complete. See manual checklists for additional testing.');
+      showSummary();
+    }
+    
+    // =========================================================================
+    // Event Listeners
+    // =========================================================================
+    
+    document.getElementById('run-all-tests').addEventListener('click', runAllTests);
+    
+    document.getElementById('init-scheduling-page').addEventListener('click', async () => {
+      clearOutput();
+      setupMockFetch();
+      await testPageInitialization();
+    });
+    
+    document.getElementById('open-plan-modal').addEventListener('click', async () => {
+      setupMockFetch();
+      const modal = new PlanCreationModal({
+        userId: 'test-user',
+        onPlanCreated: (plan) => {
+          console.log('Plan created:', plan);
+          alert('Plan created successfully! Check console for details.');
+          if (schedulingPage) {
+            schedulingPage.init();
+          }
+        }
+      });
+      await modal.open();
+    });
+    
+    document.getElementById('clear-output').addEventListener('click', clearOutput);
+    
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      
+      const btn = document.querySelector('.theme-toggle');
+      btn.textContent = newTheme === 'dark' ? '☀️ Toggle Theme' : '🌙 Toggle Theme';
+    }
+    
+    // =========================================================================
+    // Initialization
+    // =========================================================================
+    
+    // Set up mock user
+    if (!localStorage.getItem('userId')) {
+      localStorage.setItem('userId', 'test-user');
+    }
+    if (!localStorage.getItem('authToken')) {
+      localStorage.setItem('authToken', 'test-token');
+    }
+    
+    // Initialize theme
+    document.documentElement.setAttribute('data-theme', 'light');
+    
+    // Log ready message
+    window.addEventListener('load', () => {
+      console.log('Scheduling Page Test loaded');
+      console.log('Click "Initialize Scheduling Page" to start testing');
+      logInfo('Scheduling Page Test ready. Click "Initialize Scheduling Page" to begin.');
+    });
+  </script>
+</body>
+</html>

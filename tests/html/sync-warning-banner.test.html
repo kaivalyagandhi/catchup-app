@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sync Warning Banner Test</title>
+    
+    <!-- Stone & Clay Design System -->
+    <link rel="stylesheet" href="/css/stone-clay-theme.css">
+    
+    <!-- Sync Warning Banner Styles -->
+    <link rel="stylesheet" href="/css/sync-warning-banner.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            margin: 40px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        
+        .test-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #4a90e2;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .test-btn:hover {
+            background: #357abd;
+        }
+        
+        .test-btn.secondary {
+            background: #6c757d;
+        }
+        
+        .test-btn.secondary:hover {
+            background: #5a6268;
+        }
+        
+        .content-area {
+            margin-top: 80px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .status-display {
+            margin-top: 16px;
+            padding: 12px;
+            background: #e9ecef;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sync Warning Banner Test</h1>
+    <p>Test the sync warning banner component with different scenarios.</p>
+    
+    <div class="test-section">
+        <h2>Test Scenarios</h2>
+        <div class="test-controls">
+            <button class="test-btn" onclick="testReauthRequired()">
+                Test: Re-auth Required
+            </button>
+            <button class="test-btn" onclick="testCircuitBreakerOpen()">
+                Test: Circuit Breaker Open
+            </button>
+            <button class="test-btn" onclick="testSyncUnavailable()">
+                Test: Sync Unavailable
+            </button>
+            <button class="test-btn" onclick="testBothIntegrations()">
+                Test: Both Integrations Down
+            </button>
+            <button class="test-btn secondary" onclick="testSyncAvailable()">
+                Test: Sync Available (Hide Banner)
+            </button>
+            <button class="test-btn secondary" onclick="hideBanner()">
+                Hide Banner
+            </button>
+        </div>
+        
+        <div class="status-display" id="status-display">
+            Status: Ready for testing
+        </div>
+    </div>
+    
+    <div class="content-area">
+        <h3>Page Content</h3>
+        <p>This is the main page content. The warning banner should appear at the top of the page when sync is unavailable.</p>
+        <p>Notice how the page content is pushed down when the banner is visible.</p>
+    </div>
+    
+    <!-- Sync Warning Banner Component -->
+    <script src="/js/sync-warning-banner.js"></script>
+    
+    <script>
+        // Initialize banner
+        let banner = null;
+        
+        // Mock localStorage for testing
+        if (!localStorage.getItem('token')) {
+            localStorage.setItem('token', 'test-token-123');
+        }
+        
+        // Initialize banner on load
+        window.addEventListener('DOMContentLoaded', () => {
+            banner = new SyncWarningBanner();
+            banner.init();
+            
+            // Stop automatic health checks for testing
+            banner.stopHealthChecks();
+            
+            updateStatus('Banner initialized. Click buttons to test different scenarios.');
+        });
+        
+        function updateStatus(message) {
+            document.getElementById('status-display').textContent = `Status: ${message}`;
+        }
+        
+        function testReauthRequired() {
+            const mockHealth = {
+                contacts: {
+                    available: false,
+                    reason: 'invalid_token',
+                    lastSuccessfulSync: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+                    requiresReauth: true,
+                    reauthUrl: '/api/contacts/oauth/authorize'
+                },
+                calendar: {
+                    available: true,
+                    lastSuccessfulSync: new Date(),
+                    requiresReauth: false
+                }
+            };
+            
+            banner.showWarning(mockHealth);
+            updateStatus('Showing: Re-auth required for Contacts');
+        }
+        
+        function testCircuitBreakerOpen() {
+            const mockHealth = {
+                contacts: {
+                    available: true,
+                    lastSuccessfulSync: new Date(),
+                    requiresReauth: false
+                },
+                calendar: {
+                    available: false,
+                    reason: 'circuit_breaker_open',
+                    lastSuccessfulSync: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+                    requiresReauth: false
+                }
+            };
+            
+            banner.showWarning(mockHealth);
+            updateStatus('Showing: Circuit breaker open for Calendar');
+        }
+        
+        function testSyncUnavailable() {
+            const mockHealth = {
+                contacts: {
+                    available: false,
+                    reason: 'sync_error',
+                    lastSuccessfulSync: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+                    requiresReauth: false
+                },
+                calendar: {
+                    available: true,
+                    lastSuccessfulSync: new Date(),
+                    requiresReauth: false
+                }
+            };
+            
+            banner.showWarning(mockHealth);
+            updateStatus('Showing: Sync unavailable for Contacts');
+        }
+        
+        function testBothIntegrations() {
+            const mockHealth = {
+                contacts: {
+                    available: false,
+                    reason: 'invalid_token',
+                    lastSuccessfulSync: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+                    requiresReauth: true,
+                    reauthUrl: '/api/contacts/oauth/authorize'
+                },
+                calendar: {
+                    available: false,
+                    reason: 'circuit_breaker_open',
+                    lastSuccessfulSync: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+                    requiresReauth: false
+                }
+            };
+            
+            banner.showWarning(mockHealth);
+            updateStatus('Showing: Both Contacts and Calendar unavailable');
+        }
+        
+        function testSyncAvailable() {
+            banner.hideWarning();
+            updateStatus('Banner hidden - sync is available');
+        }
+        
+        function hideBanner() {
+            banner.hideWarning();
+            updateStatus('Banner manually hidden');
+        }
+    </script>
+</body>
+</html>

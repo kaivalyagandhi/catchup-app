@@ -667,4 +667,81 @@ router.post('/groups/members', authenticate, async (req: AuthenticatedRequest, r
   }
 });
 
+/**
+ * GET /api/contacts/sync/health
+ * Get comprehensive sync health status for contacts
+ * Requirements: 9.1, 9.6 - Graceful degradation
+ */
+router.get('/health', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { GracefulDegradationService } = await import('../../integrations/graceful-degradation-service');
+    const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
+    const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
+    
+    const circuitBreakerManager = CircuitBreakerManager.getInstance();
+    const tokenHealthMonitor = TokenHealthMonitor.getInstance();
+    const gracefulDegradationService = new GracefulDegradationService(
+      circuitBreakerManager,
+      tokenHealthMonitor
+    );
+
+    const syncStatus = await gracefulDegradationService.getSyncStatus(
+      req.userId,
+      'google_contacts'
+    );
+
+    res.json(syncStatus);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Error getting contacts sync health:', errorMsg);
+    res.status(500).json({
+      error: 'Failed to get contacts sync health',
+      details: errorMsg,
+    });
+  }
+});
+
+/**
+ * GET /api/contacts/sync/comprehensive-health
+ * Get comprehensive sync health for both contacts and calendar
+ * Requirements: 9.1, 9.6 - Graceful degradation
+ */
+router.get('/comprehensive-health', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { GracefulDegradationService } = await import('../../integrations/graceful-degradation-service');
+    const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
+    const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
+    
+    const circuitBreakerManager = CircuitBreakerManager.getInstance();
+    const tokenHealthMonitor = TokenHealthMonitor.getInstance();
+    const gracefulDegradationService = new GracefulDegradationService(
+      circuitBreakerManager,
+      tokenHealthMonitor
+    );
+
+    const comprehensiveHealth = await gracefulDegradationService.getComprehensiveSyncHealth(
+      req.userId
+    );
+
+    res.json(comprehensiveHealth);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Error getting comprehensive sync health:', errorMsg);
+    res.status(500).json({
+      error: 'Failed to get comprehensive sync health',
+      details: errorMsg,
+    });
+  }
+});
+
 export default router;

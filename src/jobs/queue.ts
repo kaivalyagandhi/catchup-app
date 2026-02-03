@@ -20,6 +20,11 @@ export const QUEUE_NAMES = {
   CALENDAR_SYNC: 'calendar-sync',
   SUGGESTION_REGENERATION: 'suggestion-regeneration',
   GOOGLE_CONTACTS_SYNC: 'google-contacts-sync',
+  TOKEN_HEALTH_REMINDER: 'token-health-reminder',
+  TOKEN_REFRESH: 'token-refresh',
+  WEBHOOK_RENEWAL: 'webhook-renewal',
+  NOTIFICATION_REMINDER: 'notification-reminder',
+  ADAPTIVE_SYNC: 'adaptive-sync',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -116,6 +121,86 @@ export const googleContactsSyncQueue = new Bull(QUEUE_NAMES.GOOGLE_CONTACTS_SYNC
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
+export const tokenHealthReminderQueue = new Bull(QUEUE_NAMES.TOKEN_HEALTH_REMINDER, {
+  createClient: (type) => {
+    switch (type) {
+      case 'client':
+        return createRedisClient();
+      case 'subscriber':
+        return createRedisClient();
+      case 'bclient':
+        return createRedisClient();
+      default:
+        return createRedisClient();
+    }
+  },
+  defaultJobOptions: DEFAULT_JOB_OPTIONS,
+});
+
+export const tokenRefreshQueue = new Bull(QUEUE_NAMES.TOKEN_REFRESH, {
+  createClient: (type) => {
+    switch (type) {
+      case 'client':
+        return createRedisClient();
+      case 'subscriber':
+        return createRedisClient();
+      case 'bclient':
+        return createRedisClient();
+      default:
+        return createRedisClient();
+    }
+  },
+  defaultJobOptions: DEFAULT_JOB_OPTIONS,
+});
+
+export const webhookRenewalQueue = new Bull(QUEUE_NAMES.WEBHOOK_RENEWAL, {
+  createClient: (type) => {
+    switch (type) {
+      case 'client':
+        return createRedisClient();
+      case 'subscriber':
+        return createRedisClient();
+      case 'bclient':
+        return createRedisClient();
+      default:
+        return createRedisClient();
+    }
+  },
+  defaultJobOptions: DEFAULT_JOB_OPTIONS,
+});
+
+export const notificationReminderQueue = new Bull(QUEUE_NAMES.NOTIFICATION_REMINDER, {
+  createClient: (type) => {
+    switch (type) {
+      case 'client':
+        return createRedisClient();
+      case 'subscriber':
+        return createRedisClient();
+      case 'bclient':
+        return createRedisClient();
+      default:
+        return createRedisClient();
+    }
+  },
+  defaultJobOptions: DEFAULT_JOB_OPTIONS,
+});
+
+export const adaptiveSyncQueue = new Bull(QUEUE_NAMES.ADAPTIVE_SYNC, {
+  createClient: (type) => {
+    switch (type) {
+      case 'client':
+        return createRedisClient();
+      case 'subscriber':
+        return createRedisClient();
+      case 'bclient':
+        return createRedisClient();
+      default:
+        return createRedisClient();
+    }
+  },
+  defaultJobOptions: DEFAULT_JOB_OPTIONS,
+});
+
 // Queue event handlers for logging
 suggestionGenerationQueue.on('error', (error) => {
   console.error('Suggestion generation queue error:', error);
@@ -169,6 +254,80 @@ googleContactsSyncQueue.on('completed', async (job) => {
   console.log(`Google Contacts sync job ${job.id} completed successfully`);
 });
 
+tokenHealthReminderQueue.on('error', (error) => {
+  console.error('Token health reminder queue error:', error);
+});
+
+tokenHealthReminderQueue.on('failed', (job, error) => {
+  console.error(`Token health reminder job ${job.id} failed:`, error.message);
+});
+
+tokenHealthReminderQueue.on('completed', (job, result) => {
+  console.log(`Token health reminder job ${job.id} completed:`, result);
+});
+
+// Token refresh queue events
+tokenRefreshQueue.on('error', (error) => {
+  console.error('Token refresh queue error:', error);
+});
+
+tokenRefreshQueue.on('failed', (job, error) => {
+  console.error(`Token refresh job ${job.id} failed:`, error.message);
+});
+
+tokenRefreshQueue.on('completed', (job, result) => {
+  console.log(`Token refresh job ${job.id} completed:`, result);
+  
+  // Alert on high failure rate
+  if (result.highFailureRate) {
+    console.error(`ALERT: High token refresh failure rate detected!`);
+  }
+});
+
+// Webhook renewal queue events
+webhookRenewalQueue.on('error', (error) => {
+  console.error('Webhook renewal queue error:', error);
+});
+
+webhookRenewalQueue.on('failed', (job, error) => {
+  console.error(`Webhook renewal job ${job.id} failed:`, error.message);
+});
+
+webhookRenewalQueue.on('completed', (job, result) => {
+  console.log(`Webhook renewal job ${job.id} completed:`, result);
+  
+  // Alert on high failure rate
+  if (result.highFailureRate) {
+    console.error(`ALERT: High webhook renewal failure rate detected!`);
+  }
+});
+
+// Notification reminder queue events
+notificationReminderQueue.on('error', (error) => {
+  console.error('Notification reminder queue error:', error);
+});
+
+notificationReminderQueue.on('failed', (job, error) => {
+  console.error(`Notification reminder job ${job.id} failed:`, error.message);
+});
+
+notificationReminderQueue.on('completed', (job, result) => {
+  console.log(`Notification reminder job ${job.id} completed:`, result);
+});
+
+// Adaptive sync queue events
+adaptiveSyncQueue.on('error', (error) => {
+  console.error('Adaptive sync queue error:', error);
+});
+
+adaptiveSyncQueue.on('failed', (job, error) => {
+  console.error(`Adaptive sync job ${job.id} failed:`, error.message);
+});
+
+adaptiveSyncQueue.on('completed', (job, result) => {
+  console.log(`Adaptive sync job ${job.id} completed:`, result);
+});
+
 // Graceful shutdown
 export async function closeQueues(): Promise<void> {
   await Promise.all([
@@ -177,6 +336,11 @@ export async function closeQueues(): Promise<void> {
     calendarSyncQueue.close(),
     googleContactsSyncQueue.close(),
     suggestionRegenerationQueue.close(),
+    tokenHealthReminderQueue.close(),
+    tokenRefreshQueue.close(),
+    webhookRenewalQueue.close(),
+    notificationReminderQueue.close(),
+    adaptiveSyncQueue.close(),
   ]);
 }
 
@@ -194,6 +358,11 @@ export async function enqueueJob(
     [QUEUE_NAMES.CALENDAR_SYNC]: calendarSyncQueue,
     [QUEUE_NAMES.SUGGESTION_REGENERATION]: suggestionRegenerationQueue,
     [QUEUE_NAMES.GOOGLE_CONTACTS_SYNC]: googleContactsSyncQueue,
+    [QUEUE_NAMES.TOKEN_HEALTH_REMINDER]: tokenHealthReminderQueue,
+    [QUEUE_NAMES.TOKEN_REFRESH]: tokenRefreshQueue,
+    [QUEUE_NAMES.WEBHOOK_RENEWAL]: webhookRenewalQueue,
+    [QUEUE_NAMES.NOTIFICATION_REMINDER]: notificationReminderQueue,
+    [QUEUE_NAMES.ADAPTIVE_SYNC]: adaptiveSyncQueue,
   };
 
   const queue = queueMap[queueName];

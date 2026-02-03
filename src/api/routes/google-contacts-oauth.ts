@@ -75,6 +75,23 @@ router.get('/callback', async (req: Request, res: Response) => {
     let tokens;
     try {
       tokens = await googleContactsOAuthService.handleCallback(code, userId);
+
+      // Clear any unresolved token health notifications
+      try {
+        const { tokenHealthNotificationService } = await import(
+          '../../integrations/token-health-notification-service'
+        );
+        const resolvedCount = await tokenHealthNotificationService.resolveNotifications(
+          userId,
+          'google_contacts'
+        );
+        if (resolvedCount > 0) {
+          console.log(`Resolved ${resolvedCount} token health notifications for user ${userId}`);
+        }
+      } catch (notificationError) {
+        // Log error but don't fail the OAuth flow
+        console.error('Failed to resolve token health notifications:', notificationError);
+      }
     } catch (tokenError) {
       const tokenErrorMsg = tokenError instanceof Error ? tokenError.message : String(tokenError);
       console.error('Failed to exchange code for tokens:', tokenErrorMsg);
@@ -83,6 +100,47 @@ router.get('/callback', async (req: Request, res: Response) => {
     }
 
     console.log('Google Contacts connection successful for user:', userId);
+
+    // Initialize sync schedule with default frequency (Requirement 5.1)
+    try {
+      const { AdaptiveSyncScheduler } = await import('../../integrations/adaptive-sync-scheduler');
+      const scheduler = AdaptiveSyncScheduler.getInstance();
+      
+      // Default frequency for contacts: 3 days
+      await scheduler.initializeSchedule(userId, 'google_contacts');
+      console.log(`Sync schedule initialized for user ${userId} with default 3-day frequency`);
+    } catch (scheduleError) {
+      const scheduleErrorMsg = scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
+      console.error('Failed to initialize sync schedule:', scheduleErrorMsg);
+      // Don't fail the OAuth flow if schedule initialization fails
+    }
+
+    // Initialize circuit breaker in closed state (Requirement 2.1)
+    try {
+      const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
+      const circuitBreakerManager = CircuitBreakerManager.getInstance();
+      
+      // Reset ensures circuit breaker is in closed state
+      await circuitBreakerManager.reset(userId, 'google_contacts');
+      console.log(`Circuit breaker initialized in closed state for user ${userId}`);
+    } catch (circuitBreakerError) {
+      const circuitBreakerErrorMsg = circuitBreakerError instanceof Error ? circuitBreakerError.message : String(circuitBreakerError);
+      console.error('Failed to initialize circuit breaker:', circuitBreakerErrorMsg);
+      // Don't fail the OAuth flow if circuit breaker initialization fails
+    }
+
+    // Run initial token health check (Requirement 1.1)
+    try {
+      const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
+      const tokenHealthMonitor = TokenHealthMonitor.getInstance();
+      
+      const tokenHealth = await tokenHealthMonitor.checkTokenHealth(userId, 'google_contacts');
+      console.log(`Initial token health check completed for user ${userId}: ${tokenHealth.status}`);
+    } catch (tokenHealthError) {
+      const tokenHealthErrorMsg = tokenHealthError instanceof Error ? tokenHealthError.message : String(tokenHealthError);
+      console.error('Failed to run initial token health check:', tokenHealthErrorMsg);
+      // Don't fail the OAuth flow if token health check fails
+    }
 
     // Reset sync state to force full sync (important for reconnection)
     try {
@@ -217,6 +275,46 @@ router.delete('/disconnect', authenticate, async (req: AuthenticatedRequest, res
 
     console.log('Disconnecting Google Contacts for user:', req.userId);
 
+    // Clean up sync schedule (Requirement 5.1)
+    try {
+      const { AdaptiveSyncScheduler } = await import('../../integrations/adaptive-sync-scheduler');
+      const scheduler = AdaptiveSyncScheduler.getInstance();
+      
+      await scheduler.removeSchedule(req.userId, 'google_contacts');
+      console.log(`Sync schedule removed for user ${req.userId}`);
+    } catch (scheduleError) {
+      const scheduleErrorMsg = scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
+      console.error('Failed to remove sync schedule:', scheduleErrorMsg);
+      // Continue with disconnect even if schedule removal fails
+    }
+
+    // Reset circuit breaker state (Requirement 2.1)
+    try {
+      const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
+      const circuitBreakerManager = CircuitBreakerManager.getInstance();
+      
+      await circuitBreakerManager.reset(req.userId, 'google_contacts');
+      console.log(`Circuit breaker reset for user ${req.userId}`);
+    } catch (circuitBreakerError) {
+      const circuitBreakerErrorMsg = circuitBreakerError instanceof Error ? circuitBreakerError.message : String(circuitBreakerError);
+      console.error('Failed to reset circuit breaker:', circuitBreakerErrorMsg);
+      // Continue with disconnect even if circuit breaker reset fails
+    }
+
+    // Clear token health records (Requirement 1.1)
+    try {
+      const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
+      const tokenHealthMonitor = TokenHealthMonitor.getInstance();
+      
+      await tokenHealthMonitor.clearTokenHealth(req.userId, 'google_contacts');
+      console.log(`Token health records cleared for user ${req.userId}`);
+    } catch (tokenHealthError) {
+      const tokenHealthErrorMsg = tokenHealthError instanceof Error ? tokenHealthError.message : String(tokenHealthError);
+      console.error('Failed to clear token health records:', tokenHealthErrorMsg);
+      // Continue with disconnect even if token health clearing fails
+    }
+
+    // Disconnect OAuth and delete tokens
     await googleContactsOAuthService.disconnect(req.userId);
 
     // Stop scheduled sync jobs

@@ -9,6 +9,10 @@ import {
   batchNotificationQueue,
   calendarSyncQueue,
   googleContactsSyncQueue,
+  tokenRefreshQueue,
+  webhookRenewalQueue,
+  notificationReminderQueue,
+  adaptiveSyncQueue,
 } from './queue';
 import * as oauthRepository from '../integrations/oauth-repository';
 import * as preferencesRepository from '../notifications/preferences-repository';
@@ -17,6 +21,10 @@ import {
   BatchNotificationJobData,
   CalendarSyncJobData,
   GoogleContactsSyncJobData,
+  TokenRefreshJobData,
+  WebhookRenewalJobData,
+  NotificationReminderJobData,
+  AdaptiveSyncJobData,
 } from './types';
 
 /**
@@ -323,6 +331,111 @@ export async function removeUserGoogleContactsSync(userId: string): Promise<void
 }
 
 /**
+ * Schedule token refresh job
+ *
+ * Runs TokenHealthMonitor.refreshExpiringTokens() daily.
+ * Requirements: 8.2
+ */
+export async function scheduleTokenRefresh(): Promise<void> {
+  console.log('Scheduling token refresh job...');
+
+  const jobData: TokenRefreshJobData = {};
+
+  // Schedule to run daily at 3 AM UTC
+  await tokenRefreshQueue.add(jobData, {
+    repeat: {
+      cron: '0 3 * * *', // Daily at 3 AM
+      tz: 'UTC',
+    },
+    jobId: 'token-refresh-recurring',
+  });
+
+  console.log('Token refresh job scheduled (daily at 3 AM UTC)');
+}
+
+/**
+ * Schedule webhook renewal job
+ *
+ * Runs CalendarWebhookManager.renewExpiringWebhooks() daily.
+ * Requirements: 6.4
+ */
+export async function scheduleWebhookRenewal(): Promise<void> {
+  console.log('Scheduling webhook renewal job...');
+
+  const jobData: WebhookRenewalJobData = {};
+
+  // Schedule to run daily at 4 AM UTC
+  await webhookRenewalQueue.add(jobData, {
+    repeat: {
+      cron: '0 4 * * *', // Daily at 4 AM
+      tz: 'UTC',
+    },
+    jobId: 'webhook-renewal-recurring',
+  });
+
+  console.log('Webhook renewal job scheduled (daily at 4 AM UTC)');
+}
+
+/**
+ * Schedule notification reminder job
+ *
+ * Checks for unresolved token_invalid notifications >7 days and sends reminders.
+ * Requirements: 4.3
+ */
+export async function scheduleNotificationReminder(): Promise<void> {
+  console.log('Scheduling notification reminder job...');
+
+  const jobData: NotificationReminderJobData = {};
+
+  // Schedule to run daily at 10 AM UTC
+  await notificationReminderQueue.add(jobData, {
+    repeat: {
+      cron: '0 10 * * *', // Daily at 10 AM
+      tz: 'UTC',
+    },
+    jobId: 'notification-reminder-recurring',
+  });
+
+  console.log('Notification reminder job scheduled (daily at 10 AM UTC)');
+}
+
+/**
+ * Schedule adaptive sync job
+ *
+ * Runs AdaptiveSyncScheduler.getUsersDueForSync() every 12 hours.
+ * Requirements: 5.1, 5.2
+ */
+export async function scheduleAdaptiveSync(): Promise<void> {
+  console.log('Scheduling adaptive sync jobs...');
+
+  // Schedule contacts sync check
+  const contactsJobData: AdaptiveSyncJobData = {
+    integrationType: 'google_contacts',
+  };
+
+  await adaptiveSyncQueue.add(contactsJobData, {
+    repeat: {
+      every: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
+    },
+    jobId: 'adaptive-sync-contacts-recurring',
+  });
+
+  // Schedule calendar sync check
+  const calendarJobData: AdaptiveSyncJobData = {
+    integrationType: 'google_calendar',
+  };
+
+  await adaptiveSyncQueue.add(calendarJobData, {
+    repeat: {
+      every: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
+    },
+    jobId: 'adaptive-sync-calendar-recurring',
+  });
+
+  console.log('Adaptive sync jobs scheduled (every 12 hours for both integrations)');
+}
+
+/**
  * Initialize all scheduled jobs
  *
  * Call this on application startup to set up all recurring jobs.
@@ -335,6 +448,10 @@ export async function initializeScheduler(): Promise<void> {
     await scheduleBatchNotifications();
     await scheduleCalendarSync();
     await scheduleGoogleContactsSync();
+    await scheduleTokenRefresh();
+    await scheduleWebhookRenewal();
+    await scheduleNotificationReminder();
+    await scheduleAdaptiveSync();
 
     console.log('Job scheduler initialized successfully');
   } catch (error) {
@@ -356,6 +473,10 @@ export async function clearAllSchedules(): Promise<void> {
     batchNotificationQueue,
     calendarSyncQueue,
     googleContactsSyncQueue,
+    tokenRefreshQueue,
+    webhookRenewalQueue,
+    notificationReminderQueue,
+    adaptiveSyncQueue,
   ];
 
   for (const queue of queues) {

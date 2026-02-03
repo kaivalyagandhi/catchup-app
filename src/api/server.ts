@@ -37,6 +37,14 @@ import enrichmentItemsRouter from './routes/enrichment-items';
 import smsMonitoringRouter from './routes/sms-monitoring';
 import smsPerformanceRouter from './routes/sms-performance';
 import twilioTestRouter from './routes/twilio-test';
+import schedulingRouter from './routes/scheduling';
+import schedulingAvailabilityRouter from './routes/scheduling-availability';
+import schedulingPreferencesRouter from './routes/scheduling-preferences';
+import schedulingNotificationsRouter from './routes/scheduling-notifications';
+import calendarWebhooksRouter from './routes/calendar-webhooks';
+import manualSyncRouter from './routes/manual-sync';
+import adminSyncHealthRouter from './routes/admin-sync-health';
+import jobMonitoringRouter from './routes/job-monitoring';
 import { apiRateLimiter } from '../utils/rate-limiter';
 import { enforceHttps, securityHeaders } from './middleware/security';
 import { VoiceNoteWebSocketHandler } from '../voice/websocket-handler';
@@ -154,6 +162,22 @@ export function createServer(): Express {
   app.use('/api/sms/performance', smsPerformanceRouter);
   app.use('/api/twilio/test', twilioTestRouter);
 
+  // Scheduling routes (Group Scheduling feature)
+  app.use('/api/scheduling', schedulingRouter);
+  app.use('/api/scheduling', schedulingAvailabilityRouter);
+  app.use('/api/scheduling', schedulingPreferencesRouter);
+  app.use('/api/scheduling', schedulingNotificationsRouter);
+
+  // Webhook routes (Google Calendar push notifications)
+  app.use('/api/webhooks', calendarWebhooksRouter);
+
+  // Manual sync routes (Google Sync Optimization feature)
+  app.use('/api/sync', manualSyncRouter);
+
+  // Admin routes (protected by requireAdmin middleware)
+  app.use('/api/admin', adminSyncHealthRouter);
+  app.use('/api/admin/jobs', jobMonitoringRouter);
+
   // Test data routes (for development/testing)
   try {
     app.use('/api/test-data', testDataRouter);
@@ -206,6 +230,25 @@ export function createServer(): Express {
   
   app.get('/app', serveApp);
   app.get('/app/:page', serveApp);
+
+  // Public availability page route (no auth required)
+  // Serves the lightweight availability collection page for invitees
+  app.get('/availability/:token', (req: Request, res: Response) => {
+    const availabilityPath = path.join(process.cwd(), 'public', 'availability.html');
+    
+    fs.readFile(availabilityPath, 'utf8', (err, html) => {
+      if (err) {
+        // If availability.html doesn't exist yet, serve a placeholder
+        console.error('Error reading availability.html:', err);
+        res.status(404).send('Availability page not found');
+        return;
+      }
+
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.send(html);
+    });
+  });
 
   // Serve index.html for all other routes (SPA support)
   // Inject test mode status and version info server-side to avoid flash of unstyled content

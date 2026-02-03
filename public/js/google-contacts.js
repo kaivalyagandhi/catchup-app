@@ -189,7 +189,7 @@ async function connectGoogleContacts() {
 
 /**
  * Sync Google Contacts now - trigger manual sync
- * Requirements: 4.1, 4.2, 4.3, 4.4, 15.6
+ * Requirements: 4.1, 4.2, 4.3, 4.4, 15.6, 7.1, 7.5
  */
 async function syncGoogleContactsNow() {
     const button = document.getElementById('sync-contacts-btn');
@@ -203,12 +203,16 @@ async function syncGoogleContactsNow() {
         // Show loading indicator
         loadingToastId = showToast('Starting sync...', 'loading');
         
-        const response = await fetch(`${API_BASE}/contacts/sync/incremental`, {
+        // Use new manual sync endpoint (Requirement 7.1)
+        const response = await fetch(`${API_BASE}/sync/manual`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${authToken}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+                integrationType: 'contacts'
+            })
         });
         
         const result = await response.json();
@@ -220,26 +224,40 @@ async function syncGoogleContactsNow() {
         }
         
         if (!response.ok) {
+            // Handle specific error cases (Requirement 7.3)
+            if (response.status === 401 || response.status === 403) {
+                showToast('Contacts sync failed. Please reconnect your Google Contacts.', 'error');
+                // Show reconnect option
+                if (result.reauthUrl) {
+                    setTimeout(() => {
+                        const reconnect = confirm('Would you like to reconnect your Google Contacts now?');
+                        if (reconnect) {
+                            window.location.href = result.reauthUrl;
+                        }
+                    }, 1000);
+                }
+                return;
+            } else if (response.status === 429) {
+                // Rate limit error (Requirement 7.4)
+                showToast('Please wait a moment before syncing again.', 'warning');
+                return;
+            }
+            
             throw new Error(result.message || result.error || 'Sync failed');
         }
         
         // Show success message
-        showToast(result.message || 'Sync started successfully', 'success');
+        showToast(result.message || 'Sync completed successfully!', 'success');
         
         // Show confirmation that Google Contacts remain unchanged
         setTimeout(() => {
             showToast('✓ Your Google Contacts remain unchanged', 'info');
         }, 2000);
         
-        // Poll for sync completion and show results
-        if (result.jobId) {
-            pollSyncStatus(result.jobId);
-        } else {
-            // Reload the status to show updated information
-            setTimeout(() => {
-                loadPreferences();
-            }, 3000);
-        }
+        // Reload the status to show updated information
+        setTimeout(() => {
+            loadPreferences();
+        }, 3000);
         
     } catch (error) {
         console.error('Error syncing Google Contacts:', error);

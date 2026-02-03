@@ -118,6 +118,23 @@ router.get('/callback', async (req: Request, res: Response) => {
         tokens.scope || undefined,
         emailToStore
       );
+
+      // Clear any unresolved token health notifications
+      try {
+        const { tokenHealthNotificationService } = await import(
+          '../../integrations/token-health-notification-service'
+        );
+        const resolvedCount = await tokenHealthNotificationService.resolveNotifications(
+          userId,
+          'google_calendar'
+        );
+        if (resolvedCount > 0) {
+          console.log(`Resolved ${resolvedCount} token health notifications for user ${userId}`);
+        }
+      } catch (notificationError) {
+        // Log error but don't fail the OAuth flow
+        console.error('Failed to resolve token health notifications:', notificationError);
+      }
     } catch (dbError) {
       const dbErrorMsg = dbError instanceof Error ? dbError.message : String(dbError);
       console.error('Failed to store tokens in database:', dbErrorMsg);
@@ -129,6 +146,44 @@ router.get('/callback', async (req: Request, res: Response) => {
     }
 
     console.log('Calendar connection successful for user:', userId);
+
+    // Register webhook for push notifications (Requirement 6.1)
+    let webhookRegistered = false;
+    try {
+      const { CalendarWebhookManager } = await import('../../integrations/calendar-webhook-manager');
+      const webhookManager = CalendarWebhookManager.getInstance();
+      
+      await webhookManager.registerWebhook(
+        userId,
+        tokens.access_token,
+        tokens.refresh_token || undefined
+      );
+      
+      webhookRegistered = true;
+      console.log(`Webhook registered successfully for user ${userId}`);
+    } catch (webhookError) {
+      // Handle webhook registration failures gracefully (Requirement 6.5)
+      const webhookErrorMsg = webhookError instanceof Error ? webhookError.message : String(webhookError);
+      console.error('Failed to register webhook, will fall back to polling:', webhookErrorMsg);
+      // Don't fail the OAuth flow if webhook registration fails
+    }
+
+    // Initialize sync schedule with appropriate frequency (Requirements 6.3, 6.5)
+    try {
+      const { AdaptiveSyncScheduler } = await import('../../integrations/adaptive-sync-scheduler');
+      const scheduler = AdaptiveSyncScheduler.getInstance();
+      
+      // Set frequency based on webhook status
+      // 8 hours if webhook active (fallback), 4 hours if webhook failed (normal polling)
+      const frequency = webhookRegistered ? 8 * 60 * 60 * 1000 : 4 * 60 * 60 * 1000;
+      
+      await scheduler.initializeSchedule(userId, 'google_calendar', frequency);
+      console.log(`Sync schedule initialized for user ${userId} with ${webhookRegistered ? '8-hour' : '4-hour'} frequency`);
+    } catch (scheduleError) {
+      const scheduleErrorMsg = scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
+      console.error('Failed to initialize sync schedule:', scheduleErrorMsg);
+      // Don't fail the OAuth flow if schedule initialization fails
+    }
 
     // Trigger initial calendar sync and suggestion regeneration
     try {
@@ -203,6 +258,60 @@ router.delete('/disconnect', authenticate, async (req: AuthenticatedRequest, res
     }
 
     console.log('Disconnecting Google Calendar for user:', req.userId);
+
+    // Stop webhook if active (Requirement 6.1)
+    try {
+      const { CalendarWebhookManager } = await import('../../integrations/calendar-webhook-manager');
+      const webhookManager = CalendarWebhookManager.getInstance();
+      
+      await webhookManager.stopWebhook(req.userId);
+      console.log(`Webhook stopped for user ${req.userId}`);
+    } catch (webhookError) {
+      const webhookErrorMsg = webhookError instanceof Error ? webhookError.message : String(webhookError);
+      console.error('Failed to stop webhook:', webhookErrorMsg);
+      // Continue with disconnect even if webhook stop fails
+    }
+
+    // Clean up sync schedule (Requirement 5.1)
+    try {
+      const { AdaptiveSyncScheduler } = await import('../../integrations/adaptive-sync-scheduler');
+      const scheduler = AdaptiveSyncScheduler.getInstance();
+      
+      await scheduler.removeSchedule(req.userId, 'google_calendar');
+      console.log(`Sync schedule removed for user ${req.userId}`);
+    } catch (scheduleError) {
+      const scheduleErrorMsg = scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
+      console.error('Failed to remove sync schedule:', scheduleErrorMsg);
+      // Continue with disconnect even if schedule removal fails
+    }
+
+    // Reset circuit breaker state (Requirement 2.1)
+    try {
+      const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
+      const circuitBreakerManager = CircuitBreakerManager.getInstance();
+      
+      await circuitBreakerManager.reset(req.userId, 'google_calendar');
+      console.log(`Circuit breaker reset for user ${req.userId}`);
+    } catch (circuitBreakerError) {
+      const circuitBreakerErrorMsg = circuitBreakerError instanceof Error ? circuitBreakerError.message : String(circuitBreakerError);
+      console.error('Failed to reset circuit breaker:', circuitBreakerErrorMsg);
+      // Continue with disconnect even if circuit breaker reset fails
+    }
+
+    // Clear token health records (Requirement 1.1)
+    try {
+      const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
+      const tokenHealthMonitor = TokenHealthMonitor.getInstance();
+      
+      await tokenHealthMonitor.clearTokenHealth(req.userId, 'google_calendar');
+      console.log(`Token health records cleared for user ${req.userId}`);
+    } catch (tokenHealthError) {
+      const tokenHealthErrorMsg = tokenHealthError instanceof Error ? tokenHealthError.message : String(tokenHealthError);
+      console.error('Failed to clear token health records:', tokenHealthErrorMsg);
+      // Continue with disconnect even if token health clearing fails
+    }
+
+    // Delete OAuth token
     await deleteToken(req.userId, 'google_calendar');
     console.log('Google Calendar disconnected successfully for user:', req.userId);
 

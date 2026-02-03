@@ -21,6 +21,7 @@ The CatchUp API is a RESTful API that enables relationship management through in
    - [Suggestions](#suggestions-endpoints)
    - [Calendar](#calendar-endpoints)
    - [Voice Notes](#voice-notes-endpoints)
+   - [Scheduling](#scheduling-endpoints)
    - [Preferences](#preferences-endpoints)
    - [Account](#account-endpoints)
 
@@ -2341,6 +2342,533 @@ Contacts imported from Google have the following additional fields:
 - No data shared with third parties
 - User can disconnect and delete data anytime
 - GDPR compliant data handling
+
+
+### Google Sync Optimization Endpoints
+
+The Google Sync Optimization endpoints provide intelligent sync management, token health monitoring, and admin oversight for Google integrations.
+
+#### Manual Sync
+
+Manually trigger a sync for Google Contacts or Calendar, bypassing circuit breaker restrictions.
+
+**Endpoint:** `POST /api/sync/manual`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "integrationType": "contacts"
+}
+```
+
+**Parameters:**
+- `userId` (required) - User ID
+- `integrationType` (required) - Either "contacts" or "calendar"
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Manual sync completed successfully",
+  "result": {
+    "syncType": "manual",
+    "integrationType": "contacts",
+    "itemsProcessed": 150,
+    "duration": 12500,
+    "timestamp": "2024-01-01T12:00:00Z"
+  }
+}
+```
+
+**When sync fails:**
+```json
+{
+  "success": false,
+  "error": "Token invalid",
+  "message": "Your Google Contacts connection needs to be re-authenticated.",
+  "reAuthUrl": "/api/contacts/oauth/authorize"
+}
+```
+
+**Behavior:**
+- Bypasses circuit breaker (even if open)
+- Rate limited to 1 request per minute per user per integration
+- Does not affect scheduled sync timing
+- Does not affect adaptive frequency calculations
+- Marked as "manual" type in sync metrics
+
+**Error Responses:**
+- `400 Bad Request` - Missing userId or integrationType
+- `400 Bad Request` - Invalid integrationType (must be "contacts" or "calendar")
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Integration not connected
+- `429 Too Many Requests` - Rate limit exceeded (1 per minute)
+
+---
+
+#### Calendar Webhook Notification
+
+Receive push notifications from Google Calendar when events change.
+
+**Endpoint:** `POST /api/webhooks/calendar`
+
+**Authentication:** Not required (validated via headers)
+
+**Headers:**
+- `X-Goog-Channel-ID` (required) - Channel ID from webhook registration
+- `X-Goog-Resource-ID` (required) - Resource ID from webhook registration
+- `X-Goog-Resource-State` (required) - Notification type ("sync" or "exists")
+
+**Request Body:** Empty (Google sends no body)
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Webhook notification processed"
+}
+```
+
+**Behavior:**
+- Validates channel_id and resource_id against database
+- Ignores "sync" notifications (initial confirmation)
+- Triggers immediate incremental sync on "exists" notifications
+- Logs all webhook notifications for monitoring
+
+**Resource States:**
+- `sync` - Initial confirmation (ignored)
+- `exists` - Calendar data changed (triggers sync)
+
+**Error Responses:**
+- `400 Bad Request` - Missing required headers
+- `404 Not Found` - Channel ID or resource ID not found in database
+- `500 Internal Server Error` - Failed to process notification
+
+**Security:**
+- Validates channel_id and resource_id before processing
+- Rejects notifications for unknown or expired webhooks
+- Logs all webhook attempts for audit trail
+
+---
+
+#### Admin Sync Health Dashboard
+
+Get comprehensive sync health metrics across all users (admin only).
+
+**Endpoint:** `GET /api/admin/sync-health`
+
+**Authentication:** Required (Admin role)
+
+**Query Parameters:**
+- `integrationType` (optional) - Filter by integration type ("contacts", "calendar", or "all")
+
+**Response:** `200 OK`
+```json
+{
+  "totalUsers": 500,
+  "activeIntegrations": {
+    "contacts": 450,
+    "calendar": 480
+  },
+  "invalidTokens": {
+    "contacts": 15,
+    "calendar": 8
+  },
+  "openCircuitBreakers": {
+    "contacts": 5,
+    "calendar": 3
+  },
+  "syncSuccessRate24h": {
+    "contacts": 95.5,
+    "calendar": 98.2
+  },
+  "apiCallsSaved": {
+    "byCircuitBreaker": 1250,
+    "byAdaptiveScheduling": 3400,
+    "byWebhooks": 8900,
+    "total": 13550
+  },
+  "persistentFailures": [
+    {
+      "userId": "550e8400-e29b-41d4-a716-446655440000",
+      "email": "user@example.com",
+      "integrationType": "contacts",
+      "lastSuccessfulSync": "2024-01-01T12:00:00Z",
+      "failureCount": 15,
+      "lastError": "Token expired",
+      "daysSinceLastSuccess": 8
+    }
+  ],
+  "timestamp": "2024-01-10T12:00:00Z"
+}
+```
+
+**Metrics Explained:**
+- `totalUsers` - Total users with at least one Google integration
+- `activeIntegrations` - Count of active connections per integration type
+- `invalidTokens` - Count of users with expired/revoked tokens
+- `openCircuitBreakers` - Count of users with circuit breakers in open state
+- `syncSuccessRate24h` - Percentage of successful syncs in last 24 hours
+- `apiCallsSaved` - Estimated API calls saved by optimization features
+- `persistentFailures` - Users with sync failures >7 days
+
+**API Calls Saved Calculation:**
+- `byCircuitBreaker` - Syncs skipped due to circuit breaker being open
+- `byAdaptiveScheduling` - Syncs skipped due to reduced frequency
+- `byWebhooks` - Polling syncs replaced by webhook notifications
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - User does not have admin role
+- `500 Internal Server Error` - Failed to fetch metrics
+
+**Admin Access:**
+- Requires `is_admin` flag set to true in users table
+- Use `scripts/promote-admin.ts` to promote users to admin
+- All access attempts logged to audit log
+
+---
+
+### Scheduling Endpoints
+
+The Scheduling endpoints enable users to coordinate catchups with friends through availability collection and AI-powered conflict resolution.
+
+> **Full Documentation:** See [Scheduling API Reference](features/scheduling/API_REFERENCE.md) for complete endpoint documentation.
+
+#### Create Catchup Plan
+
+Create a new catchup plan with selected contacts.
+
+**Endpoint:** `POST /api/scheduling/plans`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "invitees": [
+    {
+      "contactId": "660e8400-e29b-41d4-a716-446655440001",
+      "attendanceType": "must_attend"
+    }
+  ],
+  "activityType": "coffee",
+  "duration": 60,
+  "dateRangeStart": "2025-02-01",
+  "dateRangeEnd": "2025-02-14",
+  "location": "Central Perk Coffee"
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "plan": {
+    "id": "770e8400-e29b-41d4-a716-446655440003",
+    "status": "collecting_availability",
+    "activityType": "coffee",
+    "duration": 60,
+    "dateRangeStart": "2025-02-01",
+    "dateRangeEnd": "2025-02-14"
+  },
+  "inviteLinks": [
+    {
+      "contactId": "660e8400-e29b-41d4-a716-446655440001",
+      "contactName": "John Doe",
+      "url": "http://localhost:3000/availability/abc123xyz",
+      "attendanceType": "must_attend"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Invalid data or date range exceeds 14 days
+- `401 Unauthorized` - Not authenticated
+
+---
+
+#### List Catchup Plans
+
+Get all catchup plans for a user.
+
+**Endpoint:** `GET /api/scheduling/plans`
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `userId` (required) - User ID
+- `status` (optional) - Filter by status (draft, collecting_availability, ready_to_schedule, scheduled, completed, cancelled)
+- `type` (optional) - Filter by type (individual, group)
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "770e8400-e29b-41d4-a716-446655440003",
+    "activityType": "coffee",
+    "status": "collecting_availability",
+    "invitees": [
+      {
+        "contactId": "660e8400-e29b-41d4-a716-446655440001",
+        "contactName": "John Doe",
+        "attendanceType": "must_attend",
+        "hasResponded": true
+      }
+    ],
+    "createdAt": "2025-01-15T10:00:00Z"
+  }
+]
+```
+
+---
+
+#### Get Plan Details
+
+Get detailed information about a specific plan.
+
+**Endpoint:** `GET /api/scheduling/plans/:id`
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `userId` (required) - User ID
+
+**Response:** `200 OK`
+```json
+{
+  "id": "770e8400-e29b-41d4-a716-446655440003",
+  "activityType": "coffee",
+  "duration": 60,
+  "dateRangeStart": "2025-02-01",
+  "dateRangeEnd": "2025-02-14",
+  "status": "collecting_availability",
+  "invitees": [...],
+  "inviteLinks": [...]
+}
+```
+
+---
+
+#### Finalize Plan
+
+Finalize a plan with a selected time.
+
+**Endpoint:** `POST /api/scheduling/plans/:id/finalize`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "finalizedTime": "2025-02-10T14:00:00Z",
+  "location": "Central Perk Coffee",
+  "notes": "Looking forward to catching up!"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "id": "770e8400-e29b-41d4-a716-446655440003",
+  "status": "scheduled",
+  "finalizedTime": "2025-02-10T14:00:00Z"
+}
+```
+
+---
+
+#### Cancel Plan
+
+Cancel a plan and invalidate all invite links.
+
+**Endpoint:** `DELETE /api/scheduling/plans/:id`
+
+**Authentication:** Required
+
+**Response:** `204 No Content`
+
+---
+
+#### Get Plan Info (Public)
+
+Get plan information for the public availability page. No authentication required.
+
+**Endpoint:** `GET /api/scheduling/availability/:token`
+
+**Authentication:** Not required
+
+**Response:** `200 OK`
+```json
+{
+  "planId": "770e8400-e29b-41d4-a716-446655440003",
+  "initiatorName": "Alice Johnson",
+  "activityType": "coffee",
+  "dateRangeStart": "2025-02-01",
+  "dateRangeEnd": "2025-02-14",
+  "inviteeName": "John Doe"
+}
+```
+
+---
+
+#### Submit Availability (Public)
+
+Submit availability for a plan. No authentication required.
+
+**Endpoint:** `POST /api/scheduling/availability/:token`
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "timezone": "America/New_York",
+  "availableSlots": [
+    "2025-02-05_14:00",
+    "2025-02-05_14:30",
+    "2025-02-05_15:00"
+  ]
+}
+```
+
+**Slot Format:** `YYYY-MM-DD_HH:mm` (30-minute increments)
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Availability submitted successfully"
+}
+```
+
+---
+
+#### Get AI Suggestions
+
+Get AI-powered conflict resolution suggestions.
+
+**Endpoint:** `GET /api/scheduling/plans/:id/ai-suggestions`
+
+**Authentication:** Required
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "type": "time_suggestion",
+    "suggestedTime": "2025-02-08T15:00:00Z",
+    "attendeeCount": 3,
+    "reasoning": "This time slot has the most participants available."
+  }
+]
+```
+
+---
+
+#### Get Scheduling Preferences
+
+Get user's scheduling preferences.
+
+**Endpoint:** `GET /api/scheduling/preferences`
+
+**Authentication:** Required
+
+**Response:** `200 OK`
+```json
+{
+  "preferredDays": [1, 2, 3, 4, 5],
+  "preferredTimeRanges": [
+    { "start": "09:00", "end": "12:00", "label": "mornings" }
+  ],
+  "preferredDurations": [60, 120],
+  "favoriteLocations": ["Central Perk", "The Office"],
+  "defaultActivityType": "coffee",
+  "applyByDefault": true
+}
+```
+
+---
+
+#### Save Scheduling Preferences
+
+Save user's scheduling preferences.
+
+**Endpoint:** `PUT /api/scheduling/preferences`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "preferredDays": [1, 2, 3, 4, 5],
+  "preferredTimeRanges": [
+    { "start": "09:00", "end": "12:00", "label": "mornings" }
+  ],
+  "preferredDurations": [60],
+  "favoriteLocations": ["Central Perk"],
+  "defaultActivityType": "coffee",
+  "applyByDefault": true
+}
+```
+
+**Response:** `200 OK`
+
+---
+
+#### Get Scheduling Notifications
+
+Get user's scheduling notifications.
+
+**Endpoint:** `GET /api/scheduling/notifications`
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `userId` (required) - User ID
+- `unreadOnly` (optional) - Filter to unread only
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "aa0e8400-e29b-41d4-a716-446655440006",
+    "planId": "770e8400-e29b-41d4-a716-446655440003",
+    "type": "availability_submitted",
+    "message": "John Doe has submitted their availability",
+    "readAt": null,
+    "createdAt": "2025-01-15T12:30:00Z"
+  }
+]
+```
+
+**Notification Types:** `availability_submitted`, `plan_ready`, `plan_finalized`, `plan_cancelled`, `reminder_sent`
+
+---
+
+#### Get Unread Notification Count
+
+Get count of unread notifications for badge display.
+
+**Endpoint:** `GET /api/scheduling/notifications/unread-count`
+
+**Authentication:** Required
+
+**Response:** `200 OK`
+```json
+{
+  "count": 3
+}
+```
+
+---
 
 
 ### Preferences Endpoints

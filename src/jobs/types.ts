@@ -54,3 +54,45 @@ export interface GoogleContactsSyncResult {
   duration: number;
   errors: string[];
 }
+
+export interface TokenRefreshJobData {
+  // No data needed - processes all users
+}
+
+export interface TokenRefreshResult {
+  refreshed: number;
+  failed: number;
+  errors: string[];
+  highFailureRate: boolean;
+}
+
+export interface WebhookRenewalJobData {
+  // No data needed - processes all users
+}
+
+export interface WebhookRenewalResult {
+  renewed: number;
+  failed: number;
+  errors: string[];
+  highFailureRate: boolean;
+}
+
+export interface NotificationReminderJobData {
+  // No data needed - processes all users
+}
+
+export interface NotificationReminderResult {
+  remindersSent: number;
+  errors: string[];
+}
+
+export interface AdaptiveSyncJobData {
+  integrationType: 'google_contacts' | 'google_calendar';
+}
+
+export interface AdaptiveSyncResult {
+  usersProcessed: number;
+  syncsTriggered: number;
+  syncsSkipped: number;
+  errors: string[];
+}

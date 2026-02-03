@@ -5,6 +5,9 @@
  * used across the CatchUp application.
  */
 
+// Re-export scheduling types
+export * from './scheduling';
+
 // Enums
 export enum FrequencyOption {
   DAILY = 'daily',

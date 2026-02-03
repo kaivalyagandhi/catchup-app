@@ -183,6 +183,22 @@ This document provides an organized overview of all documentation in the CatchUp
 - [TWILIO_UI_TESTING_SUMMARY.md](features/sms-mms/TWILIO_UI_TESTING_SUMMARY.md) - Testing summary
 - [TWILIO_VOICE_TRANSCRIPTION_RESEARCH.md](features/sms-mms/TWILIO_VOICE_TRANSCRIPTION_RESEARCH.md) - Voice research
 
+### Group Scheduling
+**Location**: `docs/features/scheduling/`
+
+- [README.md](features/scheduling/README.md) - Feature overview
+- [USER_GUIDE.md](features/scheduling/USER_GUIDE.md) - User guide for scheduling
+- [API_REFERENCE.md](features/scheduling/API_REFERENCE.md) - API endpoint documentation
+
+**Key Features**:
+- Create catchup plans with multiple contacts
+- Share invite links for availability collection
+- Public availability page (no login required)
+- Availability dashboard with overlap visualization
+- AI-powered conflict resolution (Google Gemini)
+- Privacy controls for calendar sharing
+- In-app notifications for scheduling updates
+
 ## 📝 Code Examples
 
 **Location**: `docs/examples/`

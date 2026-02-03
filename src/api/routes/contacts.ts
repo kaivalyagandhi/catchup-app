@@ -242,7 +242,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 // GET /contacts - List all contacts with optional filters
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId, groupId, archived, search } = req.query;
+    const { userId, groupId, archived, search, includeSyncStatus } = req.query;
 
     if (!userId) {
       res.status(400).json({ error: 'userId query parameter is required' });
@@ -261,6 +261,37 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     const emmaContact = contacts.find((c: any) => c.name === 'Emma Brown');
     if (emmaContact) {
       console.log(`[ContactsAPI] Emma Brown location: ${emmaContact.location}`);
+    }
+
+    // Include sync status if requested (for graceful degradation)
+    if (includeSyncStatus === 'true') {
+      const { GracefulDegradationService } = await import('../../integrations/graceful-degradation-service');
+      const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
+      const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
+      
+      const circuitBreakerManager = CircuitBreakerManager.getInstance();
+      const tokenHealthMonitor = TokenHealthMonitor.getInstance();
+      const gracefulDegradationService = new GracefulDegradationService(
+        circuitBreakerManager,
+        tokenHealthMonitor
+      );
+
+      const syncStatus = await gracefulDegradationService.getSyncStatus(
+        userId as string,
+        'google_contacts'
+      );
+
+      res.json({
+        contacts,
+        syncStatus: {
+          available: syncStatus.available,
+          cached: !syncStatus.available,
+          lastUpdated: syncStatus.lastSuccessfulSync,
+          requiresReauth: syncStatus.requiresReauth,
+          reauthUrl: syncStatus.reauthUrl,
+        },
+      });
+      return;
     }
 
     res.json(contacts);

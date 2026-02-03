@@ -1,0 +1,1123 @@
+/**
+ * Public Availability Page Styles
+ * 
+ * Lightweight, standalone styles for the public availability collection page.
+ * This page does NOT require authentication and should load quickly.
+ * 
+ * Features:
+ * - Minimal dependencies (no app shell)
+ * - Mobile-first responsive design
+ * - Touch-friendly time slot selection
+ * - Auto-detected timezone display
+ * 
+ * Theme: Uses inline CSS variables for standalone operation
+ */
+
+/* ============================================================================
+   CSS VARIABLES (Standalone - no dependency on stone-clay-theme.css)
+   ============================================================================ */
+
+:root {
+  /* Colors */
+  --avail-bg: #FDFCFB;
+  --avail-surface: #FFFFFF;
+  --avail-secondary: #F5F5F4;
+  --avail-hover: #E7E5E4;
+  --avail-border: #D6D3D1;
+  --avail-border-strong: #A8A29E;
+  
+  /* Text */
+  --avail-text-primary: #1C1917;
+  --avail-text-secondary: #78716C;
+  --avail-text-tertiary: #A8A29E;
+  
+  /* Accent */
+  --avail-accent: #D97706;
+  --avail-accent-hover: #B45309;
+  --avail-accent-subtle: rgba(217, 119, 6, 0.1);
+  
+  /* Status */
+  --avail-success: #10b981;
+  --avail-success-bg: #d1fae5;
+  --avail-error: #ef4444;
+  --avail-error-bg: #fee2e2;
+  --avail-info: #3b82f6;
+  --avail-info-bg: #dbeafe;
+  
+  /* Spacing */
+  --avail-space-1: 4px;
+  --avail-space-2: 8px;
+  --avail-space-3: 12px;
+  --avail-space-4: 16px;
+  --avail-space-5: 20px;
+  --avail-space-6: 24px;
+  --avail-space-8: 32px;
+  
+  /* Border Radius */
+  --avail-radius-sm: 6px;
+  --avail-radius-md: 8px;
+  --avail-radius-lg: 12px;
+  --avail-radius-full: 9999px;
+  
+  /* Shadows */
+  --avail-shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.05);
+  --avail-shadow-md: 0 4px 6px rgba(28, 25, 23, 0.07);
+  
+  /* Typography */
+  --avail-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+}
+
+/* Dark mode support via media query */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --avail-bg: #0C0A09;
+    --avail-surface: #1C1917;
+    --avail-secondary: #292524;
+    --avail-hover: #44403C;
+    --avail-border: #57534E;
+    --avail-border-strong: #78716C;
+    
+    --avail-text-primary: #FAFAF9;
+    --avail-text-secondary: #A8A29E;
+    --avail-text-tertiary: #78716C;
+    
+    --avail-accent: #F59E0B;
+    --avail-accent-hover: #FBBF24;
+    --avail-accent-subtle: rgba(245, 158, 11, 0.15);
+    
+    --avail-success-bg: #064e3b;
+    --avail-error-bg: #7f1d1d;
+    --avail-info-bg: #1e3a5f;
+    
+    --avail-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --avail-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* ============================================================================
+   BASE STYLES
+   ============================================================================ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--avail-font);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--avail-text-primary);
+  background-color: var(--avail-bg);
+  min-height: 100vh;
+}
+
+/* ============================================================================
+   AVAILABILITY CONTAINER
+   ============================================================================ */
+
+.availability-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--avail-space-4);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+.availability-header {
+  text-align: center;
+  padding: var(--avail-space-6) var(--avail-space-4);
+  margin-bottom: var(--avail-space-4);
+}
+
+.availability-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--avail-accent);
+  margin-bottom: var(--avail-space-2);
+}
+
+.availability-header p {
+  font-size: 14px;
+  color: var(--avail-text-secondary);
+}
+
+#plan-description {
+  font-size: 16px;
+  color: var(--avail-text-primary);
+  font-weight: 500;
+}
+
+/* ============================================================================
+   MAIN CONTENT
+   ============================================================================ */
+
+.availability-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--avail-space-4);
+}
+
+/* Invitee Name Section */
+.invitee-name-section {
+  background: var(--avail-surface);
+  border: 1px solid var(--avail-border);
+  border-radius: var(--avail-radius-lg);
+  padding: var(--avail-space-4);
+}
+
+.invitee-name-section label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--avail-text-primary);
+  margin-bottom: var(--avail-space-2);
+}
+
+.invitee-name-section input {
+  width: 100%;
+  padding: var(--avail-space-3) var(--avail-space-4);
+  background: var(--avail-bg);
+  border: 1px solid var(--avail-border);
+  border-radius: var(--avail-radius-md);
+  font-size: 16px;
+  color: var(--avail-text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.invitee-name-section input:focus {
+  outline: none;
+  border-color: var(--avail-accent);
+  box-shadow: 0 0 0 3px var(--avail-accent-subtle);
+}
+
+.invitee-name-section input::placeholder {
+  color: var(--avail-text-tertiary);
+}
+
+/* Timezone Notice */
+.timezone-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--avail-space-2);
+  padding: var(--avail-space-3);
+  background: var(--avail-info-bg);
+  border-radius: var(--avail-radius-md);
+  font-size: 14px;
+  color: var(--avail-text-secondary);
+}
+
+.timezone-notice .material-icons {
+  font-size: 18px;
+  color: var(--avail-info);
+}
+
+#detected-timezone {
+  color: var(--avail-text-primary);
+}
+
+/* ============================================================================
+   CALENDAR GRID CONTAINER
+   ============================================================================ */
+
+.calendar-grid-container {
+  background: var(--avail-surface);
+  border: 1px solid var(--avail-border);
+  border-radius: var(--avail-radius-lg);
+  padding: var(--avail-space-4);
+  overflow: hidden;
+}
+
+/* Calendar Navigation */
+.calendar-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--avail-space-4);
+  padding-bottom: var(--avail-space-3);
+  border-bottom: 1px solid var(--avail-border);
+}
+
+.calendar-navigation button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--avail-secondary);
+  border: 1px solid var(--avail-border);
+  border-radius: var(--avail-radius-md);
+  font-size: 18px;
+  color: var(--avail-text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.calendar-navigation button:hover {
+  background: var(--avail-hover);
+}
+
+.calendar-navigation button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#date-range-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--avail-text-primary);
+}
+
+/* ============================================================================
+   CALENDAR GRID
+   ============================================================================ */
+
+.calendar-grid {
+  display: grid;
+  overflow-x: auto;
+}
+
+/* Grid Header */
+.grid-header {
+  display: contents;
+}
+
+.grid-header > div {
+  padding: var(--avail-space-2) var(--avail-space-1);
+  background: var(--avail-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--avail-text-secondary);
+  text-align: center;
+  border-bottom: 1px solid var(--avail-border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.day-header .day-name {
+  font-size: 10px;
+  color: var(--avail-text-tertiary);
+}
+
+.day-header .day-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--avail-text-primary);
+}
+
+/* Grid Rows */
+.grid-row {
+  display: contents;
+}
+
+.time-label {
+  padding: var(--avail-space-2) var(--avail-space-2);
+  background: var(--avail-secondary);
+  font-size: 11px;
+  color: var(--avail-text-secondary);
+  text-align: right;
+  border-right: 1px solid var(--avail-border);
+  white-space: nowrap;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+/* Time Slots */
+.time-slot {
+  min-height: 32px;
+  background: var(--avail-surface);
+  border: 1px solid var(--avail-border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.time-slot:hover:not(.disabled) {
+  background: var(--avail-hover);
+}
+
+.time-slot.selected {
+  background: var(--avail-success-bg);
+  border-color: var(--avail-success);
+}
+
+.time-slot.selected:hover {
+  background: var(--avail-success-bg);
+  opacity: 0.9;
+}
+
+.time-slot.disabled {
+  background: var(--avail-secondary);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Touch-friendly selection feedback */
+.time-slot:active:not(.disabled) {
+  transform: scale(0.95);
+}
+
+/* ============================================================================
+   SELECTION SUMMARY
+   ============================================================================ */
+
+.selection-summary {
+  text-align: center;
+  padding: var(--avail-space-3);
+  background: var(--avail-secondary);
+  border-radius: var(--avail-radius-md);
+  font-size: 14px;
+  color: var(--avail-text-secondary);
+}
+
+#slots-selected {
+  font-weight: 600;
+  color: var(--avail-text-primary);
+}
+
+/* ============================================================================
+   SUBMIT BUTTON
+   ============================================================================ */
+
+.submit-btn {
+  width: 100%;
+  padding: var(--avail-space-4);
+  background: var(--avail-accent);
+  border: none;
+  border-radius: var(--avail-radius-lg);
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--avail-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--avail-shadow-md);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   FOOTER
+   ============================================================================ */
+
+.availability-footer {
+  text-align: center;
+  padding: var(--avail-space-6) var(--avail-space-4);
+  margin-top: auto;
+}
+
+.availability-footer p {
+  font-size: 12px;
+  color: var(--avail-text-tertiary);
+}
+
+/* ============================================================================
+   STATUS MESSAGES
+   ============================================================================ */
+
+.status-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--avail-space-8);
+  text-align: center;
+}
+
+.status-message .material-icons {
+  font-size: 64px;
+  margin-bottom: var(--avail-space-4);
+}
+
+.status-message.success .material-icons {
+  color: var(--avail-success);
+}
+
+.status-message.error .material-icons {
+  color: var(--avail-error);
+}
+
+.status-message h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--avail-text-primary);
+  margin-bottom: var(--avail-space-2);
+}
+
+.status-message p {
+  font-size: 14px;
+  color: var(--avail-text-secondary);
+  max-width: 400px;
+}
+
+/* ============================================================================
+   LOADING STATE
+   ============================================================================ */
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--avail-space-8);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--avail-border);
+  border-top-color: var(--avail-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--avail-space-4);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state p {
+  font-size: 14px;
+  color: var(--avail-text-secondary);
+}
+
+/* ============================================================================
+   RESPONSIVE STYLES
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .availability-container {
+    padding: var(--avail-space-3);
+  }
+
+  .availability-header {
+    padding: var(--avail-space-4) var(--avail-space-2);
+  }
+
+  .availability-header h1 {
+    font-size: 24px;
+  }
+
+  .calendar-grid-container {
+    padding: var(--avail-space-3);
+  }
+
+  #date-range-label {
+    font-size: 14px;
+  }
+
+  .time-slot {
+    min-height: 28px;
+  }
+
+  .time-label {
+    font-size: 10px;
+    padding: var(--avail-space-1) var(--avail-space-1);
+  }
+
+  .grid-header > div {
+    padding: var(--avail-space-1);
+    font-size: 10px;
+  }
+
+  .day-header .day-date {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .availability-header h1 {
+    font-size: 20px;
+  }
+
+  .calendar-navigation button {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .submit-btn {
+    padding: var(--avail-space-3);
+    font-size: 14px;
+  }
+
+  .time-slot {
+    min-height: 24px;
+  }
+}
+
+/* ============================================================================
+   TOUCH DEVICE OPTIMIZATIONS
+   ============================================================================ */
+
+@media (hover: none) and (pointer: coarse) {
+  .time-slot {
+    min-height: 40px;
+  }
+
+  .time-slot:hover:not(.disabled) {
+    background: var(--avail-surface);
+  }
+
+  .time-slot.selected:hover {
+    background: var(--avail-success-bg);
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .availability-container {
+    max-width: 100%;
+  }
+
+  .calendar-navigation button,
+  .submit-btn {
+    display: none;
+  }
+
+  .time-slot.selected {
+    background: #ccc !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* ============================================================================
+   ERROR STATES AND LOADING - Task 14.2
+   ============================================================================ */
+
+/* Submit Error Container */
+.submit-error-container {
+  margin-bottom: var(--avail-space-4);
+}
+
+.submit-error-container .error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--avail-space-3);
+  padding: var(--avail-space-4);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  border-radius: var(--avail-radius);
+}
+
+.submit-error-container .error-icon {
+  flex-shrink: 0;
+  color: #ef4444;
+}
+
+.submit-error-container .error-icon .material-icons {
+  font-size: 24px;
+}
+
+.submit-error-container .error-content {
+  flex: 1;
+}
+
+.submit-error-container .error-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ef4444;
+  margin: 0 0 var(--avail-space-1) 0;
+}
+
+.submit-error-container .error-message {
+  font-size: 14px;
+  color: var(--avail-text-secondary);
+  margin: 0;
+}
+
+.submit-error-container .error-actions {
+  display: flex;
+  gap: var(--avail-space-2);
+  margin-top: var(--avail-space-3);
+}
+
+.submit-error-container .btn-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--avail-space-1);
+  padding: var(--avail-space-2) var(--avail-space-3);
+  background: #ef4444;
+  border: none;
+  border-radius: var(--avail-radius);
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submit-error-container .btn-retry:hover {
+  background: #dc2626;
+}
+
+.submit-error-container .btn-retry .material-icons {
+  font-size: 14px;
+}
+
+.submit-error-container .btn-dismiss {
+  padding: var(--avail-space-2) var(--avail-space-3);
+  background: transparent;
+  border: 1px solid var(--avail-border);
+  border-radius: var(--avail-radius);
+  font-size: 12px;
+  color: var(--avail-text-secondary);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submit-error-container .btn-dismiss:hover {
+  background: var(--avail-surface);
+}
+
+/* Inline Loading Spinner */
+.loading-spinner-inline {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  vertical-align: middle;
+  margin-right: var(--avail-space-2);
+}
+
+/* Error State Enhancement */
+#error-state {
+  text-align: center;
+}
+
+#error-state .error-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--avail-space-3);
+  margin-top: var(--avail-space-4);
+}
+
+#error-state .btn-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--avail-space-2);
+  padding: var(--avail-space-3) var(--avail-space-5);
+  background: var(--avail-accent);
+  border: none;
+  border-radius: var(--avail-radius);
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#error-state .btn-retry:hover {
+  background: var(--avail-accent-hover);
+}
+
+#error-state .btn-retry .material-icons {
+  font-size: 18px;
+}
+
+/* Responsive Error Styles */
+@media (max-width: 480px) {
+  .submit-error-container .error-banner {
+    flex-direction: column;
+  }
+  
+  .submit-error-container .error-actions {
+    width: 100%;
+  }
+  
+  .submit-error-container .error-actions button {
+    flex: 1;
+  }
+}
+
+
+/* ============================================================================
+   MOBILE RESPONSIVENESS ENHANCEMENTS - Task 14.3
+   Requirements: 15.1-15.7 (Public Availability Page)
+   ============================================================================ */
+
+/* ============================================================================
+   TOUCH-FRIENDLY TAP TARGETS (Requirement 15.5)
+   ============================================================================ */
+
+@media (hover: none) and (pointer: coarse) {
+  /* Larger time slots for touch devices */
+  .time-slot {
+    min-height: 44px;
+  }
+  
+  /* Better touch feedback */
+  .time-slot:active:not(.disabled) {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+  
+  /* Remove hover effects on touch */
+  .time-slot:hover:not(.disabled) {
+    background: var(--avail-surface);
+  }
+  
+  .time-slot.selected:hover {
+    background: var(--avail-success-bg);
+    opacity: 1;
+  }
+  
+  /* Navigation buttons */
+  .calendar-navigation button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* Submit button */
+  .submit-btn {
+    min-height: 48px;
+  }
+}
+
+/* ============================================================================
+   HORIZONTAL SCROLLING FOR CALENDAR (Requirement 15.6)
+   ============================================================================ */
+
+.calendar-grid-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  position: relative;
+}
+
+/* Scroll hint indicator */
+@media (max-width: 768px) {
+  .calendar-grid-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to right, transparent, var(--avail-surface));
+    pointer-events: none;
+    opacity: 0.9;
+    transition: opacity 0.3s ease;
+  }
+  
+  .calendar-grid-container.scrolled::after {
+    opacity: 0;
+  }
+  
+  /* Ensure grid has minimum width for scrolling */
+  .calendar-grid {
+    min-width: 500px;
+  }
+}
+
+/* Custom scrollbar */
+.calendar-grid-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.calendar-grid-container::-webkit-scrollbar-track {
+  background: var(--avail-secondary);
+  border-radius: 3px;
+}
+
+.calendar-grid-container::-webkit-scrollbar-thumb {
+  background: var(--avail-border);
+  border-radius: 3px;
+}
+
+.calendar-grid-container::-webkit-scrollbar-thumb:hover {
+  background: var(--avail-border-strong);
+}
+
+/* ============================================================================
+   ADAPTIVE LAYOUTS FOR SMALL SCREENS (Requirement 15.3)
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .availability-container {
+    padding: var(--avail-space-2);
+  }
+  
+  .availability-header {
+    padding: var(--avail-space-4) var(--avail-space-2);
+  }
+  
+  .availability-header h1 {
+    font-size: 18px;
+  }
+  
+  #plan-description {
+    font-size: 14px;
+  }
+  
+  .invitee-name-section {
+    padding: var(--avail-space-3);
+  }
+  
+  .invitee-name-section label {
+    font-size: 13px;
+  }
+  
+  .invitee-name-section input {
+    padding: var(--avail-space-3);
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .timezone-notice {
+    padding: var(--avail-space-2);
+    font-size: 12px;
+  }
+  
+  .calendar-grid-container {
+    padding: var(--avail-space-2);
+  }
+  
+  .calendar-navigation {
+    padding-bottom: var(--avail-space-2);
+  }
+  
+  .calendar-navigation button {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+  
+  #date-range-label {
+    font-size: 13px;
+  }
+  
+  .time-slot {
+    min-height: 36px;
+  }
+  
+  .time-label {
+    font-size: 9px;
+    padding: var(--avail-space-1);
+  }
+  
+  .grid-header > div {
+    padding: var(--avail-space-1);
+    font-size: 9px;
+  }
+  
+  .day-header .day-date {
+    font-size: 11px;
+  }
+  
+  .day-header .day-name {
+    font-size: 8px;
+  }
+  
+  .selection-summary {
+    padding: var(--avail-space-2);
+    font-size: 13px;
+  }
+  
+  .submit-btn {
+    padding: var(--avail-space-3);
+    font-size: 14px;
+    min-height: 48px;
+  }
+  
+  .availability-footer {
+    padding: var(--avail-space-4) var(--avail-space-2);
+  }
+  
+  .availability-footer p {
+    font-size: 11px;
+  }
+  
+  /* Status messages */
+  .status-message {
+    padding: var(--avail-space-6);
+  }
+  
+  .status-message .material-icons {
+    font-size: 48px;
+  }
+  
+  .status-message h2 {
+    font-size: 20px;
+  }
+  
+  .status-message p {
+    font-size: 13px;
+  }
+}
+
+/* ============================================================================
+   MINIMUM VIEWPORT SUPPORT (320px) (Requirement 15.1)
+   ============================================================================ */
+
+@media (max-width: 360px) {
+  .availability-container {
+    padding: var(--avail-space-1);
+  }
+  
+  .availability-header h1 {
+    font-size: 16px;
+  }
+  
+  .calendar-grid-container {
+    padding: var(--avail-space-1);
+  }
+  
+  .calendar-navigation button {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  
+  #date-range-label {
+    font-size: 12px;
+  }
+  
+  .time-slot {
+    min-height: 32px;
+  }
+  
+  .time-label {
+    font-size: 8px;
+  }
+  
+  .grid-header > div {
+    font-size: 8px;
+  }
+  
+  .day-header .day-date {
+    font-size: 10px;
+  }
+  
+  .submit-btn {
+    font-size: 13px;
+  }
+}
+
+/* ============================================================================
+   LANDSCAPE ORIENTATION
+   ============================================================================ */
+
+@media (max-width: 768px) and (orientation: landscape) {
+  .availability-container {
+    padding: var(--avail-space-2);
+  }
+  
+  .availability-header {
+    padding: var(--avail-space-2);
+  }
+  
+  .availability-main {
+    gap: var(--avail-space-2);
+  }
+  
+  .calendar-grid-container {
+    padding: var(--avail-space-2);
+  }
+  
+  .time-slot {
+    min-height: 32px;
+  }
+  
+  .availability-footer {
+    padding: var(--avail-space-2);
+  }
+}
+
+/* ============================================================================
+   SAFE AREA INSETS (for notched devices)
+   ============================================================================ */
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .availability-container {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .submit-btn {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY IMPROVEMENTS
+   ============================================================================ */
+
+/* Focus visible styles for keyboard navigation */
+.time-slot:focus-visible,
+.submit-btn:focus-visible,
+.calendar-navigation button:focus-visible,
+.invitee-name-section input:focus-visible {
+  outline: 2px solid var(--avail-accent);
+  outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .time-slot,
+  .submit-btn,
+  .calendar-navigation button {
+    transition: none;
+  }
+  
+  .time-slot:active:not(.disabled) {
+    transform: none;
+  }
+  
+  .loading-spinner {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .time-slot {
+    border-width: 2px;
+  }
+  
+  .time-slot.selected {
+    border-width: 3px;
+  }
+  
+  .submit-btn {
+    border: 2px solid var(--avail-accent);
+  }
+}
