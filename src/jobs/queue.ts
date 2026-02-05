@@ -25,6 +25,7 @@ export const QUEUE_NAMES = {
   WEBHOOK_RENEWAL: 'webhook-renewal',
   NOTIFICATION_REMINDER: 'notification-reminder',
   ADAPTIVE_SYNC: 'adaptive-sync',
+  WEBHOOK_HEALTH_CHECK: 'webhook-health-check',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -201,6 +202,22 @@ export const adaptiveSyncQueue = new Bull(QUEUE_NAMES.ADAPTIVE_SYNC, {
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
+export const webhookHealthCheckQueue = new Bull(QUEUE_NAMES.WEBHOOK_HEALTH_CHECK, {
+  createClient: (type) => {
+    switch (type) {
+      case 'client':
+        return createRedisClient();
+      case 'subscriber':
+        return createRedisClient();
+      case 'bclient':
+        return createRedisClient();
+      default:
+        return createRedisClient();
+    }
+  },
+  defaultJobOptions: DEFAULT_JOB_OPTIONS,
+});
+
 // Queue event handlers for logging
 suggestionGenerationQueue.on('error', (error) => {
   console.error('Suggestion generation queue error:', error);
@@ -328,6 +345,25 @@ adaptiveSyncQueue.on('completed', (job, result) => {
   console.log(`Adaptive sync job ${job.id} completed:`, result);
 });
 
+// Webhook health check queue events
+webhookHealthCheckQueue.on('error', (error) => {
+  console.error('Webhook health check queue error:', error);
+});
+
+webhookHealthCheckQueue.on('failed', (job, error) => {
+  console.error(`Webhook health check job ${job.id} failed:`, error.message);
+});
+
+webhookHealthCheckQueue.on('completed', (job, result) => {
+  console.log(`Webhook health check job ${job.id} completed:`, result);
+  
+  // Alert on high failure rate or many stale webhooks
+  if (result.alerts && result.alerts.length > 0) {
+    console.warn(`WEBHOOK HEALTH ALERTS: ${result.alerts.length} issues detected`);
+    result.alerts.forEach((alert: string) => console.warn(`  - ${alert}`));
+  }
+});
+
 // Graceful shutdown
 export async function closeQueues(): Promise<void> {
   await Promise.all([
@@ -341,6 +377,7 @@ export async function closeQueues(): Promise<void> {
     webhookRenewalQueue.close(),
     notificationReminderQueue.close(),
     adaptiveSyncQueue.close(),
+    webhookHealthCheckQueue.close(),
   ]);
 }
 
@@ -363,6 +400,7 @@ export async function enqueueJob(
     [QUEUE_NAMES.WEBHOOK_RENEWAL]: webhookRenewalQueue,
     [QUEUE_NAMES.NOTIFICATION_REMINDER]: notificationReminderQueue,
     [QUEUE_NAMES.ADAPTIVE_SYNC]: adaptiveSyncQueue,
+    [QUEUE_NAMES.WEBHOOK_HEALTH_CHECK]: webhookHealthCheckQueue,
   };
 
   const queue = queueMap[queueName];

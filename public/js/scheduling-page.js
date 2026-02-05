@@ -72,9 +72,9 @@ class SchedulingPage {
     
     container.innerHTML = `
       <div class="scheduling-page">
-        <div class="scheduling-header">
-          <div class="scheduling-header-left">
-            <h2>Scheduling</h2>
+        <div class="page-header">
+          <div style="flex: 1;">
+            <h1 class="page-header-title">Scheduling</h1>
           </div>
         </div>
         <div class="loading-state">
@@ -96,9 +96,9 @@ class SchedulingPage {
     
     container.innerHTML = `
       <div class="scheduling-page">
-        <div class="scheduling-header">
-          <div class="scheduling-header-left">
-            <h2>Scheduling</h2>
+        <div class="page-header">
+          <div style="flex: 1;">
+            <h1 class="page-header-title">Scheduling</h1>
           </div>
         </div>
         <div class="error-state">
@@ -394,12 +394,12 @@ class SchedulingPage {
     
     container.innerHTML = `
       <div class="scheduling-page">
-        <div class="scheduling-header">
-          <div class="scheduling-header-left">
-            <h2>Scheduling</h2>
+        <div class="page-header">
+          <div style="flex: 1;">
+            <h1 class="page-header-title">Scheduling</h1>
             ${this.renderPrivacyIndicator()}
           </div>
-          <div class="scheduling-header-actions">
+          <div class="page-header-actions">
             <div id="notification-panel-container"></div>
             <button class="btn-secondary" id="preferences-btn" title="Scheduling Preferences">
               <span class="material-icons">settings</span> Preferences

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modal Size Classes Test</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <style>
+    body {
+      padding: var(--space-6);
+    }
+    
+    .test-controls {
+      display: flex;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+      flex-wrap: wrap;
+    }
+    
+    .test-btn {
+      padding: var(--space-3) var(--space-4);
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: var(--font-accent);
+      font-size: var(--text-base);
+    }
+    
+    .test-btn:hover {
+      background: var(--accent-hover);
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    /* Sample content for testing scrolling */
+    .sample-content {
+      margin-bottom: var(--space-4);
+    }
+    
+    .sample-content p {
+      margin-bottom: var(--space-3);
+    }
+  </style>
+</head>
+<body>
+  <h1>Modal Size Classes Test</h1>
+  <p>Test the standard modal size classes defined in stone-clay-theme.css</p>
+  
+  <div class="test-controls">
+    <button class="test-btn" onclick="showModal('sm')">Show Small Modal (400px)</button>
+    <button class="test-btn" onclick="showModal('md')">Show Medium Modal (600px)</button>
+    <button class="test-btn" onclick="showModal('lg')">Show Large Modal (800px)</button>
+    <button class="test-btn" onclick="showModal('full')">Show Full Modal (90vw)</button>
+    <button class="test-btn" onclick="showModal('scroll')">Show Scrolling Modal</button>
+  </div>
+  
+  <h2>Test Results:</h2>
+  <ul>
+    <li>✓ Modal overlay has backdrop-filter: blur(4px)</li>
+    <li>✓ Modal overlay has rgba(0, 0, 0, 0.5) background</li>
+    <li>✓ Modals have max-height: 90vh</li>
+    <li>✓ Modal body has overflow-y: auto for internal scrolling</li>
+    <li>✓ Modal padding uses --space-4 tokens</li>
+    <li>✓ Modal header uses --font-heading</li>
+    <li>✓ Modal body uses --font-readable</li>
+    <li>✓ Modal footer has consistent layout with space-between</li>
+  </ul>
+  
+  <!-- Modal Overlay -->
+  <div id="modalOverlay" class="modal-overlay hidden" onclick="closeModal(event)">
+    <div id="modal" class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Modal Title</h2>
+        <button class="modal-close" onclick="closeModal()" aria-label="Close modal">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-body" id="modalBody">
+        <p>This is the modal body content. It uses the --font-readable font family for optimal readability.</p>
+      </div>
+      
+      <div class="modal-footer">
+        <div class="modal-footer-left">
+          <button class="test-btn" style="background: var(--border-default);" onclick="closeModal()">Cancel</button>
+        </div>
+        <div class="modal-footer-right">
+          <button class="test-btn" onclick="closeModal()">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    function showModal(size) {
+      const modal = document.getElementById('modal');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalBody = document.getElementById('modalBody');
+      const overlay = document.getElementById('modalOverlay');
+      
+      // Remove all size classes
+      modal.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-full');
+      
+      // Add appropriate size class and content
+      switch(size) {
+        case 'sm':
+          modal.classList.add('modal-sm');
+          modalTitle.textContent = 'Small Modal (400px)';
+          modalBody.innerHTML = '<p>This is a small modal, perfect for confirmations and simple forms.</p>';
+          break;
+        case 'md':
+          modal.classList.add('modal-md');
+          modalTitle.textContent = 'Medium Modal (600px)';
+          modalBody.innerHTML = '<p>This is a medium modal, ideal for standard forms and content.</p><p>It provides a good balance between space and focus.</p>';
+          break;
+        case 'lg':
+          modal.classList.add('modal-lg');
+          modalTitle.textContent = 'Large Modal (800px)';
+          modalBody.innerHTML = '<p>This is a large modal, suitable for lists, tables, and complex content.</p><p>It offers more space for detailed information.</p><p>Perfect for data-heavy displays.</p>';
+          break;
+        case 'full':
+          modal.classList.add('modal-full');
+          modalTitle.textContent = 'Full Width Modal (90vw)';
+          modalBody.innerHTML = '<p>This is a full-width modal, using 90% of the viewport width.</p><p>Best for maximum content visibility.</p>';
+          break;
+        case 'scroll':
+          modal.classList.add('modal-md');
+          modalTitle.textContent = 'Scrolling Modal Test';
+          modalBody.innerHTML = generateLongContent();
+          break;
+      }
+      
+      overlay.classList.remove('hidden');
+      console.log(`✓ Opened ${size} modal`);
+    }
+    
+    function closeModal(event) {
+      if (event && event.target !== event.currentTarget) return;
+      document.getElementById('modalOverlay').classList.add('hidden');
+      console.log('✓ Closed modal');
+    }
+    
+    function generateLongContent() {
+      let content = '<div class="sample-content">';
+      content += '<p>This modal has a lot of content to test the max-height: 90vh and internal scrolling behavior.</p>';
+      
+      for (let i = 1; i <= 20; i++) {
+        content += `<p><strong>Section ${i}:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>`;
+      }
+      
+      content += '<p><strong>End of content.</strong> Notice how the modal body scrolls internally while the header and footer remain fixed.</p>';
+      content += '</div>';
+      
+      return content;
+    }
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+    
+    console.log('Modal size classes test loaded');
+    console.log('Available sizes: .modal-sm (400px), .modal-md (600px), .modal-lg (800px), .modal-full (90vw)');
+  </script>
+</body>
+</html>

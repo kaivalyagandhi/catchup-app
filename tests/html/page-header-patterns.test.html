@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Header Patterns Test</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <style>
+    body {
+      padding: var(--space-6);
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      margin-bottom: var(--space-8);
+      padding: var(--space-6);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+    }
+    
+    .test-label {
+      font-family: var(--font-accent);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-bottom: var(--space-3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .demo-content {
+      padding: var(--space-6);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      min-height: 200px;
+    }
+    
+    /* Demo button styles */
+    .btn-primary {
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      border: none;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      font-family: var(--font-accent);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+    }
+    
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      font-family: var(--font-readable);
+      font-size: var(--text-sm);
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+  </style>
+</head>
+<body>
+  <h1 style="font-family: var(--font-heading); margin-bottom: var(--space-6);">Page Header Pattern Tests</h1>
+  
+  <p style="font-family: var(--font-readable); color: var(--text-secondary); margin-bottom: var(--space-8);">
+    Testing the standard page header layout pattern: [Back button] [Title] [spacer] [Primary action]
+  </p>
+
+  <!-- Test 1: Basic Page Header -->
+  <div class="test-section">
+    <div class="test-label">Test 1: Basic Page Header (Title + Action)</div>
+    
+    <div class="page-header">
+      <h1 class="page-header-title">Page Title</h1>
+      <div class="page-header-actions">
+        <button class="btn-primary">Primary Action</button>
+      </div>
+    </div>
+    
+    <div class="demo-content">
+      <p style="font-family: var(--font-readable); color: var(--text-secondary);">
+        Page content goes here...
+      </p>
+    </div>
+  </div>
+
+  <!-- Test 2: Page Header with Back Button -->
+  <div class="test-section">
+    <div class="test-label">Test 2: Page Header with Back Button</div>
+    
+    <div class="page-header">
+      <button class="page-header-back">
+        <span class="page-header-back-icon">←</span>
+        <span>Back</span>
+      </button>
+      <h1 class="page-header-title">Page Title with Back Button</h1>
+      <div class="page-header-actions">
+        <button class="btn-primary">Save Changes</button>
+      </div>
+    </div>
+    
+    <div class="demo-content">
+      <p style="font-family: var(--font-readable); color: var(--text-secondary);">
+        Page content goes here...
+      </p>
+    </div>
+  </div>
+
+  <!-- Test 3: Page Header with Multiple Actions -->
+  <div class="test-section">
+    <div class="test-label">Test 3: Page Header with Multiple Actions</div>
+    
+    <div class="page-header">
+      <h1 class="page-header-title">Page with Multiple Actions</h1>
+      <div class="page-header-actions">
+        <button class="btn-secondary">Export</button>
+        <button class="btn-secondary">Settings</button>
+        <button class="btn-primary">Create New</button>
+      </div>
+    </div>
+    
+    <div class="demo-content">
+      <p style="font-family: var(--font-readable); color: var(--text-secondary);">
+        Page content goes here...
+      </p>
+    </div>
+  </div>
+
+  <!-- Test 4: Page Header with Breadcrumb -->
+  <div class="test-section">
+    <div class="test-label">Test 4: Page Header with Breadcrumb</div>
+    
+    <div class="page-header page-header-with-breadcrumb">
+      <nav class="breadcrumb">
+        <span class="breadcrumb-item">
+          <a href="#" class="breadcrumb-link">Home</a>
+          <span class="breadcrumb-separator"></span>
+        </span>
+        <span class="breadcrumb-item">
+          <a href="#" class="breadcrumb-link">Settings</a>
+          <span class="breadcrumb-separator"></span>
+        </span>
+        <span class="breadcrumb-item">
+          <span class="breadcrumb-current">Profile</span>
+        </span>
+      </nav>
+      
+      <div class="page-header-row">
+        <h1 class="page-header-title">Profile Settings</h1>
+        <div class="page-header-actions">
+          <button class="btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="demo-content">
+      <p style="font-family: var(--font-readable); color: var(--text-secondary);">
+        Page content goes here...
+      </p>
+    </div>
+  </div>
+
+  <!-- Test 5: Page Header - Title Only (No Actions) -->
+  <div class="test-section">
+    <div class="test-label">Test 5: Page Header - Title Only</div>
+    
+    <div class="page-header">
+      <h1 class="page-header-title">Simple Page Title</h1>
+    </div>
+    
+    <div class="demo-content">
+      <p style="font-family: var(--font-readable); color: var(--text-secondary);">
+        Page content goes here...
+      </p>
+    </div>
+  </div>
+
+  <!-- Test 6: Mobile Responsive Test -->
+  <div class="test-section">
+    <div class="test-label">Test 6: Mobile Responsive (Resize window to test)</div>
+    
+    <div class="page-header">
+      <button class="page-header-back">
+        <span class="page-header-back-icon">←</span>
+        <span>Back</span>
+      </button>
+      <h1 class="page-header-title">Mobile Responsive Header</h1>
+      <div class="page-header-actions">
+        <button class="btn-secondary">Cancel</button>
+        <button class="btn-primary">Save</button>
+      </div>
+    </div>
+    
+    <div class="demo-content">
+      <p style="font-family: var(--font-readable); color: var(--text-secondary);">
+        Resize the browser window to see how the header adapts to smaller screens.
+        On very small screens (< 480px), the header will stack vertically.
+      </p>
+    </div>
+  </div>
+
+  <!-- Dark Mode Toggle -->
+  <div style="position: fixed; bottom: var(--space-4); right: var(--space-4);">
+    <button id="theme-toggle" class="btn-secondary">
+      Toggle Dark Mode
+    </button>
+  </div>
+
+  <script>
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+    
+    // Initialize theme from localStorage or default to light
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    html.setAttribute('data-theme', savedTheme);
+    
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+    });
+    
+    // Log test results
+    console.log('✓ Page Header Pattern Tests Loaded');
+    console.log('✓ Test all 6 page header variations');
+    console.log('✓ Verify consistent heights (64px on desktop, 56px on mobile)');
+    console.log('✓ Verify flexbox layout with space-between');
+    console.log('✓ Verify back button positioning (left-most)');
+    console.log('✓ Verify action button positioning (right-most)');
+    console.log('✓ Test responsive behavior by resizing window');
+    console.log('✓ Test dark mode with toggle button');
+  </script>
+</body>
+</html>

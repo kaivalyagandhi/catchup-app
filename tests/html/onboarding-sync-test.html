@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding Sync Testing - CatchUp</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .test-section {
+      margin-bottom: 40px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 6px;
+      border-left: 4px solid #4CAF50;
+    }
+    .test-section h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    .test-controls {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #4CAF50;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #45a049;
+    }
+    .btn-secondary {
+      background: #2196F3;
+      color: white;
+    }
+    .btn-secondary:hover {
+      background: #0b7dda;
+    }
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #da190b;
+    }
+    .status-box {
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .status-info {
+      background: #e3f2fd;
+      border: 1px solid #2196F3;
+      color: #1976D2;
+    }
+    .status-success {
+      background: #e8f5e9;
+      border: 1px solid #4CAF50;
+      color: #2e7d32;
+    }
+    .status-error {
+      background: #ffebee;
+      border: 1px solid #f44336;
+      color: #c62828;
+    }
+    .status-warning {
+      background: #fff3e0;
+      border: 1px solid #ff9800;
+      color: #e65100;
+    }
+    .log-container {
+      max-height: 400px;
+      overflow-y: auto;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .log-entry {
+      margin-bottom: 5px;
+    }
+    .log-info { color: #4fc3f7; }
+    .log-success { color: #81c784; }
+    .log-error { color: #e57373; }
+    .log-warning { color: #ffb74d; }
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+    .checklist li {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .checklist li:last-child {
+      border-bottom: none;
+    }
+    input[type="checkbox"] {
+      margin-right: 10px;
+      transform: scale(1.2);
+    }
+    .instructions {
+      background: #fff9c4;
+      border: 1px solid #fbc02d;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .instructions h3 {
+      margin-top: 0;
+      color: #f57f17;
+    }
+    .sql-query {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Onboarding Sync Testing</h1>
+    <p class="subtitle">Manual testing interface for Task 26: Onboarding Mitigations</p>
+
+    <!-- Test 26.1: Immediate First Sync -->
+    <div class="test-section">
+      <h2>Test 26.1: Immediate First Sync</h2>
+      <p>Verify that sync triggers immediately after OAuth connection (not waiting for scheduled interval).</p>
+      
+      <div class="instructions">
+        <h3>📋 Prerequisites</h3>
+        <ul>
+          <li>Clean database state (no existing sync data for test user)</li>
+          <li>Test Google account ready</li>
+          <li>Development server running</li>
+        </ul>
+      </div>
+
+      <div class="test-controls">
+        <button class="btn-primary" onclick="testImmediateSync('contacts')">
+          Test Contacts Immediate Sync
+        </button>
+        <button class="btn-primary" onclick="testImmediateSync('calendar')">
+          Test Calendar Immediate Sync
+        </button>
+        <button class="btn-secondary" onclick="checkSyncStatus('contacts')">
+          Check Contacts Status
+        </button>
+        <button class="btn-secondary" onclick="checkSyncStatus('calendar')">
+          Check Calendar Status
+        </button>
+      </div>
+
+      <div id="test-26-1-status"></div>
+
+      <div class="instructions">
+        <h3>✅ Success Criteria</h3>
+        <ul class="checklist">
+          <li><input type="checkbox" id="check-26-1-1"> Sync triggered immediately after OAuth callback</li>
+          <li><input type="checkbox" id="check-26-1-2"> Contacts/events appeared within 1 minute</li>
+          <li><input type="checkbox" id="check-26-1-3"> Database shows successful sync with timestamp</li>
+          <li><input type="checkbox" id="check-26-1-4"> Sync metrics recorded with 'initial' or 'full' type</li>
+        </ul>
+      </div>
+
+      <div class="sql-query">
+-- Check sync state
+SELECT * FROM google_contacts_sync_state WHERE user_id = 'YOUR_USER_ID';
+SELECT * FROM sync_schedule WHERE user_id = 'YOUR_USER_ID';
+SELECT * FROM sync_metrics WHERE user_id = 'YOUR_USER_ID' ORDER BY created_at DESC LIMIT 5;
+      </div>
+    </div>
+
+    <!-- Test 26.2: Onboarding Progress UI -->
+    <div class="test-section">
+      <h2>Test 26.2: Onboarding Progress UI</h2>
+      <p>Verify that progress UI shows spinner, success message, and retry functionality.</p>
+
+      <div class="test-controls">
+        <button class="btn-primary" onclick="simulateSyncProgress()">
+          Simulate Sync Progress
+        </button>
+        <button class="btn-danger" onclick="simulateSyncFailure()">
+          Simulate Sync Failure
+        </button>
+        <button class="btn-secondary" onclick="testRetryButton()">
+          Test Retry Button
+        </button>
+      </div>
+
+      <div id="test-26-2-status"></div>
+
+      <div class="instructions">
+        <h3>✅ Success Criteria</h3>
+        <ul class="checklist">
+          <li><input type="checkbox" id="check-26-2-1"> Spinner appears during sync</li>
+          <li><input type="checkbox" id="check-26-2-2"> Success message shows contact/event count</li>
+          <li><input type="checkbox" id="check-26-2-3"> Error message appears on failure</li>
+          <li><input type="checkbox" id="check-26-2-4"> Retry button triggers manual sync</li>
+          <li><input type="checkbox" id="check-26-2-5"> UI updates in real-time (polling)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Test 26.3: Onboarding Frequency -->
+    <div class="test-section">
+      <h2>Test 26.3: Onboarding Frequency</h2>
+      <p>Verify onboarding frequency (1h contacts, 2h calendar) for first 24 hours, then transition to default.</p>
+
+      <div class="test-controls">
+        <button class="btn-primary" onclick="checkOnboardingFrequency('contacts')">
+          Check Contacts Frequency
+        </button>
+        <button class="btn-primary" onclick="checkOnboardingFrequency('calendar')">
+          Check Calendar Frequency
+        </button>
+        <button class="btn-secondary" onclick="mockTimeTransition()">
+          Mock Time (Skip 24h)
+        </button>
+        <button class="btn-secondary" onclick="verifyFrequencyTransition()">
+          Verify Transition
+        </button>
+      </div>
+
+      <div id="test-26-3-status"></div>
+
+      <div class="instructions">
+        <h3>✅ Success Criteria</h3>
+        <ul class="checklist">
+          <li><input type="checkbox" id="check-26-3-1"> Contacts: 1-hour frequency for first 24h</li>
+          <li><input type="checkbox" id="check-26-3-2"> Calendar: 2-hour frequency for first 24h</li>
+          <li><input type="checkbox" id="check-26-3-3"> onboarding_until set to 24h after connection</li>
+          <li><input type="checkbox" id="check-26-3-4"> After 24h: Contacts transitions to 7 days</li>
+          <li><input type="checkbox" id="check-26-3-5"> After 24h: Calendar transitions to 24 hours</li>
+        </ul>
+      </div>
+
+      <div class="sql-query">
+-- Check onboarding frequency
+SELECT 
+  user_id,
+  integration_type,
+  current_frequency_ms / 3600000.0 as frequency_hours,
+  onboarding_until,
+  next_sync_at,
+  (onboarding_until > NOW()) as still_onboarding
+FROM sync_schedule 
+WHERE user_id = 'YOUR_USER_ID';
+      </div>
+    </div>
+
+    <!-- Console Log -->
+    <div class="test-section">
+      <h2>📝 Test Log</h2>
+      <button class="btn-secondary" onclick="clearLog()">Clear Log</button>
+      <div id="log-container" class="log-container"></div>
+    </div>
+  </div>
+
+  <script>
+    // Logging utility
+    function log(message, type = 'info') {
+      const logContainer = document.getElementById('log-container');
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = document.createElement('div');
+      logEntry.className = `log-entry log-${type}`;
+      logEntry.textContent = `[${timestamp}] ${message}`;
+      logContainer.appendChild(logEntry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+      console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+
+    function clearLog() {
+      document.getElementById('log-container').innerHTML = '';
+      log('Log cleared', 'info');
+    }
+
+    function showStatus(elementId, message, type = 'info') {
+      const statusBox = document.createElement('div');
+      statusBox.className = `status-box status-${type}`;
+      statusBox.textContent = message;
+      
+      const container = document.getElementById(elementId);
+      container.innerHTML = '';
+      container.appendChild(statusBox);
+    }
+
+    // Test 26.1: Immediate First Sync
+    async function testImmediateSync(integrationType) {
+      log(`Testing immediate first sync for ${integrationType}...`, 'info');
+      
+      showStatus('test-26-1-status', 
+        `Testing immediate sync for ${integrationType}...\n\n` +
+        `Instructions:\n` +
+        `1. Click "Connect Google ${integrationType === 'contacts' ? 'Contacts' : 'Calendar'}" in the app\n` +
+        `2. Complete OAuth flow\n` +
+        `3. Watch this page for sync status updates\n` +
+        `4. Verify sync triggers immediately (within seconds)\n` +
+        `5. Verify data appears in UI within 1 minute`,
+        'info'
+      );
+
+      // Note: Actual OAuth flow happens in main app
+      // This is just a testing interface to check status
+      log(`Navigate to main app to connect ${integrationType}`, 'warning');
+      log(`Then use "Check Status" button to verify sync occurred`, 'warning');
+    }
+
+    async function checkSyncStatus(integrationType) {
+      log(`Checking sync status for ${integrationType}...`, 'info');
+      
+      try {
+        // Get current user ID from session (you'll need to implement this)
+        const userId = 'YOUR_USER_ID'; // Replace with actual user ID
+        
+        const response = await fetch(`/api/sync/status/${userId}/google_${integrationType}`);
+        const data = await response.json();
+        
+        log(`Sync status response: ${JSON.stringify(data, null, 2)}`, 'success');
+        
+        showStatus('test-26-1-status',
+          `Sync Status for ${integrationType}:\n\n` +
+          `Status: ${data.status}\n` +
+          `Items Processed: ${data.itemsProcessed || 'N/A'}\n` +
+          `Error: ${data.errorMessage || 'None'}\n` +
+          `Started At: ${data.startedAt || 'N/A'}\n` +
+          `Completed At: ${data.completedAt || 'N/A'}`,
+          data.status === 'completed' ? 'success' : 
+          data.status === 'failed' ? 'error' : 'info'
+        );
+      } catch (error) {
+        log(`Error checking sync status: ${error.message}`, 'error');
+        showStatus('test-26-1-status', `Error: ${error.message}`, 'error');
+      }
+    }
+
+    // Test 26.2: Onboarding Progress UI
+    function simulateSyncProgress() {
+      log('Simulating sync progress...', 'info');
+      
+      showStatus('test-26-2-status', 
+        'Simulating sync progress:\n\n' +
+        '1. Spinner should appear\n' +
+        '2. Status should show "in_progress"\n' +
+        '3. After completion, success message with count\n\n' +
+        'Check the onboarding page to see the actual UI.',
+        'info'
+      );
+      
+      log('Navigate to onboarding page to see progress UI', 'warning');
+    }
+
+    function simulateSyncFailure() {
+      log('Simulating sync failure...', 'info');
+      
+      showStatus('test-26-2-status',
+        'To simulate sync failure:\n\n' +
+        '1. Revoke Google permissions during sync\n' +
+        '2. Or temporarily break database connection\n' +
+        '3. Or add error throw in sync-orchestrator.ts\n\n' +
+        'Then verify:\n' +
+        '- Error message appears\n' +
+        '- Retry button is visible\n' +
+        '- Clicking retry triggers manual sync',
+        'warning'
+      );
+    }
+
+    async function testRetryButton() {
+      log('Testing retry button...', 'info');
+      
+      try {
+        const userId = 'YOUR_USER_ID'; // Replace with actual user ID
+        const integrationType = 'google_contacts';
+        
+        const response = await fetch('/api/sync/manual', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ integrationType })
+        });
+        
+        const data = await response.json();
+        log(`Manual sync triggered: ${JSON.stringify(data)}`, 'success');
+        
+        showStatus('test-26-2-status',
+          `Manual sync triggered successfully!\n\n` +
+          `Check sync status to verify it's running.`,
+          'success'
+        );
+      } catch (error) {
+        log(`Error triggering manual sync: ${error.message}`, 'error');
+        showStatus('test-26-2-status', `Error: ${error.message}`, 'error');
+      }
+    }
+
+    // Test 26.3: Onboarding Frequency
+    async function checkOnboardingFrequency(integrationType) {
+      log(`Checking onboarding frequency for ${integrationType}...`, 'info');
+      
+      showStatus('test-26-3-status',
+        `To check onboarding frequency:\n\n` +
+        `1. Run SQL query (see below)\n` +
+        `2. Verify current_frequency_ms:\n` +
+        `   - Contacts: 3600000 (1 hour)\n` +
+        `   - Calendar: 7200000 (2 hours)\n` +
+        `3. Verify onboarding_until is ~24h from connection\n` +
+        `4. Verify next_sync_at is 1h/2h from now\n\n` +
+        `Expected frequencies:\n` +
+        `- Contacts: 1 hour (3600000 ms)\n` +
+        `- Calendar: 2 hours (7200000 ms)`,
+        'info'
+      );
+      
+      log('Run SQL query to check frequency values', 'warning');
+    }
+
+    function mockTimeTransition() {
+      log('Mocking time transition...', 'info');
+      
+      showStatus('test-26-3-status',
+        `To mock time transition (skip 24 hours):\n\n` +
+        `Run this SQL:\n\n` +
+        `UPDATE sync_schedule \n` +
+        `SET onboarding_until = NOW() - INTERVAL '1 hour'\n` +
+        `WHERE user_id = 'YOUR_USER_ID';\n\n` +
+        `UPDATE sync_schedule \n` +
+        `SET next_sync_at = NOW()\n` +
+        `WHERE user_id = 'YOUR_USER_ID';\n\n` +
+        `Then trigger a manual sync to see frequency transition.`,
+        'warning'
+      );
+    }
+
+    async function verifyFrequencyTransition() {
+      log('Verifying frequency transition...', 'info');
+      
+      showStatus('test-26-3-status',
+        `To verify frequency transition:\n\n` +
+        `1. Check current_frequency_ms after 24h:\n` +
+        `   - Contacts: 604800000 (7 days)\n` +
+        `   - Calendar: 86400000 (24 hours)\n` +
+        `2. Verify onboarding_until < NOW()\n` +
+        `3. Verify next_sync_at is 7d/24h from now\n` +
+        `4. Check server logs for transition message\n\n` +
+        `Run SQL query to verify values.`,
+        'info'
+      );
+    }
+
+    // Initialize
+    log('Onboarding Sync Testing Interface Ready', 'success');
+    log('Follow the test guide: docs/testing/ONBOARDING_SYNC_TESTING_GUIDE.md', 'info');
+  </script>
+</body>
+</html>

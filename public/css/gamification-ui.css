@@ -437,48 +437,46 @@
 }
 
 /* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .gamification-section {
-    background: #2d2d2d;
-    color: #e0e0e0;
-  }
+[data-theme="dark"] .gamification-section {
+  background: #2d2d2d;
+  color: #e0e0e0;
+}
 
-  .section-title,
-  .milestone-name,
-  .metric-name {
-    color: #e0e0e0;
-  }
+[data-theme="dark"] .section-title,
+[data-theme="dark"] .milestone-name,
+[data-theme="dark"] .metric-name {
+  color: #e0e0e0;
+}
 
-  .stat-label,
-  .milestone-label,
-  .metric-description {
-    color: #b0b0b0;
-  }
+[data-theme="dark"] .stat-label,
+[data-theme="dark"] .milestone-label,
+[data-theme="dark"] .metric-description {
+  color: #b0b0b0;
+}
 
-  .current-milestone,
-  .next-milestone {
-    background: #3d3d3d;
-  }
+[data-theme="dark"] .current-milestone,
+[data-theme="dark"] .next-milestone {
+  background: #3d3d3d;
+}
 
-  .progress-bar,
-  .metric-bar {
-    background: #3d3d3d;
-  }
+[data-theme="dark"] .progress-bar,
+[data-theme="dark"] .metric-bar {
+  background: #3d3d3d;
+}
 
-  .achievement-badge {
-    background: #3d3d3d;
-  }
+[data-theme="dark"] .achievement-badge {
+  background: #3d3d3d;
+}
 
-  .celebration-content {
-    background: #2d2d2d;
-    color: #e0e0e0;
-  }
+[data-theme="dark"] .celebration-content {
+  background: #2d2d2d;
+  color: #e0e0e0;
+}
 
-  .celebration-title {
-    color: #e0e0e0;
-  }
+[data-theme="dark"] .celebration-title {
+  color: #e0e0e0;
+}
 
-  .celebration-message {
-    color: #b0b0b0;
-  }
+[data-theme="dark"] .celebration-message {
+  color: #b0b0b0;
 }

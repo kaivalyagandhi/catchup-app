@@ -7,24 +7,26 @@
 
 /* Undo toast specific styling */
 .toast-undo {
-  background: var(--status-warning-bg, #fff3cd);
-  color: var(--status-warning-text, #856404);
-  border-left: 4px solid var(--status-warning, #ffc107);
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  border-left: 4px solid var(--status-warning);
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 18px;
   min-width: 350px;
   max-width: 500px;
+  font-family: var(--font-readable);
 }
 
 /* Undo button styling */
 .toast-undo-btn {
-  background: var(--accent-primary, #4a90e2);
+  background: var(--accent-primary);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 6px 16px;
+  font-family: var(--font-readable);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -34,9 +36,9 @@
 }
 
 .toast-undo-btn:hover {
-  background: var(--accent-primary-hover, #357abd);
+  background: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .toast-undo-btn:active {
@@ -45,7 +47,7 @@
 }
 
 .toast-undo-btn:focus {
-  outline: 2px solid var(--accent-primary, #4a90e2);
+  outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
 
@@ -62,10 +64,11 @@
 }
 
 .countdown-text {
+  font-family: var(--font-readable);
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--status-warning-text, #856404);
+  color: var(--status-warning-text);
 }
 
 /* Animation for countdown urgency */
@@ -85,19 +88,21 @@
 }
 
 .toast-countdown.urgent .countdown-text {
-  color: var(--status-error, #dc3545);
+  color: var(--status-error);
 }
 
-/* Toast container positioning */
+/* Toast container positioning - bottom-right corner (Req 26.1) */
 #toast-container {
   position: fixed;
-  top: 20px;
+  bottom: 20px;
   right: 20px;
   z-index: 10000;
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   gap: 12px;
   pointer-events: none;
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
 }
 
 #toast-container .toast {
@@ -107,8 +112,8 @@
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .toast-undo {
-    min-width: 300px;
-    max-width: calc(100vw - 40px);
+    min-width: 320px;
+    max-width: 400px;
     padding: 12px 14px;
     gap: 10px;
   }
@@ -128,36 +133,34 @@
   }
 
   #toast-container {
-    top: 10px;
+    bottom: 10px;
     right: 10px;
     left: 10px;
     align-items: stretch;
   }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .toast-undo {
-    background: rgba(255, 193, 7, 0.15);
-    color: #ffc107;
-    border-left-color: #ffc107;
-  }
+/* Dark mode support via data-theme attribute */
+[data-theme="dark"] .toast-undo {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  border-left-color: #ffc107;
+}
 
-  .toast-countdown {
-    background: rgba(255, 255, 255, 0.1);
-  }
+[data-theme="dark"] .toast-countdown {
+  background: rgba(255, 255, 255, 0.1);
+}
 
-  .countdown-text {
-    color: #ffc107;
-  }
+[data-theme="dark"] .countdown-text {
+  color: #ffc107;
+}
 
-  .toast-countdown.urgent {
-    background: rgba(220, 53, 69, 0.3);
-  }
+[data-theme="dark"] .toast-countdown.urgent {
+  background: rgba(220, 53, 69, 0.3);
+}
 
-  .toast-countdown.urgent .countdown-text {
-    color: #ff6b6b;
-  }
+[data-theme="dark"] .toast-countdown.urgent .countdown-text {
+  color: #ff6b6b;
 }
 
 /* Accessibility: Reduced motion */

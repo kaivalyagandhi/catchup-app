@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plan Edit Modal Layout Test</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <link rel="stylesheet" href="/css/scheduling.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body {
+      padding: 20px;
+      font-family: var(--font-readable);
+    }
+    
+    .test-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+    }
+    
+    .test-button {
+      margin: 10px 10px 10px 0;
+    }
+    
+    .test-results {
+      margin-top: 20px;
+      padding: 15px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      font-family: monospace;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+    
+    .pass {
+      color: var(--status-success);
+    }
+    
+    .fail {
+      color: var(--status-error);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Plan Edit Modal Layout Test</h1>
+    <p>This test verifies that the plan-edit-modal.js component follows the standard modal layout patterns.</p>
+    
+    <div class="test-section">
+      <h2>Test: Modal Layout Structure</h2>
+      <p>Click the button below to open the plan edit modal and verify:</p>
+      <ul>
+        <li>Modal uses <code>.modal-lg</code> size class (800px)</li>
+        <li>Header has <code>.modal-title</code> and <code>.modal-close</code> with proper layout</li>
+        <li>Footer has <code>.modal-footer-left</code> and <code>.modal-footer-right</code> button groups</li>
+        <li>Cancel button is on the left, Save button is on the right</li>
+      </ul>
+      
+      <button class="btn-primary test-button" id="test-modal-btn">Open Plan Edit Modal</button>
+      
+      <div class="test-results" id="test-results">
+Waiting for test...
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Manual Verification Checklist</h2>
+      <ul>
+        <li>✓ Modal width is 800px (large size)</li>
+        <li>✓ Header: Title on left, close button (×) on right</li>
+        <li>✓ Header uses flexbox with space-between</li>
+        <li>✓ Header height is 56px minimum</li>
+        <li>✓ Footer: Cancel on left, Save Changes on right</li>
+        <li>✓ Footer uses flexbox with space-between</li>
+        <li>✓ Footer padding is 16px (--space-4)</li>
+        <li>✓ Buttons are properly grouped in left/right containers</li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="/js/plan-edit-modal.js"></script>
+  <script>
+    // Mock data for testing
+    const mockPlan = {
+      id: 'test-plan-123',
+      activityType: 'coffee',
+      duration: 60,
+      dateRangeStart: new Date().toISOString(),
+      dateRangeEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      location: 'Test Location',
+      invitees: [
+        {
+          contactId: 'contact-1',
+          contactName: 'John Doe',
+          attendanceType: 'must_attend',
+          hasResponded: false
+        }
+      ]
+    };
+    
+    // Mock user ID
+    window.userId = 'test-user-123';
+    localStorage.setItem('userId', 'test-user-123');
+    localStorage.setItem('authToken', 'test-token');
+    
+    // Mock toast function
+    window.showToast = function(message, type) {
+      console.log(`[${type}] ${message}`);
+    };
+    
+    // Test button
+    document.getElementById('test-modal-btn').addEventListener('click', async () => {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.textContent = 'Opening modal...\n';
+      
+      // Create and open modal
+      const modal = new PlanEditModal({
+        plan: mockPlan,
+        userId: 'test-user-123',
+        onPlanUpdated: () => {
+          console.log('Plan updated callback');
+        },
+        onClose: () => {
+          console.log('Modal closed callback');
+          verifyModalLayout();
+        }
+      });
+      
+      // Mock API responses
+      window.fetch = async (url, options) => {
+        console.log('Mock fetch:', url);
+        
+        if (url.includes('/preferences')) {
+          return {
+            ok: true,
+            json: async () => ({
+              favoriteLocations: ['Coffee Shop', 'Park', 'Library']
+            })
+          };
+        }
+        
+        if (url.includes('/groups')) {
+          return {
+            ok: true,
+            json: async () => []
+          };
+        }
+        
+        if (url.includes('/contacts')) {
+          return {
+            ok: true,
+            json: async () => [
+              { id: 'contact-2', name: 'Jane Smith', circle: 'close' },
+              { id: 'contact-3', name: 'Bob Johnson', circle: 'active' }
+            ]
+          };
+        }
+        
+        return { ok: false };
+      };
+      
+      await modal.open();
+      
+      // Wait a bit for modal to render
+      setTimeout(() => {
+        verifyModalLayout();
+      }, 500);
+    });
+    
+    function verifyModalLayout() {
+      const resultsDiv = document.getElementById('test-results');
+      let results = 'Modal Layout Verification:\n\n';
+      let allPassed = true;
+      
+      const modal = document.querySelector('.plan-edit-modal');
+      if (!modal) {
+        results += '❌ FAIL: Modal not found\n';
+        resultsDiv.textContent = results;
+        return;
+      }
+      
+      const modalContent = modal.querySelector('.modal-content');
+      const header = modal.querySelector('.modal-header');
+      const footer = modal.querySelector('.modal-footer');
+      
+      // Test 1: Modal size class
+      if (modalContent && modalContent.classList.contains('modal-lg')) {
+        results += '✓ PASS: Modal has .modal-lg size class\n';
+      } else {
+        results += '✗ FAIL: Modal missing .modal-lg size class\n';
+        allPassed = false;
+      }
+      
+      // Test 2: Header structure
+      const modalTitle = header?.querySelector('.modal-title');
+      const modalClose = header?.querySelector('.modal-close');
+      
+      if (modalTitle) {
+        results += '✓ PASS: Header has .modal-title element\n';
+      } else {
+        results += '✗ FAIL: Header missing .modal-title element\n';
+        allPassed = false;
+      }
+      
+      if (modalClose) {
+        results += '✓ PASS: Header has .modal-close button\n';
+      } else {
+        results += '✗ FAIL: Header missing .modal-close button\n';
+        allPassed = false;
+      }
+      
+      // Test 3: Header layout
+      if (header) {
+        const headerStyles = window.getComputedStyle(header);
+        if (headerStyles.display === 'flex') {
+          results += '✓ PASS: Header uses flexbox layout\n';
+        } else {
+          results += '✗ FAIL: Header not using flexbox\n';
+          allPassed = false;
+        }
+        
+        if (headerStyles.justifyContent === 'space-between') {
+          results += '✓ PASS: Header uses space-between\n';
+        } else {
+          results += '✗ FAIL: Header not using space-between\n';
+          allPassed = false;
+        }
+      }
+      
+      // Test 4: Footer structure
+      const footerLeft = footer?.querySelector('.modal-footer-left');
+      const footerRight = footer?.querySelector('.modal-footer-right');
+      
+      if (footerLeft) {
+        results += '✓ PASS: Footer has .modal-footer-left group\n';
+      } else {
+        results += '✗ FAIL: Footer missing .modal-footer-left group\n';
+        allPassed = false;
+      }
+      
+      if (footerRight) {
+        results += '✓ PASS: Footer has .modal-footer-right group\n';
+      } else {
+        results += '✗ FAIL: Footer missing .modal-footer-right group\n';
+        allPassed = false;
+      }
+      
+      // Test 5: Footer layout
+      if (footer) {
+        const footerStyles = window.getComputedStyle(footer);
+        if (footerStyles.display === 'flex') {
+          results += '✓ PASS: Footer uses flexbox layout\n';
+        } else {
+          results += '✗ FAIL: Footer not using flexbox\n';
+          allPassed = false;
+        }
+        
+        if (footerStyles.justifyContent === 'space-between') {
+          results += '✓ PASS: Footer uses space-between\n';
+        } else {
+          results += '✗ FAIL: Footer not using space-between\n';
+          allPassed = false;
+        }
+      }
+      
+      // Test 6: Button placement
+      const cancelBtn = footerLeft?.querySelector('.btn-secondary');
+      const saveBtn = footerRight?.querySelector('.btn-primary');
+      
+      if (cancelBtn) {
+        results += '✓ PASS: Cancel button in left group\n';
+      } else {
+        results += '✗ FAIL: Cancel button not in left group\n';
+        allPassed = false;
+      }
+      
+      if (saveBtn) {
+        results += '✓ PASS: Save button in right group\n';
+      } else {
+        results += '✗ FAIL: Save button not in right group\n';
+        allPassed = false;
+      }
+      
+      // Summary
+      results += '\n' + (allPassed ? '✓ ALL TESTS PASSED' : '✗ SOME TESTS FAILED');
+      
+      resultsDiv.textContent = results;
+      resultsDiv.className = 'test-results ' + (allPassed ? 'pass' : 'fail');
+      
+      console.log(results);
+    }
+  </script>
+</body>
+</html>

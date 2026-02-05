@@ -215,92 +215,97 @@ class InitiatorAvailabilityModal {
    * Render the modal
    */
   render() {
-    // Remove existing modal if any
-    const existingModal = document.querySelector('.initiator-availability-modal');
-    if (existingModal) {
-      existingModal.remove();
+    // Remove existing overlay if any
+    const existingOverlay = document.querySelector('.modal-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
     }
     
+    // Create overlay wrapper
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay show';
+    
     const modal = document.createElement('div');
-    modal.className = 'modal initiator-availability-modal';
+    modal.className = 'modal modal-lg initiator-availability-modal';
     modal.innerHTML = `
-      <div class="modal-content modal-content-large">
-        <div class="modal-header">
-          <h2>Mark Your Availability</h2>
-          <button class="close-btn" id="close-initiator-modal">&times;</button>
+      <div class="modal-header">
+        <h2 class="modal-title">Mark Your Availability</h2>
+        <button class="modal-close" id="close-initiator-modal" aria-label="Close">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="initiator-availability-intro">
+          <p>Select the times when you're available for this ${this.escapeHtml(this.plan.activityType || 'catchup')}.</p>
+          ${this.hasCalendarConnected ? `
+            <div class="calendar-integration-banner">
+              <span class="material-icons">event_available</span>
+              <span>Your Google Calendar is connected. Free times are pre-selected.</span>
+              <button class="btn-secondary btn-sm" id="refresh-calendar">
+                <span class="material-icons">refresh</span> Refresh
+              </button>
+            </div>
+          ` : `
+            <div class="calendar-integration-banner calendar-not-connected">
+              <span class="material-icons">event_busy</span>
+              <span>Connect Google Calendar to auto-populate your free times.</span>
+              <button class="btn-secondary btn-sm" id="connect-calendar">
+                <span class="material-icons">link</span> Connect
+              </button>
+            </div>
+          `}
         </div>
         
-        <div class="modal-body">
-          <div class="initiator-availability-intro">
-            <p>Select the times when you're available for this ${this.escapeHtml(this.plan.activityType || 'catchup')}.</p>
-            ${this.hasCalendarConnected ? `
-              <div class="calendar-integration-banner">
-                <span class="material-icons">event_available</span>
-                <span>Your Google Calendar is connected. Free times are pre-selected.</span>
-                <button class="btn-secondary btn-sm" id="refresh-calendar">
-                  <span class="material-icons">refresh</span> Refresh
-                </button>
-              </div>
-            ` : `
-              <div class="calendar-integration-banner calendar-not-connected">
-                <span class="material-icons">event_busy</span>
-                <span>Connect Google Calendar to auto-populate your free times.</span>
-                <button class="btn-secondary btn-sm" id="connect-calendar">
-                  <span class="material-icons">link</span> Connect
-                </button>
-              </div>
-            `}
+        <div class="availability-legend">
+          <div class="legend-item">
+            <span class="legend-color calendar-slot"></span>
+            <span>From Calendar (free)</span>
           </div>
-          
-          <div class="availability-legend">
-            <div class="legend-item">
-              <span class="legend-color calendar-slot"></span>
-              <span>From Calendar (free)</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color manual-slot"></span>
-              <span>Manually Selected</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color both-slot"></span>
-              <span>Calendar + Manual</span>
-            </div>
+          <div class="legend-item">
+            <span class="legend-color manual-slot"></span>
+            <span>Manually Selected</span>
           </div>
-          
-          <div class="calendar-navigation">
-            <button class="nav-btn" id="prev-week-initiator">
-              <span class="material-icons">chevron_left</span>
-            </button>
-            <span id="date-range-label-initiator">Loading...</span>
-            <button class="nav-btn" id="next-week-initiator">
-              <span class="material-icons">chevron_right</span>
-            </button>
-          </div>
-          
-          <div class="initiator-calendar-grid-container">
-            <div id="initiator-calendar-grid" class="initiator-calendar-grid">
-              <!-- Grid will be rendered here -->
-            </div>
-          </div>
-          
-          <div class="selection-summary">
-            <span id="initiator-slots-selected">0 time slots selected</span>
+          <div class="legend-item">
+            <span class="legend-color both-slot"></span>
+            <span>Calendar + Manual</span>
           </div>
         </div>
         
-        <div class="modal-footer">
-          <button class="btn-text" id="skip-availability">
-            Skip for now
+        <div class="calendar-navigation">
+          <button class="nav-btn" id="prev-week-initiator">
+            <span class="material-icons">chevron_left</span>
           </button>
-          <button class="btn-primary" id="save-initiator-availability">
-            <span class="material-icons">check</span>
-            Save Availability
+          <span id="date-range-label-initiator">Loading...</span>
+          <button class="nav-btn" id="next-week-initiator">
+            <span class="material-icons">chevron_right</span>
           </button>
         </div>
+        
+        <div class="initiator-calendar-grid-container">
+          <div id="initiator-calendar-grid" class="initiator-calendar-grid">
+            <!-- Grid will be rendered here -->
+          </div>
+        </div>
+        
+        <div class="selection-summary">
+          <span id="initiator-slots-selected">0 time slots selected</span>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn-secondary" id="skip-availability">
+          Skip for now
+        </button>
+        <button class="btn-primary" id="save-initiator-availability">
+          <span class="material-icons">check</span>
+          Save Availability
+        </button>
       </div>
     `;
     
-    document.body.appendChild(modal);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
     document.body.style.overflow = 'hidden';
     
     // Render the calendar grid
@@ -519,10 +524,13 @@ class InitiatorAvailabilityModal {
     // Close button
     modal.querySelector('#close-initiator-modal').addEventListener('click', this.handleClose);
     
-    // Click outside to close
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) this.handleClose();
-    });
+    // Click outside to close (listen on overlay)
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) this.handleClose();
+      });
+    }
     
     // Escape key to close
     document.addEventListener('keydown', (e) => {
@@ -742,9 +750,9 @@ class InitiatorAvailabilityModal {
    * Close the modal
    */
   close() {
-    const modal = document.querySelector('.initiator-availability-modal');
-    if (modal) {
-      modal.remove();
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) {
+      overlay.remove();
     }
     document.body.style.overflow = '';
   }

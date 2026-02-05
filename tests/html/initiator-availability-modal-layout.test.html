@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Initiator Availability Modal Layout Test</title>
+  
+  <!-- Design System -->
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <link rel="stylesheet" href="/css/scheduling.css">
+  
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <style>
+    body {
+      padding: 40px;
+      background: var(--bg-app);
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      background: var(--bg-surface);
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-6);
+      border: 1px solid var(--border-subtle);
+    }
+    
+    .test-header h1 {
+      margin: 0 0 var(--space-2) 0;
+      font-family: var(--font-heading);
+      color: var(--text-primary);
+    }
+    
+    .test-header p {
+      margin: 0;
+      font-family: var(--font-readable);
+      color: var(--text-secondary);
+    }
+    
+    .test-section {
+      background: var(--bg-surface);
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-4);
+      border: 1px solid var(--border-subtle);
+    }
+    
+    .test-section h2 {
+      margin: 0 0 var(--space-3) 0;
+      font-family: var(--font-accent);
+      color: var(--text-primary);
+      font-size: 1.125rem;
+    }
+    
+    .checklist {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .checklist li {
+      padding: var(--space-2) 0;
+      font-family: var(--font-readable);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+    }
+    
+    .checklist li::before {
+      content: '☐';
+      font-size: 1.25rem;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+    
+    .test-actions {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-family: var(--font-readable);
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    
+    .status-badge.pass {
+      background: var(--status-success-bg);
+      color: var(--status-success);
+    }
+    
+    .status-badge.fail {
+      background: var(--status-error-bg);
+      color: var(--status-error);
+    }
+    
+    .code-block {
+      background: var(--bg-secondary);
+      padding: var(--space-3);
+      border-radius: var(--radius-md);
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      overflow-x: auto;
+      margin-top: var(--space-2);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>Initiator Availability Modal Layout Test</h1>
+      <p>Task 16.4: Verify modal follows standard layout patterns with consistent header/footer and size class</p>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test Instructions</h2>
+      <ol style="font-family: var(--font-readable); color: var(--text-secondary); line-height: 1.6;">
+        <li>Click "Open Modal" button below to launch the initiator availability modal</li>
+        <li>Verify the modal layout against the checklist below</li>
+        <li>Test on different screen sizes (desktop, tablet, mobile)</li>
+        <li>Check both light and dark themes</li>
+      </ol>
+    </div>
+    
+    <div class="test-section">
+      <h2>Layout Verification Checklist</h2>
+      <ul class="checklist">
+        <li><strong>Modal Size:</strong> Uses .modal-lg class (800px width)</li>
+        <li><strong>Header Layout:</strong> [Title] [spacer] [Close X] with flexbox space-between</li>
+        <li><strong>Header Height:</strong> 56px with proper padding</li>
+        <li><strong>Title Font:</strong> Uses --font-heading (Cabin Sketch)</li>
+        <li><strong>Close Button:</strong> Material icon "close" in top-right corner</li>
+        <li><strong>Footer Layout:</strong> [Skip/Secondary] [spacer] [Save/Primary] with flexbox space-between</li>
+        <li><strong>Footer Padding:</strong> Uses --space-4 (16px)</li>
+        <li><strong>Secondary Button:</strong> "Skip for now" uses .btn-secondary class</li>
+        <li><strong>Primary Button:</strong> "Save Availability" uses .btn-primary class</li>
+        <li><strong>Button Fonts:</strong> Secondary uses --font-readable, Primary uses --font-accent</li>
+        <li><strong>Max Height:</strong> Modal has max-height: 90vh with scrolling</li>
+        <li><strong>Responsive:</strong> Modal adapts properly on mobile devices</li>
+      </ul>
+    </div>
+    
+    <div class="test-section">
+      <h2>Expected Layout Pattern</h2>
+      <div class="code-block">
+┌─────────────────────────────────────────────────────────────┐
+│ [Mark Your Availability]              [X]                   │  ← Header (56px, flexbox space-between)
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Modal body content with calendar grid                      │
+│  (scrollable if content exceeds max-height)                 │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│ [Skip for now]                    [Save Availability]       │  ← Footer (flexbox space-between)
+└─────────────────────────────────────────────────────────────┘
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test Actions</h2>
+      <div class="test-actions">
+        <button class="btn-primary" id="open-modal-btn">
+          <span class="material-icons">event_available</span>
+          Open Modal
+        </button>
+        <button class="btn-secondary" id="toggle-theme-btn">
+          <span class="material-icons">dark_mode</span>
+          Toggle Theme
+        </button>
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Requirements Validated</h2>
+      <ul style="font-family: var(--font-readable); color: var(--text-secondary); line-height: 1.6;">
+        <li><strong>Requirement 21:</strong> Modal Size - Uses standard .modal-lg class (800px)</li>
+        <li><strong>Requirement 22:</strong> Header Layout - [Title] [spacer] [Close X] pattern</li>
+        <li><strong>Requirement 23:</strong> Footer Layout - [Secondary] [spacer] [Primary] pattern</li>
+      </ul>
+    </div>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="/js/initiator-availability-modal.js"></script>
+  
+  <script>
+    // Mock data for testing
+    const mockPlan = {
+      id: 'test-plan-1',
+      title: 'Team Coffee Chat',
+      activityType: 'coffee',
+      dateRangeStart: new Date().toISOString().split('T')[0],
+      dateRangeEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: 'collecting_availability'
+    };
+    
+    // Mock user ID
+    window.userId = 'test-user-1';
+    localStorage.setItem('userId', 'test-user-1');
+    localStorage.setItem('authToken', 'mock-token');
+    
+    // Mock API responses
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+      console.log('Mock fetch:', url);
+      
+      // Mock plan data
+      if (url.includes('/api/scheduling/plans/') && !url.includes('availability')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockPlan)
+        });
+      }
+      
+      // Mock existing availability
+      if (url.includes('/availability?userId=')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            initiatorAvailability: []
+          })
+        });
+      }
+      
+      // Mock calendar status
+      if (url.includes('/api/calendar/google/status')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            connected: true
+          })
+        });
+      }
+      
+      // Mock free slots
+      if (url.includes('/api/calendar/free-slots')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            slots: [
+              {
+                start: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                end: new Date(Date.now() + 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString()
+              }
+            ]
+          })
+        });
+      }
+      
+      // Mock save availability
+      if (url.includes('/initiator-availability') && options?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true })
+        });
+      }
+      
+      // Fallback to original fetch
+      return originalFetch(url, options);
+    };
+    
+    // Open modal button
+    document.getElementById('open-modal-btn').addEventListener('click', () => {
+      const modal = new InitiatorAvailabilityModal({
+        planId: 'test-plan-1',
+        plan: mockPlan,
+        userId: 'test-user-1',
+        onSave: (slots) => {
+          console.log('Availability saved:', slots);
+          alert(`Availability saved! ${slots.length} slots selected.`);
+        },
+        onSkip: () => {
+          console.log('Availability skipped');
+          alert('Availability skipped');
+        }
+      });
+      
+      modal.open();
+    });
+    
+    // Theme toggle
+    document.getElementById('toggle-theme-btn').addEventListener('click', () => {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      
+      const btn = document.getElementById('toggle-theme-btn');
+      const icon = btn.querySelector('.material-icons');
+      icon.textContent = newTheme === 'dark' ? 'light_mode' : 'dark_mode';
+    });
+    
+    // Mock toast function
+    window.showToast = function(message, type) {
+      console.log(`[${type}] ${message}`);
+      alert(`${type.toUpperCase()}: ${message}`);
+    };
+    
+    console.log('Test page loaded. Click "Open Modal" to test the layout.');
+  </script>
+</body>
+</html>

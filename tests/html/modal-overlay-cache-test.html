@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modal Overlay Cache Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 40px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      margin: 30px 0;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    
+    .test-section h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    
+    .status.pass {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .status.fail {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .status.pending {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+    
+    .instructions {
+      background: #e7f3ff;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    
+    .instructions h3 {
+      margin-top: 0;
+      color: #004085;
+    }
+    
+    .instructions ol {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    
+    .instructions li {
+      margin: 8px 0;
+    }
+    
+    .code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Modal Overlay Cache Test</h1>
+  
+  <div class="instructions">
+    <h3>Before Testing:</h3>
+    <ol>
+      <li><strong>Perform a Hard Refresh</strong> to clear cached JavaScript files:
+        <ul>
+          <li><strong>Windows/Linux:</strong> Press <span class="code">Ctrl + Shift + R</span> or <span class="code">Ctrl + F5</span></li>
+          <li><strong>Mac:</strong> Press <span class="code">Cmd + Shift + R</span></li>
+          <li><strong>Alternative:</strong> Open DevTools (F12) → Network tab → Check "Disable cache" → Refresh</li>
+        </ul>
+      </li>
+      <li>Open the browser console (F12) to see test results</li>
+      <li>Click the "Run Tests" button below</li>
+    </ol>
+  </div>
+  
+  <div class="test-section">
+    <h2>File Cache Status</h2>
+    <div id="cache-status" class="status pending">
+      Click "Check Cache Status" to verify files are loaded fresh
+    </div>
+    <button class="btn btn-primary" onclick="checkCacheStatus()">Check Cache Status</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>Modal Overlay Implementation Test</h2>
+    <div id="test-results" class="status pending">
+      Click "Run Tests" to check if modal overlay fixes are loaded
+    </div>
+    <button class="btn btn-primary" onclick="runTests()">Run Tests</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>Visual Test</h2>
+    <p>After running the automated tests, test the actual modals:</p>
+    <ul>
+      <li><a href="/index.html#scheduling" target="_blank">Test Scheduling Modals</a></li>
+      <li><a href="/index.html#directory" target="_blank">Test Directory Modals (Groups/Tags)</a></li>
+    </ul>
+  </div>
+
+  <script>
+    function checkCacheStatus() {
+      const statusEl = document.getElementById('cache-status');
+      
+      // Check if files are loaded from cache
+      if (performance && performance.getEntriesByType) {
+        const resources = performance.getEntriesByType('resource');
+        const jsFiles = resources.filter(r => r.name.includes('.js'));
+        
+        const cachedFiles = jsFiles.filter(r => 
+          r.transferSize === 0 || 
+          r.name.includes('plan-creation-modal.js') ||
+          r.name.includes('plan-edit-modal.js') ||
+          r.name.includes('initiator-availability-modal.js')
+        );
+        
+        console.log('JavaScript files loaded:', jsFiles.length);
+        console.log('Potentially cached files:', cachedFiles.length);
+        
+        if (cachedFiles.length > 0) {
+          statusEl.className = 'status fail';
+          statusEl.innerHTML = `
+            <strong>⚠️ WARNING: Files may be cached</strong><br>
+            Found ${cachedFiles.length} potentially cached JavaScript files.<br>
+            <strong>Action Required:</strong> Perform a hard refresh (Ctrl+Shift+R or Cmd+Shift+R)
+          `;
+        } else {
+          statusEl.className = 'status pass';
+          statusEl.innerHTML = `
+            <strong>✅ Files appear to be loaded fresh</strong><br>
+            No cached files detected. Proceed with testing.
+          `;
+        }
+      } else {
+        statusEl.className = 'status pending';
+        statusEl.innerHTML = 'Performance API not available. Cannot check cache status.';
+      }
+    }
+    
+    function runTests() {
+      const resultsEl = document.getElementById('test-results');
+      const results = [];
+      
+      console.log('=== Running Modal Overlay Tests ===');
+      
+      // Test 1: Check if PlanCreationModal exists
+      if (typeof PlanCreationModal !== 'undefined') {
+        results.push('✅ PlanCreationModal class is loaded');
+        console.log('✅ PlanCreationModal class is loaded');
+        
+        // Test 2: Check if render method creates overlay
+        const testModal = new PlanCreationModal({ userId: 'test' });
+        const originalRender = testModal.render.toString();
+        
+        if (originalRender.includes("overlay.className = 'modal-overlay show'")) {
+          results.push('✅ PlanCreationModal creates overlay wrapper');
+          console.log('✅ PlanCreationModal creates overlay wrapper');
+        } else {
+          results.push('❌ PlanCreationModal does NOT create overlay wrapper (OLD CODE)');
+          console.error('❌ PlanCreationModal does NOT create overlay wrapper');
+        }
+        
+        if (originalRender.includes('overlay.appendChild(modal)')) {
+          results.push('✅ PlanCreationModal appends modal to overlay');
+          console.log('✅ PlanCreationModal appends modal to overlay');
+        } else {
+          results.push('❌ PlanCreationModal does NOT append modal to overlay (OLD CODE)');
+          console.error('❌ PlanCreationModal does NOT append modal to overlay');
+        }
+      } else {
+        results.push('❌ PlanCreationModal class not found');
+        console.error('❌ PlanCreationModal class not found');
+      }
+      
+      // Test 3: Check if PlanEditModal exists
+      if (typeof PlanEditModal !== 'undefined') {
+        results.push('✅ PlanEditModal class is loaded');
+        console.log('✅ PlanEditModal class is loaded');
+        
+        const testModal = new PlanEditModal({ plan: { id: 'test', invitees: [] } });
+        const originalRender = testModal.render.toString();
+        
+        if (originalRender.includes("overlay.className = 'modal-overlay show'")) {
+          results.push('✅ PlanEditModal creates overlay wrapper');
+          console.log('✅ PlanEditModal creates overlay wrapper');
+        } else {
+          results.push('❌ PlanEditModal does NOT create overlay wrapper (OLD CODE)');
+          console.error('❌ PlanEditModal does NOT create overlay wrapper');
+        }
+      } else {
+        results.push('❌ PlanEditModal class not found');
+        console.error('❌ PlanEditModal class not found');
+      }
+      
+      // Test 4: Check if InitiatorAvailabilityModal exists
+      if (typeof InitiatorAvailabilityModal !== 'undefined') {
+        results.push('✅ InitiatorAvailabilityModal class is loaded');
+        console.log('✅ InitiatorAvailabilityModal class is loaded');
+        
+        const testModal = new InitiatorAvailabilityModal({ 
+          planId: 'test',
+          plan: { dateRangeStart: new Date(), dateRangeEnd: new Date() }
+        });
+        const originalRender = testModal.render.toString();
+        
+        if (originalRender.includes("overlay.className = 'modal-overlay show'")) {
+          results.push('✅ InitiatorAvailabilityModal creates overlay wrapper');
+          console.log('✅ InitiatorAvailabilityModal creates overlay wrapper');
+        } else {
+          results.push('❌ InitiatorAvailabilityModal does NOT create overlay wrapper (OLD CODE)');
+          console.error('❌ InitiatorAvailabilityModal does NOT create overlay wrapper');
+        }
+      } else {
+        results.push('❌ InitiatorAvailabilityModal class not found');
+        console.error('❌ InitiatorAvailabilityModal class not found');
+      }
+      
+      // Display results
+      const failCount = results.filter(r => r.startsWith('❌')).length;
+      const passCount = results.filter(r => r.startsWith('✅')).length;
+      
+      if (failCount === 0) {
+        resultsEl.className = 'status pass';
+        resultsEl.innerHTML = `
+          <strong>✅ All Tests Passed (${passCount}/${results.length})</strong><br>
+          Modal overlay fixes are correctly loaded!<br>
+          <small>Check console for details</small>
+        `;
+      } else {
+        resultsEl.className = 'status fail';
+        resultsEl.innerHTML = `
+          <strong>❌ Some Tests Failed (${failCount} failures, ${passCount} passed)</strong><br>
+          <strong>Action Required:</strong> Perform a hard refresh and run tests again<br>
+          <small>Check console for details</small>
+        `;
+      }
+      
+      console.log('=== Test Results ===');
+      results.forEach(r => console.log(r));
+      console.log(`Total: ${passCount} passed, ${failCount} failed`);
+    }
+    
+    // Auto-check cache status on load
+    window.addEventListener('load', () => {
+      setTimeout(checkCacheStatus, 500);
+    });
+  </script>
+</body>
+</html>

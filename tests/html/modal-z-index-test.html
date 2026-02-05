@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modal Z-Index Test</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css?v=20260205c">
+  <link rel="stylesheet" href="/css/edits.css">
+  <style>
+    body {
+      padding: 40px;
+      font-family: var(--font-readable);
+    }
+    
+    .test-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      margin-bottom: 40px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+    }
+    
+    .test-result {
+      padding: 12px;
+      margin-top: 12px;
+      border-radius: var(--radius-md);
+      font-family: var(--font-mono);
+      font-size: 14px;
+    }
+    
+    .test-result.pass {
+      background: var(--status-success-bg);
+      color: var(--status-success);
+      border: 1px solid var(--status-success);
+    }
+    
+    .test-result.fail {
+      background: var(--status-error-bg);
+      color: var(--status-error);
+      border: 1px solid var(--status-error);
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 16px;
+      margin-right: 12px;
+    }
+    
+    .btn:hover {
+      background: var(--accent-hover);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Modal Z-Index Test</h1>
+    <p>This page tests that modal overlays appear above the floating chat icon.</p>
+    
+    <div class="test-section">
+      <h2>Test 1: Check CSS z-index Values</h2>
+      <p>Verifies that the modal overlay has a higher z-index than the chat icon.</p>
+      <button class="btn" onclick="runTest1()">Run Test 1</button>
+      <div id="test1-result"></div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test 2: Visual Modal Test</h2>
+      <p>Opens a test modal to verify it covers the chat icon.</p>
+      <button class="btn" onclick="openTestModal()">Open Test Modal</button>
+      <p style="margin-top: 12px; font-size: 14px; color: var(--text-secondary);">
+        <strong>Expected:</strong> Modal overlay should cover the entire page, including the floating chat icon in the bottom-right corner.
+      </p>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test 3: Check CSS File Loading</h2>
+      <p>Verifies that stone-clay-theme.css is loaded with the correct version.</p>
+      <button class="btn" onclick="runTest3()">Run Test 3</button>
+      <div id="test3-result"></div>
+    </div>
+  </div>
+  
+  <!-- Floating Chat Icon (simulated) -->
+  <button class="floating-chat-icon" onclick="alert('Chat icon clicked')">
+    <span class="material-icons">chat</span>
+  </button>
+  
+  <script>
+    // Test 1: Check z-index values
+    function runTest1() {
+      const resultDiv = document.getElementById('test1-result');
+      
+      // Create a temporary modal overlay to check its z-index
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.style.display = 'none';
+      document.body.appendChild(overlay);
+      
+      // Get computed z-index
+      const overlayZIndex = parseInt(window.getComputedStyle(overlay).zIndex);
+      
+      // Get chat icon z-index
+      const chatIcon = document.querySelector('.floating-chat-icon');
+      const chatZIndex = parseInt(window.getComputedStyle(chatIcon).zIndex);
+      
+      // Clean up
+      overlay.remove();
+      
+      // Check results
+      const pass = overlayZIndex > chatZIndex;
+      
+      resultDiv.className = `test-result ${pass ? 'pass' : 'fail'}`;
+      resultDiv.innerHTML = `
+        <strong>${pass ? '✓ PASS' : '✗ FAIL'}</strong><br>
+        Modal overlay z-index: ${overlayZIndex}<br>
+        Chat icon z-index: ${chatZIndex}<br>
+        ${pass ? 'Modal will appear above chat icon.' : 'Modal will NOT appear above chat icon!'}
+      `;
+    }
+    
+    // Test 2: Open test modal
+    function openTestModal() {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay show';
+      
+      const modal = document.createElement('div');
+      modal.className = 'modal modal-md';
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title">Test Modal</h2>
+            <button class="modal-close" onclick="closeTestModal()">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p>This is a test modal.</p>
+            <p><strong>Check:</strong> Can you see the floating chat icon in the bottom-right corner?</p>
+            <ul>
+              <li>✓ If you CANNOT see it, the fix is working!</li>
+              <li>✗ If you CAN see it, the fix is NOT working.</li>
+            </ul>
+            <p style="margin-top: 20px; padding: 12px; background: var(--accent-subtle); border-radius: var(--radius-md);">
+              <strong>Expected:</strong> The modal overlay should completely cover the chat icon. The background should be dimmed and blurred.
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn" onclick="closeTestModal()">Close</button>
+          </div>
+        </div>
+      `;
+      
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      
+      // Click outside to close
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          closeTestModal();
+        }
+      });
+      
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+    }
+    
+    function closeTestModal() {
+      const overlay = document.querySelector('.modal-overlay');
+      if (overlay) {
+        overlay.remove();
+      }
+      document.body.style.overflow = '';
+    }
+    
+    // Test 3: Check CSS file loading
+    function runTest3() {
+      const resultDiv = document.getElementById('test3-result');
+      
+      // Get all link tags
+      const links = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+      const themeLink = links.find(link => link.href.includes('stone-clay-theme.css'));
+      
+      if (!themeLink) {
+        resultDiv.className = 'test-result fail';
+        resultDiv.innerHTML = '<strong>✗ FAIL</strong><br>stone-clay-theme.css not found!';
+        return;
+      }
+      
+      const hasVersion = themeLink.href.includes('?v=');
+      const version = hasVersion ? themeLink.href.split('?v=')[1] : 'none';
+      const isCorrectVersion = version === '20260205c';
+      
+      resultDiv.className = `test-result ${isCorrectVersion ? 'pass' : 'fail'}`;
+      resultDiv.innerHTML = `
+        <strong>${isCorrectVersion ? '✓ PASS' : '✗ FAIL'}</strong><br>
+        CSS file: ${themeLink.href}<br>
+        Version parameter: ${version}<br>
+        ${isCorrectVersion ? 'Correct version loaded.' : 'Wrong version! Expected: 20260205c'}
+      `;
+    }
+    
+    // Auto-run Test 1 on page load
+    window.addEventListener('load', () => {
+      setTimeout(runTest1, 500);
+    });
+  </script>
+  
+  <!-- Material Icons for chat icon -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</body>
+</html>

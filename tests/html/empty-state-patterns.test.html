@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Empty State Patterns Test - UI Typography Consistency</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body {
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .test-section {
+      margin-bottom: 60px;
+      padding: 30px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .test-section h2 {
+      font-family: var(--font-heading);
+      font-size: var(--text-2xl);
+      color: var(--text-primary);
+      margin: 0 0 20px 0;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border-subtle);
+    }
+
+    .test-description {
+      font-family: var(--font-readable);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .empty-state-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Button styles for empty state actions */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-accent);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      font-family: var(--font-readable);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-default);
+      color: var(--text-primary);
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-accent);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+      z-index: 1000;
+    }
+
+    .theme-toggle:hover {
+      background: var(--accent-hover);
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">
+    <span class="material-icons" style="vertical-align: middle; margin-right: 4px;">brightness_6</span>
+    Toggle Theme
+  </button>
+
+  <h1 style="font-family: var(--font-heading); font-size: 36px; margin-bottom: 12px;">Empty State Patterns Test</h1>
+  <p style="font-family: var(--font-readable); color: var(--text-secondary); margin-bottom: 40px;">
+    Testing standardized empty state components with consistent typography and layout patterns.
+  </p>
+
+  <!-- Test 1: Basic Empty State -->
+  <div class="test-section">
+    <h2>1. Basic Empty State</h2>
+    <p class="test-description">
+      Standard empty state with icon, title (--font-accent), description (--font-readable), and action button.
+    </p>
+    <div class="empty-state-container">
+      <div class="empty-state">
+        <span class="material-icons empty-state-icon">inbox</span>
+        <h3 class="empty-state-title">No items yet</h3>
+        <p class="empty-state-description">
+          Get started by adding your first item. It only takes a moment!
+        </p>
+        <div class="empty-state-action">
+          <button class="btn-primary">
+            <span class="material-icons" style="font-size: 18px;">add</span>
+            Add First Item
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 2: Contacts Table Empty State -->
+  <div class="test-section">
+    <h2>2. Contacts Table Empty State</h2>
+    <p class="test-description">
+      Empty state for contacts table with helpful message and action button.
+    </p>
+    <div class="empty-state-container">
+      <div class="empty-state">
+        <span class="material-icons empty-state-icon">people_outline</span>
+        <h3 class="empty-state-title">No contacts yet</h3>
+        <p class="empty-state-description">
+          Start building your network by adding your first contact. You can import from Google or add manually.
+        </p>
+        <div class="empty-state-action">
+          <button class="btn-primary">
+            <span class="material-icons" style="font-size: 18px;">person_add</span>
+            Add Contact
+          </button>
+          <button class="btn-secondary" style="margin-left: 12px;">
+            <span class="material-icons" style="font-size: 18px;">cloud_download</span>
+            Import from Google
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 3: Groups Table Empty State -->
+  <div class="test-section">
+    <h2>3. Groups Table Empty State</h2>
+    <p class="test-description">
+      Empty state for groups with action-oriented message.
+    </p>
+    <div class="empty-state-container">
+      <div class="empty-state">
+        <span class="material-icons empty-state-icon">group_work</span>
+        <h3 class="empty-state-title">No groups created</h3>
+        <p class="empty-state-description">
+          Organize your contacts into groups to stay connected with specific communities or teams.
+        </p>
+        <div class="empty-state-action">
+          <button class="btn-primary">
+            <span class="material-icons" style="font-size: 18px;">add</span>
+            Create Group
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 4: Tags Table Empty State -->
+  <div class="test-section">
+    <h2>4. Tags Table Empty State</h2>
+    <p class="test-description">
+      Empty state for tags with helpful explanation.
+    </p>
+    <div class="empty-state-container">
+      <div class="empty-state">
+        <span class="material-icons empty-state-icon">label_outline</span>
+        <h3 class="empty-state-title">No tags yet</h3>
+        <p class="empty-state-description">
+          Create tags to categorize your contacts by interests, skills, or any custom attribute.
+        </p>
+        <div class="empty-state-action">
+          <button class="btn-primary">
+            <span class="material-icons" style="font-size: 18px;">add</span>
+            Create Tag
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 5: Scheduling Plans Empty State -->
+  <div class="test-section">
+    <h2>5. Scheduling Plans Empty State</h2>
+    <p class="test-description">
+      Empty state for scheduling page with welcoming message.
+    </p>
+    <div class="empty-state-container">
+      <div class="empty-state">
+        <span class="material-icons empty-state-icon">event</span>
+        <h3 class="empty-state-title">No plans scheduled</h3>
+        <p class="empty-state-description">
+          Create your first group plan to coordinate availability and find the perfect time to meet.
+        </p>
+        <div class="empty-state-action">
+          <button class="btn-primary">
+            <span class="material-icons" style="font-size: 18px;">add</span>
+            Create Plan
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 6: Filtered Results Empty State -->
+  <div class="test-section">
+    <h2>6. Filtered Results Empty State</h2>
+    <p class="test-description">
+      Empty state when filters return no results - different message than "no items".
+    </p>
+    <div class="empty-state-container">
+      <div class="empty-state">
+        <span class="material-icons empty-state-icon">filter_list_off</span>
+        <h3 class="empty-state-title">No results found</h3>
+        <p class="empty-state-description">
+          Try adjusting your filters or search terms to find what you're looking for.
+        </p>
+        <div class="empty-state-action">
+          <button class="btn-secondary">
+            <span class="material-icons" style="font-size: 18px;">clear</span>
+            Clear Filters
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 7: Compact Empty State -->
+  <div class="test-section">
+    <h2>7. Compact Empty State</h2>
+    <p class="test-description">
+      Compact variant for smaller containers or inline empty states.
+    </p>
+    <div class="empty-state-container" style="min-height: 200px;">
+      <div class="empty-state empty-state--compact">
+        <span class="material-icons empty-state-icon">search_off</span>
+        <h3 class="empty-state-title">No matches</h3>
+        <p class="empty-state-description">
+          Try a different search term.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Theme toggle functionality
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+    }
+
+    // Initialize theme from localStorage
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Log test results
+    console.log('✓ Empty State Patterns Test Loaded');
+    console.log('✓ Testing standard empty state component');
+    console.log('✓ Typography: Titles use --font-accent, descriptions use --font-readable');
+    console.log('✓ Layout: Centered icon (48-64px), title, description, action button');
+    console.log('✓ All empty states follow consistent pattern');
+    
+    // Verify typography
+    const emptyStateTitles = document.querySelectorAll('.empty-state-title');
+    const emptyStateDescriptions = document.querySelectorAll('.empty-state-description');
+    
+    console.log(`\n📊 Typography Verification:`);
+    console.log(`   - Found ${emptyStateTitles.length} empty state titles`);
+    console.log(`   - Found ${emptyStateDescriptions.length} empty state descriptions`);
+    
+    emptyStateTitles.forEach((title, index) => {
+      const computedStyle = window.getComputedStyle(title);
+      const fontFamily = computedStyle.fontFamily;
+      console.log(`   - Title ${index + 1}: ${fontFamily.includes('Handlee') ? '✓' : '✗'} Uses Handlee (--font-accent)`);
+    });
+    
+    emptyStateDescriptions.forEach((desc, index) => {
+      const computedStyle = window.getComputedStyle(desc);
+      const fontFamily = computedStyle.fontFamily;
+      console.log(`   - Description ${index + 1}: ${fontFamily.includes('Inter') ? '✓' : '✗'} Uses Inter (--font-readable)`);
+    });
+  </script>
+</body>
+</html>

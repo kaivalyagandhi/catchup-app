@@ -541,3 +541,353 @@ This implementation plan breaks down the Google Sync Optimization feature into d
 - Unit tests validate specific examples and edge cases
 - Integration tests validate end-to-end flows
 - Manual testing validates UI and user experience
+
+
+---
+
+## Phase 2: Sync Frequency Updates (Approved 2026-02-04)
+
+**Context**: Update sync frequencies to reduce API usage by 70-85% while maintaining reliability through onboarding mitigations and enhanced webhook monitoring.
+
+**Reference Documents**:
+- `SYNC_FREQUENCY_FINAL_CONFIG.md` - Complete approved configuration
+- `SYNC_FREQUENCY_UPDATE_PLAN.md` - Detailed implementation plan
+
+### New Frequencies
+- **Contacts**: 7-day default, 30-day min, 1-day max, 1-hour onboarding
+- **Calendar**: 24-hour default, 24-hour min, 4-hour max, 12-hour webhook fallback, 2-hour onboarding
+- **Background Jobs**: Daily adaptive sync, 12-hour webhook health checks
+- **Dashboard**: Daily auto-refresh
+
+- [x] 21. Update Frequency Constants
+  - [x] 21.1 Update SYNC_FREQUENCIES in AdaptiveSyncScheduler
+    - Update contacts: default 7d, min 30d, max 1d
+    - Add contacts onboarding: 1h
+    - Update calendar: default 24h, min 24h, max 4h, webhookFallback 12h
+    - Add calendar onboarding: 2h
+    - File: `src/integrations/adaptive-sync-scheduler.ts`
+    - _Reference: SYNC_FREQUENCY_FINAL_CONFIG.md Section "Sync Frequencies"_
+  
+  - [x] 21.2 Update background job schedules
+    - Update adaptive sync job: 12h → 24h (daily)
+    - Add webhook health check job: 12h interval
+    - File: `src/jobs/job-scheduler.ts`
+    - _Reference: SYNC_FREQUENCY_FINAL_CONFIG.md Section "Background Jobs"_
+  
+  - [x] 21.3 Update dashboard auto-refresh
+    - Update auto-refresh: 5min → 24h (daily)
+    - Keep manual refresh button functional
+    - File: `public/js/sync-health-dashboard.js`
+    - _Reference: SYNC_FREQUENCY_FINAL_CONFIG.md Section "Dashboard"_
+  
+  - [x] 21.4 Update documentation with new frequencies
+    - Update `.kiro/steering/google-integrations.md` Section 4
+    - Update `SYNC_OPTIMIZATION_SUMMARY.md`
+    - Update `docs/features/google-integrations/ADMIN_GUIDE.md`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Documentation Updates"_
+
+- [x] 22. Database Migration for Onboarding Support
+  - [x] 22.1 Create migration for onboarding_until column
+    - Add `onboarding_until TIMESTAMP` to sync_schedule table
+    - This tracks when onboarding period ends (24h after first connection)
+    - File: `scripts/migrations/045_add_onboarding_until_to_sync_schedule.sql`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 3: Onboarding-Specific Frequency"_
+  
+  - [x] 22.2 Run migration and verify
+    - Execute migration: `npm run migrate`
+    - Verify column exists: `\d sync_schedule`
+    - Test with sample data
+
+- [x] 23. Onboarding Mitigation - Immediate First Sync
+  - [x] 23.1 Add isFirstConnection helper method
+    - Check if user has any sync history for integration type
+    - Return true if no previous syncs exist
+    - File: `src/integrations/adaptive-sync-scheduler.ts` or create `src/integrations/onboarding-helper.ts`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 1: Immediate First Sync"_
+  
+  - [x] 23.2 Update GoogleContactsOAuthService connection handler
+    - After storing tokens, check if first connection
+    - If first connection, trigger immediate sync with `syncType: 'initial'`
+    - File: `src/integrations/google-contacts-oauth-service.ts`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 1: Immediate First Sync"_
+  
+  - [x] 23.3 Update GoogleCalendarOAuthService connection handler
+    - After storing tokens, check if first connection
+    - If first connection, trigger immediate sync with `syncType: 'initial'`
+    - File: `src/integrations/google-calendar-oauth-service.ts`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 1: Immediate First Sync"_
+  
+  - [x] 23.4 Update SyncOrchestrator to support initial sync type
+    - Add support for `syncType: 'initial'` parameter
+    - Allow bypassing schedule for initial syncs
+    - File: `src/integrations/sync-orchestrator.ts`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 1: Immediate First Sync"_
+
+- [x] 24. Onboarding Mitigation - Progress UI with Retry
+  - [x] 24.1 Create sync status API endpoint
+    - Create GET `/api/sync/status/:userId/:integrationType`
+    - Return: sync status (in_progress, completed, failed), items processed, error message
+    - File: `src/api/routes/sync-status.ts` (new)
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 2: Onboarding Progress UI with Retry"_
+  
+  - [x] 24.2 Add sync status tracking to SyncOrchestrator
+    - Store sync status in memory or Redis (in_progress, completed, failed)
+    - Update status as sync progresses
+    - Include item count and error messages
+    - File: `src/integrations/sync-orchestrator.ts`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 2: Onboarding Progress UI with Retry"_
+  
+  - [x] 24.3 Create onboarding sync status UI component
+    - Add sync status display to onboarding flow
+    - Show spinner during sync (in_progress)
+    - Show success message with count (completed)
+    - Show error message with retry button (failed)
+    - File: `public/js/onboarding-sync-status.js` (new)
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 2: Onboarding Progress UI with Retry"_
+  
+  - [x] 24.4 Integrate sync status into onboarding controller
+    - After OAuth callback, show sync status component
+    - Poll `/api/sync/status` every 2 seconds
+    - Update UI based on status
+    - Handle retry button click → trigger manual sync
+    - File: `public/js/onboarding-controller.js`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 2: Onboarding Progress UI with Retry"_
+  
+  - [x] 24.5 Add sync status styles
+    - Style spinner, success checkmark, error icon
+    - Style retry button
+    - Ensure mobile responsiveness
+    - File: `public/css/onboarding.css`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 2: Onboarding Progress UI with Retry"_
+
+- [x] 25. Onboarding Mitigation - Onboarding-Specific Frequency
+  - [x] 25.1 Update AdaptiveSyncScheduler.initialize()
+    - Check if first connection using isFirstConnection()
+    - If first connection, use onboarding frequency (1h contacts, 2h calendar)
+    - Set onboardingUntil to 24 hours from now
+    - If not first connection, use default frequency
+    - File: `src/integrations/adaptive-sync-scheduler.ts`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 3: Onboarding-Specific Frequency"_
+  
+  - [x] 25.2 Update AdaptiveSyncScheduler.calculateNextSync()
+    - Check if current time < onboardingUntil
+    - If in onboarding period, use onboarding frequency
+    - If past onboarding period, use normal adaptive logic
+    - File: `src/integrations/adaptive-sync-scheduler.ts`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 3: Onboarding-Specific Frequency"_
+  
+  - [x] 25.3 Test onboarding frequency transition
+    - Create test user, connect integration
+    - Verify 1h/2h frequency for first 24 hours
+    - Mock time to 25 hours later
+    - Verify transition to default frequency (7d/24h)
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Phase 4: Testing"_
+
+- [x] 26. Checkpoint - Test Onboarding Mitigations
+  - [x] 26.1 Test immediate first sync
+    - Connect new Google Contacts integration
+    - Verify sync triggers immediately
+    - Verify contacts appear in UI within 1 minute
+  
+  - [x] 26.2 Test onboarding progress UI
+    - Connect new integration
+    - Verify spinner appears
+    - Verify success message shows contact count
+    - Simulate sync failure, verify retry button works
+  
+  - [x] 26.3 Test onboarding frequency
+    - Connect new integration
+    - Verify next sync scheduled in 1h (contacts) or 2h (calendar)
+    - Wait 24 hours (or mock time)
+    - Verify frequency transitions to 7d (contacts) or 24h (calendar)
+
+- [x] 27. Enhanced Webhook Monitoring - Database Schema
+  - [x] 27.1 Create webhook_notifications table migration
+    - Track all webhook notifications received
+    - Columns: id, user_id, channel_id, resource_id, resource_state, result, error_message, created_at
+    - Indexes: created_at, result
+    - File: `scripts/migrations/046_create_webhook_notifications_table.sql`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "2. Webhook Failure Alerts"_
+  
+  - [x] 27.2 Run migration and verify
+    - Execute migration: `npm run migrate`
+    - Verify table exists: `\dt webhook_notifications`
+    - Test with sample data
+
+- [x] 28. Enhanced Webhook Monitoring - Health Check Job
+  - [x] 28.1 Create WebhookHealthCheckProcessor
+    - Check all active webhook subscriptions
+    - Alert if no notifications in 48 hours
+    - Attempt to re-register broken webhooks
+    - Check for webhooks expiring within 24 hours
+    - File: `src/jobs/processors/webhook-health-check-processor.ts` (new)
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "1. Webhook Health Check Job"_
+  
+  - [x] 28.2 Create WebhookHealthRepository
+    - Method to get last notification timestamp for user
+    - Method to get all active subscriptions
+    - Method to track notification events
+    - File: `src/integrations/webhook-health-repository.ts` (new)
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "1. Webhook Health Check Job"_
+  
+  - [x] 28.3 Register webhook health check job
+    - Schedule to run every 12 hours
+    - Add to job scheduler
+    - File: `src/jobs/job-scheduler.ts`
+    - _Reference: SYNC_FREQUENCY_FINAL_CONFIG.md Section "Background Jobs"_
+  
+  - [x] 28.4 Test webhook health check job
+    - Create test webhook subscription
+    - Mock no notifications for 48+ hours
+    - Verify alert is triggered
+    - Verify re-registration is attempted
+
+- [x] 29. Enhanced Webhook Monitoring - Failure Alerts
+  - [x] 29.1 Create WebhookMetricsService
+    - Calculate webhook failure rate over last 24 hours
+    - Query webhook_notifications table
+    - Return success count, failure count, total count
+    - File: `src/integrations/webhook-metrics-service.ts` (new)
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "2. Webhook Failure Alerts"_
+  
+  - [x] 29.2 Add failure rate tracking to WebhookManager
+    - Call WebhookMetricsService after each notification
+    - If failure rate > 5%, send admin alert
+    - File: `src/integrations/calendar-webhook-manager.ts`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "2. Webhook Failure Alerts"_
+  
+  - [x] 29.3 Update webhook notification handler to log results
+    - Log all webhook notifications to webhook_notifications table
+    - Include result (success, failure, ignored)
+    - Include error message if failure
+    - File: `src/api/routes/calendar-webhooks.ts`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "2. Webhook Failure Alerts"_
+  
+  - [x] 29.4 Test webhook failure alerts
+    - Simulate 10 webhook notifications with 6+ failures
+    - Verify failure rate > 5%
+    - Verify admin alert is sent
+
+- [x] 30. Enhanced Webhook Monitoring - Registration Retry
+  - [x] 30.1 Add retry logic to CalendarWebhookManager.registerWebhook()
+    - Retry up to 3 times on failure
+    - Exponential backoff: 2s, 4s, 8s
+    - Log each attempt
+    - Fall back to polling if all retries fail
+    - File: `src/integrations/calendar-webhook-manager.ts`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "3. Webhook Registration Retry Logic"_
+  
+  - [x] 30.2 Add webhook event logging
+    - Log registration_success, registration_failure events
+    - Include attempt number and error message
+    - File: `src/integrations/calendar-webhook-manager.ts`
+    - _Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "3. Webhook Registration Retry Logic"_
+  
+  - [x] 30.3 Test webhook registration retry
+    - Mock Google Calendar API to fail first 2 attempts
+    - Verify 3 attempts are made with exponential backoff
+    - Verify success on 3rd attempt
+    - Mock all 3 attempts to fail
+    - Verify fallback to polling mode
+
+- [x] 31. Checkpoint - Test Enhanced Webhook Monitoring
+  - [x] 31.1 Test webhook health check job
+    - Create webhook subscription
+    - Don't send notifications for 48+ hours
+    - Verify health check detects issue
+    - Verify re-registration is attempted
+  
+  - [x] 31.2 Test webhook failure alerts
+    - Simulate high failure rate (>5%)
+    - Verify admin alert is sent
+    - Verify metrics are tracked correctly
+  
+  - [x] 31.3 Test webhook registration retry
+    - Simulate registration failures
+    - Verify retry logic with exponential backoff
+    - Verify fallback to polling after 3 failures
+
+- [x] 32. Update Documentation
+  - [x] 32.1 Update google-integrations.md
+    - Update Section 4 with new frequencies
+    - Document onboarding mitigations
+    - Document enhanced webhook monitoring
+    - File: `.kiro/steering/google-integrations.md`
+  
+  - [x] 32.2 Update ADMIN_GUIDE.md
+    - Document new webhook monitoring features
+    - Document how to interpret webhook health metrics
+    - Document troubleshooting steps for webhook failures
+    - File: `docs/features/google-integrations/ADMIN_GUIDE.md`
+  
+  - [x] 32.3 Create ONBOARDING_SYNC.md
+    - Document onboarding sync behavior
+    - Document immediate first sync
+    - Document onboarding-specific frequencies
+    - Document progress UI and retry functionality
+    - File: `docs/features/google-integrations/ONBOARDING_SYNC.md` (new)
+  
+  - [x] 32.4 Update API.md
+    - Document GET `/api/sync/status/:userId/:integrationType`
+    - Update existing sync endpoints with new behavior
+    - File: `docs/API.md`
+
+- [x] 33. Final Testing and Verification
+  - [x] 33.1 End-to-end onboarding test
+    - New user connects Google Contacts
+    - Verify immediate sync
+    - Verify progress UI
+    - Verify 1-hour frequency for 24 hours
+    - Verify transition to 7-day frequency
+  
+  - [x] 33.2 End-to-end calendar webhook test
+    - New user connects Google Calendar
+    - Verify webhook registration with retry
+    - Verify 12-hour fallback polling
+    - Make calendar change in Google
+    - Verify webhook notification triggers sync
+    - Verify webhook health check runs every 12 hours
+  
+  - [x] 33.3 Monitor API usage reduction
+    - Track API calls before and after deployment
+    - Verify 70-85% reduction in total API calls
+    - Verify contacts: ~57% reduction
+    - Verify calendar: ~83% reduction
+  
+  - [x] 33.4 Monitor user experience
+    - Track onboarding sync success rate (target >95%)
+    - Track webhook reliability (target >95%)
+    - Monitor user complaints about stale data
+    - Track manual sync usage
+
+- [x] 34. Deployment
+  - [x] 34.1 Deploy to staging environment
+    - Run all migrations
+    - Update environment variables if needed
+    - Restart services
+    - Verify all features work
+  
+  - [x] 34.2 Monitor staging for 48 hours
+    - Check webhook health
+    - Check onboarding success rate
+    - Check API usage reduction
+    - Check for errors in logs
+  
+  - [x] 34.3 Deploy to production
+    - Run all migrations
+    - Update environment variables if needed
+    - Restart services
+    - Monitor closely for first 24 hours
+  
+  - [x] 34.4 Post-deployment monitoring
+    - Track success metrics for 2 weeks
+    - Be ready to rollback if issues arise
+    - Document any issues and resolutions
+
+## Notes for Phase 2
+
+- **Reference Documents**: Always refer to `SYNC_FREQUENCY_FINAL_CONFIG.md` for approved configuration
+- **Testing**: Test each phase thoroughly before moving to next phase
+- **Rollback**: Keep rollback plan ready (revert frequency constants, restart jobs)
+- **Monitoring**: Monitor API usage, webhook reliability, and user feedback closely
+- **Incremental**: Deploy in phases (frequencies → onboarding → webhooks)

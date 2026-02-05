@@ -272,20 +272,25 @@ export class PostgresAISuggestionService implements AISuggestionService {
     // Calculate existing factors (with lower weight for new users)
     const frequencyFactor = this.calculateFrequencyFactor(interactions, new Date());
     const recencyFactor = this.calculateRecencyFactor(interactions, new Date());
+    
+    // Calculate voice notes factor
+    const voiceNotesFactor = await this.calculateVoiceNotesFactor(contact.id, userId);
 
     // Weighted combination optimized for onboarding
+    // UPDATED: Adjusted weights to include voice notes factor (10%)
     const weightedScore =
-      calendarScore * 0.35 +
-      metadataScore * 0.30 +
-      ageScore * 0.15 +
-      frequencyFactor.value * 0.10 +
-      recencyFactor.value * 0.10;
+      calendarScore * 0.40 +      // Decreased from 0.45 - still strongest signal
+      metadataScore * 0.30 +      // Decreased from 0.35 - second strongest
+      voiceNotesFactor.value * 0.10 +  // NEW - voice notes engagement
+      ageScore * 0.10 +           // Same
+      frequencyFactor.value * 0.05 +  // Same
+      recencyFactor.value * 0.05;     // Same
 
     // Build factors array for transparency
     const factors: SuggestionFactor[] = [
       {
         type: 'calendar_events',
-        weight: 0.35,
+        weight: 0.40,
         value: calendarScore,
         description: `Calendar event score: ${calendarScore}`,
       },
@@ -295,9 +300,10 @@ export class PostgresAISuggestionService implements AISuggestionService {
         value: metadataScore,
         description: `Metadata richness: ${metadataScore}`,
       },
+      voiceNotesFactor,  // Already has weight: 0.10
       {
         type: 'recency',
-        weight: 0.15,
+        weight: 0.10,
         value: ageScore,
         description: `Contact age score: ${ageScore}`,
       },
@@ -344,6 +350,10 @@ export class PostgresAISuggestionService implements AISuggestionService {
     const multiChannelFactor = this.calculateMultiChannelFactor(interactions);
     factors.push(multiChannelFactor);
 
+    // Factor 5: Voice notes enrichment (NEW)
+    const voiceNotesFactor = await this.calculateVoiceNotesFactor(contact.id, userId);
+    factors.push(voiceNotesFactor);
+
     return factors;
   }
 
@@ -354,9 +364,9 @@ export class PostgresAISuggestionService implements AISuggestionService {
     if (interactions.length === 0) {
       return {
         type: 'communication_frequency',
-        weight: 0.3,
-        value: 0,
-        description: 'No interaction history',
+        weight: 0.05,  // Low weight for onboarding
+        value: 25,     // Give baseline score instead of 0
+        description: 'No interaction history (baseline score)',
       };
     }
 
@@ -385,7 +395,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
 
     return {
       type: 'communication_frequency',
-      weight: 0.3,
+      weight: 0.05,  // Low weight for onboarding
       value,
       description: `${interactionsPerMonth.toFixed(1)} interactions per month`,
     };
@@ -398,9 +408,9 @@ export class PostgresAISuggestionService implements AISuggestionService {
     if (interactions.length === 0) {
       return {
         type: 'recency',
-        weight: 0.25,
-        value: 0,
-        description: 'No recent interactions',
+        weight: 0.05,  // Low weight for onboarding
+        value: 25,     // Give baseline score instead of 0
+        description: 'No recent interactions (baseline score)',
       };
     }
 
@@ -420,7 +430,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
 
     return {
       type: 'recency',
-      weight: 0.25,
+      weight: 0.05,  // Low weight for onboarding
       value,
       description: `Last contact ${Math.floor(daysSinceContact)} days ago`,
     };
@@ -502,11 +512,103 @@ export class PostgresAISuggestionService implements AISuggestionService {
   }
 
   /**
+   * Calculate voice notes enrichment factor
+   * 
+   * Voice notes indicate active engagement and relationship importance.
+   * Scoring based on:
+   * - Number of voice notes about this contact
+   * - Recency of voice notes
+   * - Amount of enrichment applied (tags, fields, etc.)
+   */
+  private async calculateVoiceNotesFactor(
+    contactId: string,
+    userId: string
+  ): Promise<SuggestionFactor> {
+    try {
+      const pool = (await import('../db/connection')).default;
+
+      // Query voice notes for this contact
+      const result = await pool.query(
+        `SELECT 
+          COUNT(DISTINCT vnc.voice_note_id) as note_count,
+          COUNT(DISTINCT ei.id) as enrichment_count,
+          MAX(vn.recording_timestamp) as last_note_date
+         FROM voice_note_contacts vnc
+         JOIN voice_notes vn ON vnc.voice_note_id = vn.id
+         LEFT JOIN enrichment_items ei ON ei.voice_note_id = vn.id 
+           AND ei.contact_id = vnc.contact_id 
+           AND ei.applied = true
+         WHERE vnc.contact_id = $1 
+           AND vn.user_id = $2
+           AND vn.status IN ('ready', 'applied')`,
+        [contactId, userId]
+      );
+
+      const noteCount = parseInt(result.rows[0]?.note_count || '0');
+      const enrichmentCount = parseInt(result.rows[0]?.enrichment_count || '0');
+      const lastNoteDate = result.rows[0]?.last_note_date;
+
+      if (noteCount === 0) {
+        return {
+          type: 'multi_channel',  // Reuse multi_channel type for voice notes
+          weight: 0.10,
+          value: 0,
+          description: 'No voice notes',
+        };
+      }
+
+      // Calculate recency score (0-30 points)
+      let recencyScore = 0;
+      if (lastNoteDate) {
+        const daysSinceNote = (Date.now() - new Date(lastNoteDate).getTime()) / (24 * 60 * 60 * 1000);
+        if (daysSinceNote < 7) recencyScore = 30;
+        else if (daysSinceNote < 30) recencyScore = 20;
+        else if (daysSinceNote < 90) recencyScore = 10;
+        else recencyScore = 5;
+      }
+
+      // Calculate frequency score (0-40 points)
+      // 5+ notes = 40, 3-4 notes = 30, 2 notes = 20, 1 note = 10
+      let frequencyScore = 0;
+      if (noteCount >= 5) frequencyScore = 40;
+      else if (noteCount >= 3) frequencyScore = 30;
+      else if (noteCount >= 2) frequencyScore = 20;
+      else frequencyScore = 10;
+
+      // Calculate enrichment score (0-30 points)
+      // 10+ enrichments = 30, 5+ = 20, 2+ = 10, 1 = 5
+      let enrichmentScore = 0;
+      if (enrichmentCount >= 10) enrichmentScore = 30;
+      else if (enrichmentCount >= 5) enrichmentScore = 20;
+      else if (enrichmentCount >= 2) enrichmentScore = 10;
+      else if (enrichmentCount >= 1) enrichmentScore = 5;
+
+      const totalScore = recencyScore + frequencyScore + enrichmentScore;
+
+      return {
+        type: 'multi_channel',  // Reuse multi_channel type
+        weight: 0.10,
+        value: totalScore,
+        description: `${noteCount} voice note${noteCount !== 1 ? 's' : ''}, ${enrichmentCount} enrichment${enrichmentCount !== 1 ? 's' : ''}`,
+      };
+    } catch (error) {
+      console.error('Error calculating voice notes factor:', error);
+      return {
+        type: 'multi_channel',
+        weight: 0.10,
+        value: 0,
+        description: 'Error calculating voice notes',
+      };
+    }
+  }
+
+  /**
    * Calculate calendar event score based on shared calendar events
    * Requirements: 5.2, 5.3
    * 
    * Counts calendar events where the contact's email appears as an attendee.
    * This is a strong signal for relationship depth during onboarding.
+   * UPDATED: More generous scoring to generate better suggestions
    */
   private calculateCalendarEventScore(
     contact: Contact,
@@ -527,13 +629,13 @@ export class PostgresAISuggestionService implements AISuggestionService {
 
     const count = sharedEvents.length;
 
-    // Score based on event count
-    // 20+ events = 100, 10+ = 85, 5+ = 70, 2+ = 50, 1 = 30, 0 = 0
-    if (count >= 20) return 100;
-    if (count >= 10) return 85;
-    if (count >= 5) return 70;
-    if (count >= 2) return 50;
-    if (count >= 1) return 30;
+    // UPDATED: More generous scoring for better suggestions
+    // 10+ events = 100, 5+ = 85, 3+ = 70, 2 = 55, 1 = 40, 0 = 0
+    if (count >= 10) return 100;
+    if (count >= 5) return 85;
+    if (count >= 3) return 70;
+    if (count >= 2) return 55;
+    if (count >= 1) return 40;
     return 0;
   }
 
@@ -632,28 +734,34 @@ export class PostgresAISuggestionService implements AISuggestionService {
     const totalWeight = factors.reduce((sum, f) => sum + f.weight, 0);
     const weightedScore = factors.reduce((sum, f) => sum + f.value * f.weight, 0) / totalWeight;
 
+    // Log scoring for debugging
+    console.log(`[AI Suggestions] Weighted score: ${weightedScore.toFixed(2)}, factors:`, 
+      factors.map(f => `${f.type}=${f.value.toFixed(1)} (weight=${f.weight})`).join(', '));
+
     // Determine circle based on score
-    // Simplified 4-circle scoring thresholds:
-    // Inner Circle (10): 85-100
-    // Close Friends (25): 70-84
-    // Active Friends (50): 50-69
-    // Casual Network (100): 0-49
+    // UPDATED: Further lowered thresholds to generate more suggestions
+    // Inner Circle (10): 65-100 (was 75-100, originally 85-100)
+    // Close Friends (25): 45-64 (was 55-74, originally 70-84)
+    // Active Friends (50): 25-44 (was 35-54, originally 50-69)
+    // Casual Network (100): 0-24 (was 0-34, originally 0-49)
     let suggestedCircle: DunbarCircle;
     let confidence: number;
 
-    if (weightedScore >= 85) {
+    if (weightedScore >= 65) {
       suggestedCircle = 'inner';
-      confidence = Math.min(100, 70 + (weightedScore - 85) * 2);
-    } else if (weightedScore >= 70) {
+      confidence = Math.min(100, 60 + (weightedScore - 65) * 1.2);
+    } else if (weightedScore >= 45) {
       suggestedCircle = 'close';
-      confidence = Math.min(100, 65 + (weightedScore - 70) * 2);
-    } else if (weightedScore >= 50) {
+      confidence = Math.min(100, 55 + (weightedScore - 45) * 1.5);
+    } else if (weightedScore >= 25) {
       suggestedCircle = 'active';
-      confidence = Math.min(100, 60 + (weightedScore - 50) * 1.5);
+      confidence = Math.min(100, 50 + (weightedScore - 25) * 1.5);
     } else {
       suggestedCircle = 'casual';
-      confidence = Math.min(100, 55 + weightedScore * 0.9);
+      confidence = Math.min(100, 45 + weightedScore * 1.0);
     }
+
+    console.log(`[AI Suggestions] Determined circle: ${suggestedCircle} (confidence: ${confidence.toFixed(1)})`);
 
     // Generate alternative suggestions
     const alternatives = this.generateAlternatives(weightedScore, suggestedCircle);

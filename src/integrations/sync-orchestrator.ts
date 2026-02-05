@@ -25,7 +25,7 @@ import pool from '../db/connection';
  */
 export interface SyncJobResult {
   success: boolean;
-  syncType: 'full' | 'incremental' | 'webhook_triggered' | 'manual';
+  syncType: 'full' | 'incremental' | 'webhook_triggered' | 'manual' | 'initial';
   result: 'success' | 'failure' | 'skipped';
   skipReason?: 'circuit_breaker_open' | 'invalid_token' | 'token_expiring';
   duration?: number;
@@ -37,15 +37,29 @@ export interface SyncJobResult {
 }
 
 /**
+ * Sync status for tracking in-progress syncs
+ */
+export interface SyncStatus {
+  status: 'in_progress' | 'completed' | 'failed';
+  integrationType: 'google_contacts' | 'google_calendar';
+  itemsProcessed: number;
+  totalItems?: number;
+  errorMessage?: string;
+  startedAt: Date;
+  completedAt?: Date;
+  duration?: number;
+}
+
+/**
  * Sync job configuration
  */
 export interface SyncJobConfig {
   userId: string;
   integrationType: 'google_contacts' | 'google_calendar';
-  syncType: 'full' | 'incremental' | 'webhook_triggered' | 'manual';
+  syncType: 'full' | 'incremental' | 'webhook_triggered' | 'manual' | 'initial';
   accessToken: string;
   refreshToken?: string;
-  bypassCircuitBreaker?: boolean; // For manual syncs
+  bypassCircuitBreaker?: boolean; // For manual syncs and initial syncs
 }
 
 /**
@@ -59,6 +73,10 @@ export class SyncOrchestrator {
   private circuitBreakerManager: CircuitBreakerManager;
   private adaptiveSyncScheduler: AdaptiveSyncScheduler;
   private contactsSyncService: GoogleContactsSyncService;
+  
+  // In-memory sync status tracking for onboarding progress UI
+  // Key format: `${userId}:${integrationType}`
+  private syncStatusMap: Map<string, SyncStatus>;
 
   constructor(
     tokenHealthMonitor?: TokenHealthMonitor,
@@ -70,6 +88,7 @@ export class SyncOrchestrator {
     this.circuitBreakerManager = circuitBreakerManager || CircuitBreakerManager.getInstance();
     this.adaptiveSyncScheduler = adaptiveSyncScheduler || AdaptiveSyncScheduler.getInstance();
     this.contactsSyncService = contactsSyncService || new GoogleContactsSyncService();
+    this.syncStatusMap = new Map();
   }
 
   /**
@@ -94,6 +113,14 @@ export class SyncOrchestrator {
     console.log(
       `[SyncOrchestrator] Starting ${syncType} sync for user ${userId}, integration ${integrationType}`
     );
+
+    // Initialize sync status tracking
+    this.updateSyncStatus(userId, integrationType, {
+      status: 'in_progress',
+      integrationType,
+      itemsProcessed: 0,
+      startedAt: new Date(),
+    });
 
     try {
       // Step 1: Check token health
@@ -198,8 +225,9 @@ export class SyncOrchestrator {
         // Record success in circuit breaker
         await this.circuitBreakerManager.recordSuccess(userId, integrationType);
 
-        // Update adaptive scheduler (only for scheduled syncs, not manual)
-        if (syncType !== 'manual') {
+        // Update adaptive scheduler (only for scheduled syncs, not manual or initial)
+        // Reference: SYNC_FREQUENCY_UPDATE_PLAN.md - initial syncs don't affect schedule
+        if (syncType !== 'manual' && syncType !== 'initial') {
           const changesDetected = syncResult.changesDetected || false;
           await this.adaptiveSyncScheduler.calculateNextSync(
             userId,
@@ -207,6 +235,16 @@ export class SyncOrchestrator {
             changesDetected
           );
         }
+
+        // Update sync status to completed
+        this.updateSyncStatus(userId, integrationType, {
+          status: 'completed',
+          integrationType,
+          itemsProcessed: syncResult.itemsProcessed || 0,
+          startedAt: new Date(startTime),
+          completedAt: new Date(),
+          duration: syncResult.duration,
+        });
       } else {
         // Record failure in circuit breaker
         const error = new Error(syncResult.errorMessage || 'Sync failed');
@@ -220,6 +258,17 @@ export class SyncOrchestrator {
             syncResult.errorMessage
           );
         }
+
+        // Update sync status to failed
+        this.updateSyncStatus(userId, integrationType, {
+          status: 'failed',
+          integrationType,
+          itemsProcessed: syncResult.itemsProcessed || 0,
+          errorMessage: syncResult.errorMessage,
+          startedAt: new Date(startTime),
+          completedAt: new Date(),
+          duration: syncResult.duration,
+        });
       }
 
       // Step 5: Record metrics
@@ -247,6 +296,17 @@ export class SyncOrchestrator {
         error instanceof Error ? error : new Error(errorMessage)
       );
 
+      // Update sync status to failed
+      this.updateSyncStatus(userId, integrationType, {
+        status: 'failed',
+        integrationType,
+        itemsProcessed: 0,
+        errorMessage,
+        startedAt: new Date(startTime),
+        completedAt: new Date(),
+        duration: Date.now() - startTime,
+      });
+
       // Record failed sync metrics
       await this.recordSyncMetrics({
         userId,
@@ -272,7 +332,7 @@ export class SyncOrchestrator {
    */
   private async executeContactsSync(
     userId: string,
-    syncType: 'full' | 'incremental' | 'webhook_triggered' | 'manual',
+    syncType: 'full' | 'incremental' | 'webhook_triggered' | 'manual' | 'initial',
     accessToken: string,
     refreshToken: string | undefined,
     startTime: number
@@ -280,7 +340,9 @@ export class SyncOrchestrator {
     try {
       let result;
 
-      if (syncType === 'full') {
+      // Treat 'initial' sync type as 'full' sync
+      // Reference: SYNC_FREQUENCY_UPDATE_PLAN.md - initial sync is a full sync on first connection
+      if (syncType === 'full' || syncType === 'initial') {
         result = await this.contactsSyncService.performFullSync(userId, accessToken);
       } else {
         result = await this.contactsSyncService.performIncrementalSync(userId, accessToken);
@@ -323,7 +385,7 @@ export class SyncOrchestrator {
    */
   private async executeCalendarSync(
     userId: string,
-    syncType: 'full' | 'incremental' | 'webhook_triggered' | 'manual',
+    syncType: 'full' | 'incremental' | 'webhook_triggered' | 'manual' | 'initial',
     accessToken: string,
     refreshToken: string | undefined,
     startTime: number
@@ -363,7 +425,7 @@ export class SyncOrchestrator {
   private async recordSyncMetrics(metrics: {
     userId: string;
     integrationType: 'google_contacts' | 'google_calendar';
-    syncType: 'full' | 'incremental' | 'webhook_triggered' | 'manual';
+    syncType: 'full' | 'incremental' | 'webhook_triggered' | 'manual' | 'initial';
     result: 'success' | 'failure' | 'skipped';
     skipReason?: 'circuit_breaker_open' | 'invalid_token' | 'token_expiring';
     duration?: number;
@@ -400,6 +462,42 @@ export class SyncOrchestrator {
       console.error('[SyncOrchestrator] Failed to record sync metrics:', error);
       // Don't throw - metrics recording failure shouldn't break sync
     }
+  }
+
+  /**
+   * Update sync status for a user and integration
+   * Used by onboarding progress UI to track sync progress
+   *
+   * Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 2: Onboarding Progress UI with Retry"
+   */
+  private updateSyncStatus(
+    userId: string,
+    integrationType: 'google_contacts' | 'google_calendar',
+    status: SyncStatus
+  ): void {
+    const key = `${userId}:${integrationType}`;
+    this.syncStatusMap.set(key, status);
+
+    // Auto-cleanup completed/failed statuses after 5 minutes
+    if (status.status === 'completed' || status.status === 'failed') {
+      setTimeout(() => {
+        this.syncStatusMap.delete(key);
+      }, 5 * 60 * 1000);
+    }
+  }
+
+  /**
+   * Get sync status for a user and integration
+   * Used by onboarding progress UI to poll sync status
+   *
+   * Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 2: Onboarding Progress UI with Retry"
+   */
+  async getSyncStatus(
+    userId: string,
+    integrationType: 'google_contacts' | 'google_calendar'
+  ): Promise<SyncStatus | null> {
+    const key = `${userId}:${integrationType}`;
+    return this.syncStatusMap.get(key) || null;
   }
 }
 

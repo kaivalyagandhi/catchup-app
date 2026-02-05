@@ -15,6 +15,7 @@ import {
   webhookRenewalQueue,
   notificationReminderQueue,
   adaptiveSyncQueue,
+  webhookHealthCheckQueue,
 } from './queue';
 import { processSuggestionGeneration } from './processors/suggestion-generation-processor';
 import { processBatchNotification } from './processors/batch-notification-processor';
@@ -26,6 +27,7 @@ import { processTokenRefresh } from './processors/token-refresh-processor';
 import { processWebhookRenewal } from './processors/webhook-renewal-processor';
 import { processNotificationReminder } from './processors/notification-reminder-processor';
 import { processAdaptiveSync } from './processors/adaptive-sync-processor';
+import { processWebhookHealthCheck } from './processors/webhook-health-check-processor';
 import { monitorJobDuration } from './job-monitoring-service';
 
 /**
@@ -144,6 +146,24 @@ export function startWorker(): void {
     }
   });
 
+  // Register webhook health check processor
+  webhookHealthCheckQueue.process(async (job) => {
+    const startTime = new Date();
+    console.log(`Processing webhook health check job ${job.id}`);
+    
+    try {
+      const result = await processWebhookHealthCheck(job);
+      const endTime = new Date();
+      monitorJobDuration('webhook-health-check', job.id?.toString() || 'unknown', startTime, endTime, 'completed');
+      return result;
+    } catch (error) {
+      const endTime = new Date();
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      monitorJobDuration('webhook-health-check', job.id?.toString() || 'unknown', startTime, endTime, 'failed', errorMsg);
+      throw error;
+    }
+  });
+
   console.log('Job worker started successfully');
 
   // Log queue events
@@ -186,6 +206,10 @@ export function startWorker(): void {
   adaptiveSyncQueue.on('completed', (job, result) => {
     console.log(`Adaptive sync job ${job.id} completed:`, result);
   });
+
+  webhookHealthCheckQueue.on('completed', (job, result) => {
+    console.log(`Webhook health check job ${job.id} completed:`, result);
+  });
 }
 
 /**
@@ -207,6 +231,7 @@ export async function stopWorker(): Promise<void> {
     webhookRenewalQueue.close(),
     notificationReminderQueue.close(),
     adaptiveSyncQueue.close(),
+    webhookHealthCheckQueue.close(),
   ]);
 
   console.log('Job worker stopped');

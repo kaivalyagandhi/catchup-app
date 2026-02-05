@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modal Layout Patterns Test</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <style>
+    body {
+      padding: 20px;
+    }
+    
+    .test-section {
+      margin-bottom: 40px;
+    }
+    
+    .test-button {
+      padding: 12px 24px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: var(--font-accent);
+      font-size: var(--text-base);
+      margin-right: 12px;
+    }
+    
+    .test-button:hover {
+      background: var(--accent-hover);
+    }
+    
+    /* Button styles for modal */
+    .btn {
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-readable);
+      font-size: var(--text-sm);
+      transition: all var(--transition-fast);
+    }
+    
+    .btn-primary {
+      background: var(--accent-primary);
+      color: white;
+      font-family: var(--font-accent);
+    }
+    
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--bg-active);
+    }
+    
+    .btn-danger {
+      background: var(--status-error);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+  </style>
+</head>
+<body>
+  <h1>Modal Layout Patterns Test</h1>
+  <p>Test the standardized modal header/footer layout patterns defined in Requirements 22 and 23.</p>
+  
+  <div class="test-section">
+    <h2>Test Cases</h2>
+    <button class="test-button" onclick="showSmallModal()">Small Modal (400px)</button>
+    <button class="test-button" onclick="showMediumModal()">Medium Modal (600px)</button>
+    <button class="test-button" onclick="showLargeModal()">Large Modal (800px)</button>
+    <button class="test-button" onclick="showFullModal()">Full Modal (90vw)</button>
+    <button class="test-button" onclick="showDestructiveModal()">Destructive Action Modal</button>
+    <button class="test-button" onclick="showSingleButtonModal()">Single Button Modal</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>Expected Behavior</h2>
+    <ul>
+      <li><strong>Header Layout:</strong> [Title] [spacer] [Close X]</li>
+      <li><strong>Header Height:</strong> 56px minimum</li>
+      <li><strong>Header Flexbox:</strong> display: flex, justify-content: space-between</li>
+      <li><strong>Footer Layout:</strong> [Cancel/Secondary] [spacer] [Primary]</li>
+      <li><strong>Footer Padding:</strong> --space-4 (16px)</li>
+      <li><strong>Footer Flexbox:</strong> display: flex, justify-content: space-between</li>
+      <li><strong>Destructive Actions:</strong> Left side with warning styling</li>
+      <li><strong>Single Button:</strong> Right-aligned</li>
+    </ul>
+  </div>
+  
+  <div class="test-section">
+    <h2>Console Output</h2>
+    <div id="console-output" style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; font-family: monospace; font-size: 14px;"></div>
+  </div>
+
+  <script>
+    function log(message) {
+      const output = document.getElementById('console-output');
+      const timestamp = new Date().toLocaleTimeString();
+      output.innerHTML += `[${timestamp}] ${message}<br>`;
+      console.log(message);
+    }
+    
+    function createModal(size, title, content, footerConfig) {
+      // Create overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.onclick = (e) => {
+        if (e.target === overlay) {
+          closeModal(overlay);
+        }
+      };
+      
+      // Create modal
+      const modal = document.createElement('div');
+      modal.className = `modal ${size}`;
+      
+      // Create header
+      const header = document.createElement('div');
+      header.className = 'modal-header';
+      
+      const titleEl = document.createElement('h2');
+      titleEl.className = 'modal-title';
+      titleEl.textContent = title;
+      
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'modal-close';
+      closeBtn.innerHTML = '✕';
+      closeBtn.onclick = () => closeModal(overlay);
+      
+      header.appendChild(titleEl);
+      header.appendChild(closeBtn);
+      
+      // Create body
+      const body = document.createElement('div');
+      body.className = 'modal-body';
+      body.innerHTML = content;
+      
+      // Create footer
+      const footer = document.createElement('div');
+      footer.className = 'modal-footer';
+      
+      if (footerConfig.left) {
+        const leftGroup = document.createElement('div');
+        leftGroup.className = 'modal-footer-left';
+        footerConfig.left.forEach(btn => {
+          leftGroup.appendChild(createButton(btn, overlay));
+        });
+        footer.appendChild(leftGroup);
+      }
+      
+      if (footerConfig.right) {
+        const rightGroup = document.createElement('div');
+        rightGroup.className = 'modal-footer-right';
+        footerConfig.right.forEach(btn => {
+          rightGroup.appendChild(createButton(btn, overlay));
+        });
+        footer.appendChild(rightGroup);
+      }
+      
+      // Assemble modal
+      modal.appendChild(header);
+      modal.appendChild(body);
+      modal.appendChild(footer);
+      overlay.appendChild(modal);
+      
+      // Add to DOM
+      document.body.appendChild(overlay);
+      
+      log(`✓ Created ${size} modal: "${title}"`);
+      
+      // Verify layout
+      setTimeout(() => {
+        verifyModalLayout(modal, size);
+      }, 100);
+    }
+    
+    function createButton(config, overlay) {
+      const btn = document.createElement('button');
+      btn.className = `btn ${config.class}`;
+      btn.textContent = config.text;
+      btn.onclick = () => {
+        log(`Button clicked: ${config.text}`);
+        if (config.close) {
+          closeModal(overlay);
+        }
+      };
+      return btn;
+    }
+    
+    function closeModal(overlay) {
+      overlay.remove();
+      log('✓ Modal closed');
+    }
+    
+    function verifyModalLayout(modal, size) {
+      const header = modal.querySelector('.modal-header');
+      const footer = modal.querySelector('.modal-footer');
+      
+      // Check header
+      const headerStyles = window.getComputedStyle(header);
+      const headerDisplay = headerStyles.display;
+      const headerJustify = headerStyles.justifyContent;
+      const headerHeight = header.offsetHeight;
+      
+      log(`Header - display: ${headerDisplay}, justify-content: ${headerJustify}, height: ${headerHeight}px`);
+      
+      if (headerDisplay === 'flex' && headerJustify === 'space-between' && headerHeight >= 56) {
+        log('✓ Header layout verified');
+      } else {
+        log('✗ Header layout issue detected');
+      }
+      
+      // Check footer
+      const footerStyles = window.getComputedStyle(footer);
+      const footerDisplay = footerStyles.display;
+      const footerJustify = footerStyles.justifyContent;
+      const footerPadding = footerStyles.padding;
+      
+      log(`Footer - display: ${footerDisplay}, justify-content: ${footerJustify}, padding: ${footerPadding}`);
+      
+      if (footerDisplay === 'flex' && footerJustify === 'space-between') {
+        log('✓ Footer layout verified');
+      } else {
+        log('✗ Footer layout issue detected');
+      }
+    }
+    
+    function showSmallModal() {
+      createModal(
+        'modal-sm',
+        'Small Modal',
+        '<p>This is a small modal (400px) for confirmations and simple forms.</p>',
+        {
+          left: [{ text: 'Cancel', class: 'btn-secondary', close: true }],
+          right: [{ text: 'Confirm', class: 'btn-primary', close: true }]
+        }
+      );
+    }
+    
+    function showMediumModal() {
+      createModal(
+        'modal-md',
+        'Medium Modal',
+        '<p>This is a medium modal (600px) for standard forms and content.</p><p>It provides more space for detailed information and form fields.</p>',
+        {
+          left: [{ text: 'Cancel', class: 'btn-secondary', close: true }],
+          right: [
+            { text: 'Save Draft', class: 'btn-secondary', close: false },
+            { text: 'Save', class: 'btn-primary', close: true }
+          ]
+        }
+      );
+    }
+    
+    function showLargeModal() {
+      createModal(
+        'modal-lg',
+        'Large Modal',
+        '<p>This is a large modal (800px) for lists, tables, and complex content.</p><p>It provides ample space for data-heavy displays and detailed forms.</p><p>Additional content can be added here to demonstrate scrolling behavior.</p>',
+        {
+          left: [{ text: 'Cancel', class: 'btn-secondary', close: true }],
+          right: [{ text: 'Apply', class: 'btn-primary', close: true }]
+        }
+      );
+    }
+    
+    function showFullModal() {
+      createModal(
+        'modal-full',
+        'Full Width Modal',
+        '<p>This is a full-width modal (90vw) for maximum screen usage.</p><p>Ideal for complex workflows and data-intensive interfaces.</p>',
+        {
+          left: [{ text: 'Cancel', class: 'btn-secondary', close: true }],
+          right: [{ text: 'Continue', class: 'btn-primary', close: true }]
+        }
+      );
+    }
+    
+    function showDestructiveModal() {
+      createModal(
+        'modal-md',
+        'Delete Contact',
+        '<p>Are you sure you want to delete this contact? This action cannot be undone.</p>',
+        {
+          left: [{ text: 'Delete', class: 'btn-danger', close: true }],
+          right: [{ text: 'Cancel', class: 'btn-secondary', close: true }]
+        }
+      );
+    }
+    
+    function showSingleButtonModal() {
+      createModal(
+        'modal-sm',
+        'Success',
+        '<p>Your changes have been saved successfully!</p>',
+        {
+          right: [{ text: 'OK', class: 'btn-primary', close: true }]
+        }
+      );
+    }
+    
+    log('✓ Modal layout patterns test loaded');
+    log('Click buttons above to test different modal configurations');
+  </script>
+</body>
+</html>

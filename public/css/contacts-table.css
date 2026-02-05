@@ -85,19 +85,19 @@
 .sort-controls label {
   font-size: 14px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-secondary);
   white-space: nowrap;
   line-height: 1;
 }
 
 .sort-order-select {
   padding: 10px 32px 10px 12px;
-  border: 1px solid var(--border-primary, #d1d5db);
+  border: 1px solid var(--border-subtle);
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
-  color: var(--text-primary, #1f2937);
-  background-color: var(--bg-primary, white);
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat !important;
   background-position: right 10px center;
@@ -115,19 +115,19 @@
 /* Light theme explicit styling */
 :root .sort-order-select,
 [data-theme="light"] .sort-order-select {
-  background-color: white;
-  border-color: #d1d5db;
-  color: #1f2937;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-color: var(--bg-surface);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2378716C' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
 }
 
 .sort-order-select:hover {
-  border-color: #9ca3af;
+  border-color: var(--border-default);
 }
 
 .sort-order-select:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 /* Sort Indicators - Requirement 6.4 */
@@ -135,13 +135,13 @@
   display: inline-block;
   margin-left: 4px;
   font-size: 10px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   transition: color 0.2s ease;
 }
 
 .sort-indicator.sort-asc,
 .sort-indicator.sort-desc {
-  color: #3b82f6;
+  color: var(--accent-primary);
   font-weight: bold;
 }
 
@@ -287,23 +287,23 @@
 
 /* Warm pastel variants - Requirement 6.5 */
 .avatar--sage {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--avatar-sage-bg);
+  color: var(--avatar-sage-text);
 }
 
 .avatar--sand {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--avatar-sand-bg);
+  color: var(--avatar-sand-text);
 }
 
 .avatar--rose {
-  background: #fce7f3;
-  color: #9d174d;
+  background: var(--avatar-rose-bg);
+  color: var(--avatar-rose-text);
 }
 
 .avatar--stone {
-  background: #e7e5e4;
-  color: #44403c;
+  background: var(--avatar-stone-bg);
+  color: var(--avatar-stone-text);
 }
 
 /* Badge Styling - Requirements 1.4, 1.5, 16.4 */
@@ -329,9 +329,9 @@
 }
 
 .badge-uncategorized {
-  background-color: #f3f4f6;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
   border-radius: 14px;
 }
 
@@ -481,11 +481,12 @@
   gap: 2px;
 }
 
-/* Empty State */
+/* Empty State - Uses standard typography tokens */
 .contacts-table .empty-state td {
   padding: 60px 20px;
   text-align: center;
-  color: #9ca3af;
+  color: var(--text-tertiary);
+  font-family: var(--font-readable);
   font-size: 15px;
 }
 
@@ -493,9 +494,9 @@
 /* Colors automatically handled by CSS variables in stone-clay-theme.css */
 
 [data-theme="dark"] .badge-uncategorized {
-  background-color: #374151;
-  color: #9ca3af;
-  border-color: #4b5563;
+  background-color: var(--stone-7);
+  color: var(--text-tertiary);
+  border-color: var(--border-default);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -549,7 +550,7 @@
 }
 
 [data-theme="dark"] .contacts-table .empty-state td {
-  color: #6b7280;
+  color: var(--text-tertiary);
 }
 
 /* Mobile Responsive - Requirement 17.1, 17.2 */
@@ -678,14 +679,14 @@
 }
 
 .contacts-table td.editable:hover:not(.editing) {
-  background-color: #f3f4f6;
-  outline: 1px solid #e5e7eb;
+  background-color: var(--bg-hover);
+  outline: 1px solid var(--border-subtle);
 }
 
 .contacts-table td.editing {
   padding: 4px;
-  background-color: white;
-  outline: 2px solid #3b82f6;
+  background-color: var(--bg-surface);
+  outline: 2px solid var(--accent-primary);
   outline-offset: -2px;
 }
 
@@ -693,37 +694,37 @@
 .inline-edit-input {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
   font-size: 14px;
   font-family: inherit;
-  color: #1f2937;
-  background: white;
+  color: var(--text-primary);
+  background: var(--bg-surface);
   outline: none;
 }
 
 .inline-edit-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 /* Dropdown select */
 .inline-edit-select {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
   font-size: 14px;
   font-family: inherit;
-  color: #1f2937;
-  background: white;
+  color: var(--text-primary);
+  background: var(--bg-surface);
   cursor: pointer;
   outline: none;
 }
 
 .inline-edit-select:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 /* Multi-select container */
@@ -746,9 +747,9 @@
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  background-color: #dbeafe;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
+  background-color: var(--accent-subtle);
+  color: var(--accent-primary);
+  border: 1px solid var(--accent-subtle);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
@@ -758,7 +759,7 @@
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
-  color: #1e40af;
+  color: var(--accent-primary);
   opacity: 0.7;
   transition: opacity 0.2s ease;
 }
@@ -770,18 +771,18 @@
 .multiselect-input {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
   font-size: 13px;
   font-family: inherit;
-  color: #1f2937;
-  background: white;
+  color: var(--text-primary);
+  background: var(--bg-surface);
   outline: none;
 }
 
 .multiselect-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 /* Autocomplete dropdown - Requirement 2.4 */
@@ -789,8 +790,8 @@
   position: fixed !important;
   max-height: 200px;
   overflow-y: auto;
-  background: white !important;
-  border: 2px solid #3b82f6 !important;
+  background: var(--bg-surface) !important;
+  border: 2px solid var(--accent-primary) !important;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   z-index: 99999 !important;
@@ -804,19 +805,19 @@
   padding: 10px 14px;
   cursor: pointer;
   font-size: 14px;
-  color: #1f2937 !important;
+  color: var(--text-primary) !important;
   transition: background-color 0.15s ease;
-  border-bottom: 1px solid #f3f4f6;
-  background: white !important;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface) !important;
 }
 
 .autocomplete-item {
   padding: 10px 14px;
   cursor: pointer;
   font-size: 14px;
-  color: #1f2937;
+  color: var(--text-primary);
   transition: background-color 0.15s ease;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .autocomplete-item:last-child {
@@ -824,12 +825,12 @@
 }
 
 .autocomplete-item:hover {
-  background-color: #eff6ff;
-  color: #1e40af;
+  background-color: var(--bg-hover);
+  color: var(--accent-primary);
 }
 
 .autocomplete-item:active {
-  background-color: #dbeafe;
+  background-color: var(--accent-subtle);
 }
 
 /* Validation error */
@@ -838,9 +839,9 @@
   bottom: -24px;
   left: 0;
   padding: 4px 8px;
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  background-color: var(--status-error-bg);
+  color: var(--status-error);
+  border: 1px solid var(--status-error);
   border-radius: 4px;
   font-size: 12px;
   white-space: nowrap;

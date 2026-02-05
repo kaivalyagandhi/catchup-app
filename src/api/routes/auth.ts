@@ -115,6 +115,7 @@ router.get('/me', authenticate, async (req: AuthenticatedRequest, res: Response)
       name: user.name,
       authProvider: user.authProvider,
       profilePictureUrl: user.profilePictureUrl,
+      isAdmin: user.isAdmin || false,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });

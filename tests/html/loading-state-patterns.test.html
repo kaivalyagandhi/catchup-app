@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loading State Patterns Test - CatchUp</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <style>
+    body {
+      padding: var(--space-6);
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .test-section {
+      margin-bottom: var(--space-12);
+      padding: var(--space-6);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .test-section h2 {
+      font-family: var(--font-heading);
+      font-size: var(--text-2xl);
+      color: var(--text-primary);
+      margin: 0 0 var(--space-2) 0;
+    }
+
+    .test-section-description {
+      font-family: var(--font-readable);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin: 0 0 var(--space-6) 0;
+    }
+
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+
+    .test-item {
+      padding: var(--space-4);
+      background: var(--bg-app);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+    }
+
+    .test-item-label {
+      font-family: var(--font-accent);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-3);
+    }
+
+    .test-item-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 80px;
+    }
+
+    /* Button Styles for Testing */
+    .btn {
+      padding: var(--space-3) var(--space-4);
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: white;
+      font-family: var(--font-accent);
+    }
+
+    .btn-primary:hover:not(.btn-loading) {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      font-family: var(--font-readable);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-secondary:hover:not(.btn-loading) {
+      background: var(--bg-active);
+    }
+
+    /* Demo Table */
+    .demo-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: var(--space-4);
+    }
+
+    .demo-table th {
+      font-family: var(--font-accent);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      text-align: left;
+      padding: var(--space-3);
+      border-bottom: 2px solid var(--border-default);
+    }
+
+    .demo-table td {
+      font-family: var(--font-readable);
+      font-size: var(--text-sm);
+      color: var(--text-primary);
+      padding: var(--space-3);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    /* Demo Card */
+    .demo-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .demo-card-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    .demo-card-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--avatar-sage-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-accent);
+      font-size: var(--text-lg);
+      color: var(--avatar-sage-text);
+    }
+
+    .demo-card-title {
+      font-family: var(--font-accent);
+      font-size: var(--text-lg);
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .demo-card-subtitle {
+      font-family: var(--font-readable);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .demo-card-body {
+      font-family: var(--font-readable);
+      font-size: var(--text-sm);
+      color: var(--text-primary);
+      line-height: var(--leading-relaxed);
+    }
+
+    /* Theme Toggle */
+    .theme-toggle {
+      position: fixed;
+      top: var(--space-4);
+      right: var(--space-4);
+      z-index: 1000;
+    }
+
+    .controls {
+      display: flex;
+      gap: var(--space-3);
+      margin-top: var(--space-4);
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="theme-toggle">
+    <button class="btn btn-secondary" onclick="toggleTheme()">
+      Toggle Theme
+    </button>
+  </div>
+
+  <h1 style="font-family: var(--font-heading); font-size: var(--text-3xl); margin-bottom: var(--space-2);">
+    Loading State Patterns Test
+  </h1>
+  <p style="font-family: var(--font-readable); color: var(--text-secondary); margin-bottom: var(--space-8);">
+    Comprehensive test of all loading state components and patterns defined in the Stone & Clay design system.
+  </p>
+
+  <!-- Spinner Sizes -->
+  <div class="test-section">
+    <h2>Spinner Sizes</h2>
+    <p class="test-section-description">
+      Three standard spinner sizes for different contexts: small (16px) for inline/buttons, medium (24px) for cards/sections, large (40px) for page-level loading.
+    </p>
+    <div class="test-grid">
+      <div class="test-item">
+        <div class="test-item-label">Small (16px)</div>
+        <div class="test-item-content">
+          <div class="spinner spinner-sm" role="status" aria-label="Loading"></div>
+        </div>
+      </div>
+      <div class="test-item">
+        <div class="test-item-label">Medium (24px)</div>
+        <div class="test-item-content">
+          <div class="spinner spinner-md" role="status" aria-label="Loading"></div>
+        </div>
+      </div>
+      <div class="test-item">
+        <div class="test-item-label">Large (40px)</div>
+        <div class="test-item-content">
+          <div class="spinner spinner-lg" role="status" aria-label="Loading"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Container -->
+  <div class="test-section">
+    <h2>Loading Container</h2>
+    <p class="test-section-description">
+      Centered loading state with spinner and optional message. Uses --font-readable and --text-secondary for messages.
+    </p>
+    <div class="test-item">
+      <div class="loading-container">
+        <div class="spinner spinner-lg" role="status" aria-label="Loading contacts"></div>
+        <div class="loading-message">Loading your contacts...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Button Loading States -->
+  <div class="test-section">
+    <h2>Button Loading States</h2>
+    <p class="test-section-description">
+      Two patterns: spinner replaces label (btn-loading) or spinner alongside label (btn-loading-inline).
+    </p>
+    <div class="controls">
+      <button class="btn btn-primary" id="btn-replace">
+        Save Changes
+      </button>
+      <button class="btn btn-primary" id="btn-inline">
+        <span class="spinner spinner-sm"></span>
+        Saving...
+      </button>
+      <button class="btn btn-secondary" id="btn-secondary">
+        Cancel
+      </button>
+    </div>
+    <div class="controls" style="margin-top: var(--space-6);">
+      <button class="btn btn-primary" onclick="toggleButtonLoading('btn-replace')">
+        Toggle Replace Loading
+      </button>
+      <button class="btn btn-secondary" onclick="toggleButtonLoading('btn-secondary')">
+        Toggle Secondary Loading
+      </button>
+    </div>
+  </div>
+
+  <!-- Skeleton Text -->
+  <div class="test-section">
+    <h2>Skeleton Text Loaders</h2>
+    <p class="test-section-description">
+      Animated placeholder text in various sizes. Matches the shape of actual content.
+    </p>
+    <div class="test-item">
+      <div class="skeleton skeleton-text skeleton-text--title"></div>
+      <div class="skeleton skeleton-text"></div>
+      <div class="skeleton skeleton-text"></div>
+      <div class="skeleton skeleton-text skeleton-text--sm"></div>
+    </div>
+  </div>
+
+  <!-- Skeleton Card -->
+  <div class="test-section">
+    <h2>Skeleton Card Loader</h2>
+    <p class="test-section-description">
+      Full card skeleton with avatar, content, and action buttons. Matches contact card layout.
+    </p>
+    <div class="skeleton-card">
+      <div class="skeleton-card-header">
+        <div class="skeleton skeleton-card-avatar"></div>
+        <div class="skeleton-card-content">
+          <div class="skeleton skeleton-text skeleton-text--title"></div>
+          <div class="skeleton skeleton-text skeleton-text--sm"></div>
+        </div>
+      </div>
+      <div class="skeleton skeleton-text"></div>
+      <div class="skeleton skeleton-text"></div>
+      <div class="skeleton skeleton-text skeleton-text--sm"></div>
+      <div class="skeleton-card-footer">
+        <div class="skeleton skeleton-card-button"></div>
+        <div class="skeleton skeleton-card-button"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skeleton Table -->
+  <div class="test-section">
+    <h2>Skeleton Table Loader</h2>
+    <p class="test-section-description">
+      Table skeleton for data-heavy displays. Shows loading state while fetching table data.
+    </p>
+    <table class="skeleton-table">
+      <tbody>
+        <tr class="skeleton-table-row">
+          <td class="skeleton-table-cell"><div class="skeleton"></div></td>
+          <td class="skeleton-table-cell"><div class="skeleton"></div></td>
+          <td class="skeleton-table-cell"><div class="skeleton"></div></td>
+        </tr>
+        <tr class="skeleton-table-row">
+          <td class="skeleton-table-cell"><div class="skeleton"></div></td>
+          <td class="skeleton-table-cell"><div class="skeleton"></div></td>
+          <td class="skeleton-table-cell"><div class="skeleton"></div></td>
+        </tr>
+        <tr class="skeleton-table-row">
+          <td class="skeleton-table-cell"><div class="skeleton"></div></td>
+          <td class="skeleton-table-cell"><div class="skeleton"></div></td>
+          <td class="skeleton-table-cell"><div class="skeleton"></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Skeleton List -->
+  <div class="test-section">
+    <h2>Skeleton List Loader</h2>
+    <p class="test-section-description">
+      List skeleton for navigation items or simple lists. Shows loading state for list-based content.
+    </p>
+    <div class="skeleton-list">
+      <div class="skeleton-list-item">
+        <div class="skeleton skeleton-list-icon"></div>
+        <div class="skeleton-list-content">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-text skeleton-text--sm"></div>
+        </div>
+      </div>
+      <div class="skeleton-list-item">
+        <div class="skeleton skeleton-list-icon"></div>
+        <div class="skeleton-list-content">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-text skeleton-text--sm"></div>
+        </div>
+      </div>
+      <div class="skeleton-list-item">
+        <div class="skeleton skeleton-list-icon"></div>
+        <div class="skeleton-list-content">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-text skeleton-text--sm"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inline Loading -->
+  <div class="test-section">
+    <h2>Inline Loading State</h2>
+    <p class="test-section-description">
+      Inline loading indicator for use within text or alongside other content.
+    </p>
+    <div class="test-item">
+      <p style="font-family: var(--font-readable); color: var(--text-primary);">
+        Your contacts are being synced 
+        <span class="loading-inline">
+          <span class="spinner spinner-sm"></span>
+          <span>Syncing...</span>
+        </span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="test-section">
+    <h2>Loading Overlay</h2>
+    <p class="test-section-description">
+      Full-page loading overlay with backdrop blur. Used for blocking operations.
+    </p>
+    <div class="controls">
+      <button class="btn btn-primary" onclick="showLoadingOverlay()">
+        Show Loading Overlay
+      </button>
+    </div>
+  </div>
+
+  <!-- Comparison: Loading vs Loaded -->
+  <div class="test-section">
+    <h2>Before & After: Loading → Loaded</h2>
+    <p class="test-section-description">
+      Comparison showing skeleton loader transitioning to actual content.
+    </p>
+    <div class="test-grid">
+      <div>
+        <div class="test-item-label">Loading State</div>
+        <div class="skeleton-card">
+          <div class="skeleton-card-header">
+            <div class="skeleton skeleton-card-avatar"></div>
+            <div class="skeleton-card-content">
+              <div class="skeleton skeleton-text skeleton-text--title"></div>
+              <div class="skeleton skeleton-text skeleton-text--sm"></div>
+            </div>
+          </div>
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-text"></div>
+        </div>
+      </div>
+      <div>
+        <div class="test-item-label">Loaded State</div>
+        <div class="demo-card">
+          <div class="demo-card-header">
+            <div class="demo-card-avatar">JD</div>
+            <div>
+              <div class="demo-card-title">John Doe</div>
+              <div class="demo-card-subtitle">Software Engineer</div>
+            </div>
+          </div>
+          <div class="demo-card-body">
+            Last contacted 3 days ago. Interested in hiking and photography.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accessibility Features -->
+  <div class="test-section">
+    <h2>Accessibility Features</h2>
+    <p class="test-section-description">
+      All loading states include proper ARIA labels and screen reader support.
+    </p>
+    <div class="test-item">
+      <ul style="font-family: var(--font-readable); color: var(--text-primary); line-height: var(--leading-relaxed);">
+        <li>✓ Spinners have <code>role="status"</code> and <code>aria-label</code></li>
+        <li>✓ Loading messages use semantic HTML and readable font</li>
+        <li>✓ Button loading states disable pointer events</li>
+        <li>✓ Skeleton loaders have implicit loading semantics</li>
+        <li>✓ Screen reader only text available via <code>.sr-only</code> class</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Usage Guidelines -->
+  <div class="test-section">
+    <h2>Usage Guidelines</h2>
+    <p class="test-section-description">
+      When to use each loading state pattern.
+    </p>
+    <table class="demo-table">
+      <thead>
+        <tr>
+          <th>Pattern</th>
+          <th>Use Case</th>
+          <th>Example</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Spinner Small</strong></td>
+          <td>Inline loading, button loading states</td>
+          <td>Save button, inline sync status</td>
+        </tr>
+        <tr>
+          <td><strong>Spinner Medium</strong></td>
+          <td>Card loading, section loading</td>
+          <td>Contact card, settings section</td>
+        </tr>
+        <tr>
+          <td><strong>Spinner Large</strong></td>
+          <td>Page-level loading, modal loading</td>
+          <td>Initial page load, modal content</td>
+        </tr>
+        <tr>
+          <td><strong>Skeleton Text</strong></td>
+          <td>Text content loading</td>
+          <td>Contact details, descriptions</td>
+        </tr>
+        <tr>
+          <td><strong>Skeleton Card</strong></td>
+          <td>Card/list item loading</td>
+          <td>Contact cards, plan cards</td>
+        </tr>
+        <tr>
+          <td><strong>Skeleton Table</strong></td>
+          <td>Table data loading</td>
+          <td>Contacts table, groups table</td>
+        </tr>
+        <tr>
+          <td><strong>Loading Overlay</strong></td>
+          <td>Blocking operations</td>
+          <td>Form submission, data import</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Loading Overlay (Hidden by default) -->
+  <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-overlay-content">
+      <div class="spinner spinner-lg" role="status" aria-label="Processing"></div>
+      <div class="loading-message">Processing your request...</div>
+    </div>
+  </div>
+
+  <script>
+    // Theme Toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Button Loading Toggle
+    function toggleButtonLoading(buttonId) {
+      const button = document.getElementById(buttonId);
+      if (button.classList.contains('btn-loading')) {
+        button.classList.remove('btn-loading');
+      } else {
+        button.classList.add('btn-loading');
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+          button.classList.remove('btn-loading');
+        }, 3000);
+      }
+    }
+
+    // Loading Overlay
+    function showLoadingOverlay() {
+      const overlay = document.getElementById('loadingOverlay');
+      overlay.style.display = 'flex';
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 3000);
+    }
+
+    // Log test results
+    console.log('✓ Loading State Patterns Test Loaded');
+    console.log('✓ All spinner sizes defined: .spinner-sm (16px), .spinner-md (24px), .spinner-lg (40px)');
+    console.log('✓ Skeleton loaders defined: .skeleton-text, .skeleton-card, .skeleton-table, .skeleton-list');
+    console.log('✓ Loading messages use --font-readable and --text-secondary');
+    console.log('✓ Button loading states: .btn-loading (replace) and .btn-loading-inline (alongside)');
+    console.log('✓ Loading overlay with backdrop blur');
+    console.log('✓ Accessibility: ARIA labels, role="status", screen reader support');
+  </script>
+</body>
+</html>

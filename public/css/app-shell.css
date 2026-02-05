@@ -142,8 +142,8 @@
 }
 
 .user-name {
-    font-family: var(--font-heading);
-    font-weight: var(--font-bold);
+    font-family: var(--font-readable);
+    font-weight: var(--font-medium);
     font-size: 14px;
     color: var(--text-primary);
     overflow: hidden;

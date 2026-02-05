@@ -2409,6 +2409,88 @@ Manually trigger a sync for Google Contacts or Calendar, bypassing circuit break
 
 ---
 
+#### Sync Status (Added 2026-02-04)
+
+Get the current status of a sync operation, primarily used during onboarding to show real-time progress.
+
+**Endpoint:** `GET /api/sync/status/:userId/:integrationType`
+
+**Authentication:** Required
+
+**URL Parameters:**
+- `userId` (required) - User ID
+- `integrationType` (required) - Either "google_contacts" or "google_calendar"
+
+**Response:** `200 OK`
+
+**When sync is in progress:**
+```json
+{
+  "status": "in_progress",
+  "itemsProcessed": 45,
+  "totalItems": null,
+  "startedAt": "2024-01-01T12:00:00Z"
+}
+```
+
+**When sync is completed:**
+```json
+{
+  "status": "completed",
+  "itemsProcessed": 127,
+  "totalItems": 127,
+  "startedAt": "2024-01-01T12:00:00Z",
+  "completedAt": "2024-01-01T12:00:25Z"
+}
+```
+
+**When sync has failed:**
+```json
+{
+  "status": "failed",
+  "itemsProcessed": 23,
+  "totalItems": null,
+  "errorMessage": "Token expired",
+  "startedAt": "2024-01-01T12:00:00Z",
+  "completedAt": "2024-01-01T12:00:15Z"
+}
+```
+
+**When no sync is running:**
+```json
+{
+  "status": "idle",
+  "lastSyncAt": "2024-01-01T11:00:00Z",
+  "nextSyncAt": "2024-01-01T13:00:00Z"
+}
+```
+
+**Status Values:**
+- `in_progress` - Sync is currently running
+- `completed` - Sync finished successfully
+- `failed` - Sync encountered an error
+- `idle` - No sync currently running
+
+**Use Cases:**
+- Onboarding progress UI (poll every 2 seconds)
+- Manual sync status monitoring
+- Debugging sync issues
+- User-facing sync status indicators
+
+**Behavior:**
+- Returns current sync status from in-memory store (Redis or memory)
+- Status is cleared after 5 minutes of completion/failure
+- Polling recommended at 2-second intervals during active sync
+- Stop polling when status is "completed" or "failed"
+
+**Error Responses:**
+- `400 Bad Request` - Invalid userId or integrationType
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - User does not have access to this integration
+- `404 Not Found` - Integration not connected
+
+---
+
 #### Calendar Webhook Notification
 
 Receive push notifications from Google Calendar when events change.
@@ -2491,6 +2573,21 @@ Get comprehensive sync health metrics across all users (admin only).
     "byWebhooks": 8900,
     "total": 13550
   },
+  "webhookHealth": {
+    "activeWebhooks": 480,
+    "silentFailures": 12,
+    "notificationRate24h": 25.5,
+    "failedNotificationPercentage": 2.3,
+    "lastNotificationTimestamps": [
+      {
+        "userId": "550e8400-e29b-41d4-a716-446655440000",
+        "email": "user@example.com",
+        "lastNotification": "2024-01-10T11:45:00Z",
+        "hoursSinceLastNotification": 0.25
+      }
+    ],
+    "automaticRecoveryAttempts": 8
+  },
   "persistentFailures": [
     {
       "userId": "550e8400-e29b-41d4-a716-446655440000",
@@ -2513,12 +2610,21 @@ Get comprehensive sync health metrics across all users (admin only).
 - `openCircuitBreakers` - Count of users with circuit breakers in open state
 - `syncSuccessRate24h` - Percentage of successful syncs in last 24 hours
 - `apiCallsSaved` - Estimated API calls saved by optimization features
+- `webhookHealth` - Webhook monitoring metrics (added 2026-02-04)
 - `persistentFailures` - Users with sync failures >7 days
 
 **API Calls Saved Calculation:**
 - `byCircuitBreaker` - Syncs skipped due to circuit breaker being open
 - `byAdaptiveScheduling` - Syncs skipped due to reduced frequency
 - `byWebhooks` - Polling syncs replaced by webhook notifications
+
+**Webhook Health Metrics (Added 2026-02-04):**
+- `activeWebhooks` - Number of users with active webhook subscriptions
+- `silentFailures` - Webhooks with no notifications received in >48 hours
+- `notificationRate24h` - Average notifications received per webhook per day
+- `failedNotificationPercentage` - Percentage of webhook notifications that failed processing
+- `lastNotificationTimestamps` - Most recent notification for each webhook (sorted by oldest first)
+- `automaticRecoveryAttempts` - Count of webhook re-registrations attempted by health check job
 
 **Error Responses:**
 - `401 Unauthorized` - Not authenticated

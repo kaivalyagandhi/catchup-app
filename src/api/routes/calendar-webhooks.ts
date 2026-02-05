@@ -11,6 +11,7 @@ import { Router, Request, Response } from 'express';
 import { calendarWebhookManager } from '../../integrations/calendar-webhook-manager';
 import { syncOrchestrator } from '../../integrations/sync-orchestrator';
 import { getToken } from '../../integrations/oauth-repository';
+import { trackNotificationEvent } from '../../integrations/webhook-health-repository';
 
 const router = Router();
 
@@ -58,11 +59,56 @@ router.post('/calendar', async (req: Request, res: Response) => {
     // Handle webhook notification
     // This validates channel_id and resource_id against database
     // Requirements: 6.7
-    const result = await calendarWebhookManager.handleWebhookNotification(
-      channelId,
-      resourceId,
-      resourceState
-    );
+    let result: { userId: string; shouldSync: boolean };
+    let notificationResult: 'success' | 'failure' | 'ignored' = 'success';
+    let errorMessage: string | undefined;
+
+    try {
+      result = await calendarWebhookManager.handleWebhookNotification(
+        channelId,
+        resourceId,
+        resourceState
+      );
+
+      // Determine notification result based on resource state
+      if (resourceState === 'sync') {
+        notificationResult = 'ignored'; // Initial confirmation
+      } else if (resourceState === 'exists') {
+        notificationResult = 'success'; // Valid change notification
+      } else {
+        notificationResult = 'ignored'; // Unknown state
+      }
+
+      // Log notification to webhook_notifications table
+      // Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "2. Webhook Failure Alerts"
+      await trackNotificationEvent({
+        userId: result.userId,
+        channelId,
+        resourceId,
+        resourceState,
+        result: notificationResult,
+      });
+    } catch (error) {
+      // Log failed notification
+      notificationResult = 'failure';
+      errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      console.error('[CalendarWebhook] Error handling webhook notification:', error);
+
+      // Try to log the failure (userId might not be available if validation failed)
+      try {
+        // Attempt to get userId from database by channel/resource
+        const subscription = await calendarWebhookManager.getWebhookStatus(''); // Will need userId
+        // For now, we'll skip logging if we can't get userId
+        // This is a rare case where the webhook is invalid
+      } catch (logError) {
+        console.error('[CalendarWebhook] Could not log failed notification:', logError);
+      }
+
+      // Respond immediately to Google (they expect 200 OK quickly)
+      res.status(200).json({ received: true });
+      return;
+    }
 
     // Respond immediately to Google (they expect 200 OK quickly)
     res.status(200).json({ received: true });

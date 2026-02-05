@@ -276,15 +276,17 @@ class AdaptiveSyncScheduler {
 ```typescript
 const SYNC_FREQUENCIES = {
   contacts: {
-    default: 3 * 24 * 60 * 60 * 1000,  // 3 days
-    min: 7 * 24 * 60 * 60 * 1000,      // 7 days
+    default: 7 * 24 * 60 * 60 * 1000,  // 7 days
+    min: 30 * 24 * 60 * 60 * 1000,     // 30 days
     max: 1 * 24 * 60 * 60 * 1000,      // 1 day
+    onboarding: 1 * 60 * 60 * 1000,    // 1 hour (first 24h)
   },
   calendar: {
-    default: 4 * 60 * 60 * 1000,       // 4 hours (with webhooks)
-    min: 4 * 60 * 60 * 1000,           // 4 hours
-    max: 1 * 60 * 60 * 1000,           // 1 hour
-    webhookFallback: 8 * 60 * 60 * 1000, // 8 hours (when webhook active)
+    default: 24 * 60 * 60 * 1000,      // 24 hours
+    min: 24 * 60 * 60 * 1000,          // 24 hours
+    max: 4 * 60 * 60 * 1000,           // 4 hours
+    webhookFallback: 12 * 60 * 60 * 1000, // 12 hours (when webhook active)
+    onboarding: 2 * 60 * 60 * 1000,    // 2 hours (first 24h)
   },
 };
 ```

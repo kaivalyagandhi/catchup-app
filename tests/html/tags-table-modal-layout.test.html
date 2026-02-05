@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tags Table Modal Layout Test</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <link rel="stylesheet" href="/css/tags-table.css">
+  <link rel="stylesheet" href="/css/contact-search-modal.css">
+  <style>
+    body {
+      padding: 20px;
+      background: var(--bg-app);
+    }
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .test-section {
+      margin-bottom: 40px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+    }
+    .test-section h2 {
+      font-family: var(--font-heading);
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+    .test-section p {
+      font-family: var(--font-readable);
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+    .test-button {
+      padding: 8px 16px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: var(--font-accent);
+      cursor: pointer;
+      margin-right: 8px;
+    }
+    .test-button:hover {
+      background: var(--accent-hover);
+    }
+    .checklist {
+      font-family: var(--font-readable);
+      color: var(--text-primary);
+      list-style: none;
+      padding: 0;
+    }
+    .checklist li {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .checklist li:last-child {
+      border-bottom: none;
+    }
+    .checklist li::before {
+      content: '☐ ';
+      margin-right: 8px;
+      color: var(--text-tertiary);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1 style="font-family: var(--font-heading); color: var(--text-primary); margin-bottom: 24px;">
+      Tags Table Modal Layout Test
+    </h1>
+
+    <div class="test-section">
+      <h2>Task 16.7: Add Contact to Tag Modal</h2>
+      <p>
+        This test verifies that the "Add Contact to Tag" modal in tags-table.js follows the standard modal layout pattern.
+      </p>
+      <button class="test-button" onclick="showTestModal()">Show Add Contact Modal</button>
+    </div>
+
+    <div class="test-section">
+      <h2>Verification Checklist</h2>
+      <p>After opening the modal, verify the following:</p>
+      <ul class="checklist">
+        <li><strong>Modal Size:</strong> Modal content has .modal-md class (600px width)</li>
+        <li><strong>Header Layout:</strong> Title on left, close button (✕) on right</li>
+        <li><strong>Header Typography:</strong> Title uses .modal-title class with --font-heading</li>
+        <li><strong>Header Spacing:</strong> Flexbox with justify-content: space-between</li>
+        <li><strong>Close Button:</strong> Has .modal-close class, positioned on right</li>
+        <li><strong>Body Content:</strong> Search input and results container</li>
+        <li><strong>Body Typography:</strong> Uses --font-readable for functional text</li>
+        <li><strong>No Footer:</strong> Modal has no footer (inline "Add" buttons per contact)</li>
+        <li><strong>Overlay:</strong> Dark overlay with blur effect</li>
+        <li><strong>Responsive:</strong> Modal adapts to smaller screens</li>
+      </ul>
+    </div>
+
+    <div class="test-section">
+      <h2>Expected Modal Structure</h2>
+      <pre style="font-family: var(--font-readable); background: var(--bg-secondary); padding: 16px; border-radius: var(--radius-md); overflow-x: auto;">
+&lt;div class="contact-search-modal"&gt;
+  &lt;div class="modal-overlay"&gt;&lt;/div&gt;
+  &lt;div class="modal-content modal-md"&gt;
+    &lt;div class="modal-header"&gt;
+      &lt;h3 class="modal-title"&gt;Add Contact to [Tag Name]&lt;/h3&gt;
+      &lt;button class="modal-close"&gt;✕&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div class="modal-body"&gt;
+      &lt;input class="contact-search-input" /&gt;
+      &lt;div class="contact-search-results"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre>
+    </div>
+
+    <div class="test-section">
+      <h2>Comparison with Groups Table Modal (Task 16.6)</h2>
+      <p>
+        The tags-table.js modal should match the pattern from groups-table.js:
+      </p>
+      <ul class="checklist">
+        <li>Same .modal-md size class (600px)</li>
+        <li>Same header layout with .modal-title class</li>
+        <li>Same .modal-close button styling</li>
+        <li>Same body structure with search and results</li>
+        <li>No footer (inline action buttons)</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Mock data for testing
+    const mockTag = {
+      id: 'tag-1',
+      text: 'Test Tag'
+    };
+
+    const mockContacts = [
+      { id: '1', name: 'Alice Johnson', email: 'alice@example.com', phone: '555-0101' },
+      { id: '2', name: 'Bob Smith', email: 'bob@example.com', phone: '555-0102' },
+      { id: '3', name: 'Carol Williams', email: 'carol@example.com', phone: '555-0103' },
+      { id: '4', name: 'David Brown', email: 'david@example.com', phone: '555-0104' },
+      { id: '5', name: 'Eve Davis', email: 'eve@example.com', phone: '555-0105' }
+    ];
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showTestModal() {
+      // Create modal (matching tags-table.js implementation)
+      const modal = document.createElement('div');
+      modal.className = 'contact-search-modal';
+      modal.innerHTML = `
+        <div class="modal-overlay"></div>
+        <div class="modal-content modal-md">
+          <div class="modal-header">
+            <h3 class="modal-title">Add Contact to ${escapeHtml(mockTag.text)}</h3>
+            <button class="modal-close" title="Close">✕</button>
+          </div>
+          <div class="modal-body">
+            <input type="text" class="contact-search-input" placeholder="Search contacts..." autofocus />
+            <div class="contact-search-results"></div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+
+      const searchInput = modal.querySelector('.contact-search-input');
+      const resultsContainer = modal.querySelector('.contact-search-results');
+      const closeBtn = modal.querySelector('.modal-close');
+      const overlay = modal.querySelector('.modal-overlay');
+
+      // Render initial results
+      const renderResults = (query = '') => {
+        const filtered = query
+          ? mockContacts.filter(c => 
+              c.name.toLowerCase().includes(query.toLowerCase()) ||
+              (c.email && c.email.toLowerCase().includes(query.toLowerCase())) ||
+              (c.phone && c.phone.includes(query))
+            )
+          : mockContacts;
+
+        if (filtered.length === 0) {
+          resultsContainer.innerHTML = '<div class="no-results">No contacts found</div>';
+          return;
+        }
+
+        resultsContainer.innerHTML = filtered.map(contact => `
+          <div class="contact-result-item" data-contact-id="${contact.id}">
+            <div class="contact-result-info">
+              <div class="contact-result-name">${escapeHtml(contact.name)}</div>
+              <div class="contact-result-details">
+                ${contact.email ? escapeHtml(contact.email) : ''}
+                ${contact.email && contact.phone ? ' • ' : ''}
+                ${contact.phone ? escapeHtml(contact.phone) : ''}
+              </div>
+            </div>
+            <button class="btn-select-contact" data-contact-id="${contact.id}">Add</button>
+          </div>
+        `).join('');
+
+        // Attach click handlers
+        resultsContainer.querySelectorAll('.btn-select-contact').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const contactId = e.target.dataset.contactId;
+            const contact = mockContacts.find(c => c.id === contactId);
+            alert(`Would add contact "${contact.name}" to tag "${mockTag.text}"`);
+            modal.remove();
+          });
+        });
+      };
+
+      renderResults();
+
+      // Search input handler
+      searchInput.addEventListener('input', (e) => {
+        renderResults(e.target.value);
+      });
+
+      // Close handlers
+      const closeModal = () => modal.remove();
+      closeBtn.addEventListener('click', closeModal);
+      overlay.addEventListener('click', closeModal);
+
+      // ESC key to close
+      const handleEsc = (e) => {
+        if (e.key === 'Escape') {
+          closeModal();
+          document.removeEventListener('keydown', handleEsc);
+        }
+      };
+      document.addEventListener('keydown', handleEsc);
+
+      // Log modal structure for verification
+      console.log('Modal structure:');
+      console.log('- Modal content has .modal-md class:', modal.querySelector('.modal-content').classList.contains('modal-md'));
+      console.log('- Header has .modal-title class:', modal.querySelector('.modal-title') !== null);
+      console.log('- Close button has .modal-close class:', modal.querySelector('.modal-close') !== null);
+      console.log('- Modal has no footer:', modal.querySelector('.modal-footer') === null);
+    }
+
+    console.log('Tags Table Modal Layout Test loaded');
+    console.log('Click "Show Add Contact Modal" to test the modal layout');
+  </script>
+</body>
+</html>

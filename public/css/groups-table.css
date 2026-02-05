@@ -160,15 +160,15 @@
   gap: 8px;
   padding: 5px 13px;
   border-radius: 18px;
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--avatar-sand-bg);
+  color: var(--avatar-sand-text);
   font-weight: 500;
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px rgba(146, 64, 14, 0.1);
 }
 
 .expand-toggle:hover {
-  background: #fde68a;
+  background: var(--accent-subtle);
   transform: scale(1.05);
 }
 
@@ -240,11 +240,12 @@
   transform: scale(1.1);
 }
 
-/* Empty State */
+/* Empty State - Uses standard typography tokens */
 .groups-table .empty-state td {
   padding: 60px 20px;
   text-align: center;
   color: var(--text-tertiary);
+  font-family: var(--font-readable);
   font-size: 15px;
 }
 
@@ -350,16 +351,16 @@
 /* Dark Mode Support (Espresso) */
 [data-theme="dark"] {
   .expand-toggle {
-    background: rgba(245, 158, 11, 0.15);
-    color: #DFA895;
+    background: var(--accent-subtle);
+    color: var(--accent-primary);
   }
 
   .expand-toggle:hover {
-    background: rgba(245, 158, 11, 0.25);
+    background: var(--accent-hover);
   }
 
   .btn-delete:hover {
-    background-color: #7f1d1d;
+    background-color: var(--status-error);
   }
 }
 
@@ -437,15 +438,7 @@
   }
 }
 
-.modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(28, 25, 23, 0.4);
-  backdrop-filter: blur(4px);
-}
+/* Modal overlay styles now use the standard .modal-overlay class from stone-clay-theme.css */
 
 .modal-content {
   position: relative;
@@ -602,7 +595,7 @@
 /* Dark Mode Support for Modal - Espresso theme uses CSS variables */
 [data-theme="dark"] {
   .btn-remove-contact:hover {
-    background-color: #7f1d1d;
+    background-color: var(--status-error);
   }
 }
 
@@ -1016,22 +1009,20 @@
 }
 
 /* Dark Theme Support (Espresso) */
-@media (prefers-color-scheme: dark) {
-  .reviewed-groups-section {
-    background: var(--bg-secondary);
-    border-color: var(--border-subtle);
-  }
+[data-theme="dark"] .reviewed-groups-section {
+  background: var(--bg-secondary);
+  border-color: var(--border-subtle);
+}
 
-  .reviewed-groups-header:hover {
-    background: var(--bg-hover);
-  }
+[data-theme="dark"] .reviewed-groups-header:hover {
+  background: var(--bg-hover);
+}
 
-  .reviewed-mapping {
-    background: var(--bg-surface);
-    border-color: var(--border-subtle);
-  }
+[data-theme="dark"] .reviewed-mapping {
+  background: var(--bg-surface);
+  border-color: var(--border-subtle);
+}
 
-  .reviewed-mapping:hover {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
+[data-theme="dark"] .reviewed-mapping:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }

@@ -236,19 +236,17 @@
 }
 
 /* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .completion-status.incomplete {
-    background: linear-gradient(135deg, #2d3436 0%, #1e272e 100%);
-    color: #dfe6e9;
-  }
+[data-theme="dark"] .completion-status.incomplete {
+  background: linear-gradient(135deg, #2d3436 0%, #1e272e 100%);
+  color: #dfe6e9;
+}
 
-  .indicator-message {
-    color: #2d3436;
-  }
+[data-theme="dark"] .indicator-message {
+  color: #2d3436;
+}
 
-  .progress-bar {
-    background: rgba(255, 255, 255, 0.1);
-  }
+[data-theme="dark"] .progress-bar {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Accessibility */

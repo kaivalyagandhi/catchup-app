@@ -96,3 +96,18 @@ export interface AdaptiveSyncResult {
   syncsSkipped: number;
   errors: string[];
 }
+
+export interface WebhookHealthCheckJobData {
+  // No data needed - processes all webhooks
+}
+
+export interface WebhookHealthCheckResult {
+  totalWebhooks: number;
+  staleWebhooks: number;
+  expiringWebhooks: number;
+  reregistrationAttempts: number;
+  reregistrationSuccesses: number;
+  reregistrationFailures: number;
+  alerts: string[];
+  errors: string[];
+}

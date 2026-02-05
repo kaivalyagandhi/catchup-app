@@ -13,6 +13,11 @@ import { getOAuth2Client } from './google-calendar-config';
 import pool from '../db/connection';
 import crypto from 'crypto';
 import { adaptiveSyncScheduler } from './adaptive-sync-scheduler';
+import {
+  calculateWebhookFailureRate,
+  isFailureRateHigh,
+  getRecentWebhookFailures,
+} from './webhook-metrics-service';
 
 /**
  * Webhook subscription details
@@ -72,76 +77,142 @@ export class CalendarWebhookManager {
    * Calls Google Calendar API watch endpoint to register push notifications.
    * Generates unique channel_id and verification token.
    * Stores subscription in database.
+   * Retries up to 3 times on failure with exponential backoff.
    *
    * Requirements: 6.1, 6.6
    */
   async registerWebhook(
     userId: string,
     accessToken: string,
-    refreshToken?: string
+    refreshToken?: string,
+    maxRetries: number = 3
   ): Promise<WebhookSubscription> {
     console.log(`[CalendarWebhookManager] Registering webhook for user ${userId}`);
 
-    try {
-      // Generate unique channel ID and verification token
-      const channelId = `calendar-${userId}-${crypto.randomBytes(8).toString('hex')}`;
-      const verificationToken = crypto.randomBytes(32).toString('hex');
+    let lastError: Error | null = null;
 
-      // Set up OAuth client
-      const oauth2Client = getOAuth2Client({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
+    // Retry up to maxRetries times with exponential backoff
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(
+          `[CalendarWebhookManager] Webhook registration attempt ${attempt}/${maxRetries} for user ${userId}`
+        );
 
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+        // Attempt webhook registration
+        const subscription = await this.attemptWebhookRegistration(
+          userId,
+          accessToken,
+          refreshToken
+        );
 
-      // Register webhook with Google Calendar API
-      // Watch the primary calendar for changes
-      const response = await calendar.events.watch({
-        calendarId: 'primary',
-        requestBody: {
-          id: channelId,
-          type: 'web_hook',
-          address: this.webhookUrl,
-          token: verificationToken,
-          // Expiration is set by Google (typically 7 days)
-        },
-      });
+        // Log successful registration
+        await this.logWebhookEvent(userId, 'registration_success', {
+          attempt,
+          channelId: subscription.channelId,
+        });
 
-      if (!response.data.id || !response.data.resourceId || !response.data.expiration) {
-        throw new Error('Invalid webhook registration response from Google');
+        console.log(
+          `[CalendarWebhookManager] Webhook registered successfully on attempt ${attempt} for user ${userId}`
+        );
+
+        // Requirement 6.3: Set calendar polling to 12 hours when webhook is active
+        await adaptiveSyncScheduler.setWebhookFallbackFrequency(userId);
+
+        return subscription;
+      } catch (error) {
+        lastError = error as Error;
+
+        // Log failed attempt
+        await this.logWebhookEvent(userId, 'registration_failure', {
+          attempt,
+          error: lastError.message,
+        });
+
+        console.error(
+          `[CalendarWebhookManager] Webhook registration attempt ${attempt}/${maxRetries} failed for user ${userId}:`,
+          lastError.message
+        );
+
+        // Wait before retry with exponential backoff (2s, 4s, 8s)
+        if (attempt < maxRetries) {
+          const delayMs = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+          console.log(
+            `[CalendarWebhookManager] Waiting ${delayMs}ms before retry ${attempt + 1} for user ${userId}`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
       }
-
-      // Parse expiration (Google returns milliseconds since epoch)
-      const expiration = new Date(parseInt(response.data.expiration));
-
-      // Store subscription in database
-      const subscription = await this.storeWebhookSubscription({
-        userId,
-        channelId: response.data.id,
-        resourceId: response.data.resourceId,
-        resourceUri: response.data.resourceUri || '',
-        expiration,
-        token: verificationToken,
-      });
-
-      console.log(
-        `[CalendarWebhookManager] Webhook registered successfully for user ${userId}, ` +
-          `channel ${channelId}, expires ${expiration.toISOString()}`
-      );
-
-      // Requirement 6.3: Set calendar polling to 8 hours when webhook is active
-      await adaptiveSyncScheduler.setWebhookFallbackFrequency(userId);
-
-      return subscription;
-    } catch (error) {
-      console.error(`[CalendarWebhookManager] Failed to register webhook for user ${userId}:`, error);
-      
-      // Requirement 6.5: Fall back to polling at 4-hour frequency when webhook registration fails
-      await adaptiveSyncScheduler.restoreNormalPollingFrequency(userId);
-      
-      throw error;
     }
+
+    // All retries failed - fall back to polling
+    console.error(
+      `[CalendarWebhookManager] Webhook registration failed after ${maxRetries} attempts for user ${userId}, falling back to polling`
+    );
+
+    // Requirement 6.5: Fall back to polling at 4-hour frequency when webhook registration fails
+    await adaptiveSyncScheduler.restoreNormalPollingFrequency(userId);
+
+    throw new Error(
+      `Webhook registration failed after ${maxRetries} attempts: ${lastError?.message}`
+    );
+  }
+
+  /**
+   * Internal method to attempt webhook registration (single attempt)
+   */
+  private async attemptWebhookRegistration(
+    userId: string,
+    accessToken: string,
+    refreshToken?: string
+  ): Promise<WebhookSubscription> {
+    // Generate unique channel ID and verification token
+    const channelId = `calendar-${userId}-${crypto.randomBytes(8).toString('hex')}`;
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+
+    // Set up OAuth client
+    const oauth2Client = getOAuth2Client({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+    // Register webhook with Google Calendar API
+    // Watch the primary calendar for changes
+    const response = await calendar.events.watch({
+      calendarId: 'primary',
+      requestBody: {
+        id: channelId,
+        type: 'web_hook',
+        address: this.webhookUrl,
+        token: verificationToken,
+        // Expiration is set by Google (typically 7 days)
+      },
+    });
+
+    if (!response.data.id || !response.data.resourceId || !response.data.expiration) {
+      throw new Error('Invalid webhook registration response from Google');
+    }
+
+    // Parse expiration (Google returns milliseconds since epoch)
+    const expiration = new Date(parseInt(response.data.expiration));
+
+    // Store subscription in database
+    const subscription = await this.storeWebhookSubscription({
+      userId,
+      channelId: response.data.id,
+      resourceId: response.data.resourceId,
+      resourceUri: response.data.resourceUri || '',
+      expiration,
+      token: verificationToken,
+    });
+
+    console.log(
+      `[CalendarWebhookManager] Webhook registered successfully for user ${userId}, ` +
+        `channel ${channelId}, expires ${expiration.toISOString()}`
+    );
+
+    return subscription;
   }
 
   /**
@@ -206,6 +277,108 @@ export class CalendarWebhookManager {
     } catch (error) {
       console.error('[CalendarWebhookManager] Error handling webhook notification:', error);
       throw error;
+    } finally {
+      // Track webhook failure rate after each notification
+      // This runs asynchronously and doesn't block the response
+      this.trackWebhookFailureRate().catch((error) => {
+        console.error('[CalendarWebhookManager] Error tracking webhook failure rate:', error);
+      });
+    }
+  }
+
+  /**
+   * Log webhook event (registration success/failure)
+   *
+   * Logs webhook registration events to webhook_notifications table
+   * for monitoring and troubleshooting.
+   *
+   * Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "3. Webhook Registration Retry Logic"
+   */
+  private async logWebhookEvent(
+    userId: string,
+    eventType: 'registration_success' | 'registration_failure',
+    metadata: {
+      attempt: number;
+      channelId?: string;
+      error?: string;
+    }
+  ): Promise<void> {
+    try {
+      // Map event type to result
+      const result = eventType === 'registration_success' ? 'success' : 'failure';
+
+      // Log to webhook_notifications table
+      await pool.query(
+        `INSERT INTO webhook_notifications 
+         (user_id, channel_id, resource_id, resource_state, result, error_message)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          userId,
+          metadata.channelId || `attempt-${metadata.attempt}`,
+          eventType, // Use event type as resource_id for registration events
+          `registration_attempt_${metadata.attempt}`,
+          result,
+          metadata.error || null,
+        ]
+      );
+
+      console.log(
+        `[CalendarWebhookManager] Logged webhook event: ${eventType} for user ${userId}, attempt ${metadata.attempt}`
+      );
+    } catch (error) {
+      // Don't throw - logging failures shouldn't break webhook registration
+      console.error('[CalendarWebhookManager] Error logging webhook event:', error);
+    }
+  }
+
+  /**
+   * Track webhook failure rate and send admin alert if threshold exceeded
+   *
+   * Calculates webhook failure rate over last 24 hours.
+   * If failure rate exceeds 5%, sends admin alert with details.
+   *
+   * Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "2. Webhook Failure Alerts"
+   */
+  private async trackWebhookFailureRate(): Promise<void> {
+    try {
+      // Calculate failure rate over last 24 hours
+      const metrics = await calculateWebhookFailureRate(24);
+
+      // Check if failure rate exceeds 5% threshold
+      if (isFailureRateHigh(metrics, 5)) {
+        // Get recent failures for context
+        const recentFailures = await getRecentWebhookFailures(5, 24);
+
+        // Log admin alert
+        const alert = {
+          type: 'webhook_high_failure_rate',
+          severity: 'warning',
+          message: `Webhook failure rate is ${metrics.failureRate.toFixed(1)}% (threshold: 5%)`,
+          metrics: {
+            successCount: metrics.successCount,
+            failureCount: metrics.failureCount,
+            ignoredCount: metrics.ignoredCount,
+            totalCount: metrics.totalCount,
+            failureRate: metrics.failureRate,
+            timeWindowHours: metrics.timeWindowHours,
+          },
+          recentFailures: recentFailures.map((f) => ({
+            userId: f.userId,
+            channelId: f.channelId,
+            errorMessage: f.errorMessage,
+            createdAt: f.createdAt,
+          })),
+          timestamp: new Date(),
+        };
+
+        console.error('[CalendarWebhookManager] ADMIN ALERT:', JSON.stringify(alert, null, 2));
+
+        // TODO: Send alert via notification service when available
+        // await notificationService.sendAdminAlert(alert);
+      }
+    } catch (error) {
+      console.error('[CalendarWebhookManager] Error tracking webhook failure rate:', error);
+      // Don't throw - this is a monitoring function and shouldn't break webhook handling
     }
   }
 

@@ -43,6 +43,7 @@ import schedulingPreferencesRouter from './routes/scheduling-preferences';
 import schedulingNotificationsRouter from './routes/scheduling-notifications';
 import calendarWebhooksRouter from './routes/calendar-webhooks';
 import manualSyncRouter from './routes/manual-sync';
+import syncStatusRouter from './routes/sync-status';
 import adminSyncHealthRouter from './routes/admin-sync-health';
 import jobMonitoringRouter from './routes/job-monitoring';
 import { apiRateLimiter } from '../utils/rate-limiter';
@@ -173,6 +174,7 @@ export function createServer(): Express {
 
   // Manual sync routes (Google Sync Optimization feature)
   app.use('/api/sync', manualSyncRouter);
+  app.use('/api/sync', syncStatusRouter);
 
   // Admin routes (protected by requireAdmin middleware)
   app.use('/api/admin', adminSyncHealthRouter);

@@ -23,19 +23,7 @@
   margin: 0 auto;
 }
 
-.scheduling-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-6);
-}
-
-.scheduling-header h2 {
-  font-size: var(--text-2xl);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
-  margin: 0;
-}
+/* Note: Page header now uses standard .page-header class from stone-clay-theme.css */
 
 /* ============================================================================
    SCHEDULING CONTROLS
@@ -313,6 +301,7 @@
 
 /* ============================================================================
    EMPTY STATE
+   Uses standard empty state component from stone-clay-theme.css
    ============================================================================ */
 
 .empty-state {
@@ -332,12 +321,14 @@
 }
 
 .empty-state h3 {
+  font-family: var(--font-accent);
   font-size: var(--text-xl);
   color: var(--text-primary);
   margin: 0 0 var(--space-2) 0;
 }
 
 .empty-state p {
+  font-family: var(--font-readable);
   font-size: var(--text-sm);
   margin: 0;
 }
@@ -413,6 +404,7 @@
 }
 
 .empty-state-welcome h3 {
+  font-family: var(--font-accent);
   font-size: var(--text-2xl);
   font-weight: var(--font-bold);
   color: var(--text-primary);
@@ -420,6 +412,7 @@
 }
 
 .empty-state-description {
+  font-family: var(--font-readable);
   font-size: var(--text-base) !important;
   color: var(--text-secondary);
   line-height: var(--leading-relaxed);
@@ -521,11 +514,13 @@
 }
 
 .empty-state-filtered h3 {
+  font-family: var(--font-accent);
   font-size: var(--text-lg);
   margin-bottom: var(--space-2);
 }
 
 .empty-state-filtered p {
+  font-family: var(--font-readable);
   font-size: var(--text-sm);
   color: var(--text-secondary);
   margin-bottom: var(--space-5);
@@ -748,11 +743,7 @@
    PLAN CREATION MODAL
    ============================================================================ */
 
-.plan-creation-modal .modal-content {
-  max-width: 700px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
+/* Note: Modal uses standard .modal-lg class (800px) for consistent sizing */
 
 .plan-creation-content {
   padding: 0;
@@ -1865,15 +1856,7 @@
     padding: var(--space-4);
   }
 
-  .scheduling-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-3);
-  }
-
-  .scheduling-header h2 {
-    font-size: var(--text-xl);
-  }
+  /* Note: Page header responsive styles now in stone-clay-theme.css */
 
   .scheduling-controls {
     flex-direction: column;
@@ -2604,22 +2587,13 @@
 
 /* ============================================================================
    SCHEDULING HEADER ACTIONS
+   Note: Now using standard .page-header-actions from stone-clay-theme.css
    ============================================================================ */
 
-.scheduling-header-actions {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-}
-
-.scheduling-header-actions .btn-secondary {
+/* Additional styling for notification panel in header */
+#notification-panel-container {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-}
-
-.scheduling-header-actions .btn-secondary .material-icons {
-  font-size: 18px;
 }
 
 /* ============================================================================
@@ -2678,16 +2652,7 @@
 
 /* Responsive adjustments for preferences modal */
 @media (max-width: 768px) {
-  .scheduling-header-actions {
-    flex-direction: column;
-    gap: var(--space-2);
-    width: 100%;
-  }
-  
-  .scheduling-header-actions button {
-    width: 100%;
-    justify-content: center;
-  }
+  /* Note: Page header actions responsive styles now in stone-clay-theme.css */
   
   .preferences-modal .modal-content {
     max-width: 100%;
@@ -2702,15 +2667,7 @@
    Requirements: 8.5, 8.6
    ============================================================================ */
 
-.scheduling-header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.scheduling-header-left h2 {
-  margin: 0;
-}
+/* Note: .scheduling-header-left removed - now using standard .page-header layout */
 
 /* Privacy Indicator - Clickable */
 .privacy-indicator {
@@ -2725,6 +2682,7 @@
   color: var(--text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast);
+  margin-top: var(--space-2); /* Space below title */
 }
 
 .privacy-indicator:hover {
@@ -4360,8 +4318,8 @@
 }
 
 .btn-danger:hover {
-  background: var(--status-error-dark, #dc2626);
-  border-color: var(--status-error-dark, #dc2626);
+  background: var(--status-error);
+  border-color: var(--status-error);
 }
 
 .btn-danger:disabled {
@@ -5111,15 +5069,15 @@
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-4);
-  background: var(--status-error-bg, rgba(239, 68, 68, 0.1));
-  border: 1px solid var(--status-error, #ef4444);
+  background: var(--status-error-bg);
+  border: 1px solid var(--status-error);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-4);
 }
 
 .error-banner .error-icon {
   flex-shrink: 0;
-  color: var(--status-error, #ef4444);
+  color: var(--status-error);
 }
 
 .error-banner .error-icon .material-icons {
@@ -5133,7 +5091,7 @@
 .error-banner .error-title {
   font-size: var(--text-sm);
   font-weight: var(--font-bold);
-  color: var(--status-error, #ef4444);
+  color: var(--status-error);
   margin: 0 0 var(--space-1) 0;
 }
 
@@ -5154,7 +5112,7 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
-  background: var(--status-error, #ef4444);
+  background: var(--status-error);
   border: none;
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
@@ -5165,7 +5123,8 @@
 }
 
 .error-banner .btn-retry:hover {
-  background: var(--status-error-hover, #dc2626);
+  background: var(--status-error);
+  opacity: 0.9;
 }
 
 .error-banner .btn-retry .material-icons {
@@ -5193,10 +5152,10 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  background: var(--status-error-bg, rgba(239, 68, 68, 0.1));
+  background: var(--status-error-bg);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
-  color: var(--status-error, #ef4444);
+  color: var(--status-error);
 }
 
 .error-inline .material-icons {
@@ -5215,7 +5174,7 @@
 
 .error-state .error-icon {
   font-size: 64px;
-  color: var(--status-error, #ef4444);
+  color: var(--status-error);
   margin-bottom: var(--space-4);
 }
 
@@ -5375,35 +5334,35 @@
 
 /* Toast Variants */
 .toast-success {
-  border-left: 4px solid var(--status-success, #10b981);
+  border-left: 4px solid var(--status-success);
 }
 
 .toast-success .toast-icon {
-  color: var(--status-success, #10b981);
+  color: var(--status-success);
 }
 
 .toast-error {
-  border-left: 4px solid var(--status-error, #ef4444);
+  border-left: 4px solid var(--status-error);
 }
 
 .toast-error .toast-icon {
-  color: var(--status-error, #ef4444);
+  color: var(--status-error);
 }
 
 .toast-warning {
-  border-left: 4px solid var(--status-warning, #f59e0b);
+  border-left: 4px solid var(--status-warning);
 }
 
 .toast-warning .toast-icon {
-  color: var(--status-warning, #f59e0b);
+  color: var(--status-warning);
 }
 
 .toast-info {
-  border-left: 4px solid var(--status-info, #3b82f6);
+  border-left: 4px solid var(--status-info);
 }
 
 .toast-info .toast-icon {
-  color: var(--status-info, #3b82f6);
+  color: var(--status-info);
 }
 
 /* ============================================================================
@@ -5888,32 +5847,7 @@
 
 /* Extra small screens (320px - 480px) */
 @media (max-width: 480px) {
-  /* Scheduling page header */
-  .scheduling-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-3);
-  }
-  
-  .scheduling-header-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-2);
-  }
-  
-  .scheduling-header h2 {
-    font-size: var(--text-lg);
-  }
-  
-  .scheduling-header-actions {
-    flex-direction: column;
-    width: 100%;
-  }
-  
-  .scheduling-header-actions button {
-    width: 100%;
-    justify-content: center;
-  }
+  /* Note: Page header responsive styles now in stone-clay-theme.css */
   
   /* Controls stack vertically */
   .scheduling-controls {
@@ -6418,9 +6352,7 @@
     padding: var(--space-2);
   }
   
-  .scheduling-header h2 {
-    font-size: var(--text-base);
-  }
+  /* Note: Page header responsive styles now in stone-clay-theme.css */
   
   .scheduling-controls {
     padding: var(--space-2);
@@ -6500,9 +6432,7 @@
     padding: var(--space-3);
   }
   
-  .scheduling-header {
-    margin-bottom: var(--space-3);
-  }
+  /* Note: Page header responsive styles now in stone-clay-theme.css */
   
   .scheduling-controls {
     margin-bottom: var(--space-3);
@@ -6566,7 +6496,7 @@
 
 @media print {
   .scheduling-controls,
-  .scheduling-header-actions,
+  .page-header-actions,
   .plan-actions,
   .dashboard-actions,
   .modal-footer,
@@ -6589,7 +6519,7 @@
 
 /* Plan Card - Individual vs Group distinction */
 .plan-card.individual-plan {
-  border-left: 4px solid var(--accent-secondary, #8b5cf6);
+  border-left: 4px solid var(--accent-secondary);
 }
 
 .plan-card.group-plan {
@@ -6623,7 +6553,7 @@
 }
 
 .plan-type-badge.individual .material-icons {
-  color: var(--accent-secondary, #8b5cf6);
+  color: var(--accent-secondary);
 }
 
 .plan-type-badge.group {
@@ -6631,7 +6561,7 @@
 }
 
 .plan-type-badge.group .material-icons {
-  color: var(--status-info, #3b82f6);
+  color: var(--status-info);
 }
 
 /* Individual Plan Banner in Plan Creation Modal */
@@ -6640,15 +6570,15 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4);
-  background: linear-gradient(135deg, var(--accent-subtle, rgba(139, 92, 246, 0.1)) 0%, var(--bg-secondary) 100%);
-  border: 1px solid var(--accent-secondary, #8b5cf6);
+  background: linear-gradient(135deg, var(--accent-subtle) 0%, var(--bg-secondary) 100%);
+  border: 1px solid var(--accent-secondary);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-5);
 }
 
 .individual-plan-banner .material-icons {
   font-size: 32px;
-  color: var(--accent-secondary, #8b5cf6);
+  color: var(--accent-secondary);
 }
 
 .individual-plan-banner .banner-content {
@@ -6678,8 +6608,8 @@
 
 /* Individual Plan Invite Links */
 .invite-links-container.individual-plan-links .invite-link-item {
-  background: var(--accent-subtle, rgba(139, 92, 246, 0.05));
-  border-color: var(--accent-secondary, #8b5cf6);
+  background: var(--accent-subtle);
+  border-color: var(--accent-secondary);
 }
 
 .invite-link-item.individual-link-item .invitee-info {
@@ -6709,7 +6639,7 @@
 
 .individual-plan-info .material-icons {
   font-size: 20px;
-  color: var(--accent-secondary, #8b5cf6);
+  color: var(--accent-secondary);
 }
 
 /* Simplified Legend for Individual Plans */

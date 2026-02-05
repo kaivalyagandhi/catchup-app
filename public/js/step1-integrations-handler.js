@@ -17,6 +17,10 @@ class Step1IntegrationsHandler {
     this.userId = userId;
     this.state = null;
     this.highlightedElements = [];
+    this.syncStatusComponents = {
+      contacts: null,
+      calendar: null
+    };
   }
   
   /**
@@ -149,8 +153,199 @@ class Step1IntegrationsHandler {
     window.addEventListener('google-calendar-error', this.handleConnectionError.bind(this));
     window.addEventListener('google-contacts-error', this.handleConnectionError.bind(this));
     
+    // Check for OAuth callback success in URL
+    this.checkOAuthCallback();
+    
     // Also check current connection status on page load
     this.checkCurrentConnectionStatus();
+  }
+  
+  /**
+   * Check for OAuth callback success and show sync status
+   * Requirements: SYNC_FREQUENCY_UPDATE_PLAN.md Priority 2
+   */
+  checkOAuthCallback() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Check for contacts OAuth success
+    if (urlParams.get('contacts_success') === 'true') {
+      this.showContactsSyncStatus();
+      
+      // Clean up URL
+      urlParams.delete('contacts_success');
+      const newUrl = window.location.pathname + 
+        (urlParams.toString() ? '?' + urlParams.toString() : '') + 
+        window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+    
+    // Check for calendar OAuth success
+    if (urlParams.get('calendar_success') === 'true') {
+      this.showCalendarSyncStatus();
+      
+      // Clean up URL
+      urlParams.delete('calendar_success');
+      const newUrl = window.location.pathname + 
+        (urlParams.toString() ? '?' + urlParams.toString() : '') + 
+        window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }
+  
+  /**
+   * Show sync status for Google Contacts
+   */
+  showContactsSyncStatus() {
+    // Find or create container for sync status
+    const contactsSection = document.querySelector('[data-integration="google-contacts"]') ||
+                           document.getElementById('google-contacts-section');
+    
+    if (!contactsSection) {
+      console.warn('Contacts section not found for sync status display');
+      return;
+    }
+    
+    // Create sync status container if it doesn't exist
+    let syncContainer = contactsSection.querySelector('.sync-status-container');
+    if (!syncContainer) {
+      syncContainer = document.createElement('div');
+      syncContainer.className = 'sync-status-container';
+      syncContainer.id = 'contacts-sync-status-container';
+      syncContainer.style.cssText = 'margin-top: 16px;';
+      
+      // Insert after the connect button or at the end of the section
+      const buttonContainer = contactsSection.querySelector('.card-actions') || contactsSection;
+      buttonContainer.appendChild(syncContainer);
+    }
+    
+    // Initialize sync status component
+    if (typeof OnboardingSyncStatus !== 'undefined') {
+      this.syncStatusComponents.contacts = new OnboardingSyncStatus('contacts-sync-status-container', {
+        integrationType: 'google_contacts',
+        integrationLabel: 'contacts',
+        pollInterval: 2000,
+        onComplete: (status) => {
+          console.log('Contacts sync complete:', status);
+          // Trigger the connected event
+          window.dispatchEvent(new CustomEvent('google-contacts-connected', {
+            detail: { itemsProcessed: status.itemsProcessed }
+          }));
+        },
+        onError: (status) => {
+          console.error('Contacts sync failed:', status);
+          // Show error with retry option
+          if (typeof showToast === 'function') {
+            showToast('Contacts sync failed. Please try again.', 'error');
+          }
+        },
+        onRetry: () => {
+          console.log('Retrying contacts sync...');
+          this.triggerManualSync('google_contacts');
+        }
+      });
+      
+      // Start tracking sync status
+      this.syncStatusComponents.contacts.start(this.userId);
+    } else {
+      console.error('OnboardingSyncStatus class not found. Make sure onboarding-sync-status.js is loaded.');
+    }
+  }
+  
+  /**
+   * Show sync status for Google Calendar
+   */
+  showCalendarSyncStatus() {
+    // Find or create container for sync status
+    const calendarSection = document.querySelector('[data-integration="google-calendar"]') ||
+                           document.getElementById('google-calendar-section');
+    
+    if (!calendarSection) {
+      console.warn('Calendar section not found for sync status display');
+      return;
+    }
+    
+    // Create sync status container if it doesn't exist
+    let syncContainer = calendarSection.querySelector('.sync-status-container');
+    if (!syncContainer) {
+      syncContainer = document.createElement('div');
+      syncContainer.className = 'sync-status-container';
+      syncContainer.id = 'calendar-sync-status-container';
+      syncContainer.style.cssText = 'margin-top: 16px;';
+      
+      // Insert after the connect button or at the end of the section
+      const buttonContainer = calendarSection.querySelector('.card-actions') || calendarSection;
+      buttonContainer.appendChild(syncContainer);
+    }
+    
+    // Initialize sync status component
+    if (typeof OnboardingSyncStatus !== 'undefined') {
+      this.syncStatusComponents.calendar = new OnboardingSyncStatus('calendar-sync-status-container', {
+        integrationType: 'google_calendar',
+        integrationLabel: 'calendar events',
+        pollInterval: 2000,
+        onComplete: (status) => {
+          console.log('Calendar sync complete:', status);
+          // Trigger the connected event
+          window.dispatchEvent(new CustomEvent('google-calendar-connected', {
+            detail: { itemsProcessed: status.itemsProcessed }
+          }));
+        },
+        onError: (status) => {
+          console.error('Calendar sync failed:', status);
+          // Show error with retry option
+          if (typeof showToast === 'function') {
+            showToast('Calendar sync failed. Please try again.', 'error');
+          }
+        },
+        onRetry: () => {
+          console.log('Retrying calendar sync...');
+          this.triggerManualSync('google_calendar');
+        }
+      });
+      
+      // Start tracking sync status
+      this.syncStatusComponents.calendar.start(this.userId);
+    } else {
+      console.error('OnboardingSyncStatus class not found. Make sure onboarding-sync-status.js is loaded.');
+    }
+  }
+  
+  /**
+   * Trigger manual sync for an integration
+   * @param {string} integrationType - 'google_contacts' or 'google_calendar'
+   */
+  async triggerManualSync(integrationType) {
+    try {
+      const response = await fetch(`${API_BASE}/sync/manual`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ integrationType })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Manual sync failed');
+      }
+      
+      const result = await response.json();
+      console.log('Manual sync triggered:', result);
+      
+      // Restart sync status tracking
+      if (integrationType === 'google_contacts' && this.syncStatusComponents.contacts) {
+        this.syncStatusComponents.contacts.start(this.userId);
+      } else if (integrationType === 'google_calendar' && this.syncStatusComponents.calendar) {
+        this.syncStatusComponents.calendar.start(this.userId);
+      }
+      
+    } catch (error) {
+      console.error('Failed to trigger manual sync:', error);
+      if (typeof showToast === 'function') {
+        showToast('Failed to retry sync. Please try again later.', 'error');
+      }
+    }
   }
   
   /**
@@ -504,6 +699,17 @@ class Step1IntegrationsHandler {
     window.removeEventListener('google-contacts-connected', this.handleContactsConnected);
     window.removeEventListener('google-calendar-error', this.handleConnectionError);
     window.removeEventListener('google-contacts-error', this.handleConnectionError);
+    
+    // Clean up sync status components
+    if (this.syncStatusComponents.contacts) {
+      this.syncStatusComponents.contacts.destroy();
+      this.syncStatusComponents.contacts = null;
+    }
+    
+    if (this.syncStatusComponents.calendar) {
+      this.syncStatusComponents.calendar.destroy();
+      this.syncStatusComponents.calendar = null;
+    }
     
     // Clear highlights
     this.clearAllHighlights();

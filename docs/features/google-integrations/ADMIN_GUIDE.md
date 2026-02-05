@@ -120,6 +120,39 @@ Shows estimated API calls saved by optimization features:
 - Sum of all optimization savings
 - Represents significant reduction in API usage
 
+#### 2.5. Webhook Health Metrics (Added 2026-02-04)
+
+Shows webhook health and reliability metrics:
+
+**Active Webhooks**
+- Number of users with active webhook subscriptions
+- Should match number of Calendar integrations
+
+**Webhooks with Silent Failures**
+- Webhooks with no notifications received in >48 hours
+- Indicates potential webhook issues
+- Automatic recovery attempted by health check job
+
+**Webhook Notification Rate (24h)**
+- Average notifications received per webhook per day
+- Healthy range: 5-50 notifications per day
+- Low rate may indicate silent failures
+
+**Failed Notification Percentage**
+- Percentage of webhook notifications that failed processing
+- Healthy range: <5%
+- High rate indicates processing issues
+
+**Last Notification Timestamps**
+- Shows most recent notification for each webhook
+- Helps identify stale webhooks
+- Sorted by oldest first
+
+**Automatic Recovery Attempts**
+- Count of webhook re-registrations attempted
+- Shows system's self-healing activity
+- High count may indicate persistent issues
+
 #### 3. Persistent Failures
 
 Lists users with sync failures lasting more than 7 days:
@@ -147,7 +180,7 @@ Lists users with sync failures lasting more than 7 days:
 
 #### 5. Auto-Refresh
 
-- Dashboard refreshes automatically every 5 minutes
+- Dashboard refreshes automatically daily (was 5 minutes)
 - Shows last refresh timestamp
 - Manual refresh button available
 
@@ -376,6 +409,110 @@ curl -X POST https://your-domain.com/api/webhooks/calendar \
 # Should return 200 OK or 404 (if channel not found)
 ```
 
+### Webhook Silent Failures (Added 2026-02-04)
+
+**Symptoms:**
+- Webhook registered but no notifications received
+- Calendar polling not reduced despite active webhook
+- No entries in webhook_notifications table for >48 hours
+- Users reporting delayed calendar updates
+
+**Causes:**
+- Google Calendar not sending notifications
+- Webhook expired but not renewed
+- Network issues blocking notifications
+- Webhook URL became inaccessible
+- Google Calendar API issues
+
+**Solutions:**
+1. Check webhook health metrics in dashboard
+2. Review webhook_notifications table for patterns
+3. Verify webhook hasn't expired
+4. Check webhook URL is still accessible
+5. Manually re-register webhook
+6. Review webhook health check job logs
+
+**Investigation Steps:**
+```sql
+-- Check last webhook notification for user
+SELECT user_id, channel_id, MAX(created_at) as last_notification
+FROM webhook_notifications
+WHERE user_id = 'user-id-here'
+GROUP BY user_id, channel_id;
+
+-- Find all silent webhooks (no notifications >48h)
+SELECT ws.user_id, ws.channel_id, ws.expiration,
+       MAX(wn.created_at) as last_notification
+FROM calendar_webhook_subscriptions ws
+LEFT JOIN webhook_notifications wn ON ws.channel_id = wn.channel_id
+GROUP BY ws.user_id, ws.channel_id, ws.expiration
+HAVING MAX(wn.created_at) < NOW() - INTERVAL '48 hours'
+   OR MAX(wn.created_at) IS NULL;
+```
+
+**Automatic Recovery:**
+- Webhook health check job runs every 12 hours
+- Detects silent failures (no notifications >48 hours)
+- Automatically re-registers broken webhooks
+- Falls back to polling if re-registration fails
+- Sends admin alerts for persistent issues
+
+**Manual Recovery:**
+```bash
+# Re-register webhook for specific user
+curl -X POST http://localhost:3000/api/webhooks/calendar/register \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "user-id-here"}'
+```
+
+### High Webhook Failure Rate (Added 2026-02-04)
+
+**Symptoms:**
+- Many failed webhook notifications in logs
+- High percentage of failed notifications in dashboard
+- Webhook notifications table shows many errors
+- Calendar updates delayed or missing
+
+**Causes:**
+- Webhook validation errors
+- Database connection issues
+- Sync orchestrator errors
+- Invalid channel/resource IDs
+- Rate limiting
+
+**Solutions:**
+1. Review error messages in webhook_notifications table
+2. Check webhook validation logic
+3. Verify database connectivity
+4. Check sync orchestrator health
+5. Review rate limiting configuration
+
+**Investigation Steps:**
+```sql
+-- Find most common webhook errors
+SELECT error_message, COUNT(*) as count
+FROM webhook_notifications
+WHERE result = 'failure'
+  AND created_at > NOW() - INTERVAL '24 hours'
+GROUP BY error_message
+ORDER BY count DESC;
+
+-- Calculate webhook failure rate
+SELECT 
+  COUNT(*) FILTER (WHERE result = 'success') as success_count,
+  COUNT(*) FILTER (WHERE result = 'failure') as failure_count,
+  ROUND(100.0 * COUNT(*) FILTER (WHERE result = 'failure') / COUNT(*), 2) as failure_rate
+FROM webhook_notifications
+WHERE created_at > NOW() - INTERVAL '24 hours';
+```
+
+**Thresholds:**
+- <5% failure rate: Normal
+- 5-10% failure rate: Monitor
+- 10-20% failure rate: Investigate
+- >20% failure rate: Action required
+
 ## Best Practices
 
 ### Regular Monitoring
@@ -404,12 +541,21 @@ Set up alerts for:
 - Invalid tokens > 10% of users
 - Open circuit breakers > 5% of users
 - Persistent failures > 20 users
+- Webhook failure rate > 20%
+- Silent webhooks > 10% of active webhooks
 
 **Warning:**
 - Sync success rate < 90%
 - Invalid tokens > 5% of users
 - Open circuit breakers > 2% of users
 - Persistent failures > 10 users
+- Webhook failure rate > 10%
+- Silent webhooks > 5% of active webhooks
+
+**Info:**
+- Webhook notification rate < 5 per day (may indicate low calendar activity)
+- Webhook re-registration attempts > 5 per day
+- Token refresh success rate < 95%
 
 ### Proactive Maintenance
 
@@ -474,7 +620,7 @@ Reconnect now to get the latest updates: [Link]
 - Index on `created_at` for sync_metrics
 
 **Caching:**
-- Cache dashboard metrics (5 minutes)
+- Cache dashboard metrics (daily)
 - Cache user sync status (1 minute)
 - Invalidate on sync completion
 
@@ -508,8 +654,10 @@ Reconnect now to get the latest updates: [Link]
 
 - **API Reference**: `docs/API.md` - Admin endpoints
 - **Google Integrations**: `.kiro/steering/google-integrations.md` - Architecture
+- **Onboarding Sync Guide**: `docs/features/google-integrations/ONBOARDING_SYNC.md` - Onboarding behavior
 - **Deployment Guide**: `docs/development/SYNC_OPTIMIZATION_DEPLOYMENT.md` - Setup
 - **Monitoring Guide**: `docs/features/google-integrations/MONITORING.md` - Alerts
+- **Testing Guide**: `docs/testing/ONBOARDING_SYNC_TESTING_GUIDE.md` - Testing procedures
 
 ## Support
 

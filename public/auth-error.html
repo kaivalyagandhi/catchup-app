@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication Error - CatchUp</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&family=Handlee&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  
+  <style>
+    body {
+      font-family: var(--font-readable);
+      background-color: var(--bg-app);
+      color: var(--text-primary);
+      /* Dotted notebook background pattern */
+      background-image: radial-gradient(circle, var(--stone-4) 1px, transparent 1px);
+      background-size: 24px 24px;
+      background-attachment: fixed;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .error-container {
+      max-width: 500px;
+      width: 90%;
+      background: var(--bg-surface);
+      padding: var(--space-8);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .error-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto var(--space-4);
+      color: var(--status-error);
+    }
+
+    .error-title {
+      font-family: var(--font-heading);
+      font-size: var(--text-3xl);
+      font-weight: var(--font-bold);
+      margin-bottom: var(--space-3);
+      color: var(--text-primary);
+      line-height: var(--leading-tight);
+    }
+
+    .error-message {
+      font-family: var(--font-readable);
+      font-size: var(--text-base);
+      color: var(--text-secondary);
+      margin-bottom: var(--space-6);
+      line-height: var(--leading-relaxed);
+    }
+
+    .error-details {
+      background: var(--bg-secondary);
+      padding: var(--space-4);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: var(--space-6);
+      text-align: left;
+    }
+
+    .error-details-title {
+      font-family: var(--font-accent);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-2);
+    }
+
+    .error-details-text {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      word-break: break-word;
+    }
+
+    .error-actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-6);
+      border-radius: var(--radius-lg);
+      font-family: var(--font-accent);
+      font-size: var(--text-base);
+      font-weight: var(--font-medium);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      border: none;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background-color: var(--accent-primary);
+      color: var(--text-inverse);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--text-primary);
+      border: 2px solid var(--border-default);
+      font-family: var(--font-readable);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--bg-hover);
+      border-color: var(--border-strong);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: var(--space-4);
+      right: var(--space-4);
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-full);
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-base);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--bg-hover);
+      box-shadow: var(--shadow-md);
+      transform: scale(1.05);
+    }
+
+    .theme-icon {
+      width: 20px;
+      height: 20px;
+      color: var(--text-primary);
+    }
+
+    .theme-icon-light {
+      display: block;
+    }
+
+    .theme-icon-dark {
+      display: none;
+    }
+
+    [data-theme="dark"] .theme-icon-light {
+      display: none;
+    }
+
+    [data-theme="dark"] .theme-icon-dark {
+      display: block;
+    }
+
+    @media (min-width: 768px) {
+      .error-actions {
+        flex-direction: row;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+    <svg class="theme-icon theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+    <svg class="theme-icon theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </button>
+
+  <div class="error-container">
+    <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+
+    <h1 class="error-title">Authentication Failed</h1>
+    
+    <p class="error-message" id="error-message">
+      We couldn't sign you in. This might be due to a temporary issue or your session may have expired.
+    </p>
+
+    <div class="error-details" id="error-details" style="display: none;">
+      <div class="error-details-title">Error Details:</div>
+      <div class="error-details-text" id="error-details-text"></div>
+    </div>
+
+    <div class="error-actions">
+      <a href="/landing.html" class="btn-primary">
+        Try Again
+      </a>
+      <a href="mailto:support@catchup.app" class="btn-secondary">
+        Contact Support
+      </a>
+    </div>
+  </div>
+
+  <script>
+    // Theme Toggle
+    (function() {
+      const themeToggle = document.getElementById('theme-toggle');
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+
+      themeToggle.addEventListener('click', function() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+      });
+    })();
+
+    // Parse error from URL
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const error = urlParams.get('error');
+      const errorDescription = urlParams.get('error_description');
+
+      if (error) {
+        const errorMessage = document.getElementById('error-message');
+        const errorDetails = document.getElementById('error-details');
+        const errorDetailsText = document.getElementById('error-details-text');
+
+        // Update message based on error type
+        switch(error) {
+          case 'access_denied':
+            errorMessage.textContent = 'You denied access to your Google account. To use CatchUp, we need permission to access your basic profile information.';
+            break;
+          case 'invalid_grant':
+            errorMessage.textContent = 'Your authentication session has expired. Please try signing in again.';
+            break;
+          case 'server_error':
+            errorMessage.textContent = 'We encountered a server error while processing your request. Please try again in a few moments.';
+            break;
+          default:
+            errorMessage.textContent = 'An unexpected error occurred during authentication. Please try again.';
+        }
+
+        // Show error details if available
+        if (errorDescription) {
+          errorDetails.style.display = 'block';
+          errorDetailsText.textContent = decodeURIComponent(errorDescription);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

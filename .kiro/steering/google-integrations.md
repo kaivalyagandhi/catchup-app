@@ -613,19 +613,21 @@ Intelligent sync management that reduces API usage by 70-90% while improving rel
 - When changes detected: Restore default frequency
 - Never go below minimum or above maximum frequency
 
-**Frequency Configuration**:
+**Frequency Configuration** (Updated 2026-02-04):
 ```typescript
 {
   contacts: {
-    default: 3 days,
-    min: 7 days,
-    max: 1 day
+    default: 7 days,
+    min: 30 days,
+    max: 1 day,
+    onboarding: 1 hour  // For first 24h after connection
   },
   calendar: {
-    default: 4 hours (with webhooks),
-    min: 4 hours,
-    max: 1 hour,
-    webhookFallback: 8 hours
+    default: 24 hours,
+    min: 24 hours,
+    max: 4 hours,
+    webhookFallback: 12 hours,  // When webhook is active
+    onboarding: 2 hours  // For first 24h after connection
   }
 }
 ```
@@ -795,7 +797,7 @@ CREATE TABLE sync_metrics (
 );
 ```
 
-### Background Jobs
+### Background Jobs (Updated 2026-02-04)
 
 #### Token Refresh Job
 - **Frequency**: Daily
@@ -807,15 +809,207 @@ CREATE TABLE sync_metrics (
 - **Purpose**: Renew webhooks expiring within 24 hours
 - **Implementation**: `CalendarWebhookManager.renewExpiringWebhooks()`
 
+#### Webhook Health Check Job
+- **Frequency**: Every 12 hours
+- **Purpose**: Monitor webhook health, alert on failures, re-register broken webhooks
+- **Implementation**: `WebhookHealthCheckProcessor`
+- **Features**:
+  - Tracks webhook notification patterns
+  - Detects silent failures (no notifications for >48 hours)
+  - Automatically re-registers broken webhooks
+  - Sends admin alerts for persistent failures
+  - Records metrics for dashboard
+
 #### Notification Reminder Job
 - **Frequency**: Daily
 - **Purpose**: Send reminders for unresolved token issues >7 days
 - **Implementation**: `TokenHealthNotificationService.sendReminders()`
 
 #### Adaptive Sync Job
-- **Frequency**: Every 12 hours
+- **Frequency**: Daily (24 hours) - updated from 12 hours
 - **Purpose**: Execute syncs for users due for sync
 - **Implementation**: `AdaptiveSyncScheduler.getUsersDueForSync()`
+
+### Onboarding Mitigations (Added 2026-02-04)
+
+To address the longer default sync frequencies (7 days for Contacts, 24 hours for Calendar), we've implemented three key mitigations for new users:
+
+#### 1. Immediate First Sync
+**Purpose**: Ensure users see their data immediately after connecting
+
+**Behavior**:
+- When a user first connects Google Contacts or Calendar, an immediate sync is triggered
+- Sync type is marked as `initial` to distinguish from scheduled syncs
+- Users see their data within seconds of authorization
+- No waiting for the first scheduled sync
+
+**Implementation**:
+- `GoogleContactsOAuthService` and `GoogleCalendarOAuthService` detect first connection
+- Trigger immediate sync via `SyncOrchestrator.executeSyncJob()`
+- Bypass normal scheduling for initial sync
+
+#### 2. Onboarding Progress UI with Retry
+**Purpose**: Provide visibility and control during initial sync
+
+**Features**:
+- Real-time sync status display (in_progress, completed, failed)
+- Progress indicator with item count
+- Success message with total items synced
+- Error message with retry button on failure
+- Polling-based status updates (every 2 seconds)
+
+**API Endpoint**:
+```typescript
+GET /api/sync/status/:userId/:integrationType
+
+Response: {
+  status: 'in_progress' | 'completed' | 'failed',
+  itemsProcessed: number,
+  totalItems: number,
+  errorMessage?: string,
+  startedAt: ISO date string,
+  completedAt?: ISO date string
+}
+```
+
+**UI Components**:
+- `onboarding-sync-status.js`: Status display component
+- `onboarding-controller.js`: Integration with onboarding flow
+- `onboarding.css`: Styling for status indicators
+
+#### 3. Onboarding-Specific Frequencies
+**Purpose**: More frequent syncs during the first 24 hours
+
+**Frequencies**:
+- **Contacts**: 1 hour (vs. 7 days default)
+- **Calendar**: 2 hours (vs. 24 hours default)
+- **Duration**: First 24 hours after connection
+
+**Behavior**:
+- `AdaptiveSyncScheduler` checks `onboarding_until` timestamp
+- If within onboarding period, uses onboarding frequency
+- After 24 hours, transitions to normal adaptive scheduling
+- Ensures fresh data during critical onboarding period
+
+**Database Schema**:
+```sql
+ALTER TABLE sync_schedule 
+ADD COLUMN onboarding_until TIMESTAMP;
+```
+
+**Transition Logic**:
+```typescript
+// In AdaptiveSyncScheduler.calculateNextSync()
+if (schedule.onboardingUntil && now < schedule.onboardingUntil) {
+  // Use onboarding frequency (1h or 2h)
+  return new Date(now.getTime() + ONBOARDING_FREQUENCY);
+} else {
+  // Use normal adaptive logic
+  return calculateAdaptiveNextSync(schedule);
+}
+```
+
+### Enhanced Webhook Monitoring (Added 2026-02-04)
+
+To ensure webhook reliability and detect silent failures, we've implemented comprehensive webhook health monitoring:
+
+#### Webhook Notifications Tracking
+**Purpose**: Record all webhook notifications for health analysis
+
+**Database Schema**:
+```sql
+CREATE TABLE webhook_notifications (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  channel_id VARCHAR(255),
+  resource_id VARCHAR(255),
+  resource_state VARCHAR(50),
+  result VARCHAR(20),
+  error_message TEXT,
+  created_at TIMESTAMP
+);
+```
+
+**Tracked Data**:
+- All incoming webhook notifications
+- Notification processing results (success/failure)
+- Error messages for failed notifications
+- Timestamps for pattern analysis
+
+#### Webhook Health Metrics
+**Purpose**: Aggregate webhook health data for monitoring
+
+**Metrics Tracked**:
+- Total notifications received (24h, 7d, 30d)
+- Failed notification count and rate
+- Last notification timestamp
+- Silent failure detection (no notifications >48h)
+- Webhook registration status
+
+**Service**: `WebhookMetricsService`
+**Methods**:
+- `recordNotification()`: Log webhook notification
+- `getWebhookHealth()`: Get health metrics for user
+- `getSystemWebhookHealth()`: Get system-wide metrics
+- `detectSilentFailures()`: Find webhooks with no recent notifications
+
+#### Webhook Health Check Job
+**Purpose**: Proactive monitoring and recovery
+
+**Frequency**: Every 12 hours
+
+**Checks Performed**:
+1. **Silent Failure Detection**: Find webhooks with no notifications >48 hours
+2. **Expiration Check**: Identify webhooks expiring within 24 hours
+3. **Failed Notification Patterns**: Detect high failure rates
+4. **Automatic Recovery**: Re-register broken webhooks
+5. **Admin Alerts**: Notify admins of persistent issues
+
+**Recovery Actions**:
+- Re-register webhooks with silent failures
+- Renew expiring webhooks
+- Fall back to polling if re-registration fails
+- Log all recovery attempts
+
+**Implementation**: `WebhookHealthCheckProcessor`
+
+#### Admin Dashboard Integration
+**Purpose**: Visibility into webhook health
+
+**New Metrics**:
+- Active webhooks count
+- Webhooks with silent failures
+- Webhook notification rate (24h)
+- Failed notification percentage
+- Last notification timestamps
+- Automatic recovery attempts
+
+**Troubleshooting Tools**:
+- Per-user webhook status
+- Notification history
+- Failure pattern analysis
+- Manual re-registration option
+
+#### Webhook Failure Alerts
+**Purpose**: Proactive notification of webhook issues
+
+**Alert Triggers**:
+- Webhook silent failure detected (>48h no notifications)
+- High failure rate (>20% failed notifications)
+- Webhook re-registration failed
+- Webhook expiration approaching
+
+**Alert Channels**:
+- Admin dashboard notifications
+- Email alerts to admins
+- Logged to audit trail
+
+**Alert Content**:
+- User ID and email
+- Webhook channel ID
+- Failure description
+- Recommended actions
+- Automatic recovery status
 
 ### Graceful Degradation
 
@@ -831,7 +1025,7 @@ When sync is unavailable:
 **Location**: `/admin/sync-health.html`
 
 **Features**:
-- Real-time metrics (auto-refresh every 5 minutes)
+- Real-time metrics (auto-refresh daily) - updated from 5 minutes
 - Filter by integration type
 - Persistent failures table (>7 days)
 - API calls saved visualization
@@ -877,6 +1071,29 @@ When sync is unavailable:
 - Review Google Calendar API logs
 - Test webhook registration manually
 
+#### Webhook Silent Failures
+- Check webhook health metrics in admin dashboard
+- Verify Google Calendar is sending notifications
+- Review webhook_notifications table for patterns
+- Check if webhook expired and wasn't renewed
+- Manually re-register webhook via admin dashboard
+- Verify webhook URL is still accessible
+
+#### High Webhook Failure Rate
+- Review error messages in webhook_notifications table
+- Check for network connectivity issues
+- Verify webhook endpoint is handling requests correctly
+- Check for rate limiting or quota issues
+- Review webhook validation logic
+
+#### Onboarding Sync Issues
+- Check sync status via GET /api/sync/status/:userId/:integrationType
+- Verify immediate first sync was triggered
+- Check onboarding_until timestamp in sync_schedule
+- Verify onboarding frequencies are being used
+- Review sync_metrics for initial sync results
+- Test retry functionality in onboarding UI
+
 ### Performance Impact
 
 **API Call Reduction**:
@@ -920,9 +1137,11 @@ When sync is unavailable:
 ### Related Documentation
 
 - **Admin Guide**: `docs/features/google-integrations/ADMIN_GUIDE.md`
+- **Onboarding Sync Guide**: `docs/features/google-integrations/ONBOARDING_SYNC.md`
 - **API Reference**: `docs/API.md` - Sync optimization endpoints
 - **Deployment Guide**: `docs/development/SYNC_OPTIMIZATION_DEPLOYMENT.md`
 - **Monitoring Guide**: `docs/features/google-integrations/MONITORING.md`
+- **Testing Guide**: `docs/testing/ONBOARDING_SYNC_TESTING_GUIDE.md`
 
 ## Common Patterns
 

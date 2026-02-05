@@ -6660,6 +6660,9 @@ async function loadAccountInfo() {
             console.error('Error loading last login:', error);
         }
         
+        // Check if user is admin
+        const isAdmin = user.isAdmin || false;
+        
         // Determine authentication method display
         let authMethodDisplay = 'Email/Password';
         let connectionStatus = 'Connected';
@@ -6730,6 +6733,31 @@ async function loadAccountInfo() {
                         Delete Account
                     </button>
                 </div>
+                
+                ${isAdmin ? `
+                <!-- Admin Dashboard Link -->
+                <div style="margin-top: 16px; padding: 14px; background: linear-gradient(135deg, var(--bg-hover) 0%, var(--bg-secondary) 100%); border: 2px solid var(--border-subtle); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span style="font-size: 18px;">🔧</span>
+                                <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-primary);">Admin Dashboard</h4>
+                            </div>
+                            <p style="margin: 0; font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                                Monitor sync health, view metrics, and manage system optimization
+                            </p>
+                        </div>
+                        <a href="/admin/sync-health.html" target="_blank" style="padding: 10px 16px; background: var(--color-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                            Open Dashboard
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                ` : ''}
             </div>
         `;
         
@@ -7690,21 +7718,22 @@ function showConfirm(message, options = {}) {
             type = 'warning'
         } = options;
         
-        // Create overlay
+        // Create overlay using standard modal-overlay class
         const overlay = document.createElement('div');
-        overlay.className = 'confirm-dialog-overlay';
+        overlay.className = 'modal-overlay';
         
-        // Create dialog
+        // Create dialog using standard modal classes with small size
         const dialog = document.createElement('div');
-        dialog.className = `confirm-dialog confirm-dialog-${type}`;
+        dialog.className = `modal modal-sm confirm-dialog-${type}`;
         dialog.innerHTML = `
-            <div class="confirm-dialog-header">
-                <h3>${escapeHtml(title)}</h3>
+            <div class="modal-header">
+                <h2 class="modal-title">${escapeHtml(title)}</h2>
+                <button class="modal-close confirm-dialog-close" aria-label="Close">×</button>
             </div>
-            <div class="confirm-dialog-body">
+            <div class="modal-body">
                 <p>${escapeHtml(message)}</p>
             </div>
-            <div class="confirm-dialog-footer">
+            <div class="modal-footer">
                 <button class="btn-secondary confirm-dialog-cancel">${escapeHtml(cancelText)}</button>
                 <button class="btn-primary confirm-dialog-confirm ${type === 'danger' ? 'btn-danger' : ''}">${escapeHtml(confirmText)}</button>
             </div>
@@ -7731,6 +7760,13 @@ function showConfirm(message, options = {}) {
         // Handle cancel
         const cancelBtn = dialog.querySelector('.confirm-dialog-cancel');
         cancelBtn.onclick = () => {
+            cleanup();
+            resolve(false);
+        };
+        
+        // Handle close button (X)
+        const closeBtn = dialog.querySelector('.confirm-dialog-close');
+        closeBtn.onclick = () => {
             cleanup();
             resolve(false);
         };

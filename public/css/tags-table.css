@@ -196,11 +196,12 @@
   transform: scale(1.1);
 }
 
-/* Empty State */
+/* Empty State - Uses standard typography tokens */
 .tags-table .empty-state td {
   padding: 60px 20px;
   text-align: center;
   color: var(--text-tertiary);
+  font-family: var(--font-readable);
   font-size: 15px;
 }
 
@@ -308,9 +309,9 @@
 [data-theme="dark"] {
   /* Badge - Requirement 9.2: Warm dark blue in Espresso mode */
   .badge-automated {
-    background: rgba(59, 130, 246, 0.2);
-    color: #93c5fd;
-    border-color: rgba(59, 130, 246, 0.3);
+    background: var(--status-info-bg);
+    color: var(--status-info);
+    border-color: var(--status-info);
   }
 }
 
@@ -445,15 +446,7 @@
   }
 }
 
-.modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(28, 25, 23, 0.4);
-  backdrop-filter: blur(4px);
-}
+/* Modal overlay styles now use the standard .modal-overlay class from stone-clay-theme.css */
 
 .modal-content {
   position: relative;

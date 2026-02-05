@@ -83,8 +83,8 @@ export class SyncHealthService {
     const totalUsersQuery = `
       SELECT COUNT(DISTINCT user_id) as count
       FROM oauth_tokens
-      WHERE integration_type IN ('google_contacts', 'google_calendar')
-      ${integrationFilter}
+      WHERE provider IN ('google_contacts', 'google_calendar')
+      ${integrationFilter.replace('integration_type', 'provider')}
     `;
     const totalUsersResult = await pool.query(totalUsersQuery);
     const totalUsers = parseInt(totalUsersResult.rows[0]?.count || '0');
@@ -92,12 +92,12 @@ export class SyncHealthService {
     // Get active integrations count by type
     const activeIntegrationsQuery = `
       SELECT 
-        integration_type,
+        provider as integration_type,
         COUNT(DISTINCT user_id) as count
       FROM oauth_tokens
-      WHERE integration_type IN ('google_contacts', 'google_calendar')
-      ${integrationFilter}
-      GROUP BY integration_type
+      WHERE provider IN ('google_contacts', 'google_calendar')
+      ${integrationFilter.replace('integration_type', 'provider')}
+      GROUP BY provider
     `;
     const activeIntegrationsResult = await pool.query(activeIntegrationsQuery);
     const activeIntegrations = {

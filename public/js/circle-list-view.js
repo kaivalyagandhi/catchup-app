@@ -34,7 +34,7 @@ class CircleListView {
     this.onSave = options.onSave || (() => {});
     this.onCancel = options.onCancel || (() => {});
     this.userId = options.userId;
-    this.aiSuggestions = options.aiSuggestions || { inner: [], close: [], active: [] };
+    this.aiSuggestions = options.aiSuggestions || { inner: [], close: [], active: [], casual: [] };
     this.acceptedSuggestions = new Set(); // Track accepted suggestion IDs
     
     // Debug logging
@@ -321,6 +321,68 @@ class CircleListView {
 
       .clv-circle-emoji {
         font-size: 18px;
+      }
+
+      /* Generate AI Button */
+      .clv-generate-ai-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        margin-left: 12px;
+        background: linear-gradient(135deg, #8b5cf6, #6366f1);
+        border: none;
+        border-radius: 16px;
+        color: white;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+        box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+      }
+
+      .clv-generate-ai-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+      }
+
+      .clv-generate-ai-btn:active {
+        transform: translateY(0);
+      }
+
+      .clv-generate-ai-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .clv-generate-ai-icon {
+        font-size: 14px;
+        animation: clvSparkle 2s ease-in-out infinite;
+      }
+
+      @keyframes clvSparkle {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.1); }
+      }
+
+      .clv-generate-ai-btn:hover .clv-generate-ai-icon {
+        animation: clvSparkle 0.5s ease-in-out infinite;
+      }
+
+      .clv-generate-ai-text {
+        white-space: nowrap;
+      }
+
+      /* Hide text on smaller screens */
+      @media (max-width: 767px) {
+        .clv-generate-ai-text {
+          display: none;
+        }
+        
+        .clv-generate-ai-btn {
+          padding: 6px 10px;
+        }
       }
 
       .clv-circle-count {
@@ -1010,12 +1072,27 @@ class CircleListView {
     // Generate inline capacity tip
     const capacityTip = this.renderCapacityTip(circle, count, isNearCapacity, isAtCapacity, isOverCapacity);
 
+    // Only show generate button for all circles (including casual)
+    const showGenerateButton = ['inner', 'close', 'active', 'casual'].includes(circle.id);
+
     return `
       <div class="clv-circle-section" data-circle="${circle.id}">
         <div class="clv-circle-header">
           <h4 class="clv-circle-title">
             <span class="clv-circle-emoji">${circle.emoji}</span>
             ${circle.name}
+            ${showGenerateButton ? `
+              <button 
+                class="clv-generate-ai-btn" 
+                id="clv-generate-ai-${circle.id}"
+                data-circle="${circle.id}"
+                title="Generate AI suggestions for this circle"
+                aria-label="Generate AI suggestions"
+              >
+                <span class="clv-generate-ai-icon">✨</span>
+                <span class="clv-generate-ai-text">Generate AI Suggestions</span>
+              </button>
+            ` : ''}
           </h4>
           <span class="clv-circle-count ${countClass}">${count}/${circle.capacity}</span>
         </div>
@@ -1204,6 +1281,16 @@ class CircleListView {
     if (clearBtn) {
       clearBtn.addEventListener('click', () => this.clearSearch());
     }
+
+    // Generate AI buttons
+    const generateButtons = document.querySelectorAll('.clv-generate-ai-btn');
+    generateButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const circleId = btn.dataset.circle;
+        this.generateAISuggestions(circleId);
+      });
+    });
 
     // Remove buttons on contact chips
     const removeButtons = document.querySelectorAll('.clv-contact-chip .clv-remove-btn');
@@ -1846,6 +1933,82 @@ class CircleListView {
     });
     counts.uncategorized = this.getUncategorizedCount();
     return counts;
+  }
+
+  /**
+   * Generate AI suggestions for a specific circle
+   * @param {string} circleId - Circle ID to generate suggestions for
+   */
+  async generateAISuggestions(circleId) {
+    const btn = document.getElementById(`clv-generate-ai-${circleId}`);
+    if (!btn) return;
+
+    // Disable button and show loading state
+    btn.disabled = true;
+    const originalText = btn.querySelector('.clv-generate-ai-text')?.textContent || 'Generate AI Suggestions';
+    const textElement = btn.querySelector('.clv-generate-ai-text');
+    if (textElement) {
+      textElement.textContent = 'Generating...';
+    }
+
+    try {
+      const userId = this.userId || window.userId || localStorage.getItem('userId');
+      const authToken = localStorage.getItem('authToken');
+
+      if (!userId || !authToken) {
+        throw new Error('Not authenticated');
+      }
+
+      console.log(`[CircleListView] Generating AI suggestions for ${circleId}`);
+
+      // Call the API to get suggestions
+      const response = await fetch(`/api/ai/circle-suggestions?userId=${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate suggestions: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('[CircleListView] Generated suggestions:', data);
+
+      // Update aiSuggestions with new data
+      if (data.suggestions) {
+        this.aiSuggestions = data.suggestions;
+        
+        // Re-render to show new suggestions
+        this.render();
+
+        // Show success message
+        const newSuggestions = this.aiSuggestions[circleId]?.length || 0;
+        if (newSuggestions > 0) {
+          if (typeof showToast === 'function') {
+            showToast(`✨ Generated ${newSuggestions} AI suggestion${newSuggestions === 1 ? '' : 's'} for ${this.getCircleName(circleId)}`, 'success');
+          }
+        } else {
+          if (typeof showToast === 'function') {
+            showToast(`No new suggestions found for ${this.getCircleName(circleId)}. Try adding more contact details or calendar events.`, 'info');
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('[CircleListView] Error generating AI suggestions:', error);
+      if (typeof showToast === 'function') {
+        showToast(`Failed to generate suggestions: ${error.message}`, 'error');
+      }
+    } finally {
+      // Re-enable button
+      if (btn) {
+        btn.disabled = false;
+        if (textElement) {
+          textElement.textContent = originalText;
+        }
+      }
+    }
   }
 
   /**

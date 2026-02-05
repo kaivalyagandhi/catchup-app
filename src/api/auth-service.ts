@@ -22,6 +22,7 @@ export interface User {
   authProvider?: 'email' | 'google' | 'both';
   name?: string;
   profilePictureUrl?: string;
+  isAdmin?: boolean;
 }
 
 interface UserRow {
@@ -35,6 +36,7 @@ interface UserRow {
   auth_provider?: string;
   name?: string | null;
   profile_picture_url?: string | null;
+  is_admin?: boolean | null;
 }
 
 /**
@@ -169,7 +171,7 @@ export async function loginUser(
  */
 export async function getUserById(userId: string): Promise<User | null> {
   const result = await pool.query<UserRow>(
-    `SELECT id, email, role, created_at, updated_at, google_id, auth_provider, name, profile_picture_url 
+    `SELECT id, email, role, created_at, updated_at, google_id, auth_provider, name, profile_picture_url, is_admin 
      FROM users WHERE id = $1`,
     [userId]
   );
@@ -189,6 +191,7 @@ export async function getUserById(userId: string): Promise<User | null> {
     authProvider: (userRow.auth_provider as 'email' | 'google' | 'both') || 'email',
     name: userRow.name || undefined,
     profilePictureUrl: userRow.profile_picture_url || undefined,
+    isAdmin: userRow.is_admin || false,
   };
 }
 

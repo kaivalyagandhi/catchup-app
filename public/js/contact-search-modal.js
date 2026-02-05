@@ -4,7 +4,12 @@
  * Modal for searching and selecting contacts to add to Inner Circle during AI Quick Start.
  * Features search with 300ms debounce, multi-select checkboxes, and capacity indicator.
  * 
- * Requirements: 2.2, 2.3, 2.4, 2.6, 2.7, 2.9, 2.11, 8.1
+ * Modal Layout Standards:
+ * - Size: Medium (600px) - .modal-md equivalent
+ * - Header: [Title] [spacer] [Close X] with flexbox space-between, 56px height
+ * - Footer: [Cancel] [spacer] [Primary] with flexbox space-between, --space-4 padding
+ * 
+ * Requirements: 2.2, 2.3, 2.4, 2.6, 2.7, 2.9, 2.11, 8.1, 21, 22, 23
  */
 
 class ContactSearchModal {
@@ -67,7 +72,7 @@ class ContactSearchModal {
         border-radius: 12px;
         max-width: 600px;
         width: 100%;
-        max-height: 80vh;
+        max-height: 90vh;
         display: flex;
         flex-direction: column;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
@@ -78,8 +83,9 @@ class ContactSearchModal {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 24px;
+        padding: 16px 24px;
         border-bottom: 1px solid var(--border-subtle, #e5e7eb);
+        min-height: 56px;
       }
       
       .contact-search-modal__title {
@@ -296,9 +302,10 @@ class ContactSearchModal {
 
       .contact-search-modal__footer {
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
+        align-items: center;
         gap: 12px;
-        padding: 16px 24px;
+        padding: var(--space-4, 16px) 24px;
         border-top: 1px solid var(--border-subtle, #e5e7eb);
         background: var(--bg-surface, #ffffff);
       }
@@ -388,12 +395,14 @@ class ContactSearchModal {
         }
         
         .contact-search-modal__footer {
-          padding: 12px 20px;
-          flex-direction: column;
+          padding: var(--space-4, 16px) 20px;
+          flex-direction: row;
+          flex-wrap: wrap;
         }
         
         .contact-search-modal__btn {
-          width: 100%;
+          flex: 1;
+          min-width: 120px;
         }
         
         .contact-search-modal__checkbox {
@@ -505,6 +514,7 @@ class ContactSearchModal {
           <button class="contact-search-modal__btn contact-search-modal__btn--cancel" id="csm-cancel">
             Cancel
           </button>
+          <div style="flex: 1;"></div>
           <button class="contact-search-modal__btn contact-search-modal__btn--confirm" id="csm-confirm" disabled>
             Add Selected (0)
           </button>

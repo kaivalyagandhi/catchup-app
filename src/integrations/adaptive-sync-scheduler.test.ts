@@ -41,6 +41,14 @@ describe('AdaptiveSyncScheduler', () => {
     it('should initialize schedule if it does not exist', async () => {
       const integrationType: IntegrationType = 'google_contacts';
       
+      // Create sync history to simulate existing connection (not first connection)
+      await pool.query(
+        `INSERT INTO google_contacts_sync_state (user_id, last_full_sync_at)
+         VALUES ($1, NOW())
+         ON CONFLICT (user_id) DO UPDATE SET last_full_sync_at = NOW()`,
+        [TEST_USER_ID]
+      );
+      
       const nextSync = await adaptiveSyncScheduler.calculateNextSync(
         TEST_USER_ID,
         integrationType,
@@ -57,6 +65,14 @@ describe('AdaptiveSyncScheduler', () => {
 
     it('should reduce frequency after 5 consecutive no-change syncs', async () => {
       const integrationType: IntegrationType = 'google_contacts';
+      
+      // Create sync history to simulate existing connection (not first connection)
+      await pool.query(
+        `INSERT INTO google_contacts_sync_state (user_id, last_full_sync_at)
+         VALUES ($1, NOW())
+         ON CONFLICT (user_id) DO UPDATE SET last_full_sync_at = NOW()`,
+        [TEST_USER_ID]
+      );
       
       // Initialize
       await adaptiveSyncScheduler.calculateNextSync(TEST_USER_ID, integrationType, false);
@@ -77,6 +93,14 @@ describe('AdaptiveSyncScheduler', () => {
 
     it('should restore default frequency when changes are detected', async () => {
       const integrationType: IntegrationType = 'google_contacts';
+      
+      // Create sync history to simulate existing connection (not first connection)
+      await pool.query(
+        `INSERT INTO google_contacts_sync_state (user_id, last_full_sync_at)
+         VALUES ($1, NOW())
+         ON CONFLICT (user_id) DO UPDATE SET last_full_sync_at = NOW()`,
+        [TEST_USER_ID]
+      );
       
       // Initialize and reduce frequency
       await adaptiveSyncScheduler.calculateNextSync(TEST_USER_ID, integrationType, false);
@@ -236,6 +260,125 @@ describe('AdaptiveSyncScheduler', () => {
     });
   });
 
+  describe('Onboarding Frequency', () => {
+    it('should use onboarding frequency for first connection', async () => {
+      const integrationType: IntegrationType = 'google_contacts';
+      
+      // Ensure no sync history exists (first connection)
+      await pool.query('DELETE FROM google_contacts_sync_state WHERE user_id = $1', [TEST_USER_ID]);
+      
+      // Initialize schedule
+      await adaptiveSyncScheduler.initializeSchedule(TEST_USER_ID, integrationType);
+      
+      const schedule = await adaptiveSyncScheduler.getSchedule(TEST_USER_ID, integrationType);
+      
+      // Should use onboarding frequency (1 hour for contacts)
+      expect(schedule!.currentFrequency).toBe(SYNC_FREQUENCIES.contacts.onboarding);
+      
+      // Should have onboardingUntil set to 24 hours from now
+      expect(schedule!.onboardingUntil).not.toBeNull();
+      const hoursUntilOnboardingEnds = (schedule!.onboardingUntil!.getTime() - Date.now()) / (60 * 60 * 1000);
+      expect(hoursUntilOnboardingEnds).toBeGreaterThan(23.9);
+      expect(hoursUntilOnboardingEnds).toBeLessThan(24.1);
+    });
+
+    it('should use default frequency for existing connection', async () => {
+      const integrationType: IntegrationType = 'google_contacts';
+      
+      // Create sync history to simulate existing connection
+      await pool.query(
+        `INSERT INTO google_contacts_sync_state (user_id, last_full_sync_at)
+         VALUES ($1, NOW())
+         ON CONFLICT (user_id) DO UPDATE SET last_full_sync_at = NOW()`,
+        [TEST_USER_ID]
+      );
+      
+      // Initialize schedule
+      await adaptiveSyncScheduler.initializeSchedule(TEST_USER_ID, integrationType);
+      
+      const schedule = await adaptiveSyncScheduler.getSchedule(TEST_USER_ID, integrationType);
+      
+      // Should use default frequency (7 days for contacts)
+      expect(schedule!.currentFrequency).toBe(SYNC_FREQUENCIES.contacts.default);
+      
+      // Should NOT have onboardingUntil set
+      expect(schedule!.onboardingUntil).toBeNull();
+    });
+
+    it('should use onboarding frequency during onboarding period', async () => {
+      const integrationType: IntegrationType = 'google_contacts';
+      
+      // Ensure no sync history exists (first connection)
+      await pool.query('DELETE FROM google_contacts_sync_state WHERE user_id = $1', [TEST_USER_ID]);
+      
+      // Initialize schedule (will set onboarding frequency)
+      await adaptiveSyncScheduler.initializeSchedule(TEST_USER_ID, integrationType);
+      
+      // Calculate next sync (should still use onboarding frequency)
+      await adaptiveSyncScheduler.calculateNextSync(TEST_USER_ID, integrationType, false);
+      
+      const schedule = await adaptiveSyncScheduler.getSchedule(TEST_USER_ID, integrationType);
+      
+      // Should still use onboarding frequency
+      expect(schedule!.currentFrequency).toBe(SYNC_FREQUENCIES.contacts.onboarding);
+    });
+
+    it('should transition to default frequency after onboarding period', async () => {
+      const integrationType: IntegrationType = 'google_contacts';
+      
+      // Create schedule with onboarding period that has already ended
+      const pastOnboardingUntil = new Date(Date.now() - 1000); // 1 second ago
+      
+      await pool.query(
+        `INSERT INTO sync_schedule (
+          user_id, integration_type, current_frequency_ms, default_frequency_ms,
+          min_frequency_ms, max_frequency_ms, next_sync_at, onboarding_until, consecutive_no_changes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          TEST_USER_ID,
+          integrationType,
+          SYNC_FREQUENCIES.contacts.onboarding,
+          SYNC_FREQUENCIES.contacts.default,
+          SYNC_FREQUENCIES.contacts.min,
+          SYNC_FREQUENCIES.contacts.max,
+          new Date(Date.now() + 1000),
+          pastOnboardingUntil,
+          0, // Reset consecutive_no_changes to 0
+        ]
+      );
+      
+      // Calculate next sync with changes detected to restore default frequency
+      await adaptiveSyncScheduler.calculateNextSync(TEST_USER_ID, integrationType, true);
+      
+      const schedule = await adaptiveSyncScheduler.getSchedule(TEST_USER_ID, integrationType);
+      
+      // Should now use default frequency (not onboarding frequency)
+      expect(schedule!.currentFrequency).toBe(SYNC_FREQUENCIES.contacts.default);
+    });
+
+    it('should use onboarding frequency for calendar first connection', async () => {
+      const integrationType: IntegrationType = 'google_calendar';
+      
+      // Ensure no sync history exists (first connection)
+      await pool.query('DELETE FROM sync_schedule WHERE user_id = $1 AND integration_type = $2', 
+        [TEST_USER_ID, integrationType]);
+      
+      // Initialize schedule
+      await adaptiveSyncScheduler.initializeSchedule(TEST_USER_ID, integrationType);
+      
+      const schedule = await adaptiveSyncScheduler.getSchedule(TEST_USER_ID, integrationType);
+      
+      // Should use onboarding frequency (2 hours for calendar)
+      expect(schedule!.currentFrequency).toBe(SYNC_FREQUENCIES.calendar.onboarding);
+      
+      // Should have onboardingUntil set to 24 hours from now
+      expect(schedule!.onboardingUntil).not.toBeNull();
+      const hoursUntilOnboardingEnds = (schedule!.onboardingUntil!.getTime() - Date.now()) / (60 * 60 * 1000);
+      expect(hoursUntilOnboardingEnds).toBeGreaterThan(23.9);
+      expect(hoursUntilOnboardingEnds).toBeLessThan(24.1);
+    });
+  });
+
   describe('Property-Based Tests', () => {
     /**
      * Property 20: Adaptive frequency reduction
@@ -249,6 +392,33 @@ describe('AdaptiveSyncScheduler', () => {
           async (integrationType) => {
             // Clean up before test
             await pool.query('DELETE FROM sync_schedule WHERE user_id = $1', [TEST_USER_ID]);
+
+            // Create sync history to simulate existing connection (not first connection)
+            if (integrationType === 'google_contacts') {
+              await pool.query(
+                `INSERT INTO google_contacts_sync_state (user_id, last_full_sync_at)
+                 VALUES ($1, NOW())
+                 ON CONFLICT (user_id) DO UPDATE SET last_full_sync_at = NOW()`,
+                [TEST_USER_ID]
+              );
+            } else {
+              // For calendar, create a schedule with last_sync_at set
+              await pool.query(
+                `INSERT INTO sync_schedule (
+                  user_id, integration_type, current_frequency_ms, default_frequency_ms,
+                  min_frequency_ms, max_frequency_ms, next_sync_at, last_sync_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+                [
+                  TEST_USER_ID,
+                  integrationType,
+                  SYNC_FREQUENCIES.calendar.default,
+                  SYNC_FREQUENCIES.calendar.default,
+                  SYNC_FREQUENCIES.calendar.min,
+                  SYNC_FREQUENCIES.calendar.max,
+                  new Date(Date.now() + SYNC_FREQUENCIES.calendar.default),
+                ]
+              );
+            }
 
             // Initialize schedule
             await adaptiveSyncScheduler.calculateNextSync(TEST_USER_ID, integrationType, false);
@@ -293,6 +463,33 @@ describe('AdaptiveSyncScheduler', () => {
             // Clean up before test
             await pool.query('DELETE FROM sync_schedule WHERE user_id = $1', [TEST_USER_ID]);
 
+            // Create sync history to simulate existing connection (not first connection)
+            if (integrationType === 'google_contacts') {
+              await pool.query(
+                `INSERT INTO google_contacts_sync_state (user_id, last_full_sync_at)
+                 VALUES ($1, NOW())
+                 ON CONFLICT (user_id) DO UPDATE SET last_full_sync_at = NOW()`,
+                [TEST_USER_ID]
+              );
+            } else {
+              // For calendar, create a schedule with last_sync_at set
+              await pool.query(
+                `INSERT INTO sync_schedule (
+                  user_id, integration_type, current_frequency_ms, default_frequency_ms,
+                  min_frequency_ms, max_frequency_ms, next_sync_at, last_sync_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+                [
+                  TEST_USER_ID,
+                  integrationType,
+                  SYNC_FREQUENCIES.calendar.default,
+                  SYNC_FREQUENCIES.calendar.default,
+                  SYNC_FREQUENCIES.calendar.min,
+                  SYNC_FREQUENCIES.calendar.max,
+                  new Date(Date.now() + SYNC_FREQUENCIES.calendar.default),
+                ]
+              );
+            }
+
             // Initialize schedule
             await adaptiveSyncScheduler.calculateNextSync(TEST_USER_ID, integrationType, false);
 
@@ -330,6 +527,33 @@ describe('AdaptiveSyncScheduler', () => {
           async (integrationType, noChangeCount) => {
             // Clean up before test
             await pool.query('DELETE FROM sync_schedule WHERE user_id = $1', [TEST_USER_ID]);
+
+            // Create sync history to simulate existing connection (not first connection)
+            if (integrationType === 'google_contacts') {
+              await pool.query(
+                `INSERT INTO google_contacts_sync_state (user_id, last_full_sync_at)
+                 VALUES ($1, NOW())
+                 ON CONFLICT (user_id) DO UPDATE SET last_full_sync_at = NOW()`,
+                [TEST_USER_ID]
+              );
+            } else {
+              // For calendar, create a schedule with last_sync_at set
+              await pool.query(
+                `INSERT INTO sync_schedule (
+                  user_id, integration_type, current_frequency_ms, default_frequency_ms,
+                  min_frequency_ms, max_frequency_ms, next_sync_at, last_sync_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+                [
+                  TEST_USER_ID,
+                  integrationType,
+                  SYNC_FREQUENCIES.calendar.default,
+                  SYNC_FREQUENCIES.calendar.default,
+                  SYNC_FREQUENCIES.calendar.min,
+                  SYNC_FREQUENCIES.calendar.max,
+                  new Date(Date.now() + SYNC_FREQUENCIES.calendar.default),
+                ]
+              );
+            }
 
             // Initialize schedule
             await adaptiveSyncScheduler.calculateNextSync(TEST_USER_ID, integrationType, false);

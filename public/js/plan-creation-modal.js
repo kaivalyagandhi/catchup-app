@@ -109,46 +109,49 @@ class PlanCreationModal {
    */
   render() {
     // Remove existing modal if any
-    const existingModal = document.querySelector('.plan-creation-modal');
-    if (existingModal) {
-      existingModal.remove();
+    const existingOverlay = document.querySelector('.modal-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
     }
     
+    // Create overlay wrapper
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay show';
+    
     const modal = document.createElement('div');
-    modal.className = 'modal plan-creation-modal';
+    modal.className = 'modal modal-lg plan-creation-modal';
     modal.innerHTML = `
-      <div class="modal-content plan-creation-content">
-        <div class="modal-header">
-          <h2>Create Catchup Plan</h2>
-          <button class="close-btn" id="close-plan-modal">&times;</button>
+      <div class="modal-header">
+        <h2 class="modal-title">Create Catchup Plan</h2>
+        <button class="modal-close" id="close-plan-modal">&times;</button>
+      </div>
+      
+      <div class="step-indicator">
+        <div class="step ${this.step >= 1 ? 'active' : ''}" data-step="1">
+          <span class="step-number">1</span>
+          <span class="step-label">Select Contacts</span>
         </div>
-        
-        <div class="step-indicator">
-          <div class="step ${this.step >= 1 ? 'active' : ''}" data-step="1">
-            <span class="step-number">1</span>
-            <span class="step-label">Select Contacts</span>
-          </div>
-          <div class="step ${this.step >= 2 ? 'active' : ''}" data-step="2">
-            <span class="step-number">2</span>
-            <span class="step-label">Plan Details</span>
-          </div>
-          <div class="step ${this.step >= 3 ? 'active' : ''}" data-step="3">
-            <span class="step-number">3</span>
-            <span class="step-label">Share Links</span>
-          </div>
+        <div class="step ${this.step >= 2 ? 'active' : ''}" data-step="2">
+          <span class="step-number">2</span>
+          <span class="step-label">Plan Details</span>
         </div>
-        
-        <div class="modal-body">
-          ${this.renderCurrentStep()}
+        <div class="step ${this.step >= 3 ? 'active' : ''}" data-step="3">
+          <span class="step-number">3</span>
+          <span class="step-label">Share Links</span>
         </div>
-        
-        <div class="modal-footer">
-          ${this.renderFooterButtons()}
-        </div>
+      </div>
+      
+      <div class="modal-body">
+        ${this.renderCurrentStep()}
+      </div>
+      
+      <div class="modal-footer">
+        ${this.renderFooterButtons()}
       </div>
     `;
     
-    document.body.appendChild(modal);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
     
     // Prevent body scroll
     document.body.style.overflow = 'hidden';
@@ -382,28 +385,39 @@ class PlanCreationModal {
   
   /**
    * Render footer buttons based on current step
+   * Standard layout: [Cancel/Secondary] [spacer] [Primary]
    */
   renderFooterButtons() {
     switch (this.step) {
       case 1:
         return `
-          <button type="button" class="btn-secondary" id="modal-cancel">Cancel</button>
-          <button type="button" class="btn-primary" id="modal-next" ${this.selectedContacts.size === 0 ? 'disabled' : ''}>
-            Next <span class="material-icons">arrow_forward</span>
-          </button>
+          <div class="modal-footer-left">
+            <button type="button" class="btn btn-secondary" id="modal-cancel">Cancel</button>
+          </div>
+          <div class="modal-footer-right">
+            <button type="button" class="btn btn-primary" id="modal-next" ${this.selectedContacts.size === 0 ? 'disabled' : ''}>
+              Next <span class="material-icons">arrow_forward</span>
+            </button>
+          </div>
         `;
       case 2:
         return `
-          <button type="button" class="btn-secondary" id="modal-back">
-            <span class="material-icons">arrow_back</span> Back
-          </button>
-          <button type="button" class="btn-primary" id="modal-submit">
-            Create Plan <span class="material-icons">check</span>
-          </button>
+          <div class="modal-footer-left">
+            <button type="button" class="btn btn-secondary" id="modal-back">
+              <span class="material-icons">arrow_back</span> Back
+            </button>
+          </div>
+          <div class="modal-footer-right">
+            <button type="button" class="btn btn-primary" id="modal-submit">
+              Create Plan <span class="material-icons">check</span>
+            </button>
+          </div>
         `;
       case 3:
         return `
-          <button type="button" class="btn-primary" id="modal-done">Done</button>
+          <div class="modal-footer-right">
+            <button type="button" class="btn btn-primary" id="modal-done">Done</button>
+          </div>
         `;
       default:
         return '';
@@ -417,7 +431,7 @@ class PlanCreationModal {
     const modal = document.querySelector('.plan-creation-modal');
     if (!modal) return;
     
-    // Close button
+    // Close button (using standard .modal-close class)
     const closeBtn = modal.querySelector('#close-plan-modal');
     if (closeBtn) {
       closeBtn.addEventListener('click', this.handleClose);
@@ -463,12 +477,15 @@ class PlanCreationModal {
       this.attachStep3Listeners(modal);
     }
     
-    // Click outside to close
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        this.handleClose();
-      }
-    });
+    // Click outside to close (click on overlay)
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          this.handleClose();
+        }
+      });
+    }
     
     // Escape key to close
     document.addEventListener('keydown', (e) => {
@@ -647,9 +664,9 @@ class PlanCreationModal {
    * Handle close modal
    */
   handleClose() {
-    const modal = document.querySelector('.plan-creation-modal');
-    if (modal) {
-      modal.remove();
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) {
+      overlay.remove();
     }
     document.body.style.overflow = '';
     

@@ -122,7 +122,8 @@
   
   /* Typography */
   --font-heading: 'Cabin Sketch', 'Comic Sans MS', cursive, sans-serif;
-  --font-body: 'Handlee', 'Comic Sans MS', cursive, sans-serif;
+  --font-accent: 'Handlee', 'Comic Sans MS', cursive, sans-serif;
+  --font-readable: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
   
   /* Font Sizes */
@@ -136,6 +137,8 @@
   
   /* Font Weights */
   --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
   --font-bold: 700;
   
   /* Line Heights */
@@ -236,7 +239,7 @@
    ============================================================================ */
 
 body {
-  font-family: var(--font-body);
+  font-family: var(--font-readable);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   color: var(--text-primary);
@@ -257,34 +260,62 @@ html[data-theme-transitioning] * {
 }
 
 /* Typography Hierarchy */
-/* Cabin Sketch for headings, titles, and navigation */
-h1, h2, h3, h4, h5, h6,
-.sidebar__brand,
-.nav-item,
+/* Heading Font (Cabin Sketch) for major titles */
+h1, h2,
 .page-title,
 .section-title,
 .modal-title,
-.card-title {
+.sidebar__brand {
   font-family: var(--font-heading);
   font-weight: var(--font-bold);
   line-height: var(--leading-tight);
 }
 
-/* Handlee for everything else (body text, buttons, labels, inputs) */
+/* Accent Font (Handlee) for navigation, CTAs, and card titles */
+h3, h4, h5, h6,
+.nav-item,
+.card-title,
+.btn-primary,
+.btn-accent,
+.tab-label,
+.badge {
+  font-family: var(--font-accent);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+}
+
+/* Readable Font (Inter) for body text, forms, and functional content */
 body,
 p,
-button,
 input,
 textarea,
 select,
 label,
-.btn,
-.input,
-.badge,
-.tag,
-.toast {
-  font-family: var(--font-body);
+.btn-secondary,
+.btn-link,
+.form-label,
+.form-help,
+.table td,
+.tooltip,
+.error-message,
+.modal-body,
+.toast-message {
+  font-family: var(--font-readable);
   font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+}
+
+/* Typography Utility Classes */
+.font-heading {
+  font-family: var(--font-heading) !important;
+}
+
+.font-accent {
+  font-family: var(--font-accent) !important;
+}
+
+.font-readable {
+  font-family: var(--font-readable) !important;
 }
 
 /* Chat bubble maroon color */
@@ -364,4 +395,1305 @@ label,
 .pill-switch input[type="checkbox"]:disabled + .pill-switch__track {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ============================================================================
+   MODAL COMPONENT SYSTEM
+   Standard modal sizes and consistent styling
+   ============================================================================ */
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1001 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: var(--space-4);
+}
+
+/* Base Modal Styles */
+.modal {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  width: 100%;
+  position: relative;
+  z-index: var(--z-modal);
+}
+
+/* Modal Size Classes */
+.modal-sm {
+  max-width: 400px;
+}
+
+.modal-md {
+  max-width: 600px;
+}
+
+.modal-lg {
+  max-width: 800px;
+}
+
+.modal-full {
+  max-width: 90vw;
+}
+
+/* Modal Header - Standard Layout: [Title] [spacer] [Close X] */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  min-height: 56px; /* Consistent header height */
+}
+
+.modal-header h2,
+.modal-header .modal-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1; /* Allow title to take available space */
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0; /* Prevent close button from shrinking */
+  width: 32px;
+  height: 32px;
+}
+
+.modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.modal-close:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Modal Body */
+.modal-body {
+  padding: var(--space-4);
+  overflow-y: auto;
+  flex: 1;
+  font-family: var(--font-readable);
+  color: var(--text-primary);
+}
+
+/* Modal Footer - Standard Layout: [Cancel/Secondary] [spacer] [Primary] */
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  gap: var(--space-3);
+  flex-shrink: 0;
+  min-height: 72px; /* Consistent footer height with padding */
+}
+
+/* Modal Footer Button Groups */
+.modal-footer-left {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.modal-footer-right {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-left: auto;
+}
+
+/* Single button in footer - right-aligned */
+.modal-footer > button:only-child,
+.modal-footer > .btn:only-child {
+  margin-left: auto;
+}
+
+/* Responsive Modal Behavior */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: var(--space-2);
+  }
+  
+  .modal-sm,
+  .modal-md,
+  .modal-lg,
+  .modal-full {
+    max-width: 100%;
+    max-height: 95vh;
+  }
+  
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: var(--space-3);
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  
+  .modal-footer-left,
+  .modal-footer-right {
+    width: 100%;
+    margin-left: 0;
+  }
+  
+  .modal-footer button {
+    width: 100%;
+  }
+}
+
+/* Modal Overlay Animation */
+.modal-overlay {
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.modal-overlay.show {
+  opacity: 1;
+}
+
+.modal-overlay.show .modal {
+  animation: modalSlideIn var(--transition-normal) ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   LOADING STATE COMPONENT
+   Standard loading spinners and skeleton loaders
+   ============================================================================ */
+
+/* Spinner Base Styles */
+.spinner {
+  display: inline-block;
+  border: 2px solid var(--border-subtle);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Spinner Size Variants */
+.spinner-sm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.spinner-md {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+.spinner-lg {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+}
+
+/* Loading Container - Centers spinner */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  gap: var(--space-3);
+}
+
+/* Loading Message */
+.loading-message {
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* Skeleton Loaders - Animated placeholders */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-hover) 0%,
+    var(--bg-active) 50%,
+    var(--bg-hover) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Skeleton Text Variants */
+.skeleton-text {
+  height: 16px;
+  width: 100%;
+  margin-bottom: var(--space-2);
+}
+
+.skeleton-text--sm {
+  height: 12px;
+  width: 80%;
+}
+
+.skeleton-text--lg {
+  height: 20px;
+  width: 100%;
+}
+
+.skeleton-text--title {
+  height: 24px;
+  width: 60%;
+  margin-bottom: var(--space-3);
+}
+
+/* Skeleton Card */
+.skeleton-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.skeleton-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.skeleton-card-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-card-content {
+  flex: 1;
+}
+
+.skeleton-card-footer {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.skeleton-card-button {
+  height: 36px;
+  width: 80px;
+  border-radius: var(--radius-md);
+}
+
+/* Skeleton Table */
+.skeleton-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.skeleton-table-row {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.skeleton-table-cell {
+  padding: var(--space-3);
+}
+
+.skeleton-table-cell .skeleton {
+  height: 16px;
+  width: 100%;
+}
+
+/* Skeleton List */
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.skeleton-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.skeleton-list-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-list-content {
+  flex: 1;
+}
+
+/* Button Loading States */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
+  opacity: 0.7;
+}
+
+/* Button with spinner alongside label */
+.btn-loading-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.btn-loading-inline .spinner {
+  margin-right: var(--space-2);
+}
+
+/* Page-Level Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-overlay);
+}
+
+.loading-overlay-content {
+  background: var(--bg-surface);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Inline Loading State */
+.loading-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* Accessibility - Screen reader only text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ============================================================================
+   EMPTY STATE COMPONENT
+   Standard empty state layout with consistent styling
+   ============================================================================ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty-state-icon {
+  font-size: 64px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-4);
+}
+
+.empty-state-title {
+  font-family: var(--font-accent);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.empty-state-description {
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  margin: 0 0 var(--space-6) 0;
+  max-width: 400px;
+}
+
+.empty-state-action {
+  margin-top: var(--space-4);
+}
+
+/* Empty State Variants */
+.empty-state--compact {
+  padding: var(--space-8);
+}
+
+.empty-state--compact .empty-state-icon {
+  font-size: 48px;
+  margin-bottom: var(--space-3);
+}
+
+.empty-state--compact .empty-state-title {
+  font-size: var(--text-lg);
+}
+
+.empty-state--compact .empty-state-description {
+  font-size: var(--text-xs);
+  margin-bottom: var(--space-4);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .empty-state {
+    padding: var(--space-12) var(--space-4);
+  }
+  
+  .empty-state-icon {
+    font-size: 48px;
+  }
+  
+  .empty-state-title {
+    font-size: var(--text-lg);
+  }
+  
+  .empty-state-description {
+    font-size: var(--text-xs);
+  }
+}
+
+/* ============================================================================
+   PAGE HEADER COMPONENT
+   Standard page header layout pattern with consistent spacing
+   ============================================================================ */
+
+/* Page Header - Standard Layout: [Back button] [Title] [spacer] [Primary action] */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px; /* Consistent page header height */
+  margin-bottom: var(--space-4); /* Gap before page content */
+  padding: var(--space-4) 0;
+}
+
+/* Page Header Title */
+.page-header-title,
+.page-header h1 {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1; /* Allow title to take available space */
+}
+
+/* Page Header Back Button - Left-most element */
+.page-header-back {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+  margin-right: var(--space-3);
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
+}
+
+.page-header-back:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.page-header-back:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.page-header-back-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* Page Header Actions - Right-aligned buttons/controls */
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0; /* Prevent actions from shrinking */
+}
+
+/* Page Header with Breadcrumb */
+.page-header-with-breadcrumb {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.page-header-with-breadcrumb .breadcrumb {
+  margin-bottom: 0;
+}
+
+.page-header-with-breadcrumb .page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .page-header {
+    min-height: 56px;
+    padding: var(--space-3) 0;
+  }
+  
+  .page-header-title,
+  .page-header h1 {
+    font-size: var(--text-xl);
+  }
+  
+  .page-header-actions {
+    gap: var(--space-2);
+  }
+  
+  /* Stack header on very small screens if needed */
+  @media (max-width: 480px) {
+    .page-header {
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+    
+    .page-header-title {
+      width: 100%;
+      order: 1;
+    }
+    
+    .page-header-back {
+      order: 0;
+    }
+    
+    .page-header-actions {
+      order: 2;
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+}
+
+/* ============================================================================
+   SECTION LAYOUT COMPONENT
+   Standard section layout pattern with consistent spacing
+   ============================================================================ */
+
+/* Section Container */
+.section {
+  margin-bottom: var(--space-6); /* Consistent vertical spacing between sections */
+}
+
+/* Section Header - Standard Layout: [Title] [spacer] [Actions] */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px; /* Consistent section header height */
+  margin-bottom: var(--space-2); /* Gap before description */
+}
+
+.section-header-title,
+.section-header h2,
+.section-header h3 {
+  font-family: var(--font-accent);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1; /* Allow title to take available space */
+}
+
+/* Section Header Actions - Right-aligned buttons/controls */
+.section-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0; /* Prevent actions from shrinking */
+}
+
+/* Section Description - Optional explanatory text below header */
+.section-description {
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  margin: 0 0 var(--space-4) 0; /* Gap before content */
+}
+
+/* Section Content - Main content area */
+.section-content {
+  margin-top: var(--space-4); /* Consistent gap from header/description */
+}
+
+/* Section Footer - Optional footer with actions */
+.section-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Section Divider - Horizontal separator between sections */
+.section-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  border: none;
+  margin: var(--space-6) 0;
+}
+
+/* Collapsible Section */
+.section-collapsible .section-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-fast);
+  padding: var(--space-3);
+  margin: 0 calc(var(--space-3) * -1); /* Negative margin to extend clickable area */
+  border-radius: var(--radius-md);
+}
+
+.section-collapsible .section-header:hover {
+  background: var(--bg-hover);
+}
+
+/* Collapsible Section Toggle Icon - Right side of header */
+.section-toggle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--text-secondary);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+  margin-left: var(--space-2);
+}
+
+.section-collapsible .section-header:hover .section-toggle-icon {
+  color: var(--text-primary);
+}
+
+/* Rotate icon when section is expanded */
+.section-collapsible.section-expanded .section-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Collapsible Section Content - Hidden when collapsed */
+.section-collapsible .section-content {
+  overflow: hidden;
+  transition: max-height var(--transition-base), opacity var(--transition-base);
+}
+
+.section-collapsible.section-collapsed .section-content {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+.section-collapsible.section-expanded .section-content {
+  max-height: 5000px; /* Large enough for most content */
+  opacity: 1;
+}
+
+/* Section with Card Styling */
+.section-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.section-card .section-header {
+  margin-bottom: var(--space-3);
+}
+
+.section-card .section-content {
+  margin-top: var(--space-3);
+}
+
+/* Section Variants */
+.section--compact {
+  margin-bottom: var(--space-4);
+}
+
+.section--compact .section-header {
+  min-height: 40px;
+}
+
+.section--compact .section-header-title {
+  font-size: var(--text-base);
+}
+
+.section--spacious {
+  margin-bottom: var(--space-8);
+}
+
+/* Section with Empty State */
+.section-empty {
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.section-empty .empty-state {
+  padding: var(--space-8) 0;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  
+  .section-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .section-footer {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  
+  .section-card {
+    padding: var(--space-3);
+  }
+  
+  .section-collapsible .section-header {
+    margin: 0 calc(var(--space-2) * -1);
+    padding: var(--space-2);
+  }
+}
+
+/* ============================================================================
+   NAVIGATION ELEMENT COMPONENTS
+   Standard navigation patterns: tabs, filters, pagination, breadcrumbs
+   ============================================================================ */
+
+/* Tab Navigation - Positioned below page header with --space-4 gap */
+.tab-navigation {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-top: var(--space-4); /* Gap from page header */
+  margin-bottom: var(--space-4); /* Gap before content */
+}
+
+.tab-item {
+  font-family: var(--font-accent);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  padding: var(--space-3) var(--space-4);
+  height: 40px; /* Consistent tab height */
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab-item:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.tab-item.active,
+.tab-item[aria-selected="true"] {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+  font-weight: var(--font-semibold);
+}
+
+.tab-item:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.tab-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Tab Badge - Count indicator */
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-1);
+  margin-left: var(--space-2);
+  background: var(--bg-active);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  border-radius: var(--radius-full);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.tab-item.active .tab-badge {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+/* Filter Bar - Below tabs or page header with --space-4 gap */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-4); /* Gap from tabs or header */
+  margin-bottom: var(--space-4); /* Gap before content */
+  min-height: 40px; /* Consistent filter bar height */
+}
+
+.filter-bar-label {
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.filter-bar-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+/* Filter Button */
+.filter-btn {
+  font-family: var(--font-accent);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  padding: var(--space-2) var(--space-3);
+  height: 32px; /* Consistent filter button height */
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filter-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.filter-btn.active {
+  background: var(--accent-subtle);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  font-weight: var(--font-semibold);
+}
+
+.filter-btn:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Search Bar - Part of filter bar */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.search-input {
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  padding: var(--space-2) var(--space-3);
+  height: 40px; /* Consistent search input height */
+  flex: 1;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.search-input:hover {
+  border-color: var(--border-default);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Pagination Controls - Bottom of content areas */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-6); /* Gap from content */
+  padding: var(--space-4) 0;
+}
+
+.pagination-info {
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0 var(--space-3);
+}
+
+.pagination-btn {
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  padding: var(--space-2) var(--space-3);
+  min-width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.pagination-btn.active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+  font-weight: var(--font-semibold);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pagination-btn:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Pagination Arrows */
+.pagination-prev,
+.pagination-next {
+  padding: var(--space-2) var(--space-3);
+}
+
+.pagination-prev::before {
+  content: '←';
+  margin-right: var(--space-2);
+}
+
+.pagination-next::after {
+  content: '→';
+  margin-left: var(--space-2);
+}
+
+/* View All / See More Links - Right-aligned below content */
+.view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--accent-primary);
+  text-decoration: none;
+  padding: var(--space-2) 0;
+  margin-top: var(--space-4);
+  transition: color var(--transition-fast);
+}
+
+.view-all-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+.view-all-link::after {
+  content: '→';
+  transition: transform var(--transition-fast);
+}
+
+.view-all-link:hover::after {
+  transform: translateX(4px);
+}
+
+/* View All Container - Right-aligned */
+.view-all-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
+/* Breadcrumb Navigation - Above page title within header area */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2); /* Gap before page title */
+}
+
+.breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.breadcrumb-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.breadcrumb-link:hover {
+  color: var(--accent-primary);
+  text-decoration: underline;
+}
+
+.breadcrumb-separator {
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+.breadcrumb-separator::before {
+  content: '/';
+}
+
+.breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: var(--font-medium);
+}
+
+/* Page Header with Navigation Elements */
+.page-header-with-nav {
+  margin-bottom: var(--space-4);
+}
+
+.page-header-with-nav .breadcrumb {
+  margin-bottom: var(--space-2);
+}
+
+.page-header-with-nav .page-title {
+  margin-bottom: 0;
+}
+
+.page-header-with-nav .tab-navigation {
+  margin-top: var(--space-4);
+}
+
+/* Stacked Navigation Pattern: Tabs above Filters */
+.navigation-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.navigation-stack .tab-navigation {
+  margin-bottom: 0;
+}
+
+.navigation-stack .filter-bar {
+  margin-top: 0;
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* Mobile Responsive Navigation */
+@media (max-width: 768px) {
+  .tab-navigation {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+  
+  .tab-navigation::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+  
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+  
+  .filter-bar-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .search-bar {
+    max-width: none;
+  }
+  
+  .pagination {
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+  
+  .pagination-info {
+    width: 100%;
+    text-align: center;
+    margin: var(--space-2) 0;
+  }
+  
+  .breadcrumb {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .breadcrumb::-webkit-scrollbar {
+    display: none;
+  }
 }

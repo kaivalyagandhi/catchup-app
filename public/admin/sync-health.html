@@ -13,9 +13,9 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: var(--bg-primary, #f5f5f0);
-      color: var(--text-primary, #2c2c2c);
+      font-family: var(--font-readable);
+      background: var(--bg-app);
+      color: var(--text-primary);
       padding: 20px;
       line-height: 1.6;
     }
@@ -25,26 +25,24 @@
       margin: 0 auto;
     }
 
-    .header {
-      background: var(--bg-secondary, #ffffff);
-      padding: 24px;
-      border-radius: 12px;
-      margin-bottom: 24px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    }
-
-    .header h1 {
-      font-size: 28px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--text-primary, #2c2c2c);
+    /* Note: Page header now uses standard .page-header class from stone-clay-theme.css */
+    
+    .page-description {
+      font-family: var(--font-readable);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-bottom: var(--space-4);
     }
 
     .header-controls {
       display: flex;
       gap: 12px;
       align-items: center;
-      margin-top: 16px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
       flex-wrap: wrap;
     }
 
@@ -55,24 +53,26 @@
     }
 
     .filter-group label {
+      font-family: var(--font-readable);
       font-size: 14px;
       font-weight: 500;
-      color: var(--text-secondary, #666);
+      color: var(--text-secondary);
     }
 
     select, button {
+      font-family: var(--font-readable);
       padding: 8px 16px;
-      border: 1px solid var(--border-color, #ddd);
-      border-radius: 6px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
       font-size: 14px;
-      background: var(--bg-secondary, #ffffff);
-      color: var(--text-primary, #2c2c2c);
+      background: var(--bg-surface);
+      color: var(--text-primary);
       cursor: pointer;
       transition: all 0.2s;
     }
 
     select:hover, button:hover {
-      border-color: var(--accent-primary, #8b7355);
+      border-color: var(--accent-primary);
     }
 
     button {
@@ -84,8 +84,9 @@
     }
 
     .refresh-info {
+      font-family: var(--font-readable);
       font-size: 13px;
-      color: var(--text-secondary, #666);
+      color: var(--text-secondary);
       margin-left: auto;
     }
 
@@ -97,25 +98,27 @@
     }
 
     .metric-card {
-      background: var(--bg-secondary, #ffffff);
+      background: var(--bg-surface);
       padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
     }
 
     .metric-card h3 {
+      font-family: var(--font-readable);
       font-size: 14px;
       font-weight: 500;
-      color: var(--text-secondary, #666);
+      color: var(--text-secondary);
       margin-bottom: 12px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .metric-value {
+      font-family: var(--font-readable);
       font-size: 32px;
       font-weight: 600;
-      color: var(--text-primary, #2c2c2c);
+      color: var(--text-primary);
       margin-bottom: 8px;
     }
 
@@ -124,6 +127,7 @@
       gap: 16px;
       margin-top: 12px;
       font-size: 14px;
+      font-family: var(--font-readable);
     }
 
     .metric-item {
@@ -132,14 +136,14 @@
     }
 
     .metric-item-label {
-      color: var(--text-secondary, #666);
+      color: var(--text-secondary);
       font-size: 12px;
       margin-bottom: 4px;
     }
 
     .metric-item-value {
       font-weight: 600;
-      color: var(--text-primary, #2c2c2c);
+      color: var(--text-primary);
     }
 
     .status-indicator {
@@ -163,18 +167,19 @@
     }
 
     .section {
-      background: var(--bg-secondary, #ffffff);
+      background: var(--bg-surface);
       padding: 24px;
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       margin-bottom: 24px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      box-shadow: var(--shadow-sm);
     }
 
     .section h2 {
+      font-family: var(--font-readable);
       font-size: 20px;
       font-weight: 600;
       margin-bottom: 16px;
-      color: var(--text-primary, #2c2c2c);
+      color: var(--text-primary);
     }
 
     .chart-container {
@@ -196,21 +201,22 @@
     .bar-label {
       min-width: 180px;
       font-size: 14px;
-      color: var(--text-primary, #2c2c2c);
+      font-family: var(--font-readable);
+      color: var(--text-primary);
     }
 
     .bar-track {
       flex: 1;
       height: 24px;
-      background: var(--bg-tertiary, #f0f0f0);
-      border-radius: 4px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
       overflow: hidden;
       position: relative;
     }
 
     .bar-fill {
       height: 100%;
-      background: var(--accent-primary, #8b7355);
+      background: var(--accent-primary);
       transition: width 0.3s ease;
       display: flex;
       align-items: center;
@@ -219,6 +225,7 @@
     }
 
     .bar-value {
+      font-family: var(--font-readable);
       font-size: 12px;
       font-weight: 600;
       color: white;
@@ -234,34 +241,36 @@
       width: 100%;
       border-collapse: collapse;
       font-size: 14px;
+      font-family: var(--font-readable);
     }
 
     thead {
-      background: var(--bg-tertiary, #f0f0f0);
+      background: var(--bg-secondary);
     }
 
     th {
       text-align: left;
       padding: 12px;
       font-weight: 600;
-      color: var(--text-primary, #2c2c2c);
-      border-bottom: 2px solid var(--border-color, #ddd);
+      color: var(--text-primary);
+      border-bottom: 2px solid var(--border-default);
     }
 
     td {
       padding: 12px;
-      border-bottom: 1px solid var(--border-color, #ddd);
-      color: var(--text-primary, #2c2c2c);
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-primary);
     }
 
     tbody tr:hover {
-      background: var(--bg-tertiary, #f0f0f0);
+      background: var(--bg-hover);
     }
 
     .empty-state {
       text-align: center;
       padding: 40px;
-      color: var(--text-secondary, #666);
+      font-family: var(--font-readable);
+      color: var(--text-secondary);
     }
 
     .empty-state-icon {
@@ -273,40 +282,44 @@
     .loading {
       text-align: center;
       padding: 40px;
-      color: var(--text-secondary, #666);
+      font-family: var(--font-readable);
+      color: var(--text-secondary);
     }
 
     .error {
-      background: #ffebee;
-      color: #c62828;
+      background: var(--status-error-bg);
+      color: var(--status-error);
       padding: 16px;
-      border-radius: 8px;
+      border-radius: var(--radius-md);
       margin-bottom: 24px;
-      border-left: 4px solid #c62828;
+      border-left: 4px solid var(--status-error);
+      font-family: var(--font-readable);
     }
 
     .badge {
       display: inline-block;
       padding: 4px 8px;
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
       font-size: 12px;
       font-weight: 500;
+      font-family: var(--font-readable);
     }
 
     .badge-contacts {
-      background: #e3f2fd;
-      color: #1976d2;
+      background: var(--status-info-bg);
+      color: var(--status-info);
     }
 
     .badge-calendar {
-      background: #f3e5f5;
-      color: #7b1fa2;
+      background: var(--status-warning-bg);
+      color: var(--status-warning);
     }
 
     .link-button {
-      color: var(--accent-primary, #8b7355);
+      color: var(--accent-primary);
       text-decoration: none;
       font-weight: 500;
+      font-family: var(--font-readable);
     }
 
     .link-button:hover {
@@ -333,29 +346,31 @@
 <body>
   <div class="container">
     <!-- Header -->
-    <div class="header">
-      <h1>🔍 Sync Health Dashboard</h1>
-      <p style="color: var(--text-secondary, #666); margin-top: 4px;">
-        Monitor Google Contacts and Calendar sync health across all users
-      </p>
-      
-      <div class="header-controls">
-        <div class="filter-group">
-          <label for="integration-filter">Integration:</label>
-          <select id="integration-filter">
-            <option value="">All Integrations</option>
-            <option value="google_contacts">Google Contacts</option>
-            <option value="google_calendar">Google Calendar</option>
-          </select>
-        </div>
-        
+    <div class="page-header">
+      <h1 class="page-header-title">🔍 Sync Health Dashboard</h1>
+      <div class="page-header-actions">
         <button id="refresh-btn">🔄 Refresh Now</button>
         <button id="export-btn">📥 Export CSV</button>
-        
-        <div class="refresh-info">
-          <div>Last updated: <span id="last-refresh">Never</span></div>
-          <div style="font-size: 12px; margin-top: 2px;">Auto-refresh in <span id="countdown">5:00</span></div>
-        </div>
+      </div>
+    </div>
+    
+    <p class="page-description">
+      Monitor Google Contacts and Calendar sync health across all users
+    </p>
+    
+    <div class="header-controls">
+      <div class="filter-group">
+        <label for="integration-filter">Integration:</label>
+        <select id="integration-filter">
+          <option value="">All Integrations</option>
+          <option value="google_contacts">Google Contacts</option>
+          <option value="google_calendar">Google Calendar</option>
+        </select>
+      </div>
+      
+      <div class="refresh-info">
+        <div>Last updated: <span id="last-refresh">Never</span></div>
+        <div style="font-size: 12px; margin-top: 2px;">Auto-refresh in <span id="countdown">5:00</span></div>
       </div>
     </div>
 
@@ -374,7 +389,7 @@
         <div class="metric-card">
           <h3>Total Users</h3>
           <div class="metric-value" id="total-users">-</div>
-          <div style="font-size: 13px; color: var(--text-secondary, #666); margin-top: 4px;">
+          <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px; font-family: var(--font-readable);">
             With active Google integrations
           </div>
         </div>

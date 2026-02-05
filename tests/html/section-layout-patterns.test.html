@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Section Layout Patterns Test - CatchUp</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <style>
+    body {
+      padding: var(--space-6);
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .test-header {
+      margin-bottom: var(--space-8);
+      padding-bottom: var(--space-4);
+      border-bottom: 2px solid var(--border-default);
+    }
+
+    .test-section {
+      margin-bottom: var(--space-12);
+      padding: var(--space-6);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+    }
+
+    .test-section-title {
+      font-family: var(--font-heading);
+      font-size: var(--text-2xl);
+      color: var(--text-primary);
+      margin: 0 0 var(--space-2) 0;
+    }
+
+    .test-section-description {
+      font-family: var(--font-readable);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin: 0 0 var(--space-6) 0;
+    }
+
+    .demo-content {
+      background: var(--bg-surface);
+      padding: var(--space-4);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .demo-content p {
+      margin: 0;
+      font-family: var(--font-readable);
+      color: var(--text-primary);
+    }
+
+    .btn {
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-readable);
+      font-size: var(--text-sm);
+      transition: all var(--transition-fast);
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: white;
+      font-family: var(--font-accent);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-active);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: var(--space-4);
+      right: var(--space-4);
+      padding: var(--space-3);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+      z-index: 1000;
+    }
+
+    .theme-toggle:hover {
+      background: var(--bg-hover);
+    }
+
+    /* Demo-specific styles */
+    .demo-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .demo-list li {
+      padding: var(--space-3);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .demo-list li:last-child {
+      border-bottom: none;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-4);
+    }
+
+    .demo-card {
+      background: var(--bg-surface);
+      padding: var(--space-4);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .demo-card-title {
+      font-family: var(--font-accent);
+      font-size: var(--text-base);
+      margin: 0 0 var(--space-2) 0;
+    }
+
+    .demo-card-text {
+      font-family: var(--font-readable);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" onclick="toggleTheme()">
+    🌓 Toggle Theme
+  </button>
+
+  <!-- Test Header -->
+  <div class="test-header">
+    <h1 style="font-family: var(--font-heading); font-size: var(--text-3xl); margin: 0 0 var(--space-2) 0;">
+      Section Layout Patterns Test
+    </h1>
+    <p style="font-family: var(--font-readable); color: var(--text-secondary); margin: 0;">
+      Comprehensive demonstration of all section layout patterns from the Stone & Clay design system.
+      This test validates Requirements 24.1-24.9 for section layout consistency.
+    </p>
+  </div>
+
+  <!-- Test 1: Basic Section Layout -->
+  <div class="test-section">
+    <h2 class="test-section-title">1. Basic Section Layout</h2>
+    <p class="test-section-description">
+      Standard section with header, optional description, and content area.
+      Validates Req 24.1, 24.3, 24.4.
+    </p>
+
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-header-title">Section Title</h3>
+        <div class="section-header-actions">
+          <button class="btn btn-secondary">Action</button>
+          <button class="btn btn-primary">Primary</button>
+        </div>
+      </div>
+      <p class="section-description">
+        This is an optional section description that appears below the header with --space-2 gap.
+        It provides context about the section content.
+      </p>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>Section content appears here with --space-4 gap from the description.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 2: Section Without Description -->
+  <div class="test-section">
+    <h2 class="test-section-title">2. Section Without Description</h2>
+    <p class="test-section-description">
+      Section with header and content only (no description).
+      Validates Req 24.1, 24.4.
+    </p>
+
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-header-title">Recent Activity</h3>
+        <div class="section-header-actions">
+          <button class="btn btn-secondary">View All</button>
+        </div>
+      </div>
+      <div class="section-content">
+        <ul class="demo-list">
+          <li>Activity item 1</li>
+          <li>Activity item 2</li>
+          <li>Activity item 3</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 3: Section with Footer -->
+  <div class="test-section">
+    <h2 class="test-section-title">3. Section with Footer</h2>
+    <p class="test-section-description">
+      Section with header, content, and footer action bar.
+      Validates Req 24.1.
+    </p>
+
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-header-title">Settings</h3>
+      </div>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>Section content with various settings and options.</p>
+        </div>
+      </div>
+      <div class="section-footer">
+        <button class="btn btn-secondary">Reset</button>
+        <button class="btn btn-primary">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 4: Collapsible Section (Expanded) -->
+  <div class="test-section">
+    <h2 class="test-section-title">4. Collapsible Section (Expanded)</h2>
+    <p class="test-section-description">
+      Collapsible section with expand/collapse icon on the right side.
+      Validates Req 24.6.
+    </p>
+
+    <div class="section section-collapsible section-expanded" id="collapsible-1">
+      <div class="section-header" onclick="toggleSection('collapsible-1')">
+        <h3 class="section-header-title">Advanced Options</h3>
+        <span class="section-toggle-icon">▼</span>
+      </div>
+      <p class="section-description">
+        Click the header to collapse this section. The icon rotates when expanded/collapsed.
+      </p>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>This content can be hidden by clicking the section header.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 5: Collapsible Section (Collapsed) -->
+  <div class="test-section">
+    <h2 class="test-section-title">5. Collapsible Section (Collapsed)</h2>
+    <p class="test-section-description">
+      Collapsible section in collapsed state.
+      Validates Req 24.6.
+    </p>
+
+    <div class="section section-collapsible section-collapsed" id="collapsible-2">
+      <div class="section-header" onclick="toggleSection('collapsible-2')">
+        <h3 class="section-header-title">Hidden Content</h3>
+        <span class="section-toggle-icon">▼</span>
+      </div>
+      <p class="section-description">
+        This section starts collapsed. Click to expand.
+      </p>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>This content is hidden until you expand the section.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 6: Section Dividers -->
+  <div class="test-section">
+    <h2 class="test-section-title">6. Section Dividers</h2>
+    <p class="test-section-description">
+      Horizontal dividers between sections using --border-subtle.
+      Validates Req 24.7.
+    </p>
+
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-header-title">First Section</h3>
+      </div>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>Content of the first section.</p>
+        </div>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-header-title">Second Section</h3>
+      </div>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>Content of the second section, separated by a divider.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 7: Section Vertical Spacing -->
+  <div class="test-section">
+    <h2 class="test-section-title">7. Section Vertical Spacing</h2>
+    <p class="test-section-description">
+      Multiple sections with consistent --space-6 (24px) vertical spacing.
+      Validates Req 24.5.
+    </p>
+
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-header-title">Section One</h3>
+      </div>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>First section content.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-header-title">Section Two</h3>
+      </div>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>Second section content with --space-6 gap above.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-header-title">Section Three</h3>
+      </div>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>Third section content with --space-6 gap above.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 8: Section with Card Styling -->
+  <div class="test-section">
+    <h2 class="test-section-title">8. Section with Card Styling</h2>
+    <p class="test-section-description">
+      Section wrapped in a card with background, border, and shadow.
+    </p>
+
+    <div class="section section-card">
+      <div class="section-header">
+        <h3 class="section-header-title">Card Section</h3>
+        <div class="section-header-actions">
+          <button class="btn btn-secondary">Edit</button>
+        </div>
+      </div>
+      <p class="section-description">
+        This section has card styling with background, border, and shadow.
+      </p>
+      <div class="section-content">
+        <div class="demo-grid">
+          <div class="demo-card">
+            <h4 class="demo-card-title">Card 1</h4>
+            <p class="demo-card-text">Card content</p>
+          </div>
+          <div class="demo-card">
+            <h4 class="demo-card-title">Card 2</h4>
+            <p class="demo-card-text">Card content</p>
+          </div>
+          <div class="demo-card">
+            <h4 class="demo-card-title">Card 3</h4>
+            <p class="demo-card-text">Card content</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 9: Section with Empty State -->
+  <div class="test-section">
+    <h2 class="test-section-title">9. Section with Empty State</h2>
+    <p class="test-section-description">
+      Section displaying empty state when no content is available.
+      Validates Req 24.9.
+    </p>
+
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-header-title">Notifications</h3>
+        <div class="section-header-actions">
+          <button class="btn btn-secondary">Settings</button>
+        </div>
+      </div>
+      <div class="section-content">
+        <div class="empty-state">
+          <div class="empty-state-icon">📭</div>
+          <h4 class="empty-state-title">No notifications yet</h4>
+          <p class="empty-state-description">
+            When you receive notifications, they'll appear here.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 10: Compact Section Variant -->
+  <div class="test-section">
+    <h2 class="test-section-title">10. Compact Section Variant</h2>
+    <p class="test-section-description">
+      Compact section with reduced spacing for dense layouts.
+    </p>
+
+    <div class="section section--compact">
+      <div class="section-header">
+        <h3 class="section-header-title">Compact Section</h3>
+        <div class="section-header-actions">
+          <button class="btn btn-secondary">Action</button>
+        </div>
+      </div>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>Compact section with reduced spacing (--space-4 instead of --space-6).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section section--compact">
+      <div class="section-header">
+        <h3 class="section-header-title">Another Compact Section</h3>
+      </div>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>Multiple compact sections stack with less vertical space.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 11: Spacious Section Variant -->
+  <div class="test-section">
+    <h2 class="test-section-title">11. Spacious Section Variant</h2>
+    <p class="test-section-description">
+      Spacious section with increased spacing for emphasis.
+    </p>
+
+    <div class="section section--spacious">
+      <div class="section-header">
+        <h3 class="section-header-title">Spacious Section</h3>
+      </div>
+      <p class="section-description">
+        This section has extra vertical spacing (--space-8 instead of --space-6).
+      </p>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>Use spacious sections to create visual separation and emphasis.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 12: Standard Header Layout Pattern -->
+  <div class="test-section">
+    <h2 class="test-section-title">12. Standard Header Layout Pattern</h2>
+    <p class="test-section-description">
+      Demonstrates the standard header layout: [Title] [spacer] [Actions].
+      Validates Req 24.2 (sections use standard header layout from Req 22).
+    </p>
+
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-header-title">Title on Left</h3>
+        <div class="section-header-actions">
+          <button class="btn btn-secondary">Secondary</button>
+          <button class="btn btn-secondary">Another</button>
+          <button class="btn btn-primary">Primary</button>
+        </div>
+      </div>
+      <div class="section-content">
+        <div class="demo-content">
+          <p>
+            The header uses flexbox with justify-content: space-between to push
+            the title to the left and actions to the right.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Console Output -->
+  <div class="test-section">
+    <h2 class="test-section-title">Test Results</h2>
+    <p class="test-section-description">
+      Check the browser console for validation results.
+    </p>
+    <div id="console-output" style="background: var(--bg-surface); padding: var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: var(--text-sm); white-space: pre-wrap; color: var(--text-primary);"></div>
+  </div>
+
+  <script>
+    // Theme toggle functionality
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      html.setAttribute('data-theme-transitioning', '');
+      html.setAttribute('data-theme', newTheme);
+      
+      setTimeout(() => {
+        html.removeAttribute('data-theme-transitioning');
+      }, 200);
+      
+      localStorage.setItem('theme', newTheme);
+      console.log(`✓ Theme switched to ${newTheme} mode`);
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    if (savedTheme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+
+    // Collapsible section toggle
+    function toggleSection(sectionId) {
+      const section = document.getElementById(sectionId);
+      if (section.classList.contains('section-expanded')) {
+        section.classList.remove('section-expanded');
+        section.classList.add('section-collapsed');
+        console.log(`✓ Section ${sectionId} collapsed`);
+      } else {
+        section.classList.remove('section-collapsed');
+        section.classList.add('section-expanded');
+        console.log(`✓ Section ${sectionId} expanded`);
+      }
+    }
+
+    // Validation tests
+    function runValidationTests() {
+      const results = [];
+      
+      // Test 1: Section vertical spacing
+      const sections = document.querySelectorAll('.section');
+      const firstSection = sections[0];
+      const computedStyle = window.getComputedStyle(firstSection);
+      const marginBottom = computedStyle.marginBottom;
+      
+      if (marginBottom === '24px') {
+        results.push('✓ PASS: Section vertical spacing is --space-6 (24px)');
+      } else {
+        results.push(`✗ FAIL: Section vertical spacing is ${marginBottom}, expected 24px`);
+      }
+      
+      // Test 2: Section header layout
+      const sectionHeader = document.querySelector('.section-header');
+      const headerStyle = window.getComputedStyle(sectionHeader);
+      
+      if (headerStyle.display === 'flex' && headerStyle.justifyContent === 'space-between') {
+        results.push('✓ PASS: Section header uses flexbox with space-between');
+      } else {
+        results.push('✗ FAIL: Section header layout incorrect');
+      }
+      
+      // Test 3: Section description gap
+      const sectionWithDesc = document.querySelector('.section-description');
+      if (sectionWithDesc) {
+        const descStyle = window.getComputedStyle(sectionWithDesc);
+        const marginBottom = descStyle.marginBottom;
+        
+        if (marginBottom === '16px') {
+          results.push('✓ PASS: Section description has --space-4 (16px) gap below');
+        } else {
+          results.push(`✗ FAIL: Section description gap is ${marginBottom}, expected 16px`);
+        }
+      }
+      
+      // Test 4: Section header height
+      const headerHeight = sectionHeader.offsetHeight;
+      if (headerHeight >= 48) {
+        results.push(`✓ PASS: Section header height is ${headerHeight}px (min 48px)`);
+      } else {
+        results.push(`✗ FAIL: Section header height is ${headerHeight}px, expected min 48px`);
+      }
+      
+      // Test 5: Collapsible section icon position
+      const toggleIcon = document.querySelector('.section-toggle-icon');
+      if (toggleIcon) {
+        const iconParent = toggleIcon.parentElement;
+        const parentStyle = window.getComputedStyle(iconParent);
+        
+        if (parentStyle.justifyContent === 'space-between') {
+          results.push('✓ PASS: Collapsible section icon positioned on right side');
+        } else {
+          results.push('✗ FAIL: Collapsible section icon position incorrect');
+        }
+      }
+      
+      // Test 6: Section divider styling
+      const divider = document.querySelector('.section-divider');
+      if (divider) {
+        const dividerStyle = window.getComputedStyle(divider);
+        const height = dividerStyle.height;
+        
+        if (height === '1px') {
+          results.push('✓ PASS: Section divider is 1px solid');
+        } else {
+          results.push(`✗ FAIL: Section divider height is ${height}, expected 1px`);
+        }
+      }
+      
+      // Test 7: Typography consistency
+      const sectionTitle = document.querySelector('.section-header-title');
+      const titleStyle = window.getComputedStyle(sectionTitle);
+      const fontFamily = titleStyle.fontFamily;
+      
+      if (fontFamily.includes('Handlee')) {
+        results.push('✓ PASS: Section titles use --font-accent (Handlee)');
+      } else {
+        results.push(`✗ FAIL: Section titles use ${fontFamily}, expected Handlee`);
+      }
+      
+      const sectionDesc = document.querySelector('.section-description');
+      if (sectionDesc) {
+        const descStyle = window.getComputedStyle(sectionDesc);
+        const descFont = descStyle.fontFamily;
+        
+        if (descFont.includes('Inter')) {
+          results.push('✓ PASS: Section descriptions use --font-readable (Inter)');
+        } else {
+          results.push(`✗ FAIL: Section descriptions use ${descFont}, expected Inter`);
+        }
+      }
+      
+      // Test 8: Empty state in section
+      const emptyState = document.querySelector('.section .empty-state');
+      if (emptyState) {
+        results.push('✓ PASS: Empty state component found in section');
+      } else {
+        results.push('✗ FAIL: Empty state component not found in section');
+      }
+      
+      // Output results
+      const output = results.join('\n');
+      document.getElementById('console-output').textContent = output;
+      console.log('\n=== Section Layout Pattern Validation ===\n');
+      console.log(output);
+      console.log('\n=== End Validation ===\n');
+      
+      // Summary
+      const passCount = results.filter(r => r.startsWith('✓')).length;
+      const failCount = results.filter(r => r.startsWith('✗')).length;
+      const summary = `\nSummary: ${passCount} passed, ${failCount} failed out of ${results.length} tests`;
+      
+      document.getElementById('console-output').textContent += summary;
+      console.log(summary);
+    }
+
+    // Run tests on page load
+    window.addEventListener('load', () => {
+      console.log('Section Layout Patterns Test loaded');
+      console.log('Testing Requirements 24.1-24.9');
+      setTimeout(runValidationTests, 100);
+    });
+
+    // Log interactions
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if (!e.target.onclick) {
+          console.log(`Button clicked: ${e.target.textContent}`);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

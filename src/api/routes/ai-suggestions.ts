@@ -30,7 +30,7 @@ router.get('/circle-suggestions', async (req: AuthenticatedRequest, res: Respons
     
     if (uncategorized.length === 0) {
       console.log('[AI Suggestions] No uncategorized contacts, returning empty suggestions');
-      res.json({ suggestions: { inner: [], close: [], active: [] } });
+      res.json({ suggestions: { inner: [], close: [], active: [], casual: [] } });
       return;
     }
 
@@ -53,10 +53,11 @@ router.get('/circle-suggestions', async (req: AuthenticatedRequest, res: Respons
       console.log('[AI Suggestions] Got flat suggestions:', flatSuggestions.length);
       
       // Group suggestions by circle
-      const grouped: { inner: any[], close: any[], active: any[] } = {
+      const grouped: { inner: any[], close: any[], active: any[], casual: any[] } = {
         inner: [],
         close: [],
-        active: []
+        active: [],
+        casual: []
       };
       
       // Create a map of contact IDs to names
@@ -89,21 +90,22 @@ router.get('/circle-suggestions', async (req: AuthenticatedRequest, res: Respons
       console.log('[AI Suggestions] Grouped suggestions:', {
         inner: grouped.inner.length,
         close: grouped.close.length,
-        active: grouped.active.length
+        active: grouped.active.length,
+        casual: grouped.casual.length
       });
       
       res.json({ suggestions: grouped });
     } catch (timeoutError) {
       console.error('AI suggestion timeout:', timeoutError);
       res.json({ 
-        suggestions: { inner: [], close: [], active: [] },
+        suggestions: { inner: [], close: [], active: [], casual: [] },
         warning: 'AI suggestion service timed out.'
       });
     }
   } catch (error) {
     console.error('Error getting circle suggestions:', error);
     res.json({ 
-      suggestions: { inner: [], close: [], active: [] },
+      suggestions: { inner: [], close: [], active: [], casual: [] },
       error: 'Failed to get AI suggestions.'
     });
   }

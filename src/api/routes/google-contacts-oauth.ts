@@ -50,12 +50,12 @@ router.get('/callback', async (req: Request, res: Response) => {
     const { code, state } = req.query;
 
     if (!code || typeof code !== 'string') {
-      res.redirect('/?contacts_error=missing_code');
+      res.redirect('/app?view=preferences&contacts_error=missing_code');
       return;
     }
 
     if (!state || typeof state !== 'string') {
-      res.redirect('/?contacts_error=missing_state');
+      res.redirect('/app?view=preferences&contacts_error=missing_state');
       return;
     }
 
@@ -65,7 +65,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       userId = Buffer.from(state, 'base64').toString('utf-8');
     } catch (error) {
       console.error('Failed to decode state:', error);
-      res.redirect('/?contacts_error=invalid_state');
+      res.redirect('/app?view=preferences&contacts_error=invalid_state');
       return;
     }
 
@@ -95,7 +95,7 @@ router.get('/callback', async (req: Request, res: Response) => {
     } catch (tokenError) {
       const tokenErrorMsg = tokenError instanceof Error ? tokenError.message : String(tokenError);
       console.error('Failed to exchange code for tokens:', tokenErrorMsg);
-      res.redirect(`/?contacts_error=${encodeURIComponent(tokenErrorMsg)}`);
+      res.redirect(`/app?view=preferences&contacts_error=${encodeURIComponent(tokenErrorMsg)}`);
       return;
     }
 
@@ -153,43 +153,29 @@ router.get('/callback', async (req: Request, res: Response) => {
       console.error('Failed to reset sync state:', resetErrorMsg);
     }
 
-    // Queue immediate full sync job
-    try {
-      const jobData: GoogleContactsSyncJobData = {
-        userId: userId,
-        syncType: 'full',
-      };
+    // Note: Immediate first sync is handled by GoogleContactsOAuthService.handleCallback()
+    // which was called above. We don't need to queue another sync job here.
+    // Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 1: Immediate First Sync"
 
-      const job = await googleContactsSyncQueue.add(jobData, {
-        jobId: `google-contacts-sync-${userId}-${Date.now()}`,
-      });
-
-      console.log(`Full sync job queued for user ${userId}, job ID: ${job.id}`);
-    } catch (queueError) {
-      // Log error but don't fail the OAuth flow
-      const queueErrorMsg = queueError instanceof Error ? queueError.message : String(queueError);
-      console.error('Failed to queue sync job:', queueErrorMsg);
-    }
-
-    // Schedule daily incremental sync
+    // Schedule future incremental syncs (adaptive scheduler will handle timing)
     try {
       await scheduleUserGoogleContactsSync(userId);
-      console.log(`Daily sync scheduled for user ${userId}`);
+      console.log(`Future sync scheduled for user ${userId}`);
     } catch (scheduleError) {
       // Log error but don't fail the OAuth flow
       const scheduleErrorMsg =
         scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
-      console.error('Failed to schedule daily sync:', scheduleErrorMsg);
+      console.error('Failed to schedule future sync:', scheduleErrorMsg);
     }
 
-    // Redirect to frontend with success
-    res.redirect('/?contacts_success=true');
+    // Redirect to Preferences page with success message
+    res.redirect('/app?view=preferences&contacts_success=true');
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : '';
     console.error('Unexpected error in OAuth callback:', errorMsg);
     console.error('Stack:', errorStack);
-    res.redirect(`/?contacts_error=${encodeURIComponent(errorMsg)}`);
+    res.redirect(`/app?view=preferences&contacts_error=${encodeURIComponent(errorMsg)}`);
   }
 });
 

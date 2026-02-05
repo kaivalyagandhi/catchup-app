@@ -168,4 +168,52 @@ echo "Running migration 034: Add trigger type to onboarding..."
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/034_add_trigger_type_to_onboarding.sql
 
 echo ""
+echo "Running migration 035: Add reviewed_at to group mappings..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/035_add_reviewed_at_to_group_mappings.sql
+
+echo ""
+echo "Running migration 036: Create scheduling tables..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/036_create_scheduling_tables.sql
+
+echo ""
+echo "Running migration 037: Add last_reminder_sent to plans..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/037_add_last_reminder_sent_to_plans.sql
+
+echo ""
+echo "Running migration 038: Add admin role support..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/038_add_admin_role_support.sql
+
+echo ""
+echo "Running migration 039: Create token health table..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/039_create_token_health_table.sql
+
+echo ""
+echo "Running migration 040: Create circuit breaker state table..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/040_create_circuit_breaker_state_table.sql
+
+echo ""
+echo "Running migration 041: Create sync schedule table..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/041_create_sync_schedule_table.sql
+
+echo ""
+echo "Running migration 042: Create calendar webhook subscriptions table..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/042_create_calendar_webhook_subscriptions_table.sql
+
+echo ""
+echo "Running migration 043: Create sync metrics table..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/043_create_sync_metrics_table.sql
+
+echo ""
+echo "Running migration 044: Create token health notifications table..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/044_create_token_health_notifications_table.sql
+
+echo ""
+echo "Running migration 045: Add onboarding_until to sync_schedule..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/045_add_onboarding_until_to_sync_schedule.sql
+
+echo ""
+echo "Running migration 046: Create webhook_notifications table..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/046_create_webhook_notifications_table.sql
+
+echo ""
 echo "✓ All migrations completed successfully!"

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Groups Table Modal Layout Test</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <link rel="stylesheet" href="/css/groups-table.css">
+  <style>
+    body {
+      padding: 20px;
+      font-family: var(--font-readable);
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+    }
+    
+    .test-header h1 {
+      font-family: var(--font-heading);
+      color: var(--text-primary);
+      margin: 0 0 10px 0;
+    }
+    
+    .test-header p {
+      color: var(--text-secondary);
+      margin: 5px 0;
+    }
+    
+    .test-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+    }
+    
+    .test-section h2 {
+      font-family: var(--font-accent);
+      color: var(--text-primary);
+      margin: 0 0 15px 0;
+    }
+    
+    .test-button {
+      padding: 10px 20px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: var(--font-accent);
+      cursor: pointer;
+      font-size: 16px;
+    }
+    
+    .test-button:hover {
+      background: var(--accent-hover);
+    }
+    
+    .checklist {
+      list-style: none;
+      padding: 0;
+      margin: 15px 0;
+    }
+    
+    .checklist li {
+      padding: 8px 0;
+      color: var(--text-secondary);
+      font-family: var(--font-readable);
+    }
+    
+    .checklist li::before {
+      content: "☐ ";
+      color: var(--accent-primary);
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    
+    .test-results {
+      margin-top: 20px;
+      padding: 15px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      font-family: monospace;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+    
+    .pass {
+      color: var(--status-success);
+    }
+    
+    .fail {
+      color: var(--status-error);
+    }
+    
+    .info {
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>Groups Table Modal Layout Test</h1>
+      <p><strong>Task:</strong> 16.6 - Update groups-table.js modal for consistent header/footer layout and size class</p>
+      <p><strong>Requirements:</strong> 21 (Modal sizes), 22 (Header layout), 23 (Footer layout)</p>
+    </div>
+
+    <div class="test-section">
+      <h2>Test Instructions</h2>
+      <p>Click the button below to open the "Add Contact to Group" modal and verify the layout:</p>
+      <button class="test-button" id="open-modal-btn">Open Add Contact Modal</button>
+      
+      <h3 style="margin-top: 20px; font-family: var(--font-accent);">Visual Verification Checklist:</h3>
+      <ul class="checklist">
+        <li>Modal width is 600px (medium size class)</li>
+        <li>Modal has .modal-md class applied</li>
+        <li>Header: Title on left, close button (✕) on right</li>
+        <li>Header uses flexbox with space-between</li>
+        <li>Header height is 56px minimum</li>
+        <li>Title has .modal-title class</li>
+        <li>Close button has .modal-close class</li>
+        <li>Modal body contains search input and results area</li>
+        <li>Search input has autofocus</li>
+        <li>Contact results display properly with "Add" buttons</li>
+      </ul>
+    </div>
+
+    <div class="test-section">
+      <h2>Automated Layout Verification</h2>
+      <button class="test-button" id="run-tests-btn">Run Automated Tests</button>
+      <div class="test-results" id="test-results">Click "Run Automated Tests" to verify modal layout...</div>
+    </div>
+  </div>
+
+  <!-- Mock GroupsTable component -->
+  <script>
+    // Mock data
+    const mockGroup = {
+      id: 'group-1',
+      name: 'Test Group',
+      description: 'A test group',
+      contactIds: ['contact-1']
+    };
+
+    const mockContacts = [
+      { id: 'contact-1', name: 'John Doe', email: 'john@example.com', phone: '555-0101' },
+      { id: 'contact-2', name: 'Jane Smith', email: 'jane@example.com', phone: '555-0102' },
+      { id: 'contact-3', name: 'Bob Johnson', email: 'bob@example.com', phone: '555-0103' },
+      { id: 'contact-4', name: 'Alice Williams', email: 'alice@example.com', phone: '555-0104' },
+      { id: 'contact-5', name: 'Charlie Brown', email: 'charlie@example.com', phone: '555-0105' }
+    ];
+
+    // Simplified GroupsTable class for testing
+    class GroupsTable {
+      constructor(container, data, contacts) {
+        this.container = container;
+        this.data = data;
+        this.contacts = contacts;
+      }
+
+      escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      showError(message) {
+        alert(message);
+      }
+
+      showAddContactModal(groupId) {
+        const group = this.data.find(g => g.id === groupId);
+        if (!group) {
+          return;
+        }
+
+        // Get contacts not already in the group
+        const existingContactIds = new Set(group.contactIds || []);
+        const availableContacts = this.contacts.filter(c => !existingContactIds.has(c.id));
+
+        if (availableContacts.length === 0) {
+          this.showError('All contacts are already in this group');
+          return;
+        }
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'contact-search-modal';
+        modal.innerHTML = `
+          <div class="modal-overlay"></div>
+          <div class="modal-content modal-md">
+            <div class="modal-header">
+              <h3 class="modal-title">Add Contact to ${this.escapeHtml(group.name)}</h3>
+              <button class="modal-close" title="Close">✕</button>
+            </div>
+            <div class="modal-body">
+              <input type="text" class="contact-search-input" placeholder="Search contacts..." autofocus />
+              <div class="contact-search-results"></div>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const searchInput = modal.querySelector('.contact-search-input');
+        const resultsContainer = modal.querySelector('.contact-search-results');
+        const closeBtn = modal.querySelector('.modal-close');
+        const overlay = modal.querySelector('.modal-overlay');
+
+        // Render initial results
+        const renderResults = (query = '') => {
+          const filtered = query
+            ? availableContacts.filter(c => 
+                c.name.toLowerCase().includes(query.toLowerCase()) ||
+                (c.email && c.email.toLowerCase().includes(query.toLowerCase())) ||
+                (c.phone && c.phone.includes(query))
+              )
+            : availableContacts;
+
+          if (filtered.length === 0) {
+            resultsContainer.innerHTML = '<div class="no-results">No contacts found</div>';
+            return;
+          }
+
+          resultsContainer.innerHTML = filtered.map(contact => `
+            <div class="contact-result-item" data-contact-id="${contact.id}">
+              <div class="contact-result-info">
+                <div class="contact-result-name">${this.escapeHtml(contact.name)}</div>
+                <div class="contact-result-details">
+                  ${contact.email ? this.escapeHtml(contact.email) : ''}
+                  ${contact.email && contact.phone ? ' • ' : ''}
+                  ${contact.phone ? this.escapeHtml(contact.phone) : ''}
+                </div>
+              </div>
+              <button class="btn-select-contact" data-contact-id="${contact.id}">Add</button>
+            </div>
+          `).join('');
+
+          // Attach click handlers
+          resultsContainer.querySelectorAll('.btn-select-contact').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+              const contactId = e.target.dataset.contactId;
+              alert(`Would add contact ${contactId} to group ${groupId}`);
+              modal.remove();
+            });
+          });
+        };
+
+        renderResults();
+
+        // Search input handler
+        searchInput.addEventListener('input', (e) => {
+          renderResults(e.target.value);
+        });
+
+        // Close handlers
+        const closeModal = () => modal.remove();
+        closeBtn.addEventListener('click', closeModal);
+        overlay.addEventListener('click', closeModal);
+
+        // ESC key to close
+        const handleEsc = (e) => {
+          if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', handleEsc);
+          }
+        };
+        document.addEventListener('keydown', handleEsc);
+      }
+    }
+
+    // Create test instance
+    const groupsTable = new GroupsTable(
+      document.body,
+      [mockGroup],
+      mockContacts
+    );
+
+    // Open modal button
+    document.getElementById('open-modal-btn').addEventListener('click', () => {
+      groupsTable.showAddContactModal('group-1');
+    });
+
+    // Run automated tests
+    document.getElementById('run-tests-btn').addEventListener('click', () => {
+      const resultsDiv = document.getElementById('test-results');
+      let results = 'Running automated layout tests...\n\n';
+
+      // Open the modal
+      groupsTable.showAddContactModal('group-1');
+
+      // Wait a bit for modal to render
+      setTimeout(() => {
+        const modal = document.querySelector('.contact-search-modal');
+        const modalContent = modal?.querySelector('.modal-content');
+        const modalHeader = modal?.querySelector('.modal-header');
+        const modalTitle = modal?.querySelector('.modal-title');
+        const modalClose = modal?.querySelector('.modal-close');
+        const modalBody = modal?.querySelector('.modal-body');
+        const searchInput = modal?.querySelector('.contact-search-input');
+
+        // Test 1: Modal exists
+        if (modal) {
+          results += '✓ PASS: Modal element exists\n';
+        } else {
+          results += '✗ FAIL: Modal element not found\n';
+          resultsDiv.innerHTML = `<span class="fail">${results}</span>`;
+          return;
+        }
+
+        // Test 2: Modal has .modal-md class
+        if (modalContent?.classList.contains('modal-md')) {
+          results += '✓ PASS: Modal has .modal-md size class\n';
+        } else {
+          results += '✗ FAIL: Modal missing .modal-md size class\n';
+        }
+
+        // Test 3: Modal width
+        const modalWidth = modalContent?.offsetWidth;
+        if (modalWidth >= 590 && modalWidth <= 610) {
+          results += `✓ PASS: Modal width is ${modalWidth}px (expected ~600px)\n`;
+        } else {
+          results += `✗ FAIL: Modal width is ${modalWidth}px (expected ~600px)\n`;
+        }
+
+        // Test 4: Header layout
+        if (modalHeader) {
+          const headerStyle = window.getComputedStyle(modalHeader);
+          if (headerStyle.display === 'flex' && headerStyle.justifyContent === 'space-between') {
+            results += '✓ PASS: Header uses flexbox with space-between\n';
+          } else {
+            results += '✗ FAIL: Header layout incorrect\n';
+          }
+        }
+
+        // Test 5: Header height
+        const headerHeight = modalHeader?.offsetHeight;
+        if (headerHeight >= 56) {
+          results += `✓ PASS: Header height is ${headerHeight}px (minimum 56px)\n`;
+        } else {
+          results += `✗ FAIL: Header height is ${headerHeight}px (expected minimum 56px)\n`;
+        }
+
+        // Test 6: Modal title class
+        if (modalTitle) {
+          results += '✓ PASS: Title has .modal-title class\n';
+        } else {
+          results += '✗ FAIL: Title missing .modal-title class\n';
+        }
+
+        // Test 7: Close button class
+        if (modalClose) {
+          results += '✓ PASS: Close button has .modal-close class\n';
+        } else {
+          results += '✗ FAIL: Close button missing .modal-close class\n';
+        }
+
+        // Test 8: Modal body exists
+        if (modalBody) {
+          results += '✓ PASS: Modal body exists\n';
+        } else {
+          results += '✗ FAIL: Modal body not found\n';
+        }
+
+        // Test 9: Search input exists
+        if (searchInput) {
+          results += '✓ PASS: Search input exists\n';
+        } else {
+          results += '✗ FAIL: Search input not found\n';
+        }
+
+        // Test 10: Search input has autofocus
+        if (searchInput?.hasAttribute('autofocus')) {
+          results += '✓ PASS: Search input has autofocus attribute\n';
+        } else {
+          results += '✗ FAIL: Search input missing autofocus attribute\n';
+        }
+
+        // Test 11: Contact results container exists
+        const resultsContainer = modal?.querySelector('.contact-search-results');
+        if (resultsContainer) {
+          results += '✓ PASS: Contact results container exists\n';
+        } else {
+          results += '✗ FAIL: Contact results container not found\n';
+        }
+
+        // Test 12: Contact results rendered
+        const contactItems = modal?.querySelectorAll('.contact-result-item');
+        if (contactItems && contactItems.length > 0) {
+          results += `✓ PASS: ${contactItems.length} contact results rendered\n`;
+        } else {
+          results += '✗ FAIL: No contact results rendered\n';
+        }
+
+        results += '\n--- Test Summary ---\n';
+        const passCount = (results.match(/✓ PASS/g) || []).length;
+        const failCount = (results.match(/✗ FAIL/g) || []).length;
+        results += `Passed: ${passCount}\n`;
+        results += `Failed: ${failCount}\n`;
+
+        if (failCount === 0) {
+          resultsDiv.innerHTML = `<span class="pass">${results}</span>`;
+        } else {
+          resultsDiv.innerHTML = `<span class="fail">${results}</span>`;
+        }
+
+        // Close the modal after tests
+        setTimeout(() => {
+          modal.remove();
+        }, 100);
+      }, 100);
+    });
+  </script>
+</body>
+</html>

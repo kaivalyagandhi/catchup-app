@@ -748,9 +748,9 @@ class TagsTable {
     modal.className = 'contact-search-modal';
     modal.innerHTML = `
       <div class="modal-overlay"></div>
-      <div class="modal-content">
+      <div class="modal-content modal-md">
         <div class="modal-header">
-          <h3>Add Contact to "${this.escapeHtml(tag.text)}" Tag</h3>
+          <h3 class="modal-title">Add Contact to ${this.escapeHtml(tag.text)}</h3>
           <button class="modal-close" title="Close">✕</button>
         </div>
         <div class="modal-body">

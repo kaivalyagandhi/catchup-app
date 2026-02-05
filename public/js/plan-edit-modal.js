@@ -125,27 +125,33 @@ class PlanEditModal {
    * Render the modal
    */
   render() {
-    // Remove existing modal if any
-    const existingModal = document.querySelector('.plan-edit-modal');
-    if (existingModal) {
-      existingModal.remove();
+    // Remove existing overlay if any
+    const existingOverlay = document.querySelector('.modal-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
     }
     
+    // Create overlay wrapper
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay show';
+    
     const modal = document.createElement('div');
-    modal.className = 'modal plan-edit-modal';
+    modal.className = 'modal modal-lg plan-edit-modal';
     modal.innerHTML = `
-      <div class="modal-content plan-edit-content">
-        <div class="modal-header">
-          <h2>Edit Plan</h2>
-          <button class="close-btn" id="close-edit-modal">&times;</button>
-        </div>
-        
-        <div class="modal-body">
-          ${this.renderEditForm()}
-        </div>
-        
-        <div class="modal-footer">
+      <div class="modal-header">
+        <h2 class="modal-title">Edit Plan</h2>
+        <button class="modal-close" id="close-edit-modal">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        ${this.renderEditForm()}
+      </div>
+      
+      <div class="modal-footer">
+        <div class="modal-footer-left">
           <button type="button" class="btn-secondary" id="cancel-edit">Cancel</button>
+        </div>
+        <div class="modal-footer-right">
           <button type="button" class="btn-primary" id="save-edit">
             <span class="material-icons">save</span> Save Changes
           </button>
@@ -153,7 +159,8 @@ class PlanEditModal {
       </div>
     `;
     
-    document.body.appendChild(modal);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
     document.body.style.overflow = 'hidden';
   }
 
@@ -362,10 +369,13 @@ class PlanEditModal {
     // Save button
     modal.querySelector('#save-edit').addEventListener('click', this.handleSave);
     
-    // Click outside to close
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) this.handleClose();
-    });
+    // Click outside to close (click on overlay)
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) this.handleClose();
+      });
+    }
     
     // Escape key to close
     this.escapeHandler = (e) => {
@@ -609,10 +619,14 @@ class PlanEditModal {
           </div>
         </div>
         <div class="dialog-footer">
-          <button type="button" class="btn-secondary" id="cancel-conversion">Cancel</button>
-          <button type="button" class="btn-primary" id="confirm-conversion">
-            <span class="material-icons">group_add</span> Add & Convert
-          </button>
+          <div class="modal-footer-left">
+            <button type="button" class="btn-secondary" id="cancel-conversion">Cancel</button>
+          </div>
+          <div class="modal-footer-right">
+            <button type="button" class="btn-primary" id="confirm-conversion">
+              <span class="material-icons">group_add</span> Add & Convert
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -750,9 +764,9 @@ class PlanEditModal {
    * Handle close modal
    */
   handleClose() {
-    const modal = document.querySelector('.plan-edit-modal');
-    if (modal) {
-      modal.remove();
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) {
+      overlay.remove();
     }
     document.body.style.overflow = '';
     
@@ -979,7 +993,9 @@ class PlanEditModal {
     const modalFooter = modal.querySelector('.modal-footer');
     if (modalFooter) {
       modalFooter.innerHTML = `
-        <button type="button" class="btn-primary" id="done-edit">Done</button>
+        <div class="modal-footer-right">
+          <button type="button" class="btn-primary" id="done-edit">Done</button>
+        </div>
       `;
     }
     

@@ -694,11 +694,14 @@
 }
 
 .edits-menu__loading {
+  /* Uses standardized loading-container pattern */
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100px;
-  color: var(--edits-text-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-readable);
+  font-size: var(--text-sm);
 }
 
 .edits-menu__empty {

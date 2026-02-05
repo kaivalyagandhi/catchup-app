@@ -12,8 +12,8 @@ class SyncHealthDashboard {
     this.currentFilter = '';
     this.autoRefreshInterval = null;
     this.countdownInterval = null;
-    this.refreshIntervalMs = 5 * 60 * 1000; // 5 minutes
-    this.countdownSeconds = 300; // 5 minutes in seconds
+    this.refreshIntervalMs = 24 * 60 * 60 * 1000; // 24 hours (daily) - updated 2026-02-04
+    this.countdownSeconds = 24 * 60 * 60; // 24 hours in seconds
     
     this.init();
   }
@@ -63,7 +63,7 @@ class SyncHealthDashboard {
 
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
       });
 
@@ -327,7 +327,7 @@ class SyncHealthDashboard {
     try {
       const response = await fetch(`/api/admin/sync-health/user/${userId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
       });
 
@@ -377,7 +377,7 @@ CALENDAR:
 
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
       });
 
@@ -495,7 +495,7 @@ CALENDAR:
       clearInterval(this.countdownInterval);
     }
 
-    this.countdownSeconds = 300; // 5 minutes
+    this.countdownSeconds = 24 * 60 * 60; // 24 hours
     this.updateCountdownDisplay();
 
     this.countdownInterval = setInterval(() => {

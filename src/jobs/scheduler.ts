@@ -13,6 +13,7 @@ import {
   webhookRenewalQueue,
   notificationReminderQueue,
   adaptiveSyncQueue,
+  webhookHealthCheckQueue,
 } from './queue';
 import * as oauthRepository from '../integrations/oauth-repository';
 import * as preferencesRepository from '../notifications/preferences-repository';
@@ -25,6 +26,7 @@ import {
   WebhookRenewalJobData,
   NotificationReminderJobData,
   AdaptiveSyncJobData,
+  WebhookHealthCheckJobData,
 } from './types';
 
 /**
@@ -402,7 +404,8 @@ export async function scheduleNotificationReminder(): Promise<void> {
 /**
  * Schedule adaptive sync job
  *
- * Runs AdaptiveSyncScheduler.getUsersDueForSync() every 12 hours.
+ * Runs AdaptiveSyncScheduler.getUsersDueForSync() daily (24 hours).
+ * Updated 2026-02-04: Changed from 12h to 24h to reduce API usage.
  * Requirements: 5.1, 5.2
  */
 export async function scheduleAdaptiveSync(): Promise<void> {
@@ -415,7 +418,7 @@ export async function scheduleAdaptiveSync(): Promise<void> {
 
   await adaptiveSyncQueue.add(contactsJobData, {
     repeat: {
-      every: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
+      every: 24 * 60 * 60 * 1000, // 24 hours (daily) in milliseconds
     },
     jobId: 'adaptive-sync-contacts-recurring',
   });
@@ -427,12 +430,39 @@ export async function scheduleAdaptiveSync(): Promise<void> {
 
   await adaptiveSyncQueue.add(calendarJobData, {
     repeat: {
-      every: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
+      every: 24 * 60 * 60 * 1000, // 24 hours (daily) in milliseconds
     },
     jobId: 'adaptive-sync-calendar-recurring',
   });
 
-  console.log('Adaptive sync jobs scheduled (every 12 hours for both integrations)');
+  console.log('Adaptive sync jobs scheduled (daily for both integrations)');
+}
+
+/**
+ * Schedule webhook health check job
+ *
+ * Monitors webhook health and takes corrective actions:
+ * - Alerts if no notifications received in 48 hours
+ * - Attempts to re-register broken webhooks
+ * - Checks for webhooks expiring within 24 hours
+ *
+ * Runs every 12 hours.
+ * Requirements: Enhanced webhook monitoring
+ */
+export async function scheduleWebhookHealthCheck(): Promise<void> {
+  console.log('Scheduling webhook health check job...');
+
+  const jobData: WebhookHealthCheckJobData = {};
+
+  // Schedule to run every 12 hours
+  await webhookHealthCheckQueue.add(jobData, {
+    repeat: {
+      every: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
+    },
+    jobId: 'webhook-health-check-recurring',
+  });
+
+  console.log('Webhook health check job scheduled (every 12 hours)');
 }
 
 /**
@@ -452,6 +482,7 @@ export async function initializeScheduler(): Promise<void> {
     await scheduleWebhookRenewal();
     await scheduleNotificationReminder();
     await scheduleAdaptiveSync();
+    await scheduleWebhookHealthCheck();
 
     console.log('Job scheduler initialized successfully');
   } catch (error) {
@@ -477,6 +508,7 @@ export async function clearAllSchedules(): Promise<void> {
     webhookRenewalQueue,
     notificationReminderQueue,
     adaptiveSyncQueue,
+    webhookHealthCheckQueue,
   ];
 
   for (const queue of queues) {

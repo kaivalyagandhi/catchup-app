@@ -46,12 +46,12 @@ router.get('/callback', async (req: Request, res: Response) => {
     const { code, state } = req.query;
 
     if (!code || typeof code !== 'string') {
-      res.redirect('/?calendar_error=missing_code');
+      res.redirect('/app?view=preferences&calendar_error=missing_code');
       return;
     }
 
     if (!state || typeof state !== 'string') {
-      res.redirect('/?calendar_error=missing_state');
+      res.redirect('/app?view=preferences&calendar_error=missing_state');
       return;
     }
 
@@ -61,7 +61,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       userId = Buffer.from(state, 'base64').toString('utf-8');
     } catch (error) {
       console.error('Failed to decode state:', error);
-      res.redirect('/?calendar_error=invalid_state');
+      res.redirect('/app?view=preferences&calendar_error=invalid_state');
       return;
     }
 
@@ -185,16 +185,41 @@ router.get('/callback', async (req: Request, res: Response) => {
       // Don't fail the OAuth flow if schedule initialization fails
     }
 
-    // Trigger initial calendar sync and suggestion regeneration in background
+    // Check if this is the first connection and trigger immediate sync
+    // Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 1: Immediate First Sync"
+    try {
+      const { AdaptiveSyncScheduler } = await import('../../integrations/adaptive-sync-scheduler');
+      const scheduler = AdaptiveSyncScheduler.getInstance();
+      const isFirstConnection = await scheduler.isFirstConnection(userId, 'google_calendar');
+
+      if (isFirstConnection) {
+        console.log(`[GoogleCalendarOAuth] First connection detected for user ${userId}, triggering immediate sync`);
+        
+        const { SyncOrchestrator } = await import('../../integrations/sync-orchestrator');
+        const orchestrator = new SyncOrchestrator();
+        
+        // Trigger immediate initial sync (bypasses schedule)
+        await orchestrator.executeSyncJob({
+          userId,
+          integrationType: 'google_calendar',
+          syncType: 'initial', // Use 'initial' for first sync
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token || undefined,
+          bypassCircuitBreaker: true, // Bypass circuit breaker for initial sync
+        });
+        
+        console.log(`[GoogleCalendarOAuth] Initial sync completed for user ${userId}`);
+      }
+    } catch (firstSyncError) {
+      // Log error but don't fail the OAuth flow
+      const firstSyncErrorMsg = firstSyncError instanceof Error ? firstSyncError.message : String(firstSyncError);
+      console.error(`[GoogleCalendarOAuth] Initial sync check/execution failed for user ${userId}:`, firstSyncErrorMsg);
+      // User can retry via manual sync or wait for scheduled sync
+    }
+
+    // Enqueue suggestion regeneration in background (after sync completes)
     try {
       const { enqueueJob, QUEUE_NAMES } = await import('../../jobs/queue');
-      
-      // Enqueue calendar sync job (non-blocking)
-      await enqueueJob(QUEUE_NAMES.CALENDAR_SYNC, {
-        userId: userId,
-        reason: 'oauth_reconnect',
-      });
-      console.log(`Calendar sync job queued for user ${userId}`);
       
       // Enqueue suggestion regeneration
       await enqueueJob(QUEUE_NAMES.SUGGESTION_REGENERATION, {
@@ -203,18 +228,18 @@ router.get('/callback', async (req: Request, res: Response) => {
       });
       console.log(`Suggestion regeneration queued for user ${userId}`);
     } catch (jobError) {
-      console.error('Failed to enqueue background jobs:', jobError);
+      console.error('Failed to enqueue suggestion regeneration:', jobError);
       // Don't fail the OAuth flow if job queueing fails
     }
 
-    // Redirect to frontend with success immediately (don't wait for sync)
-    res.redirect('/?calendar_success=true');
+    // Redirect to Preferences page with success message
+    res.redirect('/app?view=preferences&calendar_success=true');
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : '';
     console.error('Unexpected error in OAuth callback:', errorMsg);
     console.error('Stack:', errorStack);
-    res.redirect(`/?calendar_error=${encodeURIComponent(errorMsg)}`);
+    res.redirect(`/app?view=preferences&calendar_error=${encodeURIComponent(errorMsg)}`);
   }
 });
 

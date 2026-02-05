@@ -64,6 +64,39 @@ export class GoogleContactsOAuthService {
       profile.email
     );
 
+    // Check if this is the first connection
+    const { AdaptiveSyncScheduler } = await import('./adaptive-sync-scheduler');
+    const scheduler = AdaptiveSyncScheduler.getInstance();
+    const isFirstConnection = await scheduler.isFirstConnection(userId, 'google_contacts');
+
+    // If first connection, trigger immediate sync
+    // Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 1: Immediate First Sync"
+    if (isFirstConnection) {
+      console.log(`[GoogleContactsOAuthService] First connection detected for user ${userId}, triggering immediate sync`);
+      
+      try {
+        const { SyncOrchestrator } = await import('./sync-orchestrator');
+        const orchestrator = new SyncOrchestrator();
+        
+        // Trigger immediate initial sync (bypasses schedule)
+        await orchestrator.executeSyncJob({
+          userId,
+          integrationType: 'google_contacts',
+          syncType: 'full', // Use 'full' for initial sync
+          accessToken: credentials.access_token,
+          refreshToken: credentials.refresh_token || undefined,
+          bypassCircuitBreaker: true, // Bypass circuit breaker for initial sync
+        });
+        
+        console.log(`[GoogleContactsOAuthService] Initial sync completed for user ${userId}`);
+      } catch (syncError) {
+        // Log error but don't fail the OAuth flow
+        const syncErrorMsg = syncError instanceof Error ? syncError.message : String(syncError);
+        console.error(`[GoogleContactsOAuthService] Initial sync failed for user ${userId}:`, syncErrorMsg);
+        // User can retry via manual sync or wait for scheduled sync
+      }
+    }
+
     return {
       accessToken: credentials.access_token,
       refreshToken: credentials.refresh_token || '',

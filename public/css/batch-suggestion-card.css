@@ -7,29 +7,29 @@
 
 /* Batch card container */
 .batch-suggestion-card {
-  background: var(--bg-secondary, #ffffff);
-  border: 2px solid var(--border-subtle, #e5e7eb);
-  border-radius: 16px;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   margin-bottom: 1.5rem;
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
 .batch-suggestion-card:hover {
-  border-color: var(--primary-color, #3b82f6);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-md);
 }
 
 /* Accepted/skipped states */
 .batch-suggestion-card.batch-accepted {
   opacity: 0.7;
-  border-color: var(--status-success, #10b981);
-  background: rgba(16, 185, 129, 0.05);
+  border-color: var(--status-success);
+  background: var(--status-success-bg);
 }
 
 .batch-suggestion-card.batch-skipped {
   opacity: 0.5;
-  border-color: var(--border-color, #e5e7eb);
+  border-color: var(--border-subtle);
 }
 
 /* Card header - simplified layout */
@@ -40,7 +40,7 @@
 }
 
 .batch-card-header:hover {
-  background: var(--bg-hover, #f9fafb);
+  background: var(--bg-hover);
 }
 
 /* Title row with icon, name, and count */
@@ -58,9 +58,10 @@
 }
 
 .batch-card-title h3 {
+  font-family: var(--font-accent);
   font-size: 1.375rem;
   font-weight: 700;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
   margin: 0;
   flex: 1;
 }
@@ -72,9 +73,10 @@
   min-width: 36px;
   height: 36px;
   padding: 0 12px;
-  background: var(--primary-color, #3b82f6);
+  background: var(--accent-primary);
   color: white;
   border-radius: 18px;
+  font-family: var(--font-readable);
   font-size: 1rem;
   font-weight: 700;
   flex-shrink: 0;
@@ -82,8 +84,9 @@
 
 /* Description */
 .batch-description {
+  font-family: var(--font-readable);
   font-size: 1rem;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   margin: 0 0 1rem 0;
   line-height: 1.6;
 }
@@ -103,8 +106,9 @@
 }
 
 .suggestion-label {
+  font-family: var(--font-readable);
   font-size: 0.875rem;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -113,7 +117,8 @@
   display: inline-flex;
   align-items: center;
   padding: 0.625rem 1.25rem;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-readable);
   font-size: 1rem;
   font-weight: 700;
   white-space: nowrap;
@@ -149,7 +154,8 @@
   display: inline-flex;
   align-items: center;
   padding: 0.625rem 1rem;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-readable);
   font-size: 0.875rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -182,8 +188,9 @@
   justify-content: center;
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--border-subtle, #e5e7eb);
-  color: var(--text-secondary, #6b7280);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: var(--font-readable);
   font-size: 0.875rem;
   font-weight: 600;
   gap: 0.5rem;
@@ -201,9 +208,9 @@
 
 /* Contacts list (expanded view) */
 .batch-card-contacts {
-  border-top: 2px solid var(--border-subtle, #e5e7eb);
+  border-top: 2px solid var(--border-subtle);
   padding: 1rem 1.5rem;
-  background: var(--bg-tertiary, #f9fafb);
+  background: var(--bg-secondary);
   max-height: 400px;
   overflow-y: auto;
 }
@@ -224,19 +231,19 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: var(--bg-secondary, #ffffff);
-  border-radius: 8px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
   border: 2px solid transparent;
   transition: all 0.2s ease;
 }
 
 .batch-contact-item:hover {
-  background: var(--bg-hover, #f3f4f6);
+  background: var(--bg-hover);
 }
 
 .batch-contact-item.selected {
-  border-color: var(--primary-color, #3b82f6);
-  background: rgba(59, 130, 246, 0.05);
+  border-color: var(--accent-primary);
+  background: var(--accent-subtle);
 }
 
 .contact-checkbox {
@@ -252,9 +259,10 @@
 }
 
 .contact-name {
+  font-family: var(--font-readable);
   font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -269,16 +277,18 @@
 }
 
 .contact-email {
+  font-family: var(--font-readable);
   font-size: 0.8125rem;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .contact-stat {
+  font-family: var(--font-readable);
   font-size: 0.8125rem;
-  color: var(--text-tertiary, #9ca3af);
+  color: var(--text-tertiary);
   white-space: nowrap;
 }
 
@@ -287,14 +297,15 @@
   display: flex;
   gap: 0.75rem;
   padding: 1.25rem 1.5rem;
-  border-top: 2px solid var(--border-subtle, #e5e7eb);
-  background: var(--bg-secondary, #ffffff);
+  border-top: 2px solid var(--border-subtle);
+  background: var(--bg-surface);
 }
 
 .batch-btn {
   flex: 1;
   padding: 0.875rem 1.5rem;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-accent);
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
@@ -309,16 +320,16 @@
 }
 
 .batch-btn-primary {
-  background: var(--primary-color, #3b82f6);
+  background: var(--accent-primary);
   color: white;
-  border-color: var(--primary-color, #3b82f6);
+  border-color: var(--accent-primary);
 }
 
 .batch-btn-primary:hover:not(:disabled) {
-  background: var(--primary-hover, #2563eb);
-  border-color: var(--primary-hover, #2563eb);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 .batch-btn-primary:active:not(:disabled) {
@@ -326,14 +337,14 @@
 }
 
 .batch-btn-secondary {
-  background: var(--bg-tertiary, #f3f4f6);
-  color: var(--text-primary, #1f2937);
-  border-color: var(--border-default, #d1d5db);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-default);
 }
 
 .batch-btn-secondary:hover:not(:disabled) {
-  background: var(--bg-hover, #e5e7eb);
-  border-color: var(--border-strong, #9ca3af);
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 /* Mobile responsive - Requirements 20.2, 20.4 */
@@ -608,26 +619,6 @@
   border-color: rgba(168, 162, 158, 0.4);
 }
 
-/* Also support system dark mode preference as fallback */
-@media (prefers-color-scheme: dark) {
-  .batch-suggestion-card {
-    background: var(--bg-surface, #292524);
-  }
-  
-  .batch-card-title h3 {
-    color: var(--text-primary, #FAFAF9);
-  }
-  
-  .batch-description,
-  .suggestion-label {
-    color: var(--text-secondary, #A8A29E);
-  }
-  
-  .expand-icon {
-    color: var(--text-primary, #FAFAF9);
-  }
-}
-
 /* Accessibility: Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .batch-suggestion-card,
@@ -649,15 +640,15 @@
 }
 
 .contacts-list::-webkit-scrollbar-track {
-  background: var(--bg-tertiary, #f3f4f6);
-  border-radius: 4px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
 }
 
 .contacts-list::-webkit-scrollbar-thumb {
-  background: var(--border-color, #d1d5db);
-  border-radius: 4px;
+  background: var(--border-default);
+  border-radius: var(--radius-sm);
 }
 
 .contacts-list::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary, #9ca3af);
+  background: var(--text-tertiary);
 }

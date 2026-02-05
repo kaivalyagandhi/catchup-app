@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm Dialog Layout Test - UI Typography Consistency</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <style>
+    body {
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      margin-bottom: 40px;
+      padding: 24px;
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+    }
+    
+    .test-section h2 {
+      font-family: var(--font-heading);
+      color: var(--text-primary);
+      margin-top: 0;
+    }
+    
+    .test-section p {
+      font-family: var(--font-readable);
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+    
+    .test-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .btn-primary, .btn-secondary, .btn-danger {
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-accent);
+      font-size: 14px;
+      transition: all var(--transition-fast);
+    }
+    
+    .btn-primary {
+      background: var(--accent-primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+    
+    .btn-danger {
+      background: var(--status-error);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      opacity: 0.9;
+    }
+    
+    .checklist {
+      background: var(--bg-app);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      margin-top: 24px;
+    }
+    
+    .checklist h3 {
+      font-family: var(--font-accent);
+      color: var(--text-primary);
+      margin-top: 0;
+      font-size: 16px;
+    }
+    
+    .checklist ul {
+      font-family: var(--font-readable);
+      color: var(--text-secondary);
+      margin: 0;
+      padding-left: 24px;
+    }
+    
+    .checklist li {
+      margin-bottom: 8px;
+    }
+    
+    .result {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      font-family: var(--font-readable);
+    }
+    
+    .result.success {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--status-success);
+      border: 1px solid var(--status-success);
+    }
+    
+    .result.cancelled {
+      background: rgba(107, 114, 128, 0.1);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+    }
+  </style>
+</head>
+<body>
+  <h1 style="font-family: var(--font-heading); color: var(--text-primary);">Confirm Dialog Layout Test</h1>
+  <p style="font-family: var(--font-readable); color: var(--text-secondary);">
+    Testing Task 16.5: Confirm dialog modal standardization for contacts-table.js
+  </p>
+
+  <div class="test-section">
+    <h2>Standard Confirm Dialog (Warning)</h2>
+    <p>Tests the default warning-style confirmation dialog with standard layout.</p>
+    <div class="test-buttons">
+      <button class="btn-primary" onclick="testStandardConfirm()">Show Standard Confirm</button>
+    </div>
+    <div id="result-standard" class="result" style="display: none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Danger Confirm Dialog</h2>
+    <p>Tests the danger-style confirmation dialog (e.g., for delete actions).</p>
+    <div class="test-buttons">
+      <button class="btn-danger" onclick="testDangerConfirm()">Show Danger Confirm</button>
+    </div>
+    <div id="result-danger" class="result" style="display: none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Archive Confirm Dialog (From contacts-table.js)</h2>
+    <p>Tests the actual archive confirmation used in contacts-table.js.</p>
+    <div class="test-buttons">
+      <button class="btn-secondary" onclick="testArchiveConfirm()">Show Archive Confirm</button>
+    </div>
+    <div id="result-archive" class="result" style="display: none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Custom Text Confirm Dialog</h2>
+    <p>Tests custom button text and title.</p>
+    <div class="test-buttons">
+      <button class="btn-primary" onclick="testCustomConfirm()">Show Custom Confirm</button>
+    </div>
+    <div id="result-custom" class="result" style="display: none;"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✓ Verification Checklist (Requirements 21, 22, 23)</h3>
+    <ul>
+      <li><strong>Modal Size:</strong> Dialog uses .modal-sm class (400px max-width)</li>
+      <li><strong>Header Layout:</strong> [Title] [spacer] [Close X] with flexbox space-between</li>
+      <li><strong>Header Height:</strong> 56px minimum height</li>
+      <li><strong>Header Typography:</strong> Title uses --font-heading (Cabin Sketch)</li>
+      <li><strong>Close Button:</strong> X button in top-right corner with hover state</li>
+      <li><strong>Body Typography:</strong> Message uses --font-readable (Inter)</li>
+      <li><strong>Footer Layout:</strong> [Cancel] [spacer] [Primary] with flexbox space-between</li>
+      <li><strong>Footer Padding:</strong> Uses --space-4 (16px)</li>
+      <li><strong>Button Typography:</strong> Buttons use --font-readable for secondary, --font-accent for primary</li>
+      <li><strong>Overlay:</strong> Backdrop blur and fade-in animation</li>
+      <li><strong>Keyboard Support:</strong> ESC key closes dialog</li>
+      <li><strong>Click Outside:</strong> Clicking overlay closes dialog</li>
+      <li><strong>Responsive:</strong> On mobile, buttons stack vertically</li>
+    </ul>
+  </div>
+
+  <script>
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Copy of the updated showConfirm function from app.js
+    function showConfirm(message, options = {}) {
+      return new Promise((resolve) => {
+        const {
+          title = 'Confirm',
+          confirmText = 'Confirm',
+          cancelText = 'Cancel',
+          type = 'warning'
+        } = options;
+        
+        // Create overlay using standard modal-overlay class
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        
+        // Create dialog using standard modal classes with small size
+        const dialog = document.createElement('div');
+        dialog.className = `modal modal-sm confirm-dialog-${type}`;
+        dialog.innerHTML = `
+          <div class="modal-header">
+            <h2 class="modal-title">${escapeHtml(title)}</h2>
+            <button class="modal-close confirm-dialog-close" aria-label="Close">×</button>
+          </div>
+          <div class="modal-body">
+            <p>${escapeHtml(message)}</p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary confirm-dialog-cancel">${escapeHtml(cancelText)}</button>
+            <button class="btn-primary confirm-dialog-confirm ${type === 'danger' ? 'btn-danger' : ''}">${escapeHtml(confirmText)}</button>
+          </div>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+        
+        // Animate in
+        setTimeout(() => {
+          overlay.classList.add('show');
+        }, 10);
+        
+        // Handle confirm
+        const confirmBtn = dialog.querySelector('.confirm-dialog-confirm');
+        confirmBtn.onclick = () => {
+          cleanup();
+          resolve(true);
+        };
+        
+        // Handle cancel
+        const cancelBtn = dialog.querySelector('.confirm-dialog-cancel');
+        cancelBtn.onclick = () => {
+          cleanup();
+          resolve(false);
+        };
+        
+        // Handle close button (X)
+        const closeBtn = dialog.querySelector('.confirm-dialog-close');
+        closeBtn.onclick = () => {
+          cleanup();
+          resolve(false);
+        };
+        
+        // Handle overlay click
+        overlay.onclick = (e) => {
+          if (e.target === overlay) {
+            cleanup();
+            resolve(false);
+          }
+        };
+        
+        // Handle escape key
+        const escapeHandler = (e) => {
+          if (e.key === 'Escape') {
+            cleanup();
+            resolve(false);
+          }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        // Cleanup function
+        function cleanup() {
+          document.removeEventListener('keydown', escapeHandler);
+          overlay.classList.remove('show');
+          setTimeout(() => {
+            if (overlay.parentNode) {
+              overlay.parentNode.removeChild(overlay);
+            }
+            document.body.style.overflow = '';
+          }, 300);
+        }
+      });
+    }
+
+    // Test functions
+    async function testStandardConfirm() {
+      const result = await showConfirm(
+        'Are you sure you want to proceed with this action?',
+        {
+          title: 'Confirm Action',
+          confirmText: 'Proceed',
+          cancelText: 'Cancel',
+          type: 'warning'
+        }
+      );
+      
+      showResult('result-standard', result);
+    }
+
+    async function testDangerConfirm() {
+      const result = await showConfirm(
+        'This action cannot be undone. Are you sure you want to delete this item?',
+        {
+          title: 'Delete Item',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+          type: 'danger'
+        }
+      );
+      
+      showResult('result-danger', result);
+    }
+
+    async function testArchiveConfirm() {
+      const result = await showConfirm(
+        'Archive John Doe? You can restore it later from the Archived tab.',
+        {
+          title: 'Archive Contact',
+          confirmText: 'Archive',
+          cancelText: 'Cancel',
+          type: 'warning'
+        }
+      );
+      
+      showResult('result-archive', result);
+    }
+
+    async function testCustomConfirm() {
+      const result = await showConfirm(
+        'Would you like to save your changes before leaving?',
+        {
+          title: 'Unsaved Changes',
+          confirmText: 'Save & Exit',
+          cancelText: 'Discard',
+          type: 'info'
+        }
+      );
+      
+      showResult('result-custom', result);
+    }
+
+    function showResult(elementId, confirmed) {
+      const resultEl = document.getElementById(elementId);
+      resultEl.style.display = 'block';
+      
+      if (confirmed) {
+        resultEl.className = 'result success';
+        resultEl.textContent = '✓ Confirmed';
+      } else {
+        resultEl.className = 'result cancelled';
+        resultEl.textContent = '✗ Cancelled';
+      }
+      
+      // Hide after 3 seconds
+      setTimeout(() => {
+        resultEl.style.display = 'none';
+      }, 3000);
+    }
+
+    console.log('✓ Confirm Dialog Layout Test loaded');
+    console.log('📋 Test the following:');
+    console.log('  1. Modal size is 400px (small)');
+    console.log('  2. Header has title on left, X on right');
+    console.log('  3. Header height is 56px');
+    console.log('  4. Title uses Cabin Sketch font');
+    console.log('  5. Body text uses Inter font');
+    console.log('  6. Footer has Cancel on left, Primary on right');
+    console.log('  7. Footer padding is 16px');
+    console.log('  8. Overlay has backdrop blur');
+    console.log('  9. ESC key closes dialog');
+    console.log('  10. Clicking outside closes dialog');
+    console.log('  11. Close X button works');
+    console.log('  12. Smooth fade-in animation');
+  </script>
+</body>
+</html>

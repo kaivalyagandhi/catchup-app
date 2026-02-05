@@ -90,9 +90,9 @@ class AvailabilityDashboard {
     
     container.innerHTML = `
       <div class="availability-dashboard">
-        <div class="loading-state">
-          <div class="loading-spinner"></div>
-          <p>Loading availability data...</p>
+        <div class="loading-container">
+          <div class="spinner spinner-lg" role="status" aria-label="Loading availability data"></div>
+          <div class="loading-message">Loading availability data...</div>
         </div>
       </div>
     `;
@@ -818,7 +818,7 @@ class AvailabilityDashboard {
     const finalizeBtn = document.querySelector('#finalize-plan');
     if (finalizeBtn) {
       finalizeBtn.disabled = true;
-      finalizeBtn.innerHTML = '<span class="loading-spinner-sm"></span> Finalizing...';
+      finalizeBtn.innerHTML = '<span class="spinner spinner-sm"></span> Finalizing...';
     }
     
     try {
@@ -922,7 +922,7 @@ class AvailabilityDashboard {
     const btn = document.querySelector('#load-ai-suggestions');
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<span class="loading-spinner-sm"></span> Getting AI Suggestions...';
+      btn.innerHTML = '<span class="spinner spinner-sm"></span> Getting AI Suggestions...';
     }
     
     try {

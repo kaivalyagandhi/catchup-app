@@ -18,15 +18,17 @@
 }
 
 .quick-refine-header h2 {
+  font-family: var(--font-accent);
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
 }
 
 .quick-refine-progress {
+  font-family: var(--font-readable);
   font-size: 0.8125rem;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   margin-bottom: 0.5rem;
 }
 
@@ -567,22 +569,20 @@
 }
 
 /* Dark Mode Support (if needed) */
-@media (prefers-color-scheme: dark) {
-  .quick-refine-card {
-    background: #1f2937;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  }
-  
-  .contact-name {
-    color: #f9fafb;
-  }
-  
-  .contact-metadata {
-    color: #9ca3af;
-  }
-  
-  .circle-btn {
-    background: #374151;
-    border-color: #4b5563;
-  }
+[data-theme="dark"] .quick-refine-card {
+  background: #1f2937;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .contact-name {
+  color: #f9fafb;
+}
+
+[data-theme="dark"] .contact-metadata {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .circle-btn {
+  background: #374151;
+  border-color: #4b5563;
 }

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Search Modal Layout Test</title>
+  <link rel="stylesheet" href="/css/stone-clay-theme.css">
+  <style>
+    body {
+      padding: 20px;
+      font-family: var(--font-readable, 'Inter', sans-serif);
+    }
+    
+    .test-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border-default);
+    }
+    
+    .test-section {
+      margin-bottom: 32px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+    }
+    
+    .test-section h3 {
+      margin-top: 0;
+      color: var(--text-primary);
+      font-family: var(--font-accent);
+    }
+    
+    .test-button {
+      padding: 12px 24px;
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: var(--font-accent);
+      transition: background 0.2s;
+    }
+    
+    .test-button:hover {
+      background: var(--accent-hover);
+    }
+    
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .checklist li {
+      padding: 8px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    
+    .checklist li::before {
+      content: "☐";
+      font-size: 18px;
+      color: var(--text-secondary);
+    }
+    
+    .checklist li.checked::before {
+      content: "☑";
+      color: var(--status-success);
+    }
+    
+    .info-box {
+      padding: 12px 16px;
+      background: var(--accent-subtle);
+      border-left: 3px solid var(--accent-primary);
+      border-radius: 4px;
+      margin: 16px 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    
+    .code {
+      background: var(--bg-secondary);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    
+    .mock-contacts {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1 style="font-family: var(--font-heading); margin: 0 0 8px 0;">Contact Search Modal Layout Test</h1>
+      <p style="color: var(--text-secondary); margin: 0;">
+        Task 16.3: Verify consistent header/footer layout and size class
+      </p>
+    </div>
+
+    <div class="test-section">
+      <h3>Test Instructions</h3>
+      <p>This test validates that the Contact Search Modal follows the standard modal layout patterns:</p>
+      <ul>
+        <li><strong>Size:</strong> Medium (600px) - .modal-md equivalent</li>
+        <li><strong>Header:</strong> [Title] [spacer] [Close X] with flexbox space-between, 56px height</li>
+        <li><strong>Footer:</strong> [Cancel] [spacer] [Primary] with flexbox space-between, --space-4 padding</li>
+      </ul>
+      
+      <div class="info-box">
+        <strong>Note:</strong> This modal is used during AI Quick Start to search and add contacts to Inner Circle.
+      </div>
+      
+      <button class="test-button" id="open-modal-btn">Open Contact Search Modal</button>
+    </div>
+
+    <div class="test-section">
+      <h3>Visual Inspection Checklist</h3>
+      <p>After opening the modal, verify the following:</p>
+      
+      <h4 style="margin-top: 20px; color: var(--text-primary);">Header Layout (Requirement 22)</h4>
+      <ul class="checklist">
+        <li>Modal header has "Search & Add Contacts" title on the left</li>
+        <li>Close button (×) is positioned on the right</li>
+        <li>Header uses flexbox with space-between (title and close are at opposite ends)</li>
+        <li>Header has minimum height of 56px</li>
+        <li>Header has consistent padding (16px vertical, 24px horizontal)</li>
+        <li>Title and close button are vertically centered</li>
+      </ul>
+      
+      <h4 style="margin-top: 20px; color: var(--text-primary);">Footer Layout (Requirement 23)</h4>
+      <ul class="checklist">
+        <li>Footer has "Cancel" button on the left</li>
+        <li>Footer has "Add Selected" button on the right</li>
+        <li>Footer uses flexbox with space-between (buttons at opposite ends)</li>
+        <li>Footer padding uses --space-4 (16px)</li>
+        <li>Buttons are vertically centered</li>
+        <li>Gap between buttons is appropriate (spacer element creates separation)</li>
+      </ul>
+      
+      <h4 style="margin-top: 20px; color: var(--text-primary);">Modal Size (Requirement 21)</h4>
+      <ul class="checklist">
+        <li>Modal width is 600px (medium size)</li>
+        <li>Modal has max-height of 90vh</li>
+        <li>Modal content scrolls internally if needed</li>
+        <li>Modal is centered on screen</li>
+      </ul>
+      
+      <h4 style="margin-top: 20px; color: var(--text-primary);">Functionality</h4>
+      <ul class="checklist">
+        <li>Search input is functional and filters contacts</li>
+        <li>Capacity indicator shows current selection count</li>
+        <li>Contacts can be selected via checkboxes</li>
+        <li>"Add Selected" button updates with count</li>
+        <li>Close button (×) closes the modal</li>
+        <li>Cancel button closes the modal</li>
+        <li>Clicking overlay closes the modal</li>
+        <li>Escape key closes the modal</li>
+      </ul>
+      
+      <h4 style="margin-top: 20px; color: var(--text-primary);">Mobile Responsive (Requirement 8.1)</h4>
+      <ul class="checklist">
+        <li>On mobile (< 768px), modal expands to full width</li>
+        <li>Footer maintains horizontal layout with flex-wrap</li>
+        <li>Buttons have minimum width of 120px on mobile</li>
+        <li>Touch targets are at least 44px for checkboxes</li>
+      </ul>
+    </div>
+
+    <div class="test-section">
+      <h3>Browser Console Tests</h3>
+      <p>Open the browser console (F12) to see test results:</p>
+      <ul>
+        <li>Modal initialization</li>
+        <li>Layout measurements</li>
+        <li>Event handler verification</li>
+      </ul>
+    </div>
+
+    <div class="test-section">
+      <h3>Expected Behavior</h3>
+      <ol>
+        <li>Click "Open Contact Search Modal" button</li>
+        <li>Modal appears with overlay backdrop</li>
+        <li>Modal loads contacts from API (or shows mock data)</li>
+        <li>Search input filters contacts in real-time (300ms debounce)</li>
+        <li>Selecting contacts updates capacity indicator</li>
+        <li>Footer buttons maintain standard layout pattern</li>
+        <li>Modal can be closed via close button, cancel button, overlay click, or Escape key</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Mock contacts data for testing without backend -->
+  <div class="mock-contacts" id="mock-contacts-data">
+    [
+      {"id": "1", "name": "Alice Johnson", "email": "alice@example.com", "dunbarCircle": "close"},
+      {"id": "2", "name": "Bob Smith", "email": "bob@example.com", "dunbarCircle": "active"},
+      {"id": "3", "name": "Carol Williams", "email": "carol@example.com", "dunbarCircle": "casual"},
+      {"id": "4", "name": "David Brown", "email": "david@example.com", "dunbarCircle": null},
+      {"id": "5", "name": "Eve Davis", "email": "eve@example.com", "dunbarCircle": "close"},
+      {"id": "6", "name": "Frank Miller", "email": "frank@example.com", "dunbarCircle": "active"},
+      {"id": "7", "name": "Grace Wilson", "email": "grace@example.com", "dunbarCircle": "casual"},
+      {"id": "8", "name": "Henry Moore", "email": "henry@example.com", "dunbarCircle": null},
+      {"id": "9", "name": "Ivy Taylor", "email": "ivy@example.com", "dunbarCircle": "close"},
+      {"id": "10", "name": "Jack Anderson", "email": "jack@example.com", "dunbarCircle": "active"}
+    ]
+  </div>
+
+  <script src="/js/contact-search-modal.js"></script>
+  <script>
+    console.log('=== Contact Search Modal Layout Test ===');
+    
+    // Mock fetch for testing without backend
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+      if (url === '/api/contacts') {
+        console.log('✓ Intercepting /api/contacts request');
+        const mockData = JSON.parse(document.getElementById('mock-contacts-data').textContent);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ contacts: mockData })
+        });
+      }
+      return originalFetch(url, options);
+    };
+    
+    // Test modal initialization
+    let modal = null;
+    
+    document.getElementById('open-modal-btn').addEventListener('click', () => {
+      console.log('Opening Contact Search Modal...');
+      
+      modal = new ContactSearchModal({
+        maxSelections: 10,
+        currentSelectionCount: 2,
+        excludeContactIds: [],
+        onSelect: (selectedContacts) => {
+          console.log('✓ Selected contacts:', selectedContacts);
+          console.log(`  Count: ${selectedContacts.length}`);
+          selectedContacts.forEach(contact => {
+            console.log(`  - ${contact.name} (${contact.email})`);
+          });
+        },
+        onCancel: () => {
+          console.log('✓ Modal cancelled');
+        }
+      });
+      
+      modal.open();
+      
+      // Measure layout after modal opens
+      setTimeout(() => {
+        measureModalLayout();
+      }, 500);
+    });
+    
+    function measureModalLayout() {
+      console.log('\n=== Modal Layout Measurements ===');
+      
+      const modalElement = document.querySelector('.contact-search-modal');
+      const header = document.querySelector('.contact-search-modal__header');
+      const footer = document.querySelector('.contact-search-modal__footer');
+      
+      if (!modalElement) {
+        console.error('✗ Modal element not found');
+        return;
+      }
+      
+      // Modal size
+      const modalWidth = modalElement.offsetWidth;
+      const modalMaxWidth = window.getComputedStyle(modalElement).maxWidth;
+      console.log(`Modal width: ${modalWidth}px (max-width: ${modalMaxWidth})`);
+      
+      if (modalMaxWidth === '600px') {
+        console.log('✓ Modal size is correct (600px - medium)');
+      } else {
+        console.warn('⚠ Modal max-width should be 600px');
+      }
+      
+      // Header layout
+      if (header) {
+        const headerHeight = header.offsetHeight;
+        const headerDisplay = window.getComputedStyle(header).display;
+        const headerJustify = window.getComputedStyle(header).justifyContent;
+        
+        console.log(`\nHeader height: ${headerHeight}px`);
+        console.log(`Header display: ${headerDisplay}`);
+        console.log(`Header justify-content: ${headerJustify}`);
+        
+        if (headerHeight >= 56) {
+          console.log('✓ Header height is at least 56px');
+        } else {
+          console.warn('⚠ Header height should be at least 56px');
+        }
+        
+        if (headerDisplay === 'flex' && headerJustify === 'space-between') {
+          console.log('✓ Header uses flexbox with space-between');
+        } else {
+          console.warn('⚠ Header should use flexbox with space-between');
+        }
+      }
+      
+      // Footer layout
+      if (footer) {
+        const footerDisplay = window.getComputedStyle(footer).display;
+        const footerJustify = window.getComputedStyle(footer).justifyContent;
+        const footerPadding = window.getComputedStyle(footer).padding;
+        
+        console.log(`\nFooter display: ${footerDisplay}`);
+        console.log(`Footer justify-content: ${footerJustify}`);
+        console.log(`Footer padding: ${footerPadding}`);
+        
+        if (footerDisplay === 'flex' && footerJustify === 'space-between') {
+          console.log('✓ Footer uses flexbox with space-between');
+        } else {
+          console.warn('⚠ Footer should use flexbox with space-between');
+        }
+        
+        // Check for spacer element
+        const spacer = footer.querySelector('div[style*="flex: 1"]');
+        if (spacer) {
+          console.log('✓ Footer has spacer element for layout');
+        } else {
+          console.warn('⚠ Footer should have spacer element');
+        }
+        
+        // Check button positions
+        const cancelBtn = footer.querySelector('.contact-search-modal__btn--cancel');
+        const confirmBtn = footer.querySelector('.contact-search-modal__btn--confirm');
+        
+        if (cancelBtn && confirmBtn) {
+          const cancelRect = cancelBtn.getBoundingClientRect();
+          const confirmRect = confirmBtn.getBoundingClientRect();
+          
+          if (cancelRect.left < confirmRect.left) {
+            console.log('✓ Cancel button is on the left, Primary button is on the right');
+          } else {
+            console.warn('⚠ Button order should be: Cancel (left), Primary (right)');
+          }
+        }
+      }
+      
+      console.log('\n=== Layout Test Complete ===');
+      console.log('Review the checklist above and mark items as verified.');
+    }
+    
+    // Log when modal is closed
+    const originalClose = ContactSearchModal.prototype.close;
+    ContactSearchModal.prototype.close = function() {
+      console.log('✓ Modal closed');
+      originalClose.call(this);
+    };
+    
+    console.log('✓ Test page loaded');
+    console.log('Click "Open Contact Search Modal" to begin testing');
+  </script>
+</body>
+</html>
