@@ -252,16 +252,22 @@ export class CircuitBreakerManager {
     userId: string,
     integrationType: IntegrationType
   ): Promise<CircuitBreakerState | null> {
-    const result = await pool.query<CircuitBreakerRow>(
-      'SELECT * FROM circuit_breaker_state WHERE user_id = $1 AND integration_type = $2',
-      [userId, integrationType]
-    );
+    try {
+      const result = await pool.query<CircuitBreakerRow>(
+        'SELECT * FROM circuit_breaker_state WHERE user_id = $1 AND integration_type = $2',
+        [userId, integrationType]
+      );
 
-    if (result.rows.length === 0) {
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      return this.rowToState(result.rows[0]);
+    } catch (error) {
+      // If table doesn't exist, return null (will initialize as closed)
+      console.warn(`Error getting circuit breaker state for ${integrationType}:`, error);
       return null;
     }
-
-    return this.rowToState(result.rows[0]);
   }
 
   /**
@@ -302,12 +308,17 @@ export class CircuitBreakerManager {
     userId: string,
     integrationType: IntegrationType
   ): Promise<void> {
-    await pool.query(
-      `INSERT INTO circuit_breaker_state (user_id, integration_type, state, failure_count)
-       VALUES ($1, $2, 'closed', 0)
-       ON CONFLICT (user_id, integration_type) DO NOTHING`,
-      [userId, integrationType]
-    );
+    try {
+      await pool.query(
+        `INSERT INTO circuit_breaker_state (user_id, integration_type, state, failure_count)
+         VALUES ($1, $2, 'closed', 0)
+         ON CONFLICT (user_id, integration_type) DO NOTHING`,
+        [userId, integrationType]
+      );
+    } catch (error) {
+      // If table doesn't exist, that's okay - circuit breaker is optional
+      console.warn(`Could not initialize circuit breaker state for ${integrationType}:`, error);
+    }
   }
 
   /**

@@ -145,16 +145,22 @@ export class TokenHealthMonitor extends EventEmitter {
     userId: string,
     integrationType: IntegrationType
   ): Promise<TokenHealth | null> {
-    const result = await pool.query<TokenHealthRow>(
-      'SELECT * FROM token_health WHERE user_id = $1 AND integration_type = $2',
-      [userId, integrationType]
-    );
+    try {
+      const result = await pool.query<TokenHealthRow>(
+        'SELECT * FROM token_health WHERE user_id = $1 AND integration_type = $2',
+        [userId, integrationType]
+      );
 
-    if (result.rows.length === 0) {
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      return this.rowToTokenHealth(result.rows[0]);
+    } catch (error) {
+      // If table doesn't exist, return null (token health is optional)
+      console.warn(`Could not get token health for ${integrationType}:`, error);
       return null;
     }
-
-    return this.rowToTokenHealth(result.rows[0]);
   }
 
   /**

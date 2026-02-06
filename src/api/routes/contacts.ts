@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { ContactServiceImpl } from '../../contacts/service';
 import { GroupServiceImpl } from '../../contacts/group-service';
 import { TagServiceImpl } from '../../contacts/tag-service';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -240,12 +241,13 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 // GET /contacts - List all contacts with optional filters
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, groupId, archived, search, includeSyncStatus } = req.query;
+    const userId = req.userId;
+    const { groupId, archived, search, includeSyncStatus } = req.query;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 

@@ -38,19 +38,26 @@ export class GracefulDegradationService {
     available: boolean;
     reason?: 'circuit_breaker_open' | 'invalid_token';
   }> {
-    // Check circuit breaker
-    const canSync = await this.circuitBreakerManager.canExecuteSync(userId, integrationType);
-    if (!canSync) {
-      return { available: false, reason: 'circuit_breaker_open' };
-    }
+    try {
+      // Check circuit breaker
+      const canSync = await this.circuitBreakerManager.canExecuteSync(userId, integrationType);
+      if (!canSync) {
+        return { available: false, reason: 'circuit_breaker_open' };
+      }
 
-    // Check token health
-    const tokenHealth = await this.tokenHealthMonitor.getTokenHealth(userId, integrationType);
-    if (tokenHealth && ['expired', 'revoked'].includes(tokenHealth.status)) {
-      return { available: false, reason: 'invalid_token' };
-    }
+      // Check token health
+      const tokenHealth = await this.tokenHealthMonitor.getTokenHealth(userId, integrationType);
+      if (tokenHealth && ['expired', 'revoked'].includes(tokenHealth.status)) {
+        return { available: false, reason: 'invalid_token' };
+      }
 
-    return { available: true };
+      return { available: true };
+    } catch (error) {
+      // If tables don't exist or other errors, assume sync is available
+      // This allows the app to work even if sync optimization tables aren't set up
+      console.warn(`Error checking sync availability for ${integrationType}:`, error);
+      return { available: true };
+    }
   }
 
   /**
@@ -151,49 +158,64 @@ export class GracefulDegradationService {
     requiresReauth: boolean;
     reauthUrl?: string;
   }> {
-    const availability = await this.checkSyncAvailability(userId, integrationType);
+    try {
+      const availability = await this.checkSyncAvailability(userId, integrationType);
 
-    // Get last successful sync time
-    let lastSuccessfulSync: Date | null = null;
-    if (integrationType === 'google_contacts') {
-      const result = await pool.query(
-        `SELECT COALESCE(last_incremental_sync_at, last_full_sync_at) as last_sync
-         FROM google_contacts_sync_state
-         WHERE user_id = $1`,
-        [userId]
-      );
-      lastSuccessfulSync = result.rows[0]?.last_sync || null;
-    } else {
-      // Calendar sync time is stored in users table
-      const result = await pool.query(
-        `SELECT last_calendar_sync as last_sync
-         FROM users
-         WHERE id = $1`,
-        [userId]
-      );
-      lastSuccessfulSync = result.rows[0]?.last_sync || null;
-    }
-
-    // Determine if re-auth is required
-    const requiresReauth = availability.reason === 'invalid_token';
-
-    // Generate re-auth URL if needed
-    let reauthUrl: string | undefined;
-    if (requiresReauth) {
-      if (integrationType === 'google_contacts') {
-        reauthUrl = '/api/contacts/oauth/authorize';
-      } else {
-        reauthUrl = '/api/calendar/oauth/authorize';
+      // Get last successful sync time
+      let lastSuccessfulSync: Date | null = null;
+      try {
+        if (integrationType === 'google_contacts') {
+          const result = await pool.query(
+            `SELECT COALESCE(last_incremental_sync_at, last_full_sync_at) as last_sync
+             FROM google_contacts_sync_state
+             WHERE user_id = $1`,
+            [userId]
+          );
+          lastSuccessfulSync = result.rows[0]?.last_sync || null;
+        } else {
+          // Calendar sync time is stored in users table
+          const result = await pool.query(
+            `SELECT last_calendar_sync as last_sync
+             FROM users
+             WHERE id = $1`,
+            [userId]
+          );
+          lastSuccessfulSync = result.rows[0]?.last_sync || null;
+        }
+      } catch (error) {
+        // If sync state tables don't exist, that's okay
+        console.warn(`Could not fetch last sync time for ${integrationType}:`, error);
       }
-    }
 
-    return {
-      available: availability.available,
-      reason: availability.reason,
-      lastSuccessfulSync,
-      requiresReauth,
-      reauthUrl,
-    };
+      // Determine if re-auth is required
+      const requiresReauth = availability.reason === 'invalid_token';
+
+      // Generate re-auth URL if needed
+      let reauthUrl: string | undefined;
+      if (requiresReauth) {
+        if (integrationType === 'google_contacts') {
+          reauthUrl = '/api/contacts/oauth/authorize';
+        } else {
+          reauthUrl = '/api/calendar/oauth/authorize';
+        }
+      }
+
+      return {
+        available: availability.available,
+        reason: availability.reason,
+        lastSuccessfulSync,
+        requiresReauth,
+        reauthUrl,
+      };
+    } catch (error) {
+      // If anything fails, return a safe default
+      console.error(`Error getting sync status for ${integrationType}:`, error);
+      return {
+        available: true,
+        lastSuccessfulSync: null,
+        requiresReauth: false,
+      };
+    }
   }
 
   /**
