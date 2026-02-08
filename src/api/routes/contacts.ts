@@ -52,6 +52,8 @@ router.get('/groups', async (req: Request, res: Response): Promise<void> => {
     }
     const groupService = new GroupServiceImpl();
     const groups = await groupService.listGroups(userId as string);
+    // Add Cache-Control header for browser caching (60 seconds)
+    res.set('Cache-Control', 'private, max-age=60');
     res.json(groups);
   } catch (error) {
     console.error('Error listing groups:', error);
@@ -283,6 +285,8 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response): 
         'google_contacts'
       );
 
+      // Add Cache-Control header for browser caching (60 seconds)
+      res.set('Cache-Control', 'private, max-age=60');
       res.json({
         contacts,
         syncStatus: {
@@ -296,6 +300,8 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
+    // Add Cache-Control header for browser caching (60 seconds)
+    res.set('Cache-Control', 'private, max-age=60');
     res.json(contacts);
   } catch (error) {
     console.error('Error listing contacts:', error);

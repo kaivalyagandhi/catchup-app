@@ -30,6 +30,8 @@ router.get('/groups', async (req: AuthenticatedRequest, res: Response): Promise<
     const userId = req.userId!;
     const groupRepository = new PostgresGroupRepository();
     const groups = await groupRepository.listGroupsWithContactCounts(userId);
+    // Add Cache-Control header for browser caching (60 seconds)
+    res.set('Cache-Control', 'private, max-age=60');
     res.json(groups);
   } catch (error) {
     console.error('Error listing groups with counts:', error);
@@ -241,6 +243,8 @@ router.get('/tags', async (req: AuthenticatedRequest, res: Response): Promise<vo
     const userId = req.userId!;
     const tagRepository = new PostgresTagRepository();
     const tags = await tagRepository.listTagsWithContactCounts(userId);
+    // Add Cache-Control header for browser caching (60 seconds)
+    res.set('Cache-Control', 'private, max-age=60');
     res.json(tags);
   } catch (error) {
     console.error('Error listing tags with counts:', error);

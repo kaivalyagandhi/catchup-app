@@ -1,11 +1,15 @@
 import Bull from 'bull';
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 
 // Redis connection configuration
-const redisConfig = {
+// Supports both local Redis and Upstash (serverless Redis with TLS)
+const redisConfig: RedisOptions = {
   host: process.env.REDIS_HOST || 'localhost',
   port: parseInt(process.env.REDIS_PORT || '6379'),
   password: process.env.REDIS_PASSWORD,
+  // TLS support for Upstash and other cloud Redis providers
+  // Set REDIS_TLS=true for Upstash connections
+  tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 };

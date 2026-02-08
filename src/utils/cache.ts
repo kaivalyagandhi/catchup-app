@@ -1,14 +1,18 @@
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 // Redis client configuration
-const redisConfig = {
+// Supports both local Redis and Upstash (serverless Redis with TLS)
+const redisConfig: RedisOptions = {
   host: process.env.REDIS_HOST || 'localhost',
   port: parseInt(process.env.REDIS_PORT || '6379', 10),
   password: process.env.REDIS_PASSWORD,
   db: parseInt(process.env.REDIS_DB || '0', 10),
+  // TLS support for Upstash and other cloud Redis providers
+  // Set REDIS_TLS=true for Upstash connections
+  tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
   retryStrategy: (times: number) => {
     const delay = Math.min(times * 50, 2000);
     return delay;

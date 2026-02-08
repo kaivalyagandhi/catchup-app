@@ -38,8 +38,8 @@ import { monitorJobDuration } from './job-monitoring-service';
 export function startWorker(): void {
   console.log('Starting job worker...');
 
-  // Register suggestion generation processor
-  suggestionGenerationQueue.process(async (job) => {
+  // Register suggestion generation processor (limit to 1 concurrent - heavy AI processing)
+  suggestionGenerationQueue.process(1, async (job) => {
     console.log(`Processing suggestion generation job ${job.id}`);
     return processSuggestionGeneration(job);
   });
@@ -50,20 +50,20 @@ export function startWorker(): void {
     return processBatchNotification(job);
   });
 
-  // Register calendar sync processor
-  calendarSyncQueue.process(async (job) => {
+  // Register calendar sync processor (limit to 1 concurrent - heavy API calls)
+  calendarSyncQueue.process(1, async (job) => {
     console.log(`Processing calendar sync job ${job.id}`);
     return processCalendarSync(job);
   });
 
-  // Register suggestion regeneration processor
-  suggestionRegenerationQueue.process(async (job) => {
+  // Register suggestion regeneration processor (limit to 1 concurrent - heavy AI processing)
+  suggestionRegenerationQueue.process(1, async (job) => {
     console.log(`Processing suggestion regeneration job ${job.id}`);
     return processSuggestionRegeneration(job);
   });
 
-  // Register Google Contacts sync processor
-  googleContactsSyncQueue.process(async (job) => {
+  // Register Google Contacts sync processor (limit to 1 concurrent - heavy API calls and memory)
+  googleContactsSyncQueue.process(1, async (job) => {
     console.log(`Processing Google Contacts sync job ${job.id}`);
     return processGoogleContactsSync(job);
   });

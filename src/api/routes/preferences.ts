@@ -33,6 +33,8 @@ router.get('/availability', async (req: Request, res: Response) => {
     }
 
     const params = await availabilityService.getAvailabilityParams(userId as string);
+    // Add Cache-Control header for browser caching (5 minutes for preferences)
+    res.set('Cache-Control', 'private, max-age=300');
     res.json(params);
   } catch (error) {
     console.error('Error fetching availability preferences:', error);
@@ -67,6 +69,8 @@ router.get('/notifications', async (req: Request, res: Response) => {
     }
 
     const prefs = await preferencesService.getNotificationPreferences(userId as string);
+    // Add Cache-Control header for browser caching (5 minutes for preferences)
+    res.set('Cache-Control', 'private, max-age=300');
     res.json(prefs);
   } catch (error) {
     console.error('Error fetching notification preferences:', error);
