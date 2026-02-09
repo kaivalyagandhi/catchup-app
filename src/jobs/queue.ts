@@ -8,16 +8,26 @@ import Redis, { RedisOptions } from 'ioredis';
  * Upstash format: rediss://:PASSWORD@ENDPOINT:PORT
  * Local format: redis://localhost:6379
  * 
- * IMPORTANT: Returns connection options, not a client instance.
- * Bull will create its own connections using these options.
- * This reduces connection overhead by letting Bull manage the connection pool.
+ * IMPORTANT: Bull requires specific Redis options format.
+ * We parse the connection string into an options object for Bull.
  */
-const getRedisOptions = (): string | RedisOptions => {
-  // If REDIS_URL is provided (connection string format), use it
-  // This is the recommended format for Upstash: rediss://:PASSWORD@ENDPOINT:PORT
+const getRedisOptions = (): RedisOptions => {
+  // If REDIS_URL is provided (connection string format), parse it
   if (process.env.REDIS_URL) {
-    console.log('[Redis Queue] Using REDIS_URL connection string');
-    return process.env.REDIS_URL;
+    console.log('[Redis Queue] Parsing REDIS_URL connection string for Bull');
+    
+    // Parse the connection string
+    // Format: rediss://:PASSWORD@ENDPOINT:PORT
+    const url = new URL(process.env.REDIS_URL);
+    
+    return {
+      host: url.hostname,
+      port: parseInt(url.port) || 6379,
+      password: url.password || undefined,
+      tls: url.protocol === 'rediss:' ? {} : undefined,
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    };
   }
 
   // Otherwise, use object configuration (for local Redis or custom setup)
