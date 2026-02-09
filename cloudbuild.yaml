@@ -48,64 +48,44 @@ steps:
         # Check if this is a prod tag trigger
         if [ "$TAG_NAME" = "prod" ]; then
           # Production version: YYYY.MM.DD.BUILD (use SHORT_SHA for build identifier)
-          APP_VERSION=$$(date -u +'%Y.%m.%d').$$SHORT_SHA
-          echo "Production build version: $$APP_VERSION"
+          APP_VERSION=$(date -u +'%Y.%m.%d').$SHORT_SHA
+          echo "Production build version: $APP_VERSION"
         else
           # Development version: dev-YYYY.MM.DD-COMMIT
-          APP_VERSION="dev-$$(date -u +'%Y.%m.%d')-$$SHORT_SHA"
-          echo "Development build version: $$APP_VERSION"
+          APP_VERSION="dev-$(date -u +'%Y.%m.%d')-$SHORT_SHA"
+          echo "Development build version: $APP_VERSION"
         fi
         # Write to file for next steps
-        echo $$APP_VERSION > /workspace/VERSION.txt
-        echo "Generated version: $$APP_VERSION"
+        echo $APP_VERSION > /workspace/VERSION.txt
+        echo "Generated version: $APP_VERSION"
     waitFor: ['install-dependencies']
 
-  # Step 5: Build Docker image
-  - name: 'gcr.io/cloud-builders/docker'
+  # Step 5: Build Docker image using Kaniko (better layer handling)
+  - name: 'gcr.io/kaniko-project/executor:latest'
     id: 'build-image'
-    entrypoint: 'bash'
     args:
-      - '-c'
-      - |
-        APP_VERSION=$$(cat /workspace/VERSION.txt)
-        docker build \
-          --build-arg APP_VERSION=$$APP_VERSION \
-          -t us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA \
-          -t us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:latest \
-          .
+      - --dockerfile=Dockerfile
+      - --context=dir:///workspace
+      - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA
+      - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:latest
+      - --cache=true
+      - --cache-ttl=24h
+      - --build-arg=APP_VERSION=$(cat /workspace/VERSION.txt || echo "dev")
+      - --compressed-caching=false
+      - --snapshot-mode=redo
     waitFor: ['lint', 'typecheck', 'test', 'generate-version']
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
 
-  # Step 6: Push image to Artifact Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-image'
-    args:
-      - 'push'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA'
-    waitFor: ['build-image']
-    env:
-      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
-
-  # Step 6b: Push latest tag to Artifact Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-image-latest'
-    args:
-      - 'push'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:latest'
-    waitFor: ['build-image']
-    env:
-      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
-
-  # Step 7: Deploy to Cloud Run
+  # Step 6: Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     id: 'deploy-cloud-run'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        APP_VERSION=$$(cat /workspace/VERSION.txt)
-        echo "Deploying version: $$APP_VERSION"
+        APP_VERSION=$(cat /workspace/VERSION.txt)
+        echo "Deploying version: $APP_VERSION"
         gcloud run deploy catchup \
           --image=us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA \
           --region=us-central1 \
@@ -118,13 +98,13 @@ steps:
           --service-account=catchup-cloud-run@$PROJECT_ID.iam.gserviceaccount.com \
           --allow-unauthenticated \
           --add-cloudsql-instances=$PROJECT_ID:us-central1:catchup-db \
-          --set-env-vars=NODE_ENV=production,LOG_LEVEL=info,TEST_MODE=false,APP_VERSION=$$APP_VERSION,REDIS_TLS=true \
+          --set-env-vars=NODE_ENV=production,LOG_LEVEL=info,TEST_MODE=false,APP_VERSION=$APP_VERSION,REDIS_TLS=true \
           --update-secrets=DATABASE_HOST=database-host:latest,DATABASE_PORT=database-port:latest,DATABASE_NAME=database-name:latest,DATABASE_USER=database-user:latest,DATABASE_PASSWORD=db-password:latest,GOOGLE_CLIENT_ID=google-oauth-client-id:latest,GOOGLE_CLIENT_SECRET=google-oauth-client-secret:latest,GOOGLE_REDIRECT_URI=google-redirect-uri:latest,GOOGLE_CALENDAR_REDIRECT_URI=google-calendar-redirect-uri:latest,GOOGLE_CONTACTS_REDIRECT_URI=google-contacts-redirect-uri:latest,JWT_SECRET=jwt-secret:latest,ENCRYPTION_KEY=encryption-key:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,GOOGLE_CLOUD_API_KEY=google-cloud-speech-key:latest,GOOGLE_GEMINI_API_KEY=google-gemini-api-key:latest,REDIS_HOST=upstash-redis-host:latest,REDIS_PORT=upstash-redis-port:latest,REDIS_PASSWORD=upstash-redis-password:latest
-    waitFor: ['push-image', 'push-image-latest']
+    waitFor: ['build-image']
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
 
-  # Step 8: Verify deployment health
+  # Step 7: Verify deployment health
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     id: 'verify-health'
     entrypoint: 'bash'
@@ -133,22 +113,22 @@ steps:
       - |
         echo "Waiting for deployment to stabilize..."
         sleep 30
-        SERVICE_URL=$$(gcloud run services describe catchup --region=us-central1 --format='value(status.url)')
-        echo "Service URL: $$SERVICE_URL"
-        if [ -z "$$SERVICE_URL" ]; then
+        SERVICE_URL=$(gcloud run services describe catchup --region=us-central1 --format='value(status.url)')
+        echo "Service URL: $SERVICE_URL"
+        if [ -z "$SERVICE_URL" ]; then
           echo "ERROR: Could not get service URL"
           exit 1
         fi
         # Get an identity token for authenticated request
-        TOKEN=$$(gcloud auth print-identity-token)
+        TOKEN=$(gcloud auth print-identity-token)
         echo "Testing health endpoint..."
-        HTTP_STATUS=$$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $$TOKEN" "$$SERVICE_URL/health")
-        echo "Health check response: $$HTTP_STATUS"
-        if [ "$$HTTP_STATUS" = "200" ]; then
+        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/health")
+        echo "Health check response: $HTTP_STATUS"
+        if [ "$HTTP_STATUS" = "200" ]; then
           echo "✓ Health check passed!"
           exit 0
         else
-          echo "✗ Health check failed with status: $$HTTP_STATUS"
+          echo "✗ Health check failed with status: $HTTP_STATUS"
           exit 1
         fi
     waitFor: ['deploy-cloud-run']
