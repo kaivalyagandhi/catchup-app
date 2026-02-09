@@ -1,29 +1,63 @@
 import Bull from 'bull';
 import Redis, { RedisOptions } from 'ioredis';
 
-// Redis connection configuration
-// Supports both local Redis and Upstash (serverless Redis with TLS)
-const redisConfig: RedisOptions = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-  // TLS support for Upstash and other cloud Redis providers
-  // Set REDIS_TLS=true for Upstash connections
-  tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-};
-
-// Log Redis configuration on startup (without password)
-console.log('[Redis Queue] Connecting to Redis:', {
-  host: redisConfig.host,
-  port: redisConfig.port,
-  tls: redisConfig.tls ? 'enabled' : 'disabled',
-  passwordSet: !!redisConfig.password,
-});
-
-// Create Redis clients for Bull
+/**
+ * Create Redis client for Bull queue
+ * Supports both connection string format (recommended for Upstash) and object format (for local Redis)
+ * 
+ * Upstash format: rediss://:PASSWORD@ENDPOINT:PORT
+ * Local format: redis://localhost:6379
+ */
 const createRedisClient = () => {
+  // If REDIS_URL is provided (connection string format), use it
+  // This is the recommended format for Upstash: rediss://:PASSWORD@ENDPOINT:PORT
+  if (process.env.REDIS_URL) {
+    const client = new Redis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      // Upstash requires TLS, connection string with rediss:// handles this automatically
+    });
+
+    // Log connection events
+    client.on('connect', () => {
+      console.log('[Redis Queue] Connected to Redis successfully');
+    });
+
+    client.on('ready', () => {
+      console.log('[Redis Queue] Redis client ready');
+    });
+
+    client.on('error', (error) => {
+      console.error('[Redis Queue] Redis connection error:', error.message);
+    });
+
+    client.on('close', () => {
+      console.log('[Redis Queue] Redis connection closed');
+    });
+
+    return client;
+  }
+
+  // Otherwise, use object configuration (for local Redis or custom setup)
+  const redisConfig: RedisOptions = {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+    // TLS support for Upstash and other cloud Redis providers
+    // Set REDIS_TLS=true for Upstash connections
+    tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  };
+
+  // Log Redis configuration on startup (without password)
+  console.log('[Redis Queue] Connecting to Redis:', {
+    host: redisConfig.host,
+    port: redisConfig.port,
+    tls: redisConfig.tls ? 'enabled' : 'disabled',
+    passwordSet: !!redisConfig.password,
+  });
+
   const client = new Redis(redisConfig);
 
   // Log connection events

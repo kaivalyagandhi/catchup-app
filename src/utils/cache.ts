@@ -3,34 +3,58 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Redis client configuration
-// Supports both local Redis and Upstash (serverless Redis with TLS)
-const redisConfig: RedisOptions = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-  password: process.env.REDIS_PASSWORD,
-  db: parseInt(process.env.REDIS_DB || '0', 10),
-  // TLS support for Upstash and other cloud Redis providers
-  // Set REDIS_TLS=true for Upstash connections
-  tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
-  retryStrategy: (times: number) => {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  },
-  maxRetriesPerRequest: 3,
-};
+/**
+ * Create Redis client configuration
+ * Supports both connection string format (recommended for Upstash) and object format (for local Redis)
+ * 
+ * Upstash format: rediss://:PASSWORD@ENDPOINT:PORT
+ * Local format: redis://localhost:6379
+ */
+function createRedisClient(): Redis {
+  // If REDIS_URL is provided (connection string format), use it
+  // This is the recommended format for Upstash: rediss://:PASSWORD@ENDPOINT:PORT
+  if (process.env.REDIS_URL) {
+    console.log('[Redis Cache] Connecting using REDIS_URL connection string');
+    return new Redis(process.env.REDIS_URL, {
+      retryStrategy: (times: number) => {
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+      },
+      maxRetriesPerRequest: 3,
+      // Upstash requires TLS, connection string with rediss:// handles this automatically
+    });
+  }
 
-// Log Redis configuration on startup (without password)
-console.log('[Redis Cache] Connecting to Redis:', {
-  host: redisConfig.host,
-  port: redisConfig.port,
-  db: redisConfig.db,
-  tls: redisConfig.tls ? 'enabled' : 'disabled',
-  passwordSet: !!redisConfig.password,
-});
+  // Otherwise, use object configuration (for local Redis or custom setup)
+  const redisConfig: RedisOptions = {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD,
+    db: parseInt(process.env.REDIS_DB || '0', 10),
+    // TLS support for Upstash and other cloud Redis providers
+    // Set REDIS_TLS=true for Upstash connections
+    tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
+    retryStrategy: (times: number) => {
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    },
+    maxRetriesPerRequest: 3,
+  };
+
+  // Log Redis configuration on startup (without password)
+  console.log('[Redis Cache] Connecting to Redis:', {
+    host: redisConfig.host,
+    port: redisConfig.port,
+    db: redisConfig.db,
+    tls: redisConfig.tls ? 'enabled' : 'disabled',
+    passwordSet: !!redisConfig.password,
+  });
+
+  return new Redis(redisConfig);
+}
 
 // Create Redis client
-const redis = new Redis(redisConfig);
+const redis = createRedisClient();
 
 // Handle Redis events
 redis.on('error', (err) => {

@@ -117,18 +117,32 @@ class RedisPool {
   private clients: Redis[] = [];
   private availableClients: Redis[] = [];
   private config: PoolConfig;
-  private redisConfig: any;
+  private redisUrl?: string;
+  private redisConfig?: any;
 
   constructor(redisConfig: any, poolConfig: Partial<PoolConfig> = {}) {
-    this.redisConfig = redisConfig;
+    // Support both connection string and object config
+    if (typeof redisConfig === 'string') {
+      this.redisUrl = redisConfig;
+    } else {
+      this.redisConfig = redisConfig;
+    }
     this.config = { ...DEFAULT_POOL_CONFIG, ...poolConfig };
     this.initialize();
+  }
+
+  private createClient(): Redis {
+    if (this.redisUrl) {
+      return new Redis(this.redisUrl);
+    } else {
+      return new Redis(this.redisConfig);
+    }
   }
 
   private initialize(): void {
     // Create minimum number of connections
     for (let i = 0; i < this.config.minConnections; i++) {
-      const client = new Redis(this.redisConfig);
+      const client = this.createClient();
       this.clients.push(client);
       this.availableClients.push(client);
     }
@@ -142,7 +156,7 @@ class RedisPool {
 
     // Create new client if under max limit
     if (this.clients.length < this.config.maxConnections) {
-      const client = new Redis(this.redisConfig);
+      const client = this.createClient();
       this.clients.push(client);
       return client;
     }
@@ -160,7 +174,7 @@ class RedisPool {
       setTimeout(() => {
         clearInterval(checkInterval);
         // Create new client even if over limit (emergency)
-        const client = new Redis(this.redisConfig);
+        const client = this.createClient();
         this.clients.push(client);
         resolve(client);
       }, this.config.connectionTimeoutMs);
@@ -336,11 +350,14 @@ export class ConnectionPoolManager {
    */
   async getRedisClient(): Promise<Redis> {
     if (!this.redisPool) {
-      const redisConfig = {
+      // Use REDIS_URL if available (recommended for Upstash)
+      const redisConfig = process.env.REDIS_URL || {
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT || '6379', 10),
         password: process.env.REDIS_PASSWORD,
         db: parseInt(process.env.REDIS_DB || '0', 10),
+        // TLS support for Upstash and other cloud Redis providers
+        tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
       };
       this.initializeRedisPool(redisConfig);
     }

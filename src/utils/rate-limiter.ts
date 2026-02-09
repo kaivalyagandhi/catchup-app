@@ -3,17 +3,48 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+/**
+ * Create Redis client for rate limiting
+ * Supports both connection string format (recommended for Upstash) and object format (for local Redis)
+ * 
+ * Upstash format: rediss://:PASSWORD@ENDPOINT:PORT
+ * Local format: redis://localhost:6379
+ */
+function createRedisClient(): Redis {
+  // If REDIS_URL is provided (connection string format), use it
+  // This is the recommended format for Upstash: rediss://:PASSWORD@ENDPOINT:PORT
+  if (process.env.REDIS_URL) {
+    console.log('[Rate Limiter] Connecting using REDIS_URL connection string');
+    return new Redis(process.env.REDIS_URL, {
+      retryStrategy: (times: number) => {
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+      },
+      maxRetriesPerRequest: 3,
+      // Upstash requires TLS, connection string with rediss:// handles this automatically
+    });
+  }
+
+  // Otherwise, use object configuration (for local Redis or custom setup)
+  console.log('[Rate Limiter] Connecting using object configuration');
+  return new Redis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD,
+    db: parseInt(process.env.REDIS_DB || '0', 10),
+    // TLS support for Upstash and other cloud Redis providers
+    tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
+    retryStrategy: (times: number) => {
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    },
+    maxRetriesPerRequest: 3,
+  });
+}
+
 // Redis client for rate limiting
-const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-  password: process.env.REDIS_PASSWORD,
-  db: parseInt(process.env.REDIS_DB || '0', 10),
-  retryStrategy: (times: number) => {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  },
-});
+// Supports both local Redis and Upstash (serverless Redis with TLS)
+const redis = createRedisClient();
 
 /**
  * Rate limit configuration
