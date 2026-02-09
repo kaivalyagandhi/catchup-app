@@ -10,6 +10,11 @@ import Redis, { RedisOptions } from 'ioredis';
  * 
  * IMPORTANT: Bull requires specific Redis options format.
  * We parse the connection string into an options object for Bull.
+ * 
+ * Upstash-specific optimizations:
+ * - Retry strategy with exponential backoff
+ * - Connection timeout handling
+ * - Keep-alive to prevent idle disconnections
  */
 const getRedisOptions = (): RedisOptions => {
   // If REDIS_URL is provided (connection string format), parse it
@@ -27,6 +32,16 @@ const getRedisOptions = (): RedisOptions => {
       tls: url.protocol === 'rediss:' ? {} : undefined,
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
+      // Upstash-specific settings
+      retryStrategy: (times: number) => {
+        // Exponential backoff: 1s, 2s, 4s, 8s, max 10s
+        const delay = Math.min(times * 1000, 10000);
+        console.log(`[Redis Queue] Retry attempt ${times}, waiting ${delay}ms`);
+        return delay;
+      },
+      connectTimeout: 10000, // 10 second connection timeout
+      keepAlive: 30000, // Keep connection alive with 30s pings
+      family: 4, // Force IPv4 (Upstash uses IPv4)
     };
   }
 
@@ -40,6 +55,12 @@ const getRedisOptions = (): RedisOptions => {
     tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
+    retryStrategy: (times: number) => {
+      const delay = Math.min(times * 1000, 10000);
+      return delay;
+    },
+    connectTimeout: 10000,
+    keepAlive: 30000,
   };
 
   // Log Redis configuration on startup (without password)
