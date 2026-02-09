@@ -144,12 +144,38 @@ export async function deleteCache(key: string): Promise<void> {
 
 /**
  * Delete multiple keys matching a pattern
+ * 
+ * WARNING: This uses SCAN instead of KEYS to avoid blocking Redis.
+ * KEYS is O(N) and blocks the server, SCAN is O(1) per call and doesn't block.
  */
 export async function deleteCachePattern(pattern: string): Promise<void> {
   try {
-    const keys = await redis.keys(pattern);
-    if (keys.length > 0) {
-      await redis.del(...keys);
+    let cursor = '0';
+    const keysToDelete: string[] = [];
+    
+    // Use SCAN instead of KEYS to avoid blocking Redis
+    do {
+      const [nextCursor, keys] = await redis.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        100 // Process 100 keys at a time
+      );
+      
+      cursor = nextCursor;
+      keysToDelete.push(...keys);
+      
+      // Delete in batches to avoid memory issues
+      if (keysToDelete.length >= 100) {
+        await redis.del(...keysToDelete);
+        keysToDelete.length = 0; // Clear array
+      }
+    } while (cursor !== '0');
+    
+    // Delete remaining keys
+    if (keysToDelete.length > 0) {
+      await redis.del(...keysToDelete);
     }
   } catch (error) {
     console.error(`Cache delete pattern error for pattern ${pattern}:`, error);

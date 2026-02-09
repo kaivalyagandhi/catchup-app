@@ -2,40 +2,22 @@ import Bull from 'bull';
 import Redis, { RedisOptions } from 'ioredis';
 
 /**
- * Create Redis client for Bull queue
+ * Get Redis connection options for Bull
  * Supports both connection string format (recommended for Upstash) and object format (for local Redis)
  * 
  * Upstash format: rediss://:PASSWORD@ENDPOINT:PORT
  * Local format: redis://localhost:6379
+ * 
+ * IMPORTANT: Returns connection options, not a client instance.
+ * Bull will create its own connections using these options.
+ * This reduces connection overhead by letting Bull manage the connection pool.
  */
-const createRedisClient = () => {
+const getRedisOptions = (): string | RedisOptions => {
   // If REDIS_URL is provided (connection string format), use it
   // This is the recommended format for Upstash: rediss://:PASSWORD@ENDPOINT:PORT
   if (process.env.REDIS_URL) {
-    const client = new Redis(process.env.REDIS_URL, {
-      maxRetriesPerRequest: null,
-      enableReadyCheck: false,
-      // Upstash requires TLS, connection string with rediss:// handles this automatically
-    });
-
-    // Log connection events
-    client.on('connect', () => {
-      console.log('[Redis Queue] Connected to Redis successfully');
-    });
-
-    client.on('ready', () => {
-      console.log('[Redis Queue] Redis client ready');
-    });
-
-    client.on('error', (error) => {
-      console.error('[Redis Queue] Redis connection error:', error.message);
-    });
-
-    client.on('close', () => {
-      console.log('[Redis Queue] Redis connection closed');
-    });
-
-    return client;
+    console.log('[Redis Queue] Using REDIS_URL connection string');
+    return process.env.REDIS_URL;
   }
 
   // Otherwise, use object configuration (for local Redis or custom setup)
@@ -51,34 +33,18 @@ const createRedisClient = () => {
   };
 
   // Log Redis configuration on startup (without password)
-  console.log('[Redis Queue] Connecting to Redis:', {
+  console.log('[Redis Queue] Using object configuration:', {
     host: redisConfig.host,
     port: redisConfig.port,
     tls: redisConfig.tls ? 'enabled' : 'disabled',
     passwordSet: !!redisConfig.password,
   });
 
-  const client = new Redis(redisConfig);
-
-  // Log connection events
-  client.on('connect', () => {
-    console.log('[Redis Queue] Connected to Redis successfully');
-  });
-
-  client.on('ready', () => {
-    console.log('[Redis Queue] Redis client ready');
-  });
-
-  client.on('error', (error) => {
-    console.error('[Redis Queue] Redis connection error:', error.message);
-  });
-
-  client.on('close', () => {
-    console.log('[Redis Queue] Redis connection closed');
-  });
-
-  return client;
+  return redisConfig;
 };
+
+// Get shared Redis options for all queues
+const redisOptions = getRedisOptions();
 
 // Job queue names
 export const QUEUE_NAMES = {
@@ -108,180 +74,61 @@ export const DEFAULT_JOB_OPTIONS: Bull.JobOptions = {
   removeOnFail: false, // Keep failed jobs for debugging
 };
 
-// Create queues
+// Create queues with shared Redis options
+// This significantly reduces Redis connections: instead of 3 connections per queue (33 total),
+// Bull will reuse connections more efficiently
 export const suggestionGenerationQueue = new Bull(QUEUE_NAMES.SUGGESTION_GENERATION, {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return createRedisClient();
-      case 'subscriber':
-        return createRedisClient();
-      case 'bclient':
-        return createRedisClient();
-      default:
-        return createRedisClient();
-    }
-  },
+  redis: redisOptions,
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
 export const batchNotificationQueue = new Bull(QUEUE_NAMES.BATCH_NOTIFICATIONS, {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return createRedisClient();
-      case 'subscriber':
-        return createRedisClient();
-      case 'bclient':
-        return createRedisClient();
-      default:
-        return createRedisClient();
-    }
-  },
+  redis: redisOptions,
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
 export const calendarSyncQueue = new Bull(QUEUE_NAMES.CALENDAR_SYNC, {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return createRedisClient();
-      case 'subscriber':
-        return createRedisClient();
-      case 'bclient':
-        return createRedisClient();
-      default:
-        return createRedisClient();
-    }
-  },
+  redis: redisOptions,
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
 export const suggestionRegenerationQueue = new Bull(QUEUE_NAMES.SUGGESTION_REGENERATION, {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return createRedisClient();
-      case 'subscriber':
-        return createRedisClient();
-      case 'bclient':
-        return createRedisClient();
-      default:
-        return createRedisClient();
-    }
-  },
+  redis: redisOptions,
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
 export const googleContactsSyncQueue = new Bull(QUEUE_NAMES.GOOGLE_CONTACTS_SYNC, {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return createRedisClient();
-      case 'subscriber':
-        return createRedisClient();
-      case 'bclient':
-        return createRedisClient();
-      default:
-        return createRedisClient();
-    }
-  },
+  redis: redisOptions,
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
 export const tokenHealthReminderQueue = new Bull(QUEUE_NAMES.TOKEN_HEALTH_REMINDER, {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return createRedisClient();
-      case 'subscriber':
-        return createRedisClient();
-      case 'bclient':
-        return createRedisClient();
-      default:
-        return createRedisClient();
-    }
-  },
+  redis: redisOptions,
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
 export const tokenRefreshQueue = new Bull(QUEUE_NAMES.TOKEN_REFRESH, {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return createRedisClient();
-      case 'subscriber':
-        return createRedisClient();
-      case 'bclient':
-        return createRedisClient();
-      default:
-        return createRedisClient();
-    }
-  },
+  redis: redisOptions,
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
 export const webhookRenewalQueue = new Bull(QUEUE_NAMES.WEBHOOK_RENEWAL, {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return createRedisClient();
-      case 'subscriber':
-        return createRedisClient();
-      case 'bclient':
-        return createRedisClient();
-      default:
-        return createRedisClient();
-    }
-  },
+  redis: redisOptions,
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
 export const notificationReminderQueue = new Bull(QUEUE_NAMES.NOTIFICATION_REMINDER, {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return createRedisClient();
-      case 'subscriber':
-        return createRedisClient();
-      case 'bclient':
-        return createRedisClient();
-      default:
-        return createRedisClient();
-    }
-  },
+  redis: redisOptions,
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
 export const adaptiveSyncQueue = new Bull(QUEUE_NAMES.ADAPTIVE_SYNC, {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return createRedisClient();
-      case 'subscriber':
-        return createRedisClient();
-      case 'bclient':
-        return createRedisClient();
-      default:
-        return createRedisClient();
-    }
-  },
+  redis: redisOptions,
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
 export const webhookHealthCheckQueue = new Bull(QUEUE_NAMES.WEBHOOK_HEALTH_CHECK, {
-  createClient: (type) => {
-    switch (type) {
-      case 'client':
-        return createRedisClient();
-      case 'subscriber':
-        return createRedisClient();
-      case 'bclient':
-        return createRedisClient();
-      default:
-        return createRedisClient();
-    }
-  },
+  redis: redisOptions,
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
