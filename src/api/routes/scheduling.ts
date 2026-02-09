@@ -97,7 +97,6 @@ router.get('/plans/:id', authenticate, async (req: AuthenticatedRequest, res: Re
   }
 });
 
-
 /**
  * PUT /api/scheduling/plans/:id - Update a plan
  */
@@ -184,24 +183,28 @@ router.delete('/plans/:id', async (req: Request, res: Response) => {
 /**
  * GET /api/scheduling/plans/:id/ai-suggestions - Get AI suggestions for conflict resolution
  */
-router.get('/plans/:id/ai-suggestions', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params;
+router.get(
+  '/plans/:id/ai-suggestions',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
 
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
+      if (!req.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
 
-    const analysis = await conflictResolutionService.analyzeConflicts(id, req.userId);
-    res.json(analysis);
-  } catch (error: any) {
-    console.error('Error getting AI suggestions:', error);
-    if (error.message.includes('not found') || error.message.includes('access denied')) {
-      return res.status(404).json({ error: 'Plan not found' });
+      const analysis = await conflictResolutionService.analyzeConflicts(id, req.userId);
+      res.json(analysis);
+    } catch (error: any) {
+      console.error('Error getting AI suggestions:', error);
+      if (error.message.includes('not found') || error.message.includes('access denied')) {
+        return res.status(404).json({ error: 'Plan not found' });
+      }
+      res.status(500).json({ error: 'Failed to get AI suggestions' });
     }
-    res.status(500).json({ error: 'Failed to get AI suggestions' });
   }
-});
+);
 
 /**
  * POST /api/scheduling/plans/:id/invitees - Add an invitee to a plan
@@ -279,7 +282,9 @@ router.put('/plans/:id/invitees/:contactId', async (req: Request, res: Response)
     }
 
     if (!attendanceType || !['must_attend', 'nice_to_have'].includes(attendanceType)) {
-      return res.status(400).json({ error: 'Valid attendanceType is required (must_attend or nice_to_have)' });
+      return res
+        .status(400)
+        .json({ error: 'Valid attendanceType is required (must_attend or nice_to_have)' });
     }
 
     await schedulingService.updateInviteeAttendance(id, userId, contactId, attendanceType);
@@ -314,16 +319,18 @@ router.post('/plans/:id/reminders', async (req: Request, res: Response) => {
       success: true,
       remindersSent: result.remindersSent,
       pendingInvitees: result.pendingInvitees,
-      message: `Reminders sent to ${result.remindersSent} invitee${result.remindersSent !== 1 ? 's' : ''}`
+      message: `Reminders sent to ${result.remindersSent} invitee${result.remindersSent !== 1 ? 's' : ''}`,
     });
   } catch (error: any) {
     console.error('Error sending reminders:', error);
     if (error.message.includes('not found')) {
       return res.status(404).json({ error: error.message });
     }
-    if (error.message.includes('Please wait') || 
-        error.message.includes('All invitees') || 
-        error.message.includes('Reminders can only')) {
+    if (
+      error.message.includes('Please wait') ||
+      error.message.includes('All invitees') ||
+      error.message.includes('Reminders can only')
+    ) {
       return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: 'Failed to send reminders' });
@@ -408,10 +415,10 @@ router.post('/plans/:id/unarchive', async (req: Request, res: Response) => {
 router.post('/auto-archive', async (req: Request, res: Response) => {
   try {
     const archivedCount = await schedulingService.autoArchiveOldPlans();
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       archivedCount,
-      message: `${archivedCount} plan${archivedCount !== 1 ? 's' : ''} archived`
+      message: `${archivedCount} plan${archivedCount !== 1 ? 's' : ''} archived`,
     });
   } catch (error) {
     console.error('Error auto-archiving plans:', error);

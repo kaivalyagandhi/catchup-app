@@ -172,7 +172,10 @@ export async function getAvailableSlots(
  * Generate potential time slots during reasonable hours
  * (9 AM - 9 PM by default)
  */
-function generatePotentialSlots(dateRange: { start: Date; end: Date }, timezone: string = 'UTC'): TimeSlot[] {
+function generatePotentialSlots(
+  dateRange: { start: Date; end: Date },
+  timezone: string = 'UTC'
+): TimeSlot[] {
   const slots: TimeSlot[] = [];
   const slotDuration = 60; // 1 hour slots
   const startHour = 9; // 9 AM

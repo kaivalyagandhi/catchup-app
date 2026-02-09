@@ -1,9 +1,9 @@
 /**
  * AI Batch Suggestions API Routes
- * 
+ *
  * Provides endpoints for batch contact suggestions grouped by relationship signals.
  * Used during onboarding to help users quickly categorize contacts into circles.
- * 
+ *
  * Requirements: 6.1, 6.2, 17.2, 17.5
  */
 
@@ -57,10 +57,10 @@ interface ScoredContact extends Contact {
 
 /**
  * GET /api/ai/batch-suggestions
- * 
+ *
  * Returns contacts grouped by relationship signal strength for batch assignment.
  * Groups contacts into high/medium/low signal batches with suggested circles.
- * 
+ *
  * Requirements:
  * - 6.1: Group contacts by signal strength
  * - 6.2: Create batches based on combined signals
@@ -78,7 +78,7 @@ router.get(
 
     // 1. Fetch all uncategorized contacts (no circle assigned)
     const allContacts = await contactRepository.findAll(userId);
-    const uncategorizedContacts = allContacts.filter(contact => !contact.dunbarCircle);
+    const uncategorizedContacts = allContacts.filter((contact) => !contact.dunbarCircle);
 
     if (uncategorizedContacts.length === 0) {
       res.json({
@@ -100,9 +100,9 @@ router.get(
       uncategorizedContacts.map(async (contact) => {
         // Calculate calendar event count
         const calendarEventCount = contact.email
-          ? calendarEvents.filter(event =>
-              event.attendees?.some(attendee =>
-                attendee.email?.toLowerCase() === contact.email?.toLowerCase()
+          ? calendarEvents.filter((event) =>
+              event.attendees?.some(
+                (attendee) => attendee.email?.toLowerCase() === contact.email?.toLowerCase()
               )
             ).length
           : 0;
@@ -111,7 +111,7 @@ router.get(
         const metadataScore = calculateMetadataRichnessScore(contact);
 
         // Calculate overall score for sorting
-        const overallScore = (calendarEventCount * 10) + metadataScore;
+        const overallScore = calendarEventCount * 10 + metadataScore;
 
         return {
           ...contact,
@@ -129,20 +129,19 @@ router.get(
     // - Low signal (Casual Network): Everything else (0-1 shared calendar events OR metadata richness score < 20)
 
     const highSignalContacts = scoredContacts.filter(
-      contact => contact.calendarEventCount >= 5 || contact.metadataScore >= 40
+      (contact) => contact.calendarEventCount >= 5 || contact.metadataScore >= 40
     );
 
     const mediumSignalContacts = scoredContacts.filter(
-      contact =>
-        !highSignalContacts.includes(contact) && (
-          (contact.calendarEventCount >= 2 && contact.calendarEventCount <= 4) ||
-          (contact.metadataScore >= 20 && contact.metadataScore < 40)
-        )
+      (contact) =>
+        !highSignalContacts.includes(contact) &&
+        ((contact.calendarEventCount >= 2 && contact.calendarEventCount <= 4) ||
+          (contact.metadataScore >= 20 && contact.metadataScore < 40))
     );
 
     // Low signal: everyone not in high or medium
     const lowSignalContacts = scoredContacts.filter(
-      contact => !highSignalContacts.includes(contact) && !mediumSignalContacts.includes(contact)
+      (contact) => !highSignalContacts.includes(contact) && !mediumSignalContacts.includes(contact)
     );
 
     // 5. Create batches with suggested circles
@@ -150,51 +149,67 @@ router.get(
 
     // High signal batch → Close Friends
     if (highSignalContacts.length > 0) {
-      const avgScore = highSignalContacts.reduce((sum, c) => sum + c.overallScore, 0) / highSignalContacts.length;
-      const hasCalendarSignal = highSignalContacts.some(c => c.calendarEventCount >= 5);
-      const hasMetadataSignal = highSignalContacts.some(c => c.metadataScore >= 40);
+      const avgScore =
+        highSignalContacts.reduce((sum, c) => sum + c.overallScore, 0) / highSignalContacts.length;
+      const hasCalendarSignal = highSignalContacts.some((c) => c.calendarEventCount >= 5);
+      const hasMetadataSignal = highSignalContacts.some((c) => c.metadataScore >= 40);
 
       batches.push({
         id: 'high-signal',
         name: 'Frequent Calendar Overlap',
-        description: hasCalendarSignal && hasMetadataSignal
-          ? `${highSignalContacts.length} contacts with frequent calendar events and rich contact information`
-          : hasCalendarSignal
-          ? `${highSignalContacts.length} contacts with frequent calendar events`
-          : `${highSignalContacts.length} contacts with detailed contact information`,
+        description:
+          hasCalendarSignal && hasMetadataSignal
+            ? `${highSignalContacts.length} contacts with frequent calendar events and rich contact information`
+            : hasCalendarSignal
+              ? `${highSignalContacts.length} contacts with frequent calendar events`
+              : `${highSignalContacts.length} contacts with detailed contact information`,
         suggestedCircle: 'close',
         contacts: highSignalContacts.sort((a, b) => b.overallScore - a.overallScore),
         signalStrength: 'high',
         averageScore: avgScore,
-        signalType: hasCalendarSignal && hasMetadataSignal ? 'mixed' : hasCalendarSignal ? 'calendar' : 'metadata',
+        signalType:
+          hasCalendarSignal && hasMetadataSignal
+            ? 'mixed'
+            : hasCalendarSignal
+              ? 'calendar'
+              : 'metadata',
       });
     }
 
     // Medium signal batch → Active Friends
     if (mediumSignalContacts.length > 0) {
-      const avgScore = mediumSignalContacts.reduce((sum, c) => sum + c.overallScore, 0) / mediumSignalContacts.length;
-      const hasCalendarSignal = mediumSignalContacts.some(c => c.calendarEventCount >= 2);
-      const hasMetadataSignal = mediumSignalContacts.some(c => c.metadataScore >= 20);
+      const avgScore =
+        mediumSignalContacts.reduce((sum, c) => sum + c.overallScore, 0) /
+        mediumSignalContacts.length;
+      const hasCalendarSignal = mediumSignalContacts.some((c) => c.calendarEventCount >= 2);
+      const hasMetadataSignal = mediumSignalContacts.some((c) => c.metadataScore >= 20);
 
       batches.push({
         id: 'medium-signal',
         name: 'Regular Contact',
-        description: hasCalendarSignal && hasMetadataSignal
-          ? `${mediumSignalContacts.length} contacts with some calendar events and contact details`
-          : hasCalendarSignal
-          ? `${mediumSignalContacts.length} contacts with some calendar events`
-          : `${mediumSignalContacts.length} contacts with some contact details`,
+        description:
+          hasCalendarSignal && hasMetadataSignal
+            ? `${mediumSignalContacts.length} contacts with some calendar events and contact details`
+            : hasCalendarSignal
+              ? `${mediumSignalContacts.length} contacts with some calendar events`
+              : `${mediumSignalContacts.length} contacts with some contact details`,
         suggestedCircle: 'active',
         contacts: mediumSignalContacts.sort((a, b) => b.overallScore - a.overallScore),
         signalStrength: 'medium',
         averageScore: avgScore,
-        signalType: hasCalendarSignal && hasMetadataSignal ? 'mixed' : hasCalendarSignal ? 'calendar' : 'metadata',
+        signalType:
+          hasCalendarSignal && hasMetadataSignal
+            ? 'mixed'
+            : hasCalendarSignal
+              ? 'calendar'
+              : 'metadata',
       });
     }
 
     // Low signal batch → Casual Network
     if (lowSignalContacts.length > 0) {
-      const avgScore = lowSignalContacts.reduce((sum, c) => sum + c.overallScore, 0) / lowSignalContacts.length;
+      const avgScore =
+        lowSignalContacts.reduce((sum, c) => sum + c.overallScore, 0) / lowSignalContacts.length;
 
       batches.push({
         id: 'low-signal',
@@ -222,7 +237,7 @@ router.get(
 /**
  * Calculate metadata richness score based on populated contact fields
  * Requirements: 5.4
- * 
+ *
  * Scoring:
  * - email: +5
  * - phone: +5
@@ -232,7 +247,7 @@ router.get(
  * - instagram: +5
  * - xHandle: +5
  * - otherSocialMedia: +5 per platform (max 15)
- * 
+ *
  * Normalized to 0-100 range
  */
 function calculateMetadataRichnessScore(contact: Contact): number {

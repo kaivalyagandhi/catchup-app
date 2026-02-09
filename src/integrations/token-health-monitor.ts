@@ -63,18 +63,18 @@ export class TokenHealthMonitor extends EventEmitter {
    *
    * Requirements: 1.1, 1.3, 1.4
    */
-  async checkTokenHealth(
-    userId: string,
-    integrationType: IntegrationType
-  ): Promise<TokenHealth> {
+  async checkTokenHealth(userId: string, integrationType: IntegrationType): Promise<TokenHealth> {
     // First, check if there's an existing token_health record
     // This is important because the token may have been marked as revoked or expired
     // by a previous API call failure
     const existingHealth = await this.getTokenHealth(userId, integrationType);
-    
+
     // If token is already marked as revoked or expired, return that status immediately
     // Don't recalculate based on expiry date
-    if (existingHealth && (existingHealth.status === 'revoked' || existingHealth.status === 'expired')) {
+    if (
+      existingHealth &&
+      (existingHealth.status === 'revoked' || existingHealth.status === 'expired')
+    ) {
       return existingHealth;
     }
 
@@ -82,7 +82,13 @@ export class TokenHealthMonitor extends EventEmitter {
     const token = await getToken(userId, provider);
 
     if (!token) {
-      return await this.updateTokenHealth(userId, integrationType, 'unknown', null, 'No token found');
+      return await this.updateTokenHealth(
+        userId,
+        integrationType,
+        'unknown',
+        null,
+        'No token found'
+      );
     }
 
     const now = new Date();
@@ -222,10 +228,12 @@ export class TokenHealthMonitor extends EventEmitter {
         refreshed++;
 
         // Requirement 8.5: Token refresh audit logging
-        console.log(`[TokenHealthMonitor] Successfully refreshed token for user ${userId}, integration ${integrationType}`);
+        console.log(
+          `[TokenHealthMonitor] Successfully refreshed token for user ${userId}, integration ${integrationType}`
+        );
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        
+
         // Requirement 8.4: Token refresh failure handling
         await this.updateTokenHealth(
           row.user_id,
@@ -234,11 +242,13 @@ export class TokenHealthMonitor extends EventEmitter {
           row.expiry_date,
           `Token refresh failed: ${errorMsg}`
         );
-        
+
         failed++;
 
         // Requirement 8.5: Token refresh audit logging
-        console.error(`[TokenHealthMonitor] Failed to refresh token for user ${row.user_id}, integration ${row.integration_type}: ${errorMsg}`);
+        console.error(
+          `[TokenHealthMonitor] Failed to refresh token for user ${row.user_id}, integration ${row.integration_type}: ${errorMsg}`
+        );
       }
     }
 
@@ -321,13 +331,10 @@ export class TokenHealthMonitor extends EventEmitter {
   /**
    * Clear token health records for a user
    * Used during disconnection flows
-   * 
+   *
    * Requirements: 1.1
    */
-  async clearTokenHealth(
-    userId: string,
-    integrationType: IntegrationType
-  ): Promise<void> {
+  async clearTokenHealth(userId: string, integrationType: IntegrationType): Promise<void> {
     await pool.query(
       `DELETE FROM token_health 
        WHERE user_id = $1 AND integration_type = $2`,

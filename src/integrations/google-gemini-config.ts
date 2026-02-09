@@ -100,10 +100,10 @@ export interface GeminiConfig {
  * - Context-aware entity extraction from transcripts
  * - Multi-contact disambiguation
  * - Nuanced understanding of relationships and context
- * 
+ *
  * Pricing: $0.30/1M input tokens, $2.50/1M output tokens
  * Worth the extra cost for accuracy in voice notes/edits feature.
- * 
+ *
  * Lower temperature (0.2) ensures more consistent extraction.
  */
 export const DEFAULT_GEMINI_CONFIG: Omit<GeminiConfig, 'apiKey'> = {

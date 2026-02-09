@@ -20,10 +20,7 @@ import {
 /**
  * Analyze conflicts and generate suggestions
  */
-export async function analyzeConflicts(
-  planId: string,
-  userId: string
-): Promise<ConflictAnalysis> {
+export async function analyzeConflicts(planId: string, userId: string): Promise<ConflictAnalysis> {
   const plan = await schedulingRepository.getPlanById(planId);
   if (!plan || plan.userId !== userId) {
     throw new Error('Plan not found or access denied');
@@ -69,7 +66,6 @@ export async function analyzeConflicts(
   };
 }
 
-
 /**
  * Generate AI suggestions for conflict resolution
  * Uses Gemini 2.5 Flash-Lite Preview for cost-effective suggestions
@@ -82,17 +78,17 @@ async function generateAISuggestions(
 ): Promise<ConflictSuggestion[]> {
   try {
     const genAI = getGeminiClient();
-    
+
     // Use Gemini 2.5 Flash-Lite Preview - cheapest model with good performance
     // Input: $0.10/1M tokens, Output: $0.40/1M tokens
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: process.env.GEMINI_SCHEDULING_MODEL || 'gemini-2.5-flash-lite-preview',
       generationConfig: {
         temperature: 0.3, // Low temperature for consistent suggestions
         topP: 0.8,
         topK: 40,
         maxOutputTokens: 1024,
-      }
+      },
     });
 
     // Build availability summary (limit to top 20 slots by overlap count)
@@ -122,10 +118,7 @@ async function generateAISuggestions(
 /**
  * Build the prompt for Gemini
  */
-function buildPrompt(
-  plan: CatchupPlan,
-  sortedSlots: [string, SlotOverlap][]
-): string {
+function buildPrompt(plan: CatchupPlan, sortedSlots: [string, SlotOverlap][]): string {
   const mustAttendInvitees = plan.invitees.filter((i) => i.attendanceType === 'must_attend');
   const niceToHaveInvitees = plan.invitees.filter((i) => i.attendanceType === 'nice_to_have');
 

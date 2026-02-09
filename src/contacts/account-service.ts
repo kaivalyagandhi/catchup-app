@@ -288,7 +288,12 @@ export class AccountServiceImpl implements AccountService {
         `INSERT INTO users (email, name, google_id, auth_provider, is_test_user)
          VALUES ($1, $2, $3, $4, true)
          RETURNING id, email, name, is_test_user, created_at`,
-        [email, name || null, `google_test_${Date.now()}_${Math.random().toString(36).substring(7)}`, 'google']
+        [
+          email,
+          name || null,
+          `google_test_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          'google',
+        ]
       );
 
       await client.query('COMMIT');

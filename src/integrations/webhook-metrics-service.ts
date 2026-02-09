@@ -129,10 +129,7 @@ export async function getUserWebhookMetrics(
  * @param thresholdPercent - Failure rate threshold (default: 5%)
  * @returns True if failure rate exceeds threshold
  */
-export function isFailureRateHigh(
-  metrics: WebhookMetrics,
-  thresholdPercent: number = 5
-): boolean {
+export function isFailureRateHigh(metrics: WebhookMetrics, thresholdPercent: number = 5): boolean {
   return metrics.failureRate > thresholdPercent;
 }
 

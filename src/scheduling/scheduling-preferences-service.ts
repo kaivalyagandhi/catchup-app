@@ -21,9 +21,7 @@ const MAX_FAVORITE_LOCATIONS = 10;
 /**
  * Get user scheduling preferences
  */
-export async function getPreferences(
-  userId: string
-): Promise<SchedulingPreferences | null> {
+export async function getPreferences(userId: string): Promise<SchedulingPreferences | null> {
   return preferencesRepository.getPreferences(userId);
 }
 
@@ -169,10 +167,7 @@ export async function getSuggestedTimeSlots(
     const dayOfWeek = d.getDay();
 
     // Check if this day is preferred
-    if (
-      preferences.preferredDays.length === 0 ||
-      preferences.preferredDays.includes(dayOfWeek)
-    ) {
+    if (preferences.preferredDays.length === 0 || preferences.preferredDays.includes(dayOfWeek)) {
       // Generate slots for preferred time ranges
       for (const range of preferences.preferredTimeRanges) {
         const slots = generateSlotsForRange(d, range);
@@ -216,10 +211,7 @@ function generateSlotsForRange(date: Date, range: TimeRange): string[] {
   let currentHour = startHour;
   let currentMin = startMin;
 
-  while (
-    currentHour < endHour ||
-    (currentHour === endHour && currentMin < endMin)
-  ) {
+  while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
     const timeStr = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
     slots.push(`${dateStr}_${timeStr}`);
 

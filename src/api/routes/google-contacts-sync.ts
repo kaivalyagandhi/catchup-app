@@ -284,21 +284,18 @@ router.get(
  * Get all reviewed group mappings (accepted and rejected)
  * Requirements: Groups & Preferences UI Improvements - 1.1
  */
-router.get(
-  '/reviewed-mappings',
-  authenticate,
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      if (!req.userId) {
-        res.status(401).json({ error: 'Not authenticated' });
-        return;
-      }
+router.get('/reviewed-mappings', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
 
-      const pool = await import('../../db/connection').then((m) => m.default);
+    const pool = await import('../../db/connection').then((m) => m.default);
 
-      // Query reviewed mappings (approved or rejected)
-      const result = await pool.query(
-        `SELECT 
+    // Query reviewed mappings (approved or rejected)
+    const result = await pool.query(
+      `SELECT 
           gcg.id,
           gcg.google_resource_name as google_group_id,
           gcg.google_name as google_group_name,
@@ -312,20 +309,19 @@ router.get(
         WHERE gcg.user_id = $1
           AND gcg.mapping_status IN ('approved', 'rejected')
         ORDER BY gcg.reviewed_at DESC`,
-        [req.userId]
-      );
+      [req.userId]
+    );
 
-      res.json({ mappings: result.rows });
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error('Error getting reviewed mappings:', errorMsg);
-      res.status(500).json({
-        error: 'Failed to get reviewed mappings',
-        details: errorMsg,
-      });
-    }
+    res.json({ mappings: result.rows });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Error getting reviewed mappings:', errorMsg);
+    res.status(500).json({
+      error: 'Failed to get reviewed mappings',
+      details: errorMsg,
+    });
   }
-);
+});
 
 /**
  * GET /api/contacts/groups/mappings/pending
@@ -390,52 +386,48 @@ router.get('/groups/mappings', authenticate, async (req: AuthenticatedRequest, r
  * Accept a mapping
  * Requirements: 5.2, 5.3, 5.4
  */
-router.post(
-  '/accept-mapping',
-  authenticate,
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      if (!req.userId) {
-        res.status(401).json({ error: 'Not authenticated' });
-        return;
-      }
-
-      const { mappingId, googleGroupId, catchupGroupId, excludedMembers = [] } = req.body;
-
-      if (!mappingId && !googleGroupId) {
-        res.status(400).json({ error: 'mappingId or googleGroupId is required' });
-        return;
-      }
-
-      const { groupSyncService } = await import('../../integrations/group-sync-service');
-
-      // Use mappingId if provided, otherwise find by googleGroupId
-      const targetMappingId = mappingId || googleGroupId;
-
-      // Approve mapping and store excluded members
-      await groupSyncService.approveMappingSuggestion(req.userId, targetMappingId, excludedMembers);
-
-      // Sync members for this specific mapping only, excluding the ones user removed
-      const membershipsUpdated = await groupSyncService.syncMembersForMapping(
-        req.userId,
-        targetMappingId,
-        excludedMembers
-      );
-
-      res.json({
-        message: 'Group mapping accepted successfully',
-        membershipsUpdated,
-      });
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error('Error accepting mapping:', errorMsg);
-      res.status(500).json({
-        error: 'Failed to accept mapping',
-        details: errorMsg,
-      });
+router.post('/accept-mapping', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
     }
+
+    const { mappingId, googleGroupId, catchupGroupId, excludedMembers = [] } = req.body;
+
+    if (!mappingId && !googleGroupId) {
+      res.status(400).json({ error: 'mappingId or googleGroupId is required' });
+      return;
+    }
+
+    const { groupSyncService } = await import('../../integrations/group-sync-service');
+
+    // Use mappingId if provided, otherwise find by googleGroupId
+    const targetMappingId = mappingId || googleGroupId;
+
+    // Approve mapping and store excluded members
+    await groupSyncService.approveMappingSuggestion(req.userId, targetMappingId, excludedMembers);
+
+    // Sync members for this specific mapping only, excluding the ones user removed
+    const membershipsUpdated = await groupSyncService.syncMembersForMapping(
+      req.userId,
+      targetMappingId,
+      excludedMembers
+    );
+
+    res.json({
+      message: 'Group mapping accepted successfully',
+      membershipsUpdated,
+    });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Error accepting mapping:', errorMsg);
+    res.status(500).json({
+      error: 'Failed to accept mapping',
+      details: errorMsg,
+    });
   }
-);
+});
 
 /**
  * POST /api/contacts/groups/mappings/:id/approve
@@ -488,43 +480,39 @@ router.post(
  * Reject a mapping
  * Requirements: 5.2, 5.3, 5.4
  */
-router.post(
-  '/reject-mapping',
-  authenticate,
-  async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      if (!req.userId) {
-        res.status(401).json({ error: 'Not authenticated' });
-        return;
-      }
-
-      const { mappingId, googleGroupId } = req.body;
-
-      if (!mappingId && !googleGroupId) {
-        res.status(400).json({ error: 'mappingId or googleGroupId is required' });
-        return;
-      }
-
-      const { groupSyncService } = await import('../../integrations/group-sync-service');
-      
-      // Use mappingId if provided, otherwise use googleGroupId
-      const targetMappingId = mappingId || googleGroupId;
-      
-      await groupSyncService.rejectMappingSuggestion(req.userId, targetMappingId);
-
-      res.json({
-        message: 'Group mapping rejected successfully',
-      });
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error('Error rejecting mapping:', errorMsg);
-      res.status(500).json({
-        error: 'Failed to reject mapping',
-        details: errorMsg,
-      });
+router.post('/reject-mapping', authenticate, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
     }
+
+    const { mappingId, googleGroupId } = req.body;
+
+    if (!mappingId && !googleGroupId) {
+      res.status(400).json({ error: 'mappingId or googleGroupId is required' });
+      return;
+    }
+
+    const { groupSyncService } = await import('../../integrations/group-sync-service');
+
+    // Use mappingId if provided, otherwise use googleGroupId
+    const targetMappingId = mappingId || googleGroupId;
+
+    await groupSyncService.rejectMappingSuggestion(req.userId, targetMappingId);
+
+    res.json({
+      message: 'Group mapping rejected successfully',
+    });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Error rejecting mapping:', errorMsg);
+    res.status(500).json({
+      error: 'Failed to reject mapping',
+      details: errorMsg,
+    });
   }
-);
+});
 
 /**
  * POST /api/contacts/groups/mappings/:id/reject
@@ -679,10 +667,12 @@ router.get('/health', authenticate, async (req: AuthenticatedRequest, res: Respo
       return;
     }
 
-    const { GracefulDegradationService } = await import('../../integrations/graceful-degradation-service');
+    const { GracefulDegradationService } = await import(
+      '../../integrations/graceful-degradation-service'
+    );
     const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
     const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
-    
+
     const circuitBreakerManager = CircuitBreakerManager.getInstance();
     const tokenHealthMonitor = TokenHealthMonitor.getInstance();
     const gracefulDegradationService = new GracefulDegradationService(
@@ -711,37 +701,43 @@ router.get('/health', authenticate, async (req: AuthenticatedRequest, res: Respo
  * Get comprehensive sync health for both contacts and calendar
  * Requirements: 9.1, 9.6 - Graceful degradation
  */
-router.get('/comprehensive-health', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    if (!req.userId) {
-      res.status(401).json({ error: 'Not authenticated' });
-      return;
+router.get(
+  '/comprehensive-health',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.userId) {
+        res.status(401).json({ error: 'Not authenticated' });
+        return;
+      }
+
+      const { GracefulDegradationService } = await import(
+        '../../integrations/graceful-degradation-service'
+      );
+      const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
+      const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
+
+      const circuitBreakerManager = CircuitBreakerManager.getInstance();
+      const tokenHealthMonitor = TokenHealthMonitor.getInstance();
+      const gracefulDegradationService = new GracefulDegradationService(
+        circuitBreakerManager,
+        tokenHealthMonitor
+      );
+
+      const comprehensiveHealth = await gracefulDegradationService.getComprehensiveSyncHealth(
+        req.userId
+      );
+
+      res.json(comprehensiveHealth);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('Error getting comprehensive sync health:', errorMsg);
+      res.status(500).json({
+        error: 'Failed to get comprehensive sync health',
+        details: errorMsg,
+      });
     }
-
-    const { GracefulDegradationService } = await import('../../integrations/graceful-degradation-service');
-    const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
-    const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
-    
-    const circuitBreakerManager = CircuitBreakerManager.getInstance();
-    const tokenHealthMonitor = TokenHealthMonitor.getInstance();
-    const gracefulDegradationService = new GracefulDegradationService(
-      circuitBreakerManager,
-      tokenHealthMonitor
-    );
-
-    const comprehensiveHealth = await gracefulDegradationService.getComprehensiveSyncHealth(
-      req.userId
-    );
-
-    res.json(comprehensiveHealth);
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error('Error getting comprehensive sync health:', errorMsg);
-    res.status(500).json({
-      error: 'Failed to get comprehensive sync health',
-      details: errorMsg,
-    });
   }
-});
+);
 
 export default router;

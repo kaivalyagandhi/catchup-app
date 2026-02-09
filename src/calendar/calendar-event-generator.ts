@@ -63,7 +63,12 @@ export class CalendarEventGenerator {
 
         // Generate slots for each time of day
         for (const timeOfDay of timesOfDay) {
-          const slot = await this.createSlotForTimeOfDay(userId, currentDate, timeOfDay, slotDuration);
+          const slot = await this.createSlotForTimeOfDay(
+            userId,
+            currentDate,
+            timeOfDay,
+            slotDuration
+          );
 
           // Insert into database
           const result = await client.query<{

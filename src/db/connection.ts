@@ -9,7 +9,7 @@ const isCloudSqlSocket = (process.env.DATABASE_HOST || '').startsWith('/cloudsql
 
 const poolConfig: PoolConfig = {
   // For Cloud SQL Unix socket, use 'host' for the socket path
-  host: isCloudSqlSocket ? process.env.DATABASE_HOST : (process.env.DATABASE_HOST || 'localhost'),
+  host: isCloudSqlSocket ? process.env.DATABASE_HOST : process.env.DATABASE_HOST || 'localhost',
   // Port is ignored for Unix sockets but required for TCP connections
   port: isCloudSqlSocket ? undefined : parseInt(process.env.DATABASE_PORT || '5432', 10),
   database: process.env.DATABASE_NAME || 'catchup_db',

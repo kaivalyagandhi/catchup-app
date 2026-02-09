@@ -213,7 +213,7 @@ async function fetchEventsFromGoogle(
     try {
       let pageToken: string | undefined;
       let eventsProcessed = 0;
-      
+
       do {
         const response = await calendar.events.list({
           calendarId,
@@ -229,11 +229,13 @@ async function fetchEventsFromGoogle(
           allEvents.push(...response.data.items.map((event) => ({ event, calendarId })));
           eventsProcessed += response.data.items.length;
         }
-        
+
         pageToken = response.data.nextPageToken || undefined;
       } while (pageToken);
-      
-      console.log(`Fetched ${eventsProcessed} events from calendar ${calendarId} (${dateRange.start.toISOString().split('T')[0]} to ${dateRange.end.toISOString().split('T')[0]})`);
+
+      console.log(
+        `Fetched ${eventsProcessed} events from calendar ${calendarId} (${dateRange.start.toISOString().split('T')[0]} to ${dateRange.end.toISOString().split('T')[0]})`
+      );
     } catch (error) {
       console.error(`Error fetching events from calendar ${calendarId}:`, error);
       // Continue with other calendars even if one fails
@@ -253,16 +255,16 @@ async function syncEventsToCache(
   dateRange: DateRange
 ): Promise<void> {
   const BATCH_SIZE = 100; // Process events in batches of 100
-  
+
   // Fetch events from Google (already batched internally)
   const googleEvents = await fetchEventsFromGoogle(auth, calendarIds, dateRange);
-  
+
   console.log(`Processing ${googleEvents.length} events in batches of ${BATCH_SIZE}`);
 
   // Process events in batches to prevent memory issues
   for (let i = 0; i < googleEvents.length; i += BATCH_SIZE) {
     const batch = googleEvents.slice(i, i + BATCH_SIZE);
-    
+
     // Convert batch to our format
     const eventsToCache = batch
       .map(({ event, calendarId }) => {
@@ -293,7 +295,7 @@ async function syncEventsToCache(
       await calendarEventsRepository.upsertEvents(userId, eventsToCache);
       console.log(`Synced batch ${Math.floor(i / BATCH_SIZE) + 1}: ${eventsToCache.length} events`);
     }
-    
+
     // Allow garbage collection between batches
     if (global.gc) {
       global.gc();
@@ -549,13 +551,15 @@ export async function forceRefreshCalendarEvents(
     const now = new Date();
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const twoMonthsFromNow = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
-    
+
     const syncRange: DateRange = {
       start: twoWeeksAgo,
       end: twoMonthsFromNow,
     };
-    
-    console.log(`Syncing calendar events from ${syncRange.start.toISOString()} to ${syncRange.end.toISOString()}`);
+
+    console.log(
+      `Syncing calendar events from ${syncRange.start.toISOString()} to ${syncRange.end.toISOString()}`
+    );
 
     await syncEventsToCache(userId, auth, calendarIds, syncRange);
 

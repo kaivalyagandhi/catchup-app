@@ -1,6 +1,6 @@
 /**
  * Token Health Reminder Processor
- * 
+ *
  * Processes reminders for unresolved token health notifications.
  * Requirements: 4.3
  */
@@ -35,7 +35,9 @@ export async function processTokenHealthReminder(
     // Get all notifications needing reminders
     const notifications = await tokenHealthNotificationService.getNotificationsNeedingReminders();
 
-    console.log(`[TokenHealthReminder] Found ${notifications.length} notifications needing reminders`);
+    console.log(
+      `[TokenHealthReminder] Found ${notifications.length} notifications needing reminders`
+    );
 
     // Process each notification
     for (const notification of notifications) {
@@ -44,7 +46,7 @@ export async function processTokenHealthReminder(
         // For now, we just mark the reminder as sent
         console.log(
           `[TokenHealthReminder] Sending reminder for user ${notification.userId}, ` +
-          `integration ${notification.integrationType}`
+            `integration ${notification.integrationType}`
         );
 
         // Mark reminder as sent
@@ -58,7 +60,6 @@ export async function processTokenHealthReminder(
         //   subject: 'Reminder: Reconnect Your Google Account',
         //   body: notification.message + '\n\n' + notification.reAuthLink
         // });
-
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.error(
@@ -76,7 +77,7 @@ export async function processTokenHealthReminder(
 
     console.log(
       `[TokenHealthReminder] Completed: ${result.remindersSent} reminders sent, ` +
-      `${result.errors.length} errors`
+        `${result.errors.length} errors`
     );
 
     return result;

@@ -1,6 +1,6 @@
 /**
  * Analytics API Routes
- * 
+ *
  * Endpoints for tracking and retrieving analytics data
  */
 

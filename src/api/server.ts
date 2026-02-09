@@ -90,24 +90,48 @@ export function createServer(): Express {
 
   // Health check endpoint (no rate limiting)
   app.get('/health', async (_req: Request, res: Response) => {
+    const health: any = {
+      status: 'healthy',
+      timestamp: new Date(),
+      checks: {
+        database: 'unknown',
+        redis: 'unknown',
+      },
+    };
+
     try {
       // Check database connectivity
       const client = await pool.connect();
       await client.query('SELECT NOW()');
       client.release();
-
-      res.json({
-        status: 'healthy',
-        timestamp: new Date(),
-      });
+      health.checks.database = 'healthy';
     } catch (error) {
-      console.error('Health check failed:', error);
-      res.status(503).json({
-        status: 'unhealthy',
-        timestamp: new Date(),
-        error: 'Database connection failed',
-      });
+      console.error('[Health Check] Database check failed:', error);
+      health.checks.database = 'unhealthy';
+      health.status = 'unhealthy';
     }
+
+    try {
+      // Check Redis connectivity
+      const redis = (await import('../utils/cache')).default;
+      await redis.ping();
+      health.checks.redis = 'healthy';
+
+      // Log Redis info for debugging
+      const redisInfo = {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: process.env.REDIS_PORT || '6379',
+        tls: process.env.REDIS_TLS === 'true' ? 'enabled' : 'disabled',
+      };
+      health.checks.redisConfig = redisInfo;
+    } catch (error) {
+      console.error('[Health Check] Redis check failed:', error);
+      health.checks.redis = 'unhealthy';
+      health.status = 'degraded'; // Degraded instead of unhealthy since app can work without cache
+    }
+
+    const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
+    res.status(statusCode).json(health);
   });
 
   // Debug endpoint to check environment variables (development only)
@@ -191,7 +215,7 @@ export function createServer(): Express {
   // Root route - serve landing page (marketing/welcome page)
   app.get('/', (req: Request, res: Response) => {
     const landingPath = path.join(process.cwd(), 'public', 'landing.html');
-    
+
     fs.readFile(landingPath, 'utf8', (err, html) => {
       if (err) {
         console.error('Error reading landing.html:', err);
@@ -209,7 +233,7 @@ export function createServer(): Express {
   // Handle /app and /app/:page routes (SPA routing)
   const serveApp = (req: Request, res: Response) => {
     const indexPath = path.join(process.cwd(), 'public', 'index.html');
-    
+
     fs.readFile(indexPath, 'utf8', (err, html) => {
       if (err) {
         console.error('Error reading index.html:', err);
@@ -222,14 +246,17 @@ export function createServer(): Express {
       const testModeScript = `<script>window.__TEST_MODE_ENABLED__ = ${testModeEnabled};</script>`;
       const versionInfo = getVersionInfo();
       const versionScript = `<script>window.__VERSION_INFO__ = ${JSON.stringify(versionInfo)};</script>`;
-      const modifiedHtml = html.replace('<head>', `<head>\n    ${testModeScript}\n    ${versionScript}`);
+      const modifiedHtml = html.replace(
+        '<head>',
+        `<head>\n    ${testModeScript}\n    ${versionScript}`
+      );
 
       res.setHeader('Content-Type', 'text/html');
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.send(modifiedHtml);
     });
   };
-  
+
   app.get('/app', serveApp);
   app.get('/app/:page', serveApp);
 
@@ -237,7 +264,7 @@ export function createServer(): Express {
   // Serves the lightweight availability collection page for invitees
   app.get('/availability/:token', (req: Request, res: Response) => {
     const availabilityPath = path.join(process.cwd(), 'public', 'availability.html');
-    
+
     fs.readFile(availabilityPath, 'utf8', (err, html) => {
       if (err) {
         // If availability.html doesn't exist yet, serve a placeholder
@@ -274,7 +301,10 @@ export function createServer(): Express {
         const versionScript = `<script>window.__VERSION_INFO__ = ${JSON.stringify(versionInfo)};</script>`;
 
         // Insert both scripts right after the opening <head> tag
-        const modifiedHtml = html.replace('<head>', `<head>\n    ${testModeScript}\n    ${versionScript}`);
+        const modifiedHtml = html.replace(
+          '<head>',
+          `<head>\n    ${testModeScript}\n    ${versionScript}`
+        );
 
         res.setHeader('Content-Type', 'text/html');
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');

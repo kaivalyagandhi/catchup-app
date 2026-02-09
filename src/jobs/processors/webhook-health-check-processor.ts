@@ -64,9 +64,7 @@ export async function processWebhookHealthCheck(
     const activeWebhooks = await getAllActiveSubscriptions();
     result.totalWebhooks = activeWebhooks.length;
 
-    console.log(
-      `[WebhookHealthCheckProcessor] Found ${result.totalWebhooks} active webhooks`
-    );
+    console.log(`[WebhookHealthCheckProcessor] Found ${result.totalWebhooks} active webhooks`);
 
     // Check for webhooks with no recent notifications (48+ hours)
     const staleWebhooks = await getWebhooksWithNoRecentNotifications(48);
@@ -79,7 +77,7 @@ export async function processWebhookHealthCheck(
 
       // Alert and attempt re-registration for stale webhooks
       for (const webhook of staleWebhooks) {
-        const hours = webhook.hoursSinceLastNotification 
+        const hours = webhook.hoursSinceLastNotification
           ? Number(webhook.hoursSinceLastNotification).toFixed(1)
           : 'unknown';
         const alertMessage = `Webhook for user ${webhook.userId} has not received notifications in ${hours} hours`;
@@ -113,11 +111,7 @@ export async function processWebhookHealthCheck(
           await calendarWebhookManager.stopWebhook(webhook.userId);
 
           // Register new webhook
-          await calendarWebhookManager.registerWebhook(
-            webhook.userId,
-            access_token,
-            refresh_token
-          );
+          await calendarWebhookManager.registerWebhook(webhook.userId, access_token, refresh_token);
 
           result.reregistrationSuccesses++;
           console.log(

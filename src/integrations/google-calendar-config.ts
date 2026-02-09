@@ -42,8 +42,11 @@ export function getAuthorizationUrl(state?: string): string {
     state: state,
   });
 
-  console.log('Generated auth URL with redirect_uri:', process.env.GOOGLE_CALENDAR_REDIRECT_URI || process.env.GOOGLE_REDIRECT_URI);
-  
+  console.log(
+    'Generated auth URL with redirect_uri:',
+    process.env.GOOGLE_CALENDAR_REDIRECT_URI || process.env.GOOGLE_REDIRECT_URI
+  );
+
   return authUrl;
 }
 

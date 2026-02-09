@@ -4,9 +4,7 @@ import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { frequencyService } from '../../contacts/frequency-service';
 import { FrequencyOption } from '../../types';
 import { asyncHandler, validateRequest, requestTimeout } from '../middleware/error-handler';
-import {
-  validateCircleAssignment,
-} from '../../contacts/onboarding-validation';
+import { validateCircleAssignment } from '../../contacts/onboarding-validation';
 
 const VALID_CIRCLES = ['inner', 'close', 'active', 'casual'];
 
@@ -67,10 +65,10 @@ router.post(
 /**
  * POST /api/circles/batch-accept
  * Accept a batch of contacts and assign them to a circle atomically
- * 
+ *
  * This endpoint is used during onboarding to accept batch suggestions.
  * All assignments succeed or all fail (atomic transaction).
- * 
+ *
  * Requirements: 17.3, 17.6, 17.7
  */
 router.post(
@@ -105,9 +103,9 @@ router.post(
 
     // Use existing batchAssign service with atomic transaction
     const circleService = new CircleAssignmentServiceImpl();
-    
+
     // Convert to assignments format
-    const assignments = contactIds.map(contactId => ({
+    const assignments = contactIds.map((contactId) => ({
       contactId,
       circle,
     }));
@@ -127,7 +125,7 @@ router.post(
 /**
  * POST /api/circles/batch-remove
  * Remove circle assignments from multiple contacts (for undo functionality)
- * 
+ *
  * Requirements: 8.4 (Undo capability)
  */
 router.post(
@@ -143,9 +141,9 @@ router.post(
     }
 
     const circleService = new CircleAssignmentServiceImpl();
-    
+
     // Remove circle assignments by setting to null
-    const assignments = contactIds.map(contactId => ({
+    const assignments = contactIds.map((contactId) => ({
       contactId,
       circle: null as any, // Remove circle assignment
     }));

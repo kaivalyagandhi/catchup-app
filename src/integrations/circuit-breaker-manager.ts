@@ -24,9 +24,9 @@ export interface CircuitBreakerState {
 }
 
 export interface CircuitBreakerConfig {
-  failureThreshold: number;      // 3 failures to open
-  openDuration: number;           // 1 hour in ms
-  halfOpenMaxAttempts: number;    // 1 attempt in half-open
+  failureThreshold: number; // 3 failures to open
+  openDuration: number; // 1 hour in ms
+  halfOpenMaxAttempts: number; // 1 attempt in half-open
 }
 
 interface CircuitBreakerRow {
@@ -74,10 +74,7 @@ export class CircuitBreakerManager {
    *
    * Requirements: 2.2, 2.3
    */
-  async canExecuteSync(
-    userId: string,
-    integrationType: IntegrationType
-  ): Promise<boolean> {
+  async canExecuteSync(userId: string, integrationType: IntegrationType): Promise<boolean> {
     const state = await this.getState(userId, integrationType);
 
     // If no state exists, initialize as closed and allow sync
@@ -119,10 +116,7 @@ export class CircuitBreakerManager {
    *
    * Requirements: 2.4, 2.5
    */
-  async recordSuccess(
-    userId: string,
-    integrationType: IntegrationType
-  ): Promise<void> {
+  async recordSuccess(userId: string, integrationType: IntegrationType): Promise<void> {
     const state = await this.getState(userId, integrationType);
 
     if (!state) {
@@ -179,7 +173,7 @@ export class CircuitBreakerManager {
     // Requirement 2.5: Half-open failure transitions back to open
     if (state.state === 'half_open') {
       const nextRetryAt = new Date(now.getTime() + this.config.openDuration);
-      
+
       await pool.query(
         `UPDATE circuit_breaker_state
          SET state = 'open',
@@ -208,7 +202,7 @@ export class CircuitBreakerManager {
     // After exactly 3 failures, transition to open
     if (state.state === 'closed' && newFailureCount >= this.config.failureThreshold) {
       const nextRetryAt = new Date(now.getTime() + this.config.openDuration);
-      
+
       await pool.query(
         `UPDATE circuit_breaker_state
          SET state = 'open',
@@ -273,10 +267,7 @@ export class CircuitBreakerManager {
   /**
    * Manually reset circuit breaker (admin action or user re-auth)
    */
-  async reset(
-    userId: string,
-    integrationType: IntegrationType
-  ): Promise<void> {
+  async reset(userId: string, integrationType: IntegrationType): Promise<void> {
     const state = await this.getState(userId, integrationType);
     const oldState = state?.state || 'unknown';
 
@@ -304,10 +295,7 @@ export class CircuitBreakerManager {
   /**
    * Initialize circuit breaker state as closed
    */
-  private async initializeState(
-    userId: string,
-    integrationType: IntegrationType
-  ): Promise<void> {
+  private async initializeState(userId: string, integrationType: IntegrationType): Promise<void> {
     try {
       await pool.query(
         `INSERT INTO circuit_breaker_state (user_id, integration_type, state, failure_count)
@@ -366,7 +354,7 @@ export class CircuitBreakerManager {
   ): void {
     console.log(
       `[CircuitBreaker] State transition for user ${userId}, integration ${integrationType}: ` +
-      `${oldState} → ${newState}. Reason: ${reason}. Timestamp: ${new Date().toISOString()}`
+        `${oldState} → ${newState}. Reason: ${reason}. Timestamp: ${new Date().toISOString()}`
     );
   }
 

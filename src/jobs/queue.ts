@@ -14,8 +14,37 @@ const redisConfig: RedisOptions = {
   enableReadyCheck: false,
 };
 
+// Log Redis configuration on startup (without password)
+console.log('[Redis Queue] Connecting to Redis:', {
+  host: redisConfig.host,
+  port: redisConfig.port,
+  tls: redisConfig.tls ? 'enabled' : 'disabled',
+  passwordSet: !!redisConfig.password,
+});
+
 // Create Redis clients for Bull
-const createRedisClient = () => new Redis(redisConfig);
+const createRedisClient = () => {
+  const client = new Redis(redisConfig);
+
+  // Log connection events
+  client.on('connect', () => {
+    console.log('[Redis Queue] Connected to Redis successfully');
+  });
+
+  client.on('ready', () => {
+    console.log('[Redis Queue] Redis client ready');
+  });
+
+  client.on('error', (error) => {
+    console.error('[Redis Queue] Redis connection error:', error.message);
+  });
+
+  client.on('close', () => {
+    console.log('[Redis Queue] Redis connection closed');
+  });
+
+  return client;
+};
 
 // Job queue names
 export const QUEUE_NAMES = {
@@ -298,7 +327,7 @@ tokenRefreshQueue.on('failed', (job, error) => {
 
 tokenRefreshQueue.on('completed', (job, result) => {
   console.log(`Token refresh job ${job.id} completed:`, result);
-  
+
   // Alert on high failure rate
   if (result.highFailureRate) {
     console.error(`ALERT: High token refresh failure rate detected!`);
@@ -316,7 +345,7 @@ webhookRenewalQueue.on('failed', (job, error) => {
 
 webhookRenewalQueue.on('completed', (job, result) => {
   console.log(`Webhook renewal job ${job.id} completed:`, result);
-  
+
   // Alert on high failure rate
   if (result.highFailureRate) {
     console.error(`ALERT: High webhook renewal failure rate detected!`);
@@ -360,7 +389,7 @@ webhookHealthCheckQueue.on('failed', (job, error) => {
 
 webhookHealthCheckQueue.on('completed', (job, result) => {
   console.log(`Webhook health check job ${job.id} completed:`, result);
-  
+
   // Alert on high failure rate or many stale webhooks
   if (result.alerts && result.alerts.length > 0) {
     console.warn(`WEBHOOK HEALTH ALERTS: ${result.alerts.length} issues detected`);

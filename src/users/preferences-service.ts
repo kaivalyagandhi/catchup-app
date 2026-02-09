@@ -33,16 +33,13 @@ export interface IUserPreferencesService {
 export class UserPreferencesService implements IUserPreferencesService {
   /**
    * Get timezone preference for a user
-   * 
+   *
    * @param userId - User ID
    * @returns IANA timezone identifier (defaults to 'UTC' if not set)
    */
   async getTimezone(userId: string): Promise<string> {
     try {
-      const result = await pool.query(
-        'SELECT timezone FROM users WHERE id = $1',
-        [userId]
-      );
+      const result = await pool.query('SELECT timezone FROM users WHERE id = $1', [userId]);
 
       if (result.rows.length === 0) {
         throw new Error(`User not found: ${userId}`);
@@ -57,7 +54,7 @@ export class UserPreferencesService implements IUserPreferencesService {
 
   /**
    * Set timezone preference for a user
-   * 
+   *
    * @param userId - User ID
    * @param timezone - IANA timezone identifier
    * @throws Error if timezone is invalid
@@ -85,7 +82,7 @@ export class UserPreferencesService implements IUserPreferencesService {
 
   /**
    * Get all preferences for a user
-   * 
+   *
    * @param userId - User ID
    * @returns User preferences or null if user not found
    */
@@ -109,7 +106,7 @@ export class UserPreferencesService implements IUserPreferencesService {
 
   /**
    * Update user preferences (partial update)
-   * 
+   *
    * @param userId - User ID
    * @param updates - Partial preferences to update
    * @returns Updated preferences
@@ -162,7 +159,7 @@ export class UserPreferencesService implements IUserPreferencesService {
 
   /**
    * Validate if a string is a valid IANA timezone identifier
-   * 
+   *
    * @param timezone - Timezone string to validate
    * @returns true if valid, false otherwise
    */
@@ -173,7 +170,7 @@ export class UserPreferencesService implements IUserPreferencesService {
   /**
    * Auto-detect timezone from browser (to be called from frontend)
    * This is a helper method that returns the browser's detected timezone
-   * 
+   *
    * @returns Browser's timezone identifier
    */
   static detectBrowserTimezone(): string {

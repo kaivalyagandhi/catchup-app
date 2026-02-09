@@ -1,13 +1,13 @@
 /**
  * Onboarding Analytics Tracker
- * 
+ *
  * Tracks key onboarding events for product insights:
  * - Onboarding start
  * - Step completions
  * - Dismissals and resumes
  * - Completion rate
  * - Time to complete
- * 
+ *
  * Requirements: All requirements (product insights)
  */
 
@@ -97,10 +97,13 @@ export class OnboardingAnalytics {
    * Track step started
    */
   trackStepStarted(userId: string, step: number): void {
-    const eventType = step === 1 ? OnboardingEventType.STEP_1_STARTED :
-                      step === 2 ? OnboardingEventType.STEP_2_STARTED :
-                      OnboardingEventType.STEP_3_STARTED;
-    
+    const eventType =
+      step === 1
+        ? OnboardingEventType.STEP_1_STARTED
+        : step === 2
+          ? OnboardingEventType.STEP_2_STARTED
+          : OnboardingEventType.STEP_3_STARTED;
+
     this.track(userId, eventType, {
       step,
       timestamp: new Date().toISOString(),
@@ -111,10 +114,13 @@ export class OnboardingAnalytics {
    * Track step completed
    */
   trackStepCompleted(userId: string, step: number, metadata?: Record<string, any>): void {
-    const eventType = step === 1 ? OnboardingEventType.STEP_1_COMPLETED :
-                      step === 2 ? OnboardingEventType.STEP_2_COMPLETED :
-                      OnboardingEventType.STEP_3_COMPLETED;
-    
+    const eventType =
+      step === 1
+        ? OnboardingEventType.STEP_1_COMPLETED
+        : step === 2
+          ? OnboardingEventType.STEP_2_COMPLETED
+          : OnboardingEventType.STEP_3_COMPLETED;
+
     this.track(userId, eventType, {
       step,
       completedAt: new Date().toISOString(),
@@ -127,7 +133,7 @@ export class OnboardingAnalytics {
    */
   trackOnboardingCompleted(userId: string): void {
     const completionTime = new Date();
-    const timeToComplete = this.sessionStartTime 
+    const timeToComplete = this.sessionStartTime
       ? completionTime.getTime() - this.sessionStartTime.getTime()
       : null;
 
@@ -161,7 +167,12 @@ export class OnboardingAnalytics {
   /**
    * Track circle assignment
    */
-  trackCircleAssigned(userId: string, contactId: string, circle: string, wasAISuggestion: boolean): void {
+  trackCircleAssigned(
+    userId: string,
+    contactId: string,
+    circle: string,
+    wasAISuggestion: boolean
+  ): void {
     this.track(userId, OnboardingEventType.CIRCLE_ASSIGNED, {
       contactId,
       circle,
@@ -173,7 +184,12 @@ export class OnboardingAnalytics {
   /**
    * Track AI suggestion acceptance
    */
-  trackAISuggestionAccepted(userId: string, contactId: string, suggestedCircle: string, confidence: number): void {
+  trackAISuggestionAccepted(
+    userId: string,
+    contactId: string,
+    suggestedCircle: string,
+    confidence: number
+  ): void {
     this.track(userId, OnboardingEventType.AI_SUGGESTION_ACCEPTED, {
       contactId,
       suggestedCircle,
@@ -185,7 +201,12 @@ export class OnboardingAnalytics {
   /**
    * Track AI suggestion rejection
    */
-  trackAISuggestionRejected(userId: string, contactId: string, suggestedCircle: string, selectedCircle: string): void {
+  trackAISuggestionRejected(
+    userId: string,
+    contactId: string,
+    suggestedCircle: string,
+    selectedCircle: string
+  ): void {
     this.track(userId, OnboardingEventType.AI_SUGGESTION_REJECTED, {
       contactId,
       suggestedCircle,
@@ -197,7 +218,12 @@ export class OnboardingAnalytics {
   /**
    * Track group mapping acceptance
    */
-  trackGroupMappingAccepted(userId: string, mappingId: string, googleGroupId: string, targetGroupId: string): void {
+  trackGroupMappingAccepted(
+    userId: string,
+    mappingId: string,
+    googleGroupId: string,
+    targetGroupId: string
+  ): void {
     this.track(userId, OnboardingEventType.GROUP_MAPPING_ACCEPTED, {
       mappingId,
       googleGroupId,
@@ -241,7 +267,7 @@ export class OnboardingAnalytics {
    * Get all events for a user
    */
   getEvents(userId: string): OnboardingEvent[] {
-    return this.events.filter(event => event.userId === userId);
+    return this.events.filter((event) => event.userId === userId);
   }
 
   /**
@@ -255,17 +281,24 @@ export class OnboardingAnalytics {
   }> {
     // This would typically query the database
     // For now, return mock data structure
-    const started = this.events.filter(e => e.eventType === OnboardingEventType.ONBOARDING_STARTED).length;
-    const completed = this.events.filter(e => e.eventType === OnboardingEventType.ONBOARDING_COMPLETED).length;
-    
+    const started = this.events.filter(
+      (e) => e.eventType === OnboardingEventType.ONBOARDING_STARTED
+    ).length;
+    const completed = this.events.filter(
+      (e) => e.eventType === OnboardingEventType.ONBOARDING_COMPLETED
+    ).length;
+
     const completionRate = started > 0 ? (completed / started) * 100 : 0;
-    
+
     // Calculate average time to complete
-    const completionEvents = this.events.filter(e => e.eventType === OnboardingEventType.ONBOARDING_COMPLETED);
+    const completionEvents = this.events.filter(
+      (e) => e.eventType === OnboardingEventType.ONBOARDING_COMPLETED
+    );
     const totalTime = completionEvents.reduce((sum, event) => {
       return sum + (event.metadata?.timeToCompleteMinutes || 0);
     }, 0);
-    const averageTimeMinutes = completionEvents.length > 0 ? totalTime / completionEvents.length : 0;
+    const averageTimeMinutes =
+      completionEvents.length > 0 ? totalTime / completionEvents.length : 0;
 
     return {
       started,
@@ -286,16 +319,28 @@ export class OnboardingAnalytics {
     step3Started: number;
     step3Completed: number;
   }> {
-    const filterByUser = (events: OnboardingEvent[]) => 
-      userId ? events.filter(e => e.userId === userId) : events;
+    const filterByUser = (events: OnboardingEvent[]) =>
+      userId ? events.filter((e) => e.userId === userId) : events;
 
     return {
-      step1Started: filterByUser(this.events.filter(e => e.eventType === OnboardingEventType.STEP_1_STARTED)).length,
-      step1Completed: filterByUser(this.events.filter(e => e.eventType === OnboardingEventType.STEP_1_COMPLETED)).length,
-      step2Started: filterByUser(this.events.filter(e => e.eventType === OnboardingEventType.STEP_2_STARTED)).length,
-      step2Completed: filterByUser(this.events.filter(e => e.eventType === OnboardingEventType.STEP_2_COMPLETED)).length,
-      step3Started: filterByUser(this.events.filter(e => e.eventType === OnboardingEventType.STEP_3_STARTED)).length,
-      step3Completed: filterByUser(this.events.filter(e => e.eventType === OnboardingEventType.STEP_3_COMPLETED)).length,
+      step1Started: filterByUser(
+        this.events.filter((e) => e.eventType === OnboardingEventType.STEP_1_STARTED)
+      ).length,
+      step1Completed: filterByUser(
+        this.events.filter((e) => e.eventType === OnboardingEventType.STEP_1_COMPLETED)
+      ).length,
+      step2Started: filterByUser(
+        this.events.filter((e) => e.eventType === OnboardingEventType.STEP_2_STARTED)
+      ).length,
+      step2Completed: filterByUser(
+        this.events.filter((e) => e.eventType === OnboardingEventType.STEP_2_COMPLETED)
+      ).length,
+      step3Started: filterByUser(
+        this.events.filter((e) => e.eventType === OnboardingEventType.STEP_3_STARTED)
+      ).length,
+      step3Completed: filterByUser(
+        this.events.filter((e) => e.eventType === OnboardingEventType.STEP_3_COMPLETED)
+      ).length,
     };
   }
 
@@ -307,8 +352,12 @@ export class OnboardingAnalytics {
     resumed: number;
     resumeRate: number;
   }> {
-    const dismissed = this.events.filter(e => e.eventType === OnboardingEventType.ONBOARDING_DISMISSED).length;
-    const resumed = this.events.filter(e => e.eventType === OnboardingEventType.ONBOARDING_RESUMED).length;
+    const dismissed = this.events.filter(
+      (e) => e.eventType === OnboardingEventType.ONBOARDING_DISMISSED
+    ).length;
+    const resumed = this.events.filter(
+      (e) => e.eventType === OnboardingEventType.ONBOARDING_RESUMED
+    ).length;
     const resumeRate = dismissed > 0 ? (resumed / dismissed) * 100 : 0;
 
     return {
@@ -326,8 +375,12 @@ export class OnboardingAnalytics {
     rejected: number;
     acceptanceRate: number;
   }> {
-    const accepted = this.events.filter(e => e.eventType === OnboardingEventType.AI_SUGGESTION_ACCEPTED).length;
-    const rejected = this.events.filter(e => e.eventType === OnboardingEventType.AI_SUGGESTION_REJECTED).length;
+    const accepted = this.events.filter(
+      (e) => e.eventType === OnboardingEventType.AI_SUGGESTION_ACCEPTED
+    ).length;
+    const rejected = this.events.filter(
+      (e) => e.eventType === OnboardingEventType.AI_SUGGESTION_REJECTED
+    ).length;
     const total = accepted + rejected;
     const acceptanceRate = total > 0 ? (accepted / total) * 100 : 0;
 

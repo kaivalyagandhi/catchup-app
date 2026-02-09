@@ -1,11 +1,11 @@
 /**
  * Graceful Degradation Service
- * 
+ *
  * Provides cached data when sync is unavailable due to:
  * - Circuit breaker being open
  * - Invalid/expired tokens
  * - Other sync failures
- * 
+ *
  * Requirements: 9.2, 9.4
  */
 
@@ -84,7 +84,7 @@ export class GracefulDegradationService {
     const lastSyncedAt = result.rows[0]?.last_synced_at || null;
 
     return {
-      data: result.rows.map(row => {
+      data: result.rows.map((row) => {
         const { last_synced_at, ...contact } = row;
         return contact;
       }),
@@ -133,7 +133,7 @@ export class GracefulDegradationService {
     const lastSyncedAt = result.rows[0]?.last_synced_at || null;
 
     return {
-      data: result.rows.map(row => {
+      data: result.rows.map((row) => {
         const { last_synced_at, ...event } = row;
         return event;
       }),

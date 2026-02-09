@@ -2,9 +2,7 @@ import { Router, Response } from 'express';
 import { PostgresOnboardingService } from '../../contacts/onboarding-service';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { asyncHandler, validateRequest, requestTimeout } from '../middleware/error-handler';
-import {
-  validateOnboardingStateComplex,
-} from '../../contacts/onboarding-validation';
+import { validateOnboardingStateComplex } from '../../contacts/onboarding-validation';
 
 const router = Router();
 

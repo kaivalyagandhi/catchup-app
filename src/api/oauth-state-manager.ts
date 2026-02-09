@@ -35,13 +35,16 @@ export class OAuthStateManager {
     this.usedStates = new Set();
     this.jwtSecret = process.env.JWT_SECRET || 'fallback-secret-for-dev';
     // Use stateless mode in production (Cloud Run) or when explicitly enabled
-    this.useStatelessMode = process.env.NODE_ENV === 'production' || process.env.STATELESS_OAUTH === 'true';
-    
+    this.useStatelessMode =
+      process.env.NODE_ENV === 'production' || process.env.STATELESS_OAUTH === 'true';
+
     if (!this.useStatelessMode) {
       this.startCleanup();
     }
-    
-    console.log(`[OAuthStateManager] Initialized in ${this.useStatelessMode ? 'stateless (JWT)' : 'stateful (in-memory)'} mode`);
+
+    console.log(
+      `[OAuthStateManager] Initialized in ${this.useStatelessMode ? 'stateless (JWT)' : 'stateful (in-memory)'} mode`
+    );
   }
 
   /**
@@ -52,11 +55,7 @@ export class OAuthStateManager {
     if (this.useStatelessMode) {
       // Generate a JWT-based state token that's self-validating
       const nonce = crypto.randomBytes(16).toString('hex');
-      const token = jwt.sign(
-        { nonce } as JWTStatePayload,
-        this.jwtSecret,
-        { expiresIn: '10m' }
-      );
+      const token = jwt.sign({ nonce } as JWTStatePayload, this.jwtSecret, { expiresIn: '10m' });
       return token;
     }
 
@@ -84,24 +83,28 @@ export class OAuthStateManager {
       try {
         // Verify the JWT signature and expiration
         const decoded = jwt.verify(state, this.jwtSecret) as JWTStatePayload;
-        
+
         // Check if this state has already been used (replay protection)
         // Use a hash of the nonce to save memory
-        const stateHash = crypto.createHash('sha256').update(decoded.nonce).digest('hex').substring(0, 16);
+        const stateHash = crypto
+          .createHash('sha256')
+          .update(decoded.nonce)
+          .digest('hex')
+          .substring(0, 16);
         if (this.usedStates.has(stateHash)) {
           console.log('[OAuthStateManager] State already used (replay attempt)');
           return false;
         }
-        
+
         // Mark as used
         this.usedStates.add(stateHash);
-        
+
         // Clean up old used states periodically (keep last 1000)
         if (this.usedStates.size > 1000) {
           const entries = Array.from(this.usedStates);
           this.usedStates = new Set(entries.slice(-500));
         }
-        
+
         return true;
       } catch (error) {
         if (error instanceof jwt.TokenExpiredError) {

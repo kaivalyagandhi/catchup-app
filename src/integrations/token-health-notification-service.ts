@@ -1,6 +1,6 @@
 /**
  * Token Health Notification Service
- * 
+ *
  * Manages notifications for OAuth token health issues.
  * Requirements: 4.1, 4.2, 4.3, 4.4, 4.6
  */
@@ -34,7 +34,7 @@ export class TokenHealthNotificationService {
    */
   private generateReAuthLink(integrationType: 'google_contacts' | 'google_calendar'): string {
     const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
-    
+
     if (integrationType === 'google_contacts') {
       return `${baseUrl}/api/contacts/google/authorize`;
     } else {
@@ -46,14 +46,18 @@ export class TokenHealthNotificationService {
    * Get notification template for token invalid
    * Requirements: 4.1, 4.2, 4.6
    */
-  private getTokenInvalidTemplate(integrationType: 'google_contacts' | 'google_calendar'): NotificationTemplate {
-    const integrationName = integrationType === 'google_contacts' ? 'Google Contacts' : 'Google Calendar';
-    
+  private getTokenInvalidTemplate(
+    integrationType: 'google_contacts' | 'google_calendar'
+  ): NotificationTemplate {
+    const integrationName =
+      integrationType === 'google_contacts' ? 'Google Contacts' : 'Google Calendar';
+
     return {
       subject: `${integrationName} Connection Needs Attention`,
-      message: `Your ${integrationName} connection has been disconnected and needs to be reconnected. ` +
-               `This may be because you revoked access or your authorization expired. ` +
-               `Please reconnect to continue syncing your ${integrationType === 'google_contacts' ? 'contacts' : 'calendar'}.`
+      message:
+        `Your ${integrationName} connection has been disconnected and needs to be reconnected. ` +
+        `This may be because you revoked access or your authorization expired. ` +
+        `Please reconnect to continue syncing your ${integrationType === 'google_contacts' ? 'contacts' : 'calendar'}.`,
     };
   }
 
@@ -61,13 +65,17 @@ export class TokenHealthNotificationService {
    * Get notification template for token expiring soon
    * Requirements: 4.1, 4.2, 4.6
    */
-  private getTokenExpiringSoonTemplate(integrationType: 'google_contacts' | 'google_calendar'): NotificationTemplate {
-    const integrationName = integrationType === 'google_contacts' ? 'Google Contacts' : 'Google Calendar';
-    
+  private getTokenExpiringSoonTemplate(
+    integrationType: 'google_contacts' | 'google_calendar'
+  ): NotificationTemplate {
+    const integrationName =
+      integrationType === 'google_contacts' ? 'Google Contacts' : 'Google Calendar';
+
     return {
       subject: `${integrationName} Connection Expiring Soon`,
-      message: `Your ${integrationName} connection will expire soon. ` +
-               `To ensure uninterrupted syncing, please reconnect your account.`
+      message:
+        `Your ${integrationName} connection will expire soon. ` +
+        `To ensure uninterrupted syncing, please reconnect your account.`,
     };
   }
 
@@ -81,9 +89,10 @@ export class TokenHealthNotificationService {
     notificationType: 'token_invalid' | 'token_expiring_soon'
   ): Promise<TokenHealthNotification> {
     // Get template
-    const template = notificationType === 'token_invalid'
-      ? this.getTokenInvalidTemplate(integrationType)
-      : this.getTokenExpiringSoonTemplate(integrationType);
+    const template =
+      notificationType === 'token_invalid'
+        ? this.getTokenInvalidTemplate(integrationType)
+        : this.getTokenExpiringSoonTemplate(integrationType);
 
     // Generate re-auth link
     const reAuthLink = this.generateReAuthLink(integrationType);
@@ -159,7 +168,7 @@ export class TokenHealthNotificationService {
       [userId]
     );
 
-    return result.rows.map(row => this.mapRowToNotification(row));
+    return result.rows.map((row) => this.mapRowToNotification(row));
   }
 
   /**
@@ -175,7 +184,7 @@ export class TokenHealthNotificationService {
        ORDER BY created_at ASC`
     );
 
-    return result.rows.map(row => this.mapRowToNotification(row));
+    return result.rows.map((row) => this.mapRowToNotification(row));
   }
 
   /**
@@ -213,10 +222,9 @@ export class TokenHealthNotificationService {
    * Get notification by ID
    */
   async getNotificationById(notificationId: string): Promise<TokenHealthNotification | null> {
-    const result = await pool.query(
-      `SELECT * FROM token_health_notifications WHERE id = $1`,
-      [notificationId]
-    );
+    const result = await pool.query(`SELECT * FROM token_health_notifications WHERE id = $1`, [
+      notificationId,
+    ]);
 
     if (result.rows.length === 0) {
       return null;

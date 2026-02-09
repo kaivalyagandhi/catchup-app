@@ -13,9 +13,7 @@ import pool from '../db/connection';
  * Returns the most recent webhook notification received for the user.
  * Used to detect webhooks that haven't received notifications in 48+ hours.
  */
-export async function getLastNotificationTimestamp(
-  userId: string
-): Promise<Date | null> {
+export async function getLastNotificationTimestamp(userId: string): Promise<Date | null> {
   const result = await pool.query<{ created_at: Date }>(
     `SELECT created_at 
      FROM webhook_notifications 
@@ -103,9 +101,7 @@ export async function trackNotificationEvent(data: {
  * Returns webhooks that haven't received any notifications recently.
  * Used to detect potentially broken webhooks.
  */
-export async function getWebhooksWithNoRecentNotifications(
-  hoursThreshold: number
-): Promise<
+export async function getWebhooksWithNoRecentNotifications(hoursThreshold: number): Promise<
   Array<{
     userId: string;
     channelId: string;
@@ -155,9 +151,7 @@ export async function getWebhooksWithNoRecentNotifications(
  * Returns webhooks that will expire soon and need renewal.
  * Used by health check job to proactively renew webhooks.
  */
-export async function getWebhooksExpiringWithinHours(
-  hoursFromNow: number
-): Promise<
+export async function getWebhooksExpiringWithinHours(hoursFromNow: number): Promise<
   Array<{
     userId: string;
     channelId: string;

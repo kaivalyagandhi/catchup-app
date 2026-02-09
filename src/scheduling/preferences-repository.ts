@@ -16,13 +16,10 @@ import {
 /**
  * Get user scheduling preferences
  */
-export async function getPreferences(
-  userId: string
-): Promise<SchedulingPreferences | null> {
-  const result = await pool.query(
-    `SELECT * FROM scheduling_preferences WHERE user_id = $1`,
-    [userId]
-  );
+export async function getPreferences(userId: string): Promise<SchedulingPreferences | null> {
+  const result = await pool.query(`SELECT * FROM scheduling_preferences WHERE user_id = $1`, [
+    userId,
+  ]);
 
   if (result.rows.length === 0) {
     return null;
@@ -76,10 +73,7 @@ export async function savePreferences(data: {
  * Delete user scheduling preferences
  */
 export async function deletePreferences(userId: string): Promise<void> {
-  await pool.query(
-    `DELETE FROM scheduling_preferences WHERE user_id = $1`,
-    [userId]
-  );
+  await pool.query(`DELETE FROM scheduling_preferences WHERE user_id = $1`, [userId]);
 }
 
 /**
@@ -172,13 +166,10 @@ export interface PrivacySettings {
  * Get user calendar sharing privacy settings
  * Requirements: 8.5
  */
-export async function getPrivacySettings(
-  userId: string
-): Promise<PrivacySettings | null> {
-  const result = await pool.query(
-    `SELECT * FROM calendar_sharing_settings WHERE user_id = $1`,
-    [userId]
-  );
+export async function getPrivacySettings(userId: string): Promise<PrivacySettings | null> {
+  const result = await pool.query(`SELECT * FROM calendar_sharing_settings WHERE user_id = $1`, [
+    userId,
+  ]);
 
   if (result.rows.length === 0) {
     return null;
@@ -214,19 +205,14 @@ export async function savePrivacySettings(
  * Delete user calendar sharing privacy settings
  */
 export async function deletePrivacySettings(userId: string): Promise<void> {
-  await pool.query(
-    `DELETE FROM calendar_sharing_settings WHERE user_id = $1`,
-    [userId]
-  );
+  await pool.query(`DELETE FROM calendar_sharing_settings WHERE user_id = $1`, [userId]);
 }
 
 /**
  * Check if a user has sharing enabled with Inner Circle
  * Requirements: 8.7
  */
-export async function isInnerCircleSharingEnabled(
-  userId: string
-): Promise<boolean> {
+export async function isInnerCircleSharingEnabled(userId: string): Promise<boolean> {
   const settings = await getPrivacySettings(userId);
   return settings?.shareWithInnerCircle ?? false;
 }

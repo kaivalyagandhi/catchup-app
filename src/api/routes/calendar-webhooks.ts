@@ -166,4 +166,3 @@ async function triggerWebhookSync(userId: string): Promise<void> {
 }
 
 export default router;
-

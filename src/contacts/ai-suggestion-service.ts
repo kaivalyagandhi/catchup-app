@@ -236,7 +236,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
   /**
    * Analyze a contact for onboarding with optimized scoring factors
    * Requirements: 5.2
-   * 
+   *
    * This method is optimized for new users during onboarding who don't have
    * interaction history in CatchUp yet. It uses:
    * - Calendar events (35%): Shared calendar events as strongest signal
@@ -244,7 +244,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
    * - Contact age (15%): How long contact has existed
    * - Communication frequency (10%): Interactions per month (if available)
    * - Recency (10%): Days since last contact (if available)
-   * 
+   *
    * @param userId - The user ID
    * @param contactId - The contact ID to analyze
    * @param calendarEvents - Calendar events to analyze for shared attendees
@@ -272,38 +272,38 @@ export class PostgresAISuggestionService implements AISuggestionService {
     // Calculate existing factors (with lower weight for new users)
     const frequencyFactor = this.calculateFrequencyFactor(interactions, new Date());
     const recencyFactor = this.calculateRecencyFactor(interactions, new Date());
-    
+
     // Calculate voice notes factor
     const voiceNotesFactor = await this.calculateVoiceNotesFactor(contact.id, userId);
 
     // Weighted combination optimized for onboarding
     // UPDATED: Adjusted weights to include voice notes factor (10%)
     const weightedScore =
-      calendarScore * 0.40 +      // Decreased from 0.45 - still strongest signal
-      metadataScore * 0.30 +      // Decreased from 0.35 - second strongest
-      voiceNotesFactor.value * 0.10 +  // NEW - voice notes engagement
-      ageScore * 0.10 +           // Same
-      frequencyFactor.value * 0.05 +  // Same
-      recencyFactor.value * 0.05;     // Same
+      calendarScore * 0.4 + // Decreased from 0.45 - still strongest signal
+      metadataScore * 0.3 + // Decreased from 0.35 - second strongest
+      voiceNotesFactor.value * 0.1 + // NEW - voice notes engagement
+      ageScore * 0.1 + // Same
+      frequencyFactor.value * 0.05 + // Same
+      recencyFactor.value * 0.05; // Same
 
     // Build factors array for transparency
     const factors: SuggestionFactor[] = [
       {
         type: 'calendar_events',
-        weight: 0.40,
+        weight: 0.4,
         value: calendarScore,
         description: `Calendar event score: ${calendarScore}`,
       },
       {
         type: 'communication_frequency',
-        weight: 0.30,
+        weight: 0.3,
         value: metadataScore,
         description: `Metadata richness: ${metadataScore}`,
       },
-      voiceNotesFactor,  // Already has weight: 0.10
+      voiceNotesFactor, // Already has weight: 0.10
       {
         type: 'recency',
-        weight: 0.10,
+        weight: 0.1,
         value: ageScore,
         description: `Contact age score: ${ageScore}`,
       },
@@ -364,8 +364,8 @@ export class PostgresAISuggestionService implements AISuggestionService {
     if (interactions.length === 0) {
       return {
         type: 'communication_frequency',
-        weight: 0.05,  // Low weight for onboarding
-        value: 25,     // Give baseline score instead of 0
+        weight: 0.05, // Low weight for onboarding
+        value: 25, // Give baseline score instead of 0
         description: 'No interaction history (baseline score)',
       };
     }
@@ -395,7 +395,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
 
     return {
       type: 'communication_frequency',
-      weight: 0.05,  // Low weight for onboarding
+      weight: 0.05, // Low weight for onboarding
       value,
       description: `${interactionsPerMonth.toFixed(1)} interactions per month`,
     };
@@ -408,8 +408,8 @@ export class PostgresAISuggestionService implements AISuggestionService {
     if (interactions.length === 0) {
       return {
         type: 'recency',
-        weight: 0.05,  // Low weight for onboarding
-        value: 25,     // Give baseline score instead of 0
+        weight: 0.05, // Low weight for onboarding
+        value: 25, // Give baseline score instead of 0
         description: 'No recent interactions (baseline score)',
       };
     }
@@ -430,7 +430,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
 
     return {
       type: 'recency',
-      weight: 0.05,  // Low weight for onboarding
+      weight: 0.05, // Low weight for onboarding
       value,
       description: `Last contact ${Math.floor(daysSinceContact)} days ago`,
     };
@@ -513,7 +513,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
 
   /**
    * Calculate voice notes enrichment factor
-   * 
+   *
    * Voice notes indicate active engagement and relationship importance.
    * Scoring based on:
    * - Number of voice notes about this contact
@@ -550,8 +550,8 @@ export class PostgresAISuggestionService implements AISuggestionService {
 
       if (noteCount === 0) {
         return {
-          type: 'multi_channel',  // Reuse multi_channel type for voice notes
-          weight: 0.10,
+          type: 'multi_channel', // Reuse multi_channel type for voice notes
+          weight: 0.1,
           value: 0,
           description: 'No voice notes',
         };
@@ -560,7 +560,8 @@ export class PostgresAISuggestionService implements AISuggestionService {
       // Calculate recency score (0-30 points)
       let recencyScore = 0;
       if (lastNoteDate) {
-        const daysSinceNote = (Date.now() - new Date(lastNoteDate).getTime()) / (24 * 60 * 60 * 1000);
+        const daysSinceNote =
+          (Date.now() - new Date(lastNoteDate).getTime()) / (24 * 60 * 60 * 1000);
         if (daysSinceNote < 7) recencyScore = 30;
         else if (daysSinceNote < 30) recencyScore = 20;
         else if (daysSinceNote < 90) recencyScore = 10;
@@ -586,8 +587,8 @@ export class PostgresAISuggestionService implements AISuggestionService {
       const totalScore = recencyScore + frequencyScore + enrichmentScore;
 
       return {
-        type: 'multi_channel',  // Reuse multi_channel type
-        weight: 0.10,
+        type: 'multi_channel', // Reuse multi_channel type
+        weight: 0.1,
         value: totalScore,
         description: `${noteCount} voice note${noteCount !== 1 ? 's' : ''}, ${enrichmentCount} enrichment${enrichmentCount !== 1 ? 's' : ''}`,
       };
@@ -595,7 +596,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
       console.error('Error calculating voice notes factor:', error);
       return {
         type: 'multi_channel',
-        weight: 0.10,
+        weight: 0.1,
         value: 0,
         description: 'Error calculating voice notes',
       };
@@ -605,15 +606,12 @@ export class PostgresAISuggestionService implements AISuggestionService {
   /**
    * Calculate calendar event score based on shared calendar events
    * Requirements: 5.2, 5.3
-   * 
+   *
    * Counts calendar events where the contact's email appears as an attendee.
    * This is a strong signal for relationship depth during onboarding.
    * UPDATED: More generous scoring to generate better suggestions
    */
-  private calculateCalendarEventScore(
-    contact: Contact,
-    calendarEvents: CalendarEvent[]
-  ): number {
+  private calculateCalendarEventScore(contact: Contact, calendarEvents: CalendarEvent[]): number {
     if (!contact.email || calendarEvents.length === 0) {
       return 0;
     }
@@ -622,9 +620,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
 
     // Count events where contact's email appears as attendee
     const sharedEvents = calendarEvents.filter((event) =>
-      event.attendees?.some((attendee) => 
-        attendee.email?.toLowerCase() === contactEmail
-      )
+      event.attendees?.some((attendee) => attendee.email?.toLowerCase() === contactEmail)
     );
 
     const count = sharedEvents.length;
@@ -642,7 +638,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
   /**
    * Calculate metadata richness score based on populated contact fields
    * Requirements: 5.4
-   * 
+   *
    * Scores based on:
    * - email: +5
    * - phone: +5
@@ -652,7 +648,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
    * - instagram: +5
    * - xHandle: +5
    * - otherSocialMedia: +5 per platform
-   * 
+   *
    * Normalized to 0-100 range
    */
   private calculateMetadataRichnessScore(contact: Contact): number {
@@ -690,7 +686,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
   /**
    * Calculate contact age score based on how long the contact has existed
    * Requirements: 5.2
-   * 
+   *
    * Older contacts in Google Contacts likely represent more established relationships.
    * Score based on contact age:
    * - 5+ years: 100
@@ -715,7 +711,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
     if (ageInYears >= 2) return 70;
     if (ageInYears >= 1) return 55;
     if (ageInDays >= 180) return 40; // 6 months
-    if (ageInDays >= 90) return 25;  // 3 months
+    if (ageInDays >= 90) return 25; // 3 months
     return 10;
   }
 
@@ -735,8 +731,10 @@ export class PostgresAISuggestionService implements AISuggestionService {
     const weightedScore = factors.reduce((sum, f) => sum + f.value * f.weight, 0) / totalWeight;
 
     // Log scoring for debugging
-    console.log(`[AI Suggestions] Weighted score: ${weightedScore.toFixed(2)}, factors:`, 
-      factors.map(f => `${f.type}=${f.value.toFixed(1)} (weight=${f.weight})`).join(', '));
+    console.log(
+      `[AI Suggestions] Weighted score: ${weightedScore.toFixed(2)}, factors:`,
+      factors.map((f) => `${f.type}=${f.value.toFixed(1)} (weight=${f.weight})`).join(', ')
+    );
 
     // Determine circle based on score
     // UPDATED: Further lowered thresholds to generate more suggestions
@@ -761,7 +759,9 @@ export class PostgresAISuggestionService implements AISuggestionService {
       confidence = Math.min(100, 45 + weightedScore * 1.0);
     }
 
-    console.log(`[AI Suggestions] Determined circle: ${suggestedCircle} (confidence: ${confidence.toFixed(1)})`);
+    console.log(
+      `[AI Suggestions] Determined circle: ${suggestedCircle} (confidence: ${confidence.toFixed(1)})`
+    );
 
     // Generate alternative suggestions
     const alternatives = this.generateAlternatives(weightedScore, suggestedCircle);

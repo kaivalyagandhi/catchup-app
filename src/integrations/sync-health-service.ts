@@ -1,9 +1,9 @@
 /**
  * Sync Health Service
- * 
+ *
  * Aggregates sync health metrics across all users for admin dashboard.
  * Queries token_health, circuit_breaker_state, sync_metrics, and sync_schedule tables.
- * 
+ *
  * Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.8
  */
 
@@ -24,8 +24,8 @@ export interface SyncHealthMetrics {
     calendar: number;
   };
   syncSuccessRate24h: {
-    contacts: number;  // percentage
-    calendar: number;  // percentage
+    contacts: number; // percentage
+    calendar: number; // percentage
   };
   apiCallsSaved: {
     byCircuitBreaker: number;
@@ -64,7 +64,7 @@ export interface UserSyncStatus {
   } | null;
   lastSync: Date | null;
   lastSyncResult: 'success' | 'failure' | null;
-  webhookActive: boolean;  // calendar only
+  webhookActive: boolean; // calendar only
 }
 
 export class SyncHealthService {
@@ -75,9 +75,7 @@ export class SyncHealthService {
   async getHealthMetrics(
     integrationType?: 'google_contacts' | 'google_calendar'
   ): Promise<SyncHealthMetrics> {
-    const integrationFilter = integrationType
-      ? `AND integration_type = '${integrationType}'`
-      : '';
+    const integrationFilter = integrationType ? `AND integration_type = '${integrationType}'` : '';
 
     // Get total users with active integrations
     const totalUsersQuery = `
@@ -175,10 +173,9 @@ export class SyncHealthService {
       calendar: 0,
     };
     syncSuccessRateResult.rows.forEach((row) => {
-      const successRate = row.total_count > 0
-        ? (parseInt(row.success_count) / parseInt(row.total_count)) * 100
-        : 0;
-      
+      const successRate =
+        row.total_count > 0 ? (parseInt(row.success_count) / parseInt(row.total_count)) * 100 : 0;
+
       if (row.integration_type === 'google_contacts') {
         syncSuccessRate24h.contacts = Math.round(successRate * 100) / 100;
       } else if (row.integration_type === 'google_calendar') {
@@ -254,14 +251,8 @@ export class SyncHealthService {
     contacts: UserSyncStatus;
     calendar: UserSyncStatus;
   }> {
-    const contactsStatus = await this.getUserSyncStatusForIntegration(
-      userId,
-      'google_contacts'
-    );
-    const calendarStatus = await this.getUserSyncStatusForIntegration(
-      userId,
-      'google_calendar'
-    );
+    const contactsStatus = await this.getUserSyncStatusForIntegration(userId, 'google_contacts');
+    const calendarStatus = await this.getUserSyncStatusForIntegration(userId, 'google_calendar');
 
     return {
       contacts: contactsStatus,

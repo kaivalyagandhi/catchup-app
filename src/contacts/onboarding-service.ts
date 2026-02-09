@@ -500,7 +500,10 @@ export class PostgresOnboardingService implements OnboardingService {
    * Update onboarding state with partial updates
    * Requirements: All requirements (state management)
    */
-  async updateOnboardingState(userId: string, stateUpdate: Partial<OnboardingStateRecord>): Promise<void> {
+  async updateOnboardingState(
+    userId: string,
+    stateUpdate: Partial<OnboardingStateRecord>
+  ): Promise<void> {
     const state = await this.onboardingRepo.findByUserId(userId);
     if (!state) {
       throw new Error('Onboarding state not found');
@@ -516,14 +519,14 @@ export class PostgresOnboardingService implements OnboardingService {
    */
   async syncLocalState(userId: string, localState: any): Promise<void> {
     const serverState = await this.onboardingRepo.findByUserId(userId);
-    
+
     if (!serverState) {
       // No server state exists, create from local state
       await this.initializeOnboarding(userId, {
         type: localState.triggerType || 'manual',
         source: 'onboarding_flow',
       });
-      
+
       // Update with local state data
       await this.onboardingRepo.update(userId, {
         currentStep: localState.currentStep,

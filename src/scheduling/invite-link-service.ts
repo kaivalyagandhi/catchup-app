@@ -23,10 +23,7 @@ const LINK_EXPIRY_DAYS = 30;
 /**
  * Generate a new invite link for an invitee
  */
-export async function generateInviteLink(
-  planId: string,
-  contactId: string
-): Promise<InviteLink> {
+export async function generateInviteLink(planId: string, contactId: string): Promise<InviteLink> {
   // Generate secure token (URL-safe base64)
   const token = crypto.randomBytes(32).toString('base64url');
 
@@ -69,7 +66,7 @@ export async function validateInviteLink(token: string): Promise<InviteLinkValid
   // Check if plan is still active
   try {
     const planStatus = await inviteLinkRepository.getPlanStatus(link.planId);
-    
+
     if (planStatus.status === 'cancelled') {
       return { valid: false, error: 'This plan has been cancelled' };
     }
@@ -95,10 +92,7 @@ export async function validateInviteLink(token: string): Promise<InviteLinkValid
 /**
  * Regenerate an invite link (invalidates old one)
  */
-export async function regenerateInviteLink(
-  planId: string,
-  contactId: string
-): Promise<InviteLink> {
+export async function regenerateInviteLink(planId: string, contactId: string): Promise<InviteLink> {
   // Invalidate existing link
   await inviteLinkRepository.invalidateLink(planId, contactId);
 
@@ -137,10 +131,7 @@ export async function markLinkSubmitted(token: string): Promise<void> {
 /**
  * Check if a link has been accessed
  */
-export async function hasLinkBeenAccessed(
-  planId: string,
-  contactId: string
-): Promise<boolean> {
+export async function hasLinkBeenAccessed(planId: string, contactId: string): Promise<boolean> {
   const link = await inviteLinkRepository.getLinkByPlanAndContact(planId, contactId);
   return link?.accessedAt !== null && link?.accessedAt !== undefined;
 }
@@ -160,9 +151,6 @@ export async function hasAvailabilityBeenSubmitted(
  * Invalidate the invite link for a specific invitee
  * Requirements: 12.1 - When removing an invitee, invalidate their link
  */
-export async function invalidateLinkForInvitee(
-  planId: string,
-  contactId: string
-): Promise<void> {
+export async function invalidateLinkForInvitee(planId: string, contactId: string): Promise<void> {
   await inviteLinkRepository.invalidateLink(planId, contactId);
 }

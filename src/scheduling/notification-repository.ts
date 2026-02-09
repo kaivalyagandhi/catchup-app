@@ -6,10 +6,7 @@
  */
 
 import pool from '../db/connection';
-import {
-  SchedulingNotification,
-  SchedulingNotificationType,
-} from '../types/scheduling';
+import { SchedulingNotification, SchedulingNotificationType } from '../types/scheduling';
 
 /**
  * Create a new notification
@@ -77,10 +74,9 @@ export async function getNotificationsByUser(
  * Mark a notification as read
  */
 export async function markAsRead(notificationId: string): Promise<void> {
-  await pool.query(
-    `UPDATE scheduling_notifications SET read_at = NOW() WHERE id = $1`,
-    [notificationId]
-  );
+  await pool.query(`UPDATE scheduling_notifications SET read_at = NOW() WHERE id = $1`, [
+    notificationId,
+  ]);
 }
 
 /**
@@ -109,18 +105,13 @@ export async function getUnreadCount(userId: string): Promise<number> {
  * Delete notifications for a plan (when plan is deleted)
  */
 export async function deleteNotificationsForPlan(planId: string): Promise<void> {
-  await pool.query(
-    `DELETE FROM scheduling_notifications WHERE plan_id = $1`,
-    [planId]
-  );
+  await pool.query(`DELETE FROM scheduling_notifications WHERE plan_id = $1`, [planId]);
 }
 
 /**
  * Get notifications for a specific plan
  */
-export async function getNotificationsForPlan(
-  planId: string
-): Promise<SchedulingNotification[]> {
+export async function getNotificationsForPlan(planId: string): Promise<SchedulingNotification[]> {
   const result = await pool.query(
     `SELECT * FROM scheduling_notifications WHERE plan_id = $1 ORDER BY created_at DESC`,
     [planId]

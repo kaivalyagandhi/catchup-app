@@ -105,12 +105,13 @@ router.get('/callback', async (req: Request, res: Response) => {
     try {
       const { AdaptiveSyncScheduler } = await import('../../integrations/adaptive-sync-scheduler');
       const scheduler = AdaptiveSyncScheduler.getInstance();
-      
+
       // Default frequency for contacts: 3 days
       await scheduler.initializeSchedule(userId, 'google_contacts');
       console.log(`Sync schedule initialized for user ${userId} with default 3-day frequency`);
     } catch (scheduleError) {
-      const scheduleErrorMsg = scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
+      const scheduleErrorMsg =
+        scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
       console.error('Failed to initialize sync schedule:', scheduleErrorMsg);
       // Don't fail the OAuth flow if schedule initialization fails
     }
@@ -119,12 +120,15 @@ router.get('/callback', async (req: Request, res: Response) => {
     try {
       const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
       const circuitBreakerManager = CircuitBreakerManager.getInstance();
-      
+
       // Reset ensures circuit breaker is in closed state
       await circuitBreakerManager.reset(userId, 'google_contacts');
       console.log(`Circuit breaker initialized in closed state for user ${userId}`);
     } catch (circuitBreakerError) {
-      const circuitBreakerErrorMsg = circuitBreakerError instanceof Error ? circuitBreakerError.message : String(circuitBreakerError);
+      const circuitBreakerErrorMsg =
+        circuitBreakerError instanceof Error
+          ? circuitBreakerError.message
+          : String(circuitBreakerError);
       console.error('Failed to initialize circuit breaker:', circuitBreakerErrorMsg);
       // Don't fail the OAuth flow if circuit breaker initialization fails
     }
@@ -133,11 +137,12 @@ router.get('/callback', async (req: Request, res: Response) => {
     try {
       const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
       const tokenHealthMonitor = TokenHealthMonitor.getInstance();
-      
+
       const tokenHealth = await tokenHealthMonitor.checkTokenHealth(userId, 'google_contacts');
       console.log(`Initial token health check completed for user ${userId}: ${tokenHealth.status}`);
     } catch (tokenHealthError) {
-      const tokenHealthErrorMsg = tokenHealthError instanceof Error ? tokenHealthError.message : String(tokenHealthError);
+      const tokenHealthErrorMsg =
+        tokenHealthError instanceof Error ? tokenHealthError.message : String(tokenHealthError);
       console.error('Failed to run initial token health check:', tokenHealthErrorMsg);
       // Don't fail the OAuth flow if token health check fails
     }
@@ -265,11 +270,12 @@ router.delete('/disconnect', authenticate, async (req: AuthenticatedRequest, res
     try {
       const { AdaptiveSyncScheduler } = await import('../../integrations/adaptive-sync-scheduler');
       const scheduler = AdaptiveSyncScheduler.getInstance();
-      
+
       await scheduler.removeSchedule(req.userId, 'google_contacts');
       console.log(`Sync schedule removed for user ${req.userId}`);
     } catch (scheduleError) {
-      const scheduleErrorMsg = scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
+      const scheduleErrorMsg =
+        scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
       console.error('Failed to remove sync schedule:', scheduleErrorMsg);
       // Continue with disconnect even if schedule removal fails
     }
@@ -278,11 +284,14 @@ router.delete('/disconnect', authenticate, async (req: AuthenticatedRequest, res
     try {
       const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
       const circuitBreakerManager = CircuitBreakerManager.getInstance();
-      
+
       await circuitBreakerManager.reset(req.userId, 'google_contacts');
       console.log(`Circuit breaker reset for user ${req.userId}`);
     } catch (circuitBreakerError) {
-      const circuitBreakerErrorMsg = circuitBreakerError instanceof Error ? circuitBreakerError.message : String(circuitBreakerError);
+      const circuitBreakerErrorMsg =
+        circuitBreakerError instanceof Error
+          ? circuitBreakerError.message
+          : String(circuitBreakerError);
       console.error('Failed to reset circuit breaker:', circuitBreakerErrorMsg);
       // Continue with disconnect even if circuit breaker reset fails
     }
@@ -291,11 +300,12 @@ router.delete('/disconnect', authenticate, async (req: AuthenticatedRequest, res
     try {
       const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
       const tokenHealthMonitor = TokenHealthMonitor.getInstance();
-      
+
       await tokenHealthMonitor.clearTokenHealth(req.userId, 'google_contacts');
       console.log(`Token health records cleared for user ${req.userId}`);
     } catch (tokenHealthError) {
-      const tokenHealthErrorMsg = tokenHealthError instanceof Error ? tokenHealthError.message : String(tokenHealthError);
+      const tokenHealthErrorMsg =
+        tokenHealthError instanceof Error ? tokenHealthError.message : String(tokenHealthError);
       console.error('Failed to clear token health records:', tokenHealthErrorMsg);
       // Continue with disconnect even if token health clearing fails
     }

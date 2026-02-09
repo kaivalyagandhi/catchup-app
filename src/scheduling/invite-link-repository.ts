@@ -87,19 +87,13 @@ export async function trackAccess(linkId: string): Promise<void> {
  * Mark a link as having availability submitted
  */
 export async function markSubmitted(linkId: string): Promise<void> {
-  await pool.query(
-    `UPDATE invite_links SET submitted_at = NOW() WHERE id = $1`,
-    [linkId]
-  );
+  await pool.query(`UPDATE invite_links SET submitted_at = NOW() WHERE id = $1`, [linkId]);
 }
 
 /**
  * Invalidate a specific link (for regeneration)
  */
-export async function invalidateLink(
-  planId: string,
-  contactId: string
-): Promise<void> {
+export async function invalidateLink(planId: string, contactId: string): Promise<void> {
   await pool.query(
     `UPDATE invite_links SET invalidated_at = NOW() WHERE plan_id = $1 AND contact_id = $2`,
     [planId, contactId]
@@ -110,22 +104,14 @@ export async function invalidateLink(
  * Invalidate all links for a plan (when plan is cancelled)
  */
 export async function invalidateAllLinksForPlan(planId: string): Promise<void> {
-  await pool.query(
-    `UPDATE invite_links SET invalidated_at = NOW() WHERE plan_id = $1`,
-    [planId]
-  );
+  await pool.query(`UPDATE invite_links SET invalidated_at = NOW() WHERE plan_id = $1`, [planId]);
 }
 
 /**
  * Get plan status for link validation
  */
-export async function getPlanStatus(
-  planId: string
-): Promise<{ status: PlanStatus }> {
-  const result = await pool.query(
-    `SELECT status FROM catchup_plans WHERE id = $1`,
-    [planId]
-  );
+export async function getPlanStatus(planId: string): Promise<{ status: PlanStatus }> {
+  const result = await pool.query(`SELECT status FROM catchup_plans WHERE id = $1`, [planId]);
 
   if (result.rows.length === 0) {
     throw new Error('Plan not found');

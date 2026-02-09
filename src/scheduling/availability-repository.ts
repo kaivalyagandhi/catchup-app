@@ -51,9 +51,7 @@ export async function saveAvailability(data: {
 /**
  * Get all availability submissions for a plan
  */
-export async function getAvailabilityForPlan(
-  planId: string
-): Promise<InviteeAvailability[]> {
+export async function getAvailabilityForPlan(planId: string): Promise<InviteeAvailability[]> {
   const result = await pool.query(
     `SELECT * FROM invitee_availability WHERE plan_id = $1 ORDER BY submitted_at`,
     [planId]
@@ -84,14 +82,11 @@ export async function getAvailabilityByContact(
 /**
  * Delete availability for an invitee
  */
-export async function deleteAvailability(
-  planId: string,
-  contactId: string
-): Promise<void> {
-  await pool.query(
-    `DELETE FROM invitee_availability WHERE plan_id = $1 AND contact_id = $2`,
-    [planId, contactId]
-  );
+export async function deleteAvailability(planId: string, contactId: string): Promise<void> {
+  await pool.query(`DELETE FROM invitee_availability WHERE plan_id = $1 AND contact_id = $2`, [
+    planId,
+    contactId,
+  ]);
 }
 
 // ============================================
@@ -116,12 +111,7 @@ export async function saveInitiatorAvailability(data: {
        source = EXCLUDED.source,
        updated_at = NOW()
      RETURNING *`,
-    [
-      data.planId,
-      data.userId,
-      JSON.stringify(data.availableSlots),
-      data.source,
-    ]
+    [data.planId, data.userId, JSON.stringify(data.availableSlots), data.source]
   );
 
   return mapInitiatorAvailabilityRow(result.rows[0]);
@@ -149,14 +139,11 @@ export async function getInitiatorAvailability(
 /**
  * Delete initiator availability
  */
-export async function deleteInitiatorAvailability(
-  planId: string,
-  userId: string
-): Promise<void> {
-  await pool.query(
-    `DELETE FROM initiator_availability WHERE plan_id = $1 AND user_id = $2`,
-    [planId, userId]
-  );
+export async function deleteInitiatorAvailability(planId: string, userId: string): Promise<void> {
+  await pool.query(`DELETE FROM initiator_availability WHERE plan_id = $1 AND user_id = $2`, [
+    planId,
+    userId,
+  ]);
 }
 
 // ============================================

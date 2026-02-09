@@ -223,18 +223,14 @@ export async function unarchivePlan(planId: string): Promise<void> {
   );
 }
 
-
 /**
  * Update plan status
  */
-export async function updatePlanStatus(
-  planId: string,
-  status: PlanStatus
-): Promise<void> {
-  await pool.query(
-    `UPDATE catchup_plans SET status = $1, updated_at = NOW() WHERE id = $2`,
-    [status, planId]
-  );
+export async function updatePlanStatus(planId: string, status: PlanStatus): Promise<void> {
+  await pool.query(`UPDATE catchup_plans SET status = $1, updated_at = NOW() WHERE id = $2`, [
+    status,
+    planId,
+  ]);
 }
 
 /**
@@ -381,10 +377,7 @@ export async function getInviteesByPlan(planId: string): Promise<PlanInvitee[]> 
 /**
  * Update invitee response status
  */
-export async function markInviteeResponded(
-  planId: string,
-  contactId: string
-): Promise<void> {
+export async function markInviteeResponded(planId: string, contactId: string): Promise<void> {
   await pool.query(
     `UPDATE plan_invitees SET has_responded = TRUE WHERE plan_id = $1 AND contact_id = $2`,
     [planId, contactId]
@@ -394,14 +387,11 @@ export async function markInviteeResponded(
 /**
  * Remove an invitee from a plan
  */
-export async function removeInvitee(
-  planId: string,
-  contactId: string
-): Promise<void> {
-  await pool.query(
-    `DELETE FROM plan_invitees WHERE plan_id = $1 AND contact_id = $2`,
-    [planId, contactId]
-  );
+export async function removeInvitee(planId: string, contactId: string): Promise<void> {
+  await pool.query(`DELETE FROM plan_invitees WHERE plan_id = $1 AND contact_id = $2`, [
+    planId,
+    contactId,
+  ]);
 }
 
 /**
@@ -465,10 +455,9 @@ export async function updateLastReminderSent(planId: string): Promise<void> {
  * Requirements: 12.5 - Track last reminder sent time to prevent spam
  */
 export async function getLastReminderSent(planId: string): Promise<Date | null> {
-  const result = await pool.query(
-    `SELECT last_reminder_sent_at FROM catchup_plans WHERE id = $1`,
-    [planId]
-  );
+  const result = await pool.query(`SELECT last_reminder_sent_at FROM catchup_plans WHERE id = $1`, [
+    planId,
+  ]);
 
   if (result.rows.length === 0) {
     return null;

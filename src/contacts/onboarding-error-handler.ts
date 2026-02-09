@@ -65,7 +65,11 @@ export class OnboardingErrorHandler {
       }
 
       // HTTP 5xx errors - retryable
-      if (errorMessage.includes('HTTP 5') || errorMessage.includes('500') || errorMessage.includes('503')) {
+      if (
+        errorMessage.includes('HTTP 5') ||
+        errorMessage.includes('500') ||
+        errorMessage.includes('503')
+      ) {
         return {
           isRetryable: true,
           shouldShowRetry: true,
@@ -85,7 +89,11 @@ export class OnboardingErrorHandler {
       }
 
       // HTTP 401/403 - not retryable, auth issue
-      if (errorMessage.includes('401') || errorMessage.includes('403') || errorMessage.includes('Unauthorized')) {
+      if (
+        errorMessage.includes('401') ||
+        errorMessage.includes('403') ||
+        errorMessage.includes('Unauthorized')
+      ) {
         return {
           isRetryable: false,
           shouldShowRetry: false,
@@ -128,9 +136,13 @@ export class OnboardingErrorHandler {
    * Handle integration connection errors
    * Requirements: 13.4
    */
-  static handleIntegrationError(integration: 'google-calendar' | 'google-contacts', error: unknown): RetryableError {
+  static handleIntegrationError(
+    integration: 'google-calendar' | 'google-contacts',
+    error: unknown
+  ): RetryableError {
     const classified = this.classifyError(error);
-    const integrationName = integration === 'google-calendar' ? 'Google Calendar' : 'Google Contacts';
+    const integrationName =
+      integration === 'google-calendar' ? 'Google Calendar' : 'Google Contacts';
 
     // Add integration-specific context
     if (error instanceof Error) {
@@ -184,7 +196,8 @@ export class OnboardingErrorHandler {
       return {
         isRetryable: false, // Don't auto-retry AI, it's optional
         shouldShowRetry: false,
-        userMessage: 'AI suggestions are temporarily unavailable. You can still organize contacts manually.',
+        userMessage:
+          'AI suggestions are temporarily unavailable. You can still organize contacts manually.',
         technicalMessage: classified.technicalMessage,
       };
     }
@@ -193,7 +206,8 @@ export class OnboardingErrorHandler {
     return {
       isRetryable: false,
       shouldShowRetry: false,
-      userMessage: 'AI suggestions are temporarily unavailable. You can still organize contacts manually.',
+      userMessage:
+        'AI suggestions are temporarily unavailable. You can still organize contacts manually.',
       technicalMessage: classified.technicalMessage,
     };
   }
@@ -216,10 +230,7 @@ export class OnboardingErrorHandler {
    * Execute a function with retry logic
    * Requirements: 13.4
    */
-  static async withRetry<T>(
-    fn: () => Promise<T>,
-    options: ErrorHandlerOptions = {}
-  ): Promise<T> {
+  static async withRetry<T>(fn: () => Promise<T>, options: ErrorHandlerOptions = {}): Promise<T> {
     const maxRetries = options.maxRetries ?? this.DEFAULT_MAX_RETRIES;
     const retryDelay = options.retryDelay ?? this.DEFAULT_RETRY_DELAY;
     const timeout = options.timeout ?? this.DEFAULT_TIMEOUT;
@@ -276,7 +287,8 @@ export class OnboardingErrorHandler {
    */
   static showErrorToast(error: RetryableError): void {
     if (typeof window !== 'undefined') {
-      const showToast = (window as Window & { showToast?: (msg: string, type: string) => void }).showToast;
+      const showToast = (window as Window & { showToast?: (msg: string, type: string) => void })
+        .showToast;
       if (typeof showToast === 'function') {
         showToast(error.userMessage, 'error');
       } else {
@@ -353,7 +365,6 @@ export async function withRetry<T>(
   return OnboardingErrorHandler.withRetry(fn, options);
 }
 
-
 // Additional utility functions for error handling
 
 export async function withOnboardingErrorHandling<T>(
@@ -365,11 +376,11 @@ export async function withOnboardingErrorHandling<T>(
     return await operation();
   } catch (error) {
     console.error(`Onboarding operation '${operationName}' failed:`, error);
-    
+
     if (fallbackValue !== undefined) {
       return fallbackValue;
     }
-    
+
     throw error;
   }
 }
@@ -383,11 +394,11 @@ export async function withAISuggestionHandling<T>(
     return { success: true, data };
   } catch (error) {
     console.error('AI suggestion operation failed:', error);
-    
+
     if (fallbackValue !== undefined) {
       return { success: true, data: fallbackValue };
     }
-    
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'AI suggestion failed',
@@ -402,26 +413,28 @@ export async function withConcurrencyHandling<T>(
   maxRetries: number = 3
 ): Promise<T> {
   let lastError: unknown;
-  
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error;
-      
+
       // Check if it's an optimistic lock error
       if (error instanceof Error && error.message.includes('optimistic lock')) {
-        console.log(`Optimistic lock conflict on ${resourceType} ${resourceId}, retrying (${attempt + 1}/${maxRetries})...`);
+        console.log(
+          `Optimistic lock conflict on ${resourceType} ${resourceId}, retrying (${attempt + 1}/${maxRetries})...`
+        );
         // Wait a bit before retrying
-        await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+        await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
         continue;
       }
-      
+
       // Not a lock error, throw immediately
       throw error;
     }
   }
-  
+
   throw lastError;
 }
 
@@ -439,7 +452,7 @@ export async function executeBatchOperation<T, R>(
   const { continueOnError = true, maxConcurrent = 10 } = options;
   const successful: R[] = [];
   const failed: Array<{ item: T; error: unknown }> = [];
-  
+
   // Process in batches to respect maxConcurrent
   for (let i = 0; i < items.length; i += maxConcurrent) {
     const batch = items.slice(i, i + maxConcurrent);
@@ -456,15 +469,15 @@ export async function executeBatchOperation<T, R>(
         return { success: false, error };
       }
     });
-    
+
     await Promise.all(promises);
-    
+
     // If continueOnError is false and we have failures, stop
     if (!continueOnError && failed.length > 0) {
       break;
     }
   }
-  
+
   return { successful, failed };
 }
 
@@ -489,7 +502,7 @@ export async function measurePerformance<T>(
   operationName: string
 ): Promise<{ result: T; duration: number }> {
   const startTime = Date.now();
-  
+
   try {
     const result = await operation();
     const duration = Date.now() - startTime;

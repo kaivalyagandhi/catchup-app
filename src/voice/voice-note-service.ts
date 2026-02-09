@@ -274,12 +274,14 @@ export class VoiceNoteService extends EventEmitter {
       const transcript = session.finalTranscript.trim();
       if (!transcript) {
         // No speech detected - clean up silently without creating a voice note
-        console.log(`[VoiceNoteService] No transcript captured for session ${sessionId}, cleaning up silently`);
-        
+        console.log(
+          `[VoiceNoteService] No transcript captured for session ${sessionId}, cleaning up silently`
+        );
+
         // Clean up session
         this.activeSessions.delete(sessionId);
         this.enrichmentAnalyzer.clearSession(sessionId);
-        
+
         // Return empty result instead of throwing error
         const emptyVoiceNote: VoiceNote = {
           id: '',

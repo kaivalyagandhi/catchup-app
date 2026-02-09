@@ -73,7 +73,7 @@ export class SyncOrchestrator {
   private circuitBreakerManager: CircuitBreakerManager;
   private adaptiveSyncScheduler: AdaptiveSyncScheduler;
   private contactsSyncService: GoogleContactsSyncService;
-  
+
   // In-memory sync status tracking for onboarding progress UI
   // Key format: `${userId}:${integrationType}`
   private syncStatusMap: Map<string, SyncStatus>;
@@ -164,10 +164,7 @@ export class SyncOrchestrator {
       // Step 2: Check circuit breaker state
       // Requirements: 2.2 - Circuit breaker blocks execution when open
       if (!bypassCircuitBreaker) {
-        const canExecute = await this.circuitBreakerManager.canExecuteSync(
-          userId,
-          integrationType
-        );
+        const canExecute = await this.circuitBreakerManager.canExecuteSync(userId, integrationType);
 
         if (!canExecute) {
           const state = await this.circuitBreakerManager.getState(userId, integrationType);
@@ -251,7 +248,10 @@ export class SyncOrchestrator {
         await this.circuitBreakerManager.recordFailure(userId, integrationType, error);
 
         // Mark token as invalid if auth error
-        if (syncResult.errorMessage?.includes('401') || syncResult.errorMessage?.includes('unauthorized')) {
+        if (
+          syncResult.errorMessage?.includes('401') ||
+          syncResult.errorMessage?.includes('unauthorized')
+        ) {
           await this.tokenHealthMonitor.markTokenInvalid(
             userId,
             integrationType,
@@ -480,9 +480,12 @@ export class SyncOrchestrator {
 
     // Auto-cleanup completed/failed statuses after 5 minutes
     if (status.status === 'completed' || status.status === 'failed') {
-      setTimeout(() => {
-        this.syncStatusMap.delete(key);
-      }, 5 * 60 * 1000);
+      setTimeout(
+        () => {
+          this.syncStatusMap.delete(key);
+        },
+        5 * 60 * 1000
+      );
     }
   }
 

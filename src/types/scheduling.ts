@@ -109,7 +109,6 @@ export interface InitiatorAvailability {
   updatedAt: Date;
 }
 
-
 /**
  * Invite link for availability collection
  */

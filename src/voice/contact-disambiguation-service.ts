@@ -322,7 +322,7 @@ export class ContactDisambiguationService {
     for (const namePart of nameParts) {
       // Skip empty parts but allow single characters (for nicknames like "J")
       if (namePart.length === 0) continue;
-      
+
       for (const contactPart of contactParts) {
         if (namePart === contactPart) {
           // Exact match on a name part - high confidence for first name matches
@@ -332,7 +332,9 @@ export class ContactDisambiguationService {
         } else if (contactPart.startsWith(namePart) || namePart.startsWith(contactPart)) {
           // One name is a prefix of the other (e.g., "Mike" matches "Michael")
           const isFirstName = contactPart === contactParts[0];
-          const prefixScore = Math.min(namePart.length, contactPart.length) / Math.max(namePart.length, contactPart.length);
+          const prefixScore =
+            Math.min(namePart.length, contactPart.length) /
+            Math.max(namePart.length, contactPart.length);
           bestScore = Math.max(bestScore, prefixScore * (isFirstName ? 0.9 : 0.8));
         } else {
           // Fuzzy match on name parts

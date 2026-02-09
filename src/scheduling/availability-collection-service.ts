@@ -107,7 +107,6 @@ export async function getPublicPlanInfo(token: string): Promise<PublicPlanInfo> 
   };
 }
 
-
 /**
  * Save initiator availability
  */
@@ -223,10 +222,7 @@ export async function calculateOverlaps(
 /**
  * Get slots with perfect overlap (all must-attend available)
  */
-export async function getPerfectOverlapSlots(
-  planId: string,
-  userId: string
-): Promise<string[]> {
+export async function getPerfectOverlapSlots(planId: string, userId: string): Promise<string[]> {
   const overlaps = await calculateOverlaps(planId, userId);
   const perfectSlots: string[] = [];
 
@@ -261,14 +257,14 @@ export async function getNearOverlapSlots(
         initiatorAvailability: [] as string[],
         inviteeAvailability: [] as InviteeAvailability[],
       };
-      
+
       const missingAttendees: string[] = [];
-      
+
       // Check if initiator is missing
       if (!overlap.availableParticipants.some((p) => p.name === 'You')) {
         missingAttendees.push('You');
       }
-      
+
       // Check which must-attend invitees are missing
       plan.invitees
         .filter((i) => i.attendanceType === 'must_attend')

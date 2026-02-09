@@ -22,7 +22,7 @@ router.get('/preferences', authenticate, async (req: AuthenticatedRequest, res: 
     }
 
     const preferences = await schedulingPreferencesService.getPreferences(req.userId);
-    
+
     if (!preferences) {
       // Return default preferences if none exist
       return res.json({
@@ -178,7 +178,7 @@ router.get('/privacy', authenticate, async (req: AuthenticatedRequest, res: Resp
     }
 
     const privacySettings = await preferencesRepository.getPrivacySettings(req.userId);
-    
+
     if (!privacySettings) {
       // Return default privacy settings (private by default)
       return res.json({
@@ -200,7 +200,7 @@ router.get('/privacy', authenticate, async (req: AuthenticatedRequest, res: Resp
 router.put('/privacy', async (req: Request, res: Response) => {
   try {
     const { shareWithInnerCircle } = req.body;
-    
+
     // Get userId from body or auth header
     const userId = req.body.userId || (req as any).userId;
 

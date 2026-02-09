@@ -42,10 +42,12 @@ router.get('/events', authenticate, async (req: AuthenticatedRequest, res: Respo
 
     // Include sync status if requested (for graceful degradation)
     if (includeSyncStatus === 'true') {
-      const { GracefulDegradationService } = await import('../../integrations/graceful-degradation-service');
+      const { GracefulDegradationService } = await import(
+        '../../integrations/graceful-degradation-service'
+      );
       const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
       const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
-      
+
       const circuitBreakerManager = CircuitBreakerManager.getInstance();
       const tokenHealthMonitor = TokenHealthMonitor.getInstance();
       const gracefulDegradationService = new GracefulDegradationService(
@@ -278,7 +280,7 @@ router.get('/free-slots', authenticate, async (req: AuthenticatedRequest, res: R
     // Parse dates and set time boundaries (8 AM to 9 PM)
     const start = new Date(startDate as string);
     start.setHours(8, 0, 0, 0);
-    
+
     const end = new Date(endDate as string);
     end.setHours(21, 0, 0, 0);
 
@@ -296,14 +298,14 @@ router.get('/free-slots', authenticate, async (req: AuthenticatedRequest, res: R
     );
 
     // Filter slots to only include working hours (8 AM - 9 PM)
-    const filteredSlots = slots.filter(slot => {
+    const filteredSlots = slots.filter((slot) => {
       const slotHour = slot.start.getHours();
       return slotHour >= 8 && slotHour < 21;
     });
 
-    res.json({ 
+    res.json({
       slots: filteredSlots,
-      connected: true 
+      connected: true,
     });
   } catch (error) {
     console.error('Error fetching free slots:', error);
@@ -323,10 +325,12 @@ router.get('/sync-health', authenticate, async (req: AuthenticatedRequest, res: 
       return;
     }
 
-    const { GracefulDegradationService } = await import('../../integrations/graceful-degradation-service');
+    const { GracefulDegradationService } = await import(
+      '../../integrations/graceful-degradation-service'
+    );
     const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
     const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
-    
+
     const circuitBreakerManager = CircuitBreakerManager.getInstance();
     const tokenHealthMonitor = TokenHealthMonitor.getInstance();
     const gracefulDegradationService = new GracefulDegradationService(

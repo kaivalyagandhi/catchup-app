@@ -354,10 +354,7 @@ export class GamificationServiceImpl implements GamificationService {
   async calculateNetworkHealth(userId: string): Promise<NetworkHealthBreakdown> {
     const distribution = await this.circleService.getCircleDistribution(userId);
     const totalCategorized =
-      distribution.inner +
-      distribution.close +
-      distribution.active +
-      distribution.casual;
+      distribution.inner + distribution.close + distribution.active + distribution.casual;
 
     // Calculate circle balance score (0-100)
     const circleBalanceScore = this.calculateCircleBalance(distribution);

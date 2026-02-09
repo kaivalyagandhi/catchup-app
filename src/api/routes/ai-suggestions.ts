@@ -16,100 +16,109 @@ const VALID_CIRCLES = ['inner', 'close', 'active', 'casual'];
  * Returns suggestions in format: { inner: [], close: [], active: [] }
  * Each suggestion has: { contactId, name, confidence, reasons }
  */
-router.get('/circle-suggestions', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.userId!;
-    console.log('[AI Suggestions] GET /circle-suggestions for userId:', userId);
-
-    // Get all uncategorized contacts
-    const { PostgresContactRepository } = await import('../../contacts/repository');
-    const contactRepo = new PostgresContactRepository();
-    const uncategorized = await contactRepo.findUncategorized(userId);
-    
-    console.log('[AI Suggestions] Found uncategorized contacts:', uncategorized.length);
-    
-    if (uncategorized.length === 0) {
-      console.log('[AI Suggestions] No uncategorized contacts, returning empty suggestions');
-      res.json({ suggestions: { inner: [], close: [], active: [], casual: [] } });
-      return;
-    }
-
-    // Limit to first 50 uncategorized contacts for performance
-    const targetContacts = uncategorized.slice(0, 50);
-    const targetContactIds = targetContacts.map((c: any) => c.id);
-
-    const aiService = new PostgresAISuggestionService();
-    
-    // Set a timeout for AI processing (15 seconds for GET)
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('AI suggestion timeout')), 15000);
-    });
-
-    const suggestionsPromise = aiService.batchAnalyze(userId, targetContactIds);
-
+router.get(
+  '/circle-suggestions',
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-      const flatSuggestions = await Promise.race([suggestionsPromise, timeoutPromise]) as any[];
-      
-      console.log('[AI Suggestions] Got flat suggestions:', flatSuggestions.length);
-      
-      // Group suggestions by circle
-      const grouped: { inner: any[], close: any[], active: any[], casual: any[] } = {
-        inner: [],
-        close: [],
-        active: [],
-        casual: []
-      };
-      
-      // Create a map of contact IDs to names
-      const contactNameMap = new Map<string, string>();
-      targetContacts.forEach((c: any) => {
-        contactNameMap.set(c.id, c.name || 'Unknown');
+      const userId = req.userId!;
+      console.log('[AI Suggestions] GET /circle-suggestions for userId:', userId);
+
+      // Get all uncategorized contacts
+      const { PostgresContactRepository } = await import('../../contacts/repository');
+      const contactRepo = new PostgresContactRepository();
+      const uncategorized = await contactRepo.findUncategorized(userId);
+
+      console.log('[AI Suggestions] Found uncategorized contacts:', uncategorized.length);
+
+      if (uncategorized.length === 0) {
+        console.log('[AI Suggestions] No uncategorized contacts, returning empty suggestions');
+        res.json({ suggestions: { inner: [], close: [], active: [], casual: [] } });
+        return;
+      }
+
+      // Limit to first 50 uncategorized contacts for performance
+      const targetContacts = uncategorized.slice(0, 50);
+      const targetContactIds = targetContacts.map((c: any) => c.id);
+
+      const aiService = new PostgresAISuggestionService();
+
+      // Set a timeout for AI processing (15 seconds for GET)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('AI suggestion timeout')), 15000);
       });
-      
-      // Group suggestions by their suggested circle
-      flatSuggestions.forEach((suggestion: any) => {
-        const circle = suggestion.suggestedCircle || suggestion.circle;
-        console.log('[AI Suggestions] Processing suggestion:', suggestion.contactId, 'circle:', circle);
-        if (circle && grouped[circle as keyof typeof grouped]) {
-          grouped[circle as keyof typeof grouped].push({
-            contactId: suggestion.contactId,
-            name: contactNameMap.get(suggestion.contactId) || 'Unknown',
-            confidence: suggestion.confidence || 0.7,
-            reasons: suggestion.factors?.map((f: any) => f.description) || suggestion.reasons || ['AI suggested']
-          });
-        }
-      });
-      
-      // Sort each circle by confidence (highest first) and limit to 5 per circle
-      Object.keys(grouped).forEach(circle => {
-        grouped[circle as keyof typeof grouped] = grouped[circle as keyof typeof grouped]
-          .sort((a, b) => b.confidence - a.confidence)
-          .slice(0, 5);
-      });
-      
-      console.log('[AI Suggestions] Grouped suggestions:', {
-        inner: grouped.inner.length,
-        close: grouped.close.length,
-        active: grouped.active.length,
-        casual: grouped.casual.length
-      });
-      
-      res.json({ suggestions: grouped });
-    } catch (timeoutError) {
-      console.error('AI suggestion timeout:', timeoutError);
-      res.json({ 
+
+      const suggestionsPromise = aiService.batchAnalyze(userId, targetContactIds);
+
+      try {
+        const flatSuggestions = (await Promise.race([suggestionsPromise, timeoutPromise])) as any[];
+
+        console.log('[AI Suggestions] Got flat suggestions:', flatSuggestions.length);
+
+        // Group suggestions by circle
+        const grouped: { inner: any[]; close: any[]; active: any[]; casual: any[] } = {
+          inner: [],
+          close: [],
+          active: [],
+          casual: [],
+        };
+
+        // Create a map of contact IDs to names
+        const contactNameMap = new Map<string, string>();
+        targetContacts.forEach((c: any) => {
+          contactNameMap.set(c.id, c.name || 'Unknown');
+        });
+
+        // Group suggestions by their suggested circle
+        flatSuggestions.forEach((suggestion: any) => {
+          const circle = suggestion.suggestedCircle || suggestion.circle;
+          console.log(
+            '[AI Suggestions] Processing suggestion:',
+            suggestion.contactId,
+            'circle:',
+            circle
+          );
+          if (circle && grouped[circle as keyof typeof grouped]) {
+            grouped[circle as keyof typeof grouped].push({
+              contactId: suggestion.contactId,
+              name: contactNameMap.get(suggestion.contactId) || 'Unknown',
+              confidence: suggestion.confidence || 0.7,
+              reasons: suggestion.factors?.map((f: any) => f.description) ||
+                suggestion.reasons || ['AI suggested'],
+            });
+          }
+        });
+
+        // Sort each circle by confidence (highest first) and limit to 5 per circle
+        Object.keys(grouped).forEach((circle) => {
+          grouped[circle as keyof typeof grouped] = grouped[circle as keyof typeof grouped]
+            .sort((a, b) => b.confidence - a.confidence)
+            .slice(0, 5);
+        });
+
+        console.log('[AI Suggestions] Grouped suggestions:', {
+          inner: grouped.inner.length,
+          close: grouped.close.length,
+          active: grouped.active.length,
+          casual: grouped.casual.length,
+        });
+
+        res.json({ suggestions: grouped });
+      } catch (timeoutError) {
+        console.error('AI suggestion timeout:', timeoutError);
+        res.json({
+          suggestions: { inner: [], close: [], active: [], casual: [] },
+          warning: 'AI suggestion service timed out.',
+        });
+      }
+    } catch (error) {
+      console.error('Error getting circle suggestions:', error);
+      res.json({
         suggestions: { inner: [], close: [], active: [], casual: [] },
-        warning: 'AI suggestion service timed out.'
+        error: 'Failed to get AI suggestions.',
       });
     }
-  } catch (error) {
-    console.error('Error getting circle suggestions:', error);
-    res.json({ 
-      suggestions: { inner: [], close: [], active: [], casual: [] },
-      error: 'Failed to get AI suggestions.'
-    });
   }
-});
+);
 
 /**
  * POST /api/ai/circle-suggestions
@@ -119,65 +128,68 @@ router.get('/circle-suggestions', async (req: AuthenticatedRequest, res: Respons
  * Handle timeouts and errors gracefully
  * Requirements: 8.1, 8.2, 8.3, 9.1
  */
-router.post('/circle-suggestions', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.userId!;
-    const { contactIds } = req.body;
+router.post(
+  '/circle-suggestions',
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.userId!;
+      const { contactIds } = req.body;
 
-    // If no contactIds provided, generate suggestions for all uncategorized contacts
-    let targetContactIds = contactIds;
-    
-    if (!targetContactIds || !Array.isArray(targetContactIds) || targetContactIds.length === 0) {
-      // Get all uncategorized contacts
-      const { PostgresContactRepository } = await import('../../contacts/repository');
-      const contactRepo = new PostgresContactRepository();
-      const uncategorized = await contactRepo.findUncategorized(userId);
-      targetContactIds = uncategorized.map((c: any) => c.id);
-      
-      if (targetContactIds.length === 0) {
-        res.json({ suggestions: [] });
+      // If no contactIds provided, generate suggestions for all uncategorized contacts
+      let targetContactIds = contactIds;
+
+      if (!targetContactIds || !Array.isArray(targetContactIds) || targetContactIds.length === 0) {
+        // Get all uncategorized contacts
+        const { PostgresContactRepository } = await import('../../contacts/repository');
+        const contactRepo = new PostgresContactRepository();
+        const uncategorized = await contactRepo.findUncategorized(userId);
+        targetContactIds = uncategorized.map((c: any) => c.id);
+
+        if (targetContactIds.length === 0) {
+          res.json({ suggestions: [] });
+          return;
+        }
+      }
+
+      // Limit batch size to prevent overwhelming the system
+      const MAX_BATCH_SIZE = 100;
+      if (targetContactIds.length > MAX_BATCH_SIZE) {
+        res.status(400).json({
+          error: `Batch size cannot exceed ${MAX_BATCH_SIZE} contacts`,
+        });
         return;
       }
-    }
 
-    // Limit batch size to prevent overwhelming the system
-    const MAX_BATCH_SIZE = 100;
-    if (targetContactIds.length > MAX_BATCH_SIZE) {
-      res.status(400).json({
-        error: `Batch size cannot exceed ${MAX_BATCH_SIZE} contacts`,
+      const aiService = new PostgresAISuggestionService();
+
+      // Set a timeout for AI processing (30 seconds)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('AI suggestion timeout')), 30000);
       });
-      return;
-    }
 
-    const aiService = new PostgresAISuggestionService();
-    
-    // Set a timeout for AI processing (30 seconds)
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('AI suggestion timeout')), 30000);
-    });
+      const suggestionsPromise = aiService.batchAnalyze(userId, targetContactIds);
 
-    const suggestionsPromise = aiService.batchAnalyze(userId, targetContactIds);
-
-    try {
-      const suggestions = await Promise.race([suggestionsPromise, timeoutPromise]);
-      res.json({ suggestions });
-    } catch (timeoutError) {
-      console.error('AI suggestion timeout:', timeoutError);
-      // Return empty suggestions on timeout
-      res.json({ 
+      try {
+        const suggestions = await Promise.race([suggestionsPromise, timeoutPromise]);
+        res.json({ suggestions });
+      } catch (timeoutError) {
+        console.error('AI suggestion timeout:', timeoutError);
+        // Return empty suggestions on timeout
+        res.json({
+          suggestions: [],
+          warning: 'AI suggestion service timed out. Please try again with fewer contacts.',
+        });
+      }
+    } catch (error) {
+      console.error('Error generating circle suggestions:', error);
+      // Handle errors gracefully - return empty suggestions instead of failing
+      res.json({
         suggestions: [],
-        warning: 'AI suggestion service timed out. Please try again with fewer contacts.'
+        error: 'Failed to generate AI suggestions. You can still assign circles manually.',
       });
     }
-  } catch (error) {
-    console.error('Error generating circle suggestions:', error);
-    // Handle errors gracefully - return empty suggestions instead of failing
-    res.json({ 
-      suggestions: [],
-      error: 'Failed to generate AI suggestions. You can still assign circles manually.'
-    });
   }
-});
+);
 
 /**
  * POST /api/ai/suggest-circle

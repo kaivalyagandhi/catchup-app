@@ -61,9 +61,7 @@ export async function notifyPlanFinalized(planId: string): Promise<void> {
   }
 
   const activityLabel = plan.activityType || 'catchup';
-  const timeStr = plan.finalizedTime
-    ? new Date(plan.finalizedTime).toLocaleString()
-    : 'TBD';
+  const timeStr = plan.finalizedTime ? new Date(plan.finalizedTime).toLocaleString() : 'TBD';
 
   // Notify the plan initiator
   await notificationRepository.createNotification({

@@ -39,28 +39,28 @@ export function isValidUUID(value: string): boolean {
 export function sanitizeString(value: string, maxLength: number = 1000): string {
   // Trim whitespace
   let sanitized = value.trim();
-  
+
   // Remove HTML tags but keep the tag names (for security logging)
   sanitized = sanitized.replace(/<([^>]*)>/g, '$1');
-  
+
   // Limit length
   if (sanitized.length > maxLength) {
     sanitized = sanitized.substring(0, maxLength);
   }
-  
+
   return sanitized;
 }
 
 // Simple validation functions
 export function validateCircle(circle: string): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   if (!circle || circle.trim() === '') {
     errors.circle = 'Circle is required';
   } else if (!VALID_CIRCLES.includes(circle)) {
     errors.circle = `Invalid circle. Must be one of: ${VALID_CIRCLES.join(', ')}`;
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -69,11 +69,11 @@ export function validateCircle(circle: string): SimpleValidationResult {
 
 export function validateStep(step: string): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   if (!step || !VALID_STEPS.includes(step)) {
     errors.step = `Invalid step. Must be one of: ${VALID_STEPS.join(', ')}`;
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -82,11 +82,11 @@ export function validateStep(step: string): SimpleValidationResult {
 
 export function validateTrigger(trigger: string): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   if (!trigger || !VALID_TRIGGERS.includes(trigger)) {
     errors.trigger = `Invalid trigger. Must be one of: ${VALID_TRIGGERS.join(', ')}`;
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -95,11 +95,11 @@ export function validateTrigger(trigger: string): SimpleValidationResult {
 
 export function validateFrequency(frequency: string): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   if (!frequency || !VALID_FREQUENCIES.includes(frequency)) {
     errors.frequency = `Invalid frequency. Must be one of: ${VALID_FREQUENCIES.join(', ')}`;
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -108,11 +108,11 @@ export function validateFrequency(frequency: string): SimpleValidationResult {
 
 export function validateContactId(contactId: string): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   if (!contactId || !isValidUUID(contactId)) {
     errors.contactId = 'Invalid contact ID. Must be a valid UUID';
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -121,11 +121,11 @@ export function validateContactId(contactId: string): SimpleValidationResult {
 
 export function validateUserId(userId: string): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   if (!userId || !isValidUUID(userId)) {
     errors.userId = 'Invalid user ID. Must be a valid UUID';
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -139,31 +139,35 @@ export function validateCircleAssignment(assignment: {
   userOverride?: boolean;
 }): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   // Validate contact ID
   const contactIdResult = validateContactId(assignment.contactId);
   if (!contactIdResult.valid) {
     Object.assign(errors, contactIdResult.errors);
   }
-  
+
   // Validate circle
   const circleResult = validateCircle(assignment.circle);
   if (!circleResult.valid) {
     Object.assign(errors, circleResult.errors);
   }
-  
+
   // Validate confidence if provided
   if (assignment.confidence !== undefined) {
-    if (typeof assignment.confidence !== 'number' || assignment.confidence < 0 || assignment.confidence > 1) {
+    if (
+      typeof assignment.confidence !== 'number' ||
+      assignment.confidence < 0 ||
+      assignment.confidence > 1
+    ) {
       errors.confidence = 'Confidence must be a number between 0 and 1';
     }
   }
-  
+
   // Validate userOverride if provided
   if (assignment.userOverride !== undefined && typeof assignment.userOverride !== 'boolean') {
     errors.userOverride = 'userOverride must be a boolean';
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -172,22 +176,22 @@ export function validateCircleAssignment(assignment: {
 
 export function validateBatchCircleAssignment(assignments: any): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   if (!Array.isArray(assignments)) {
     errors.assignments = 'Assignments must be an array';
     return { valid: false, errors };
   }
-  
+
   if (assignments.length === 0) {
     errors.assignments = 'Assignments array cannot be empty';
     return { valid: false, errors };
   }
-  
+
   if (assignments.length > 100) {
     errors.assignments = 'Cannot assign more than 100 contacts at once';
     return { valid: false, errors };
   }
-  
+
   // Validate each assignment
   assignments.forEach((assignment, index) => {
     const result = validateCircleAssignment(assignment);
@@ -197,7 +201,7 @@ export function validateBatchCircleAssignment(assignments: any): SimpleValidatio
       });
     }
   });
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -210,26 +214,30 @@ export function validatePreference(preference: {
   customDays?: number;
 }): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   // Validate contact ID
   const contactIdResult = validateContactId(preference.contactId);
   if (!contactIdResult.valid) {
     Object.assign(errors, contactIdResult.errors);
   }
-  
+
   // Validate frequency
   const frequencyResult = validateFrequency(preference.frequency);
   if (!frequencyResult.valid) {
     Object.assign(errors, frequencyResult.errors);
   }
-  
+
   // Validate custom days if provided
   if (preference.customDays !== undefined) {
-    if (typeof preference.customDays !== 'number' || preference.customDays < 1 || preference.customDays > 365) {
+    if (
+      typeof preference.customDays !== 'number' ||
+      preference.customDays < 1 ||
+      preference.customDays > 365
+    ) {
       errors.customDays = 'Custom days must be a number between 1 and 365';
     }
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -242,25 +250,29 @@ export function validateOnboardingInit(init: {
   contactCount?: number;
 }): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   // Validate trigger
   const triggerResult = validateTrigger(init.trigger);
   if (!triggerResult.valid) {
     Object.assign(errors, triggerResult.errors);
   }
-  
+
   // Validate source if provided
   if (init.source && !VALID_SOURCES.includes(init.source)) {
     errors.source = `Invalid source. Must be one of: ${VALID_SOURCES.join(', ')}`;
   }
-  
+
   // Validate contact count if provided
   if (init.contactCount !== undefined) {
-    if (typeof init.contactCount !== 'number' || init.contactCount < 0 || init.contactCount > 10000) {
+    if (
+      typeof init.contactCount !== 'number' ||
+      init.contactCount < 0 ||
+      init.contactCount > 10000
+    ) {
       errors.contactCount = 'Contact count must be a number between 0 and 10000';
     }
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -272,18 +284,18 @@ export function validateProgressUpdate(update: {
   data: any;
 }): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   // Validate step
   const stepResult = validateStep(update.step);
   if (!stepResult.valid) {
     Object.assign(errors, stepResult.errors);
   }
-  
+
   // Validate data
   if (typeof update.data !== 'object' || update.data === null || Array.isArray(update.data)) {
     errors.data = 'Data must be an object';
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -296,18 +308,18 @@ export function validateWeeklyCatchupReview(review: {
   newCircle?: string;
 }): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   // Validate contact ID
   const contactIdResult = validateContactId(review.contactId);
   if (!contactIdResult.valid) {
     Object.assign(errors, contactIdResult.errors);
   }
-  
+
   // Validate action
   if (!review.action || !VALID_ACTIONS.includes(review.action)) {
     errors.action = `Invalid action. Must be one of: ${VALID_ACTIONS.join(', ')}`;
   }
-  
+
   // Validate new circle if provided
   if (review.newCircle) {
     const circleResult = validateCircle(review.newCircle);
@@ -315,7 +327,7 @@ export function validateWeeklyCatchupReview(review: {
       errors.circle = circleResult.errors.circle;
     }
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -324,28 +336,28 @@ export function validateWeeklyCatchupReview(review: {
 
 export function validateContactIds(contactIds: any): SimpleValidationResult {
   const errors: Record<string, string> = {};
-  
+
   if (!Array.isArray(contactIds)) {
     errors.contactIds = 'Contact IDs must be an array';
     return { valid: false, errors };
   }
-  
+
   if (contactIds.length === 0) {
     errors.contactIds = 'Contact IDs array cannot be empty';
     return { valid: false, errors };
   }
-  
+
   if (contactIds.length > 1000) {
     errors.contactIds = 'Cannot process more than 1000 contact IDs at once';
     return { valid: false, errors };
   }
-  
+
   // Validate each ID
   const invalidIds = contactIds.filter((id) => !isValidUUID(id));
   if (invalidIds.length > 0) {
     errors.contactIds = `Invalid UUIDs found: ${invalidIds.slice(0, 5).join(', ')}${invalidIds.length > 5 ? '...' : ''}`;
   }
-  
+
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -357,10 +369,7 @@ export class OnboardingValidator {
    * Validate circle assignment
    * Requirements: All requirements (data integrity)
    */
-  static validateCircleAssignment(
-    contactId: number,
-    circle: string | null
-  ): ValidationResult {
+  static validateCircleAssignment(contactId: number, circle: string | null): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -372,7 +381,9 @@ export class OnboardingValidator {
     // Validate circle value
     const validCircles = ['inner', 'close', 'active', 'casual', null];
     if (circle !== null && !validCircles.includes(circle)) {
-      errors.push(`Invalid circle value: ${circle}. Must be one of: inner, close, active, casual, or null`);
+      errors.push(
+        `Invalid circle value: ${circle}. Must be one of: inner, close, active, casual, or null`
+      );
     }
 
     return {
@@ -441,9 +452,7 @@ export class OnboardingValidator {
         }
 
         // Validate logical consistency
-        if (
-          state.steps.circles.contactsCategorized > state.steps.circles.totalContacts
-        ) {
+        if (state.steps.circles.contactsCategorized > state.steps.circles.totalContacts) {
           errors.push('contactsCategorized cannot exceed totalContacts');
         }
       }
@@ -491,9 +500,7 @@ export class OnboardingValidator {
         !state.steps.circles?.complete ||
         !state.steps.groups?.complete
       ) {
-        warnings.push(
-          'isComplete is true but not all steps are marked complete'
-        );
+        warnings.push('isComplete is true but not all steps are marked complete');
       }
     }
 
@@ -545,10 +552,7 @@ export class OnboardingValidator {
    * Validate group mapping
    * Requirements: All requirements (data integrity)
    */
-  static validateGroupMapping(
-    googleGroupId: string,
-    catchupGroupId: string
-  ): ValidationResult {
+  static validateGroupMapping(googleGroupId: string, catchupGroupId: string): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -588,9 +592,7 @@ export class OnboardingValidator {
         const percentCategorized =
           state.steps.circles.contactsCategorized / state.steps.circles.totalContacts;
         if (percentCategorized < 0.5) {
-          warnings.push(
-            'Step 2 marked complete but less than 50% of contacts are categorized'
-          );
+          warnings.push('Step 2 marked complete but less than 50% of contacts are categorized');
         }
       }
     }
@@ -599,9 +601,7 @@ export class OnboardingValidator {
     if (state.steps.groups.complete) {
       if (state.steps.groups.totalMappings > 0) {
         if (state.steps.groups.mappingsReviewed < state.steps.groups.totalMappings) {
-          warnings.push(
-            'Step 3 marked complete but not all mappings are reviewed'
-          );
+          warnings.push('Step 3 marked complete but not all mappings are reviewed');
         }
       }
     }
@@ -630,7 +630,8 @@ export class OnboardingValidator {
   static showValidationErrors(result: ValidationResult): void {
     if (typeof window === 'undefined') return;
 
-    const showToast = (window as Window & { showToast?: (msg: string, type: string) => void }).showToast;
+    const showToast = (window as Window & { showToast?: (msg: string, type: string) => void })
+      .showToast;
 
     if (typeof showToast === 'function') {
       // Show errors
@@ -651,9 +652,7 @@ export class OnboardingValidator {
 }
 
 // Export convenience functions for OnboardingValidator class methods
-export function validateOnboardingStateComplex(
-  state: Partial<OnboardingState>
-): ValidationResult {
+export function validateOnboardingStateComplex(state: Partial<OnboardingState>): ValidationResult {
   return OnboardingValidator.validateOnboardingState(state);
 }
 

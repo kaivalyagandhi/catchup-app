@@ -79,6 +79,9 @@ class SyncHealthDashboard {
       // Update UI with metrics
       this.updateMetrics(metrics);
 
+      // Load Redis health status
+      await this.loadRedisHealth();
+
       // Update last refresh time
       this.updateLastRefreshTime();
 
@@ -100,6 +103,76 @@ class SyncHealthDashboard {
       `;
       
       loadingEl.style.display = 'none';
+    }
+  }
+
+  /**
+   * Load Redis health status from /health endpoint
+   */
+  async loadRedisHealth() {
+    try {
+      const response = await fetch('/health');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch health status');
+      }
+
+      const health = await response.json();
+
+      // Update Redis status
+      this.updateRedisHealth(health.checks);
+
+    } catch (error) {
+      console.error('Error loading Redis health:', error);
+      
+      // Show error state
+      document.getElementById('redis-status-text').textContent = 'Error';
+      document.getElementById('redis-status-indicator').className = 'status-indicator status-error';
+      document.getElementById('redis-host').textContent = 'Unknown';
+      document.getElementById('redis-port').textContent = 'Unknown';
+      document.getElementById('redis-tls').textContent = 'Unknown';
+    }
+  }
+
+  /**
+   * Update Redis health display
+   */
+  updateRedisHealth(checks) {
+    const statusText = document.getElementById('redis-status-text');
+    const statusIndicator = document.getElementById('redis-status-indicator');
+    const hostEl = document.getElementById('redis-host');
+    const portEl = document.getElementById('redis-port');
+    const tlsEl = document.getElementById('redis-tls');
+
+    // Update status
+    if (checks.redis === 'healthy') {
+      statusText.textContent = 'Healthy';
+      statusIndicator.className = 'status-indicator status-good';
+    } else if (checks.redis === 'unhealthy') {
+      statusText.textContent = 'Unhealthy';
+      statusIndicator.className = 'status-indicator status-error';
+    } else {
+      statusText.textContent = 'Unknown';
+      statusIndicator.className = 'status-indicator status-warning';
+    }
+
+    // Update configuration
+    if (checks.redisConfig) {
+      hostEl.textContent = checks.redisConfig.host || 'Unknown';
+      portEl.textContent = checks.redisConfig.port || 'Unknown';
+      tlsEl.textContent = checks.redisConfig.tls === 'enabled' ? '✓ Enabled' : '✗ Disabled';
+      
+      // Color code TLS status
+      if (checks.redisConfig.tls === 'enabled') {
+        tlsEl.style.color = 'var(--status-success, #4caf50)';
+        tlsEl.style.fontWeight = '600';
+      } else {
+        tlsEl.style.color = 'var(--status-warning, #ff9800)';
+      }
+    } else {
+      hostEl.textContent = 'Unknown';
+      portEl.textContent = 'Unknown';
+      tlsEl.textContent = 'Unknown';
     }
   }
 

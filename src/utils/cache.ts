@@ -20,16 +20,37 @@ const redisConfig: RedisOptions = {
   maxRetriesPerRequest: 3,
 };
 
+// Log Redis configuration on startup (without password)
+console.log('[Redis Cache] Connecting to Redis:', {
+  host: redisConfig.host,
+  port: redisConfig.port,
+  db: redisConfig.db,
+  tls: redisConfig.tls ? 'enabled' : 'disabled',
+  passwordSet: !!redisConfig.password,
+});
+
 // Create Redis client
 const redis = new Redis(redisConfig);
 
-// Handle Redis errors
+// Handle Redis events
 redis.on('error', (err) => {
-  console.error('Redis connection error:', err);
+  console.error('[Redis Cache] Connection error:', err.message);
 });
 
 redis.on('connect', () => {
-  console.log('Redis connected successfully');
+  console.log('[Redis Cache] Connected to Redis successfully');
+});
+
+redis.on('ready', () => {
+  console.log('[Redis Cache] Redis client ready');
+});
+
+redis.on('close', () => {
+  console.log('[Redis Cache] Redis connection closed');
+});
+
+redis.on('reconnecting', () => {
+  console.log('[Redis Cache] Reconnecting to Redis...');
 });
 
 /**

@@ -53,8 +53,7 @@ router.post('/manual', authenticate, async (req: AuthenticatedRequest, res: Resp
       return;
     }
 
-    const integrationType =
-      integration_type === 'contacts' ? 'google_contacts' : 'google_calendar';
+    const integrationType = integration_type === 'contacts' ? 'google_contacts' : 'google_calendar';
 
     console.log(
       `[ManualSync] Manual sync requested for user ${req.userId}, integration ${integrationType}`

@@ -62,7 +62,7 @@ export const CIRCLE_DEFINITIONS = {
   inner: {
     id: 'inner' as DunbarCircle,
     name: 'Inner Circle',
-    description: 'Your closest confidants—people you\'d call in a crisis',
+    description: "Your closest confidants—people you'd call in a crisis",
     recommendedSize: 10,
     maxSize: 10,
     defaultFrequency: 'weekly',
@@ -182,7 +182,7 @@ export class CircleAssignmentServiceImpl implements CircleAssignmentService {
   /**
    * Batch assign contacts to circles
    * Requirements: 5.5, 17.6
-   * 
+   *
    * All assignments succeed or all fail (atomic transaction).
    */
   async batchAssign(

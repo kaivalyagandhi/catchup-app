@@ -20,18 +20,20 @@ router.get('/circle-counts', async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const { CircleAssignmentServiceImpl } = await import('../../contacts/circle-assignment-service');
+    const { CircleAssignmentServiceImpl } = await import(
+      '../../contacts/circle-assignment-service'
+    );
     const circleService = new CircleAssignmentServiceImpl();
     const distribution = await circleService.getCircleDistribution(userId as string);
-    
+
     // Return only the four circle counts as expected by the frontend
     const circleCounts = {
       inner: distribution.inner,
       close: distribution.close,
       active: distribution.active,
-      casual: distribution.casual
+      casual: distribution.casual,
     };
-    
+
     res.json(circleCounts);
   } catch (error) {
     console.error('Error fetching circle counts:', error);
@@ -269,10 +271,12 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response): 
 
     // Include sync status if requested (for graceful degradation)
     if (includeSyncStatus === 'true') {
-      const { GracefulDegradationService } = await import('../../integrations/graceful-degradation-service');
+      const { GracefulDegradationService } = await import(
+        '../../integrations/graceful-degradation-service'
+      );
       const { CircuitBreakerManager } = await import('../../integrations/circuit-breaker-manager');
       const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
-      
+
       const circuitBreakerManager = CircuitBreakerManager.getInstance();
       const tokenHealthMonitor = TokenHealthMonitor.getInstance();
       const gracefulDegradationService = new GracefulDegradationService(
@@ -388,16 +392,18 @@ router.post('/:id/circle', async (req: Request, res: Response): Promise<void> =>
 
     const validCircles = ['inner', 'close', 'active', 'casual'];
     if (!validCircles.includes(circle)) {
-      res.status(400).json({ 
-        error: `Invalid circle. Must be one of: ${validCircles.join(', ')}` 
+      res.status(400).json({
+        error: `Invalid circle. Must be one of: ${validCircles.join(', ')}`,
       });
       return;
     }
 
-    const { CircleAssignmentServiceImpl } = await import('../../contacts/circle-assignment-service');
+    const { CircleAssignmentServiceImpl } = await import(
+      '../../contacts/circle-assignment-service'
+    );
     const circleService = new CircleAssignmentServiceImpl();
     await circleService.assignToCircle(userId, req.params.id, circle);
-    
+
     res.status(204).send();
   } catch (error) {
     console.error('Error assigning contact to circle:', error);
@@ -419,23 +425,23 @@ router.put('/:id/circle', async (req: Request, res: Response): Promise<void> => 
     if (circle !== null && circle !== undefined) {
       const validCircles = ['inner', 'close', 'active', 'casual'];
       if (!validCircles.includes(circle)) {
-        res.status(400).json({ 
-          error: `Invalid circle. Must be one of: ${validCircles.join(', ')} or null` 
+        res.status(400).json({
+          error: `Invalid circle. Must be one of: ${validCircles.join(', ')} or null`,
         });
         return;
       }
     }
 
     const contactService = new ContactServiceImpl();
-    const contact = await contactService.updateContact(req.params.id, userId, { 
-      dunbarCircle: circle
+    const contact = await contactService.updateContact(req.params.id, userId, {
+      dunbarCircle: circle,
     });
 
     if (!contact) {
       res.status(404).json({ error: 'Contact not found' });
       return;
     }
-    
+
     res.status(204).send();
   } catch (error) {
     console.error('Error updating contact circle:', error);
@@ -491,10 +497,12 @@ router.get('/circles/counts', async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const { CircleAssignmentServiceImpl } = await import('../../contacts/circle-assignment-service');
+    const { CircleAssignmentServiceImpl } = await import(
+      '../../contacts/circle-assignment-service'
+    );
     const circleService = new CircleAssignmentServiceImpl();
     const distribution = await circleService.getCircleDistribution(userId as string);
-    
+
     res.json(distribution);
   } catch (error) {
     console.error('Error fetching circle counts:', error);
@@ -507,12 +515,12 @@ router.get('/circles/counts', async (req: Request, res: Response): Promise<void>
 router.post('/circles/bulk', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, assignments } = req.body;
-    
+
     if (!userId) {
       res.status(400).json({ error: 'userId is required' });
       return;
     }
-    
+
     if (!assignments || !Array.isArray(assignments)) {
       res.status(400).json({ error: 'assignments array is required' });
       return;
@@ -535,17 +543,19 @@ router.post('/circles/bulk', async (req: Request, res: Response): Promise<void> 
         return;
       }
       if (!validCircles.includes(assignment.circle)) {
-        res.status(400).json({ 
-          error: `Invalid circle "${assignment.circle}". Must be one of: ${validCircles.join(', ')}` 
+        res.status(400).json({
+          error: `Invalid circle "${assignment.circle}". Must be one of: ${validCircles.join(', ')}`,
         });
         return;
       }
     }
 
-    const { CircleAssignmentServiceImpl } = await import('../../contacts/circle-assignment-service');
+    const { CircleAssignmentServiceImpl } = await import(
+      '../../contacts/circle-assignment-service'
+    );
     const circleService = new CircleAssignmentServiceImpl();
     await circleService.batchAssign(userId, assignments);
-    
+
     res.status(204).send();
   } catch (error) {
     console.error('Error bulk assigning contacts to circles:', error);

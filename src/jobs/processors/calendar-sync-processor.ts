@@ -71,9 +71,7 @@ export async function processCalendarSync(
       console.log(
         `Sync skipped for user ${userId}: ${orchestratorResult.skipReason || 'unknown reason'}`
       );
-      result.errors.push(
-        `Sync skipped: ${orchestratorResult.skipReason || 'unknown reason'}`
-      );
+      result.errors.push(`Sync skipped: ${orchestratorResult.skipReason || 'unknown reason'}`);
       return result;
     }
 

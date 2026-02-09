@@ -75,7 +75,10 @@ export class OnboardingNetworkManager {
       if (online) {
         windowWithToast.showToast('Connection restored. Syncing your progress...', 'success');
       } else {
-        windowWithToast.showToast('You\'re offline. Changes will sync when connection is restored.', 'warning');
+        windowWithToast.showToast(
+          "You're offline. Changes will sync when connection is restored.",
+          'warning'
+        );
       }
     }
   }
@@ -135,7 +138,9 @@ export class OnboardingNetworkManager {
           console.error(`Max retries exceeded for item ${item.id}, removing from queue`);
           successfulIds.push(item.id); // Remove it
         } else {
-          console.log(`Will retry item ${item.id} (attempt ${item.retryCount}/${OnboardingNetworkManager.MAX_RETRIES})`);
+          console.log(
+            `Will retry item ${item.id} (attempt ${item.retryCount}/${OnboardingNetworkManager.MAX_RETRIES})`
+          );
         }
       }
     }
@@ -148,7 +153,9 @@ export class OnboardingNetworkManager {
 
     // Show success message if queue is now empty
     if (this.syncQueue.length === 0 && successfulIds.length > 0) {
-      const windowWithToast = window as Window & { showToast?: (msg: string, type: string) => void };
+      const windowWithToast = window as Window & {
+        showToast?: (msg: string, type: string) => void;
+      };
       if (windowWithToast.showToast) {
         windowWithToast.showToast('All changes synced successfully', 'success');
       }

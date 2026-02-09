@@ -123,56 +123,64 @@ router.post('/plans/:id/initiator-availability', async (req: Request, res: Respo
  * GET /api/scheduling/plans/:id/availability - Get all availability for dashboard
  * This endpoint requires authentication
  */
-router.get('/plans/:id/availability', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params;
+router.get(
+  '/plans/:id/availability',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
 
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
+      if (!req.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
 
-    const availability = await availabilityCollectionService.getAvailabilityForPlan(
-      id,
-      req.userId
-    );
-    res.json(availability);
-  } catch (error: any) {
-    console.error('Error getting availability:', error);
-    if (error.message.includes('not found') || error.message.includes('access denied')) {
-      return res.status(404).json({ error: 'Plan not found' });
+      const availability = await availabilityCollectionService.getAvailabilityForPlan(
+        id,
+        req.userId
+      );
+      res.json(availability);
+    } catch (error: any) {
+      console.error('Error getting availability:', error);
+      if (error.message.includes('not found') || error.message.includes('access denied')) {
+        return res.status(404).json({ error: 'Plan not found' });
+      }
+      res.status(500).json({ error: 'Failed to get availability' });
     }
-    res.status(500).json({ error: 'Failed to get availability' });
   }
-});
+);
 
 /**
  * GET /api/scheduling/plans/:id/overlaps - Get overlap calculations
  * This endpoint requires authentication
  */
-router.get('/plans/:id/overlaps', authenticate, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params;
+router.get(
+  '/plans/:id/overlaps',
+  authenticate,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
 
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      if (!req.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const overlaps = await availabilityCollectionService.calculateOverlaps(id, req.userId);
+
+      // Convert Map to object for JSON serialization
+      const overlapsObj: Record<string, any> = {};
+      overlaps.forEach((value, key) => {
+        overlapsObj[key] = value;
+      });
+
+      res.json(overlapsObj);
+    } catch (error: any) {
+      console.error('Error calculating overlaps:', error);
+      if (error.message.includes('not found') || error.message.includes('access denied')) {
+        return res.status(404).json({ error: 'Plan not found' });
+      }
+      res.status(500).json({ error: 'Failed to calculate overlaps' });
     }
-
-    const overlaps = await availabilityCollectionService.calculateOverlaps(id, req.userId);
-    
-    // Convert Map to object for JSON serialization
-    const overlapsObj: Record<string, any> = {};
-    overlaps.forEach((value, key) => {
-      overlapsObj[key] = value;
-    });
-
-    res.json(overlapsObj);
-  } catch (error: any) {
-    console.error('Error calculating overlaps:', error);
-    if (error.message.includes('not found') || error.message.includes('access denied')) {
-      return res.status(404).json({ error: 'Plan not found' });
-    }
-    res.status(500).json({ error: 'Failed to calculate overlaps' });
   }
-});
+);
 
 export default router;

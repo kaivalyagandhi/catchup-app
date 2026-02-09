@@ -113,12 +113,12 @@ router.put('/timezone', authenticate, async (req: AuthenticatedRequest, res: Res
     res.json({ success: true, timezone });
   } catch (error) {
     console.error('Error updating timezone preference:', error);
-    
+
     // Check if it's a validation error
     if (error instanceof Error && error.message.includes('Invalid timezone')) {
       return res.status(400).json({ error: error.message });
     }
-    
+
     res.status(500).json({ error: 'Failed to update timezone preference' });
   }
 });

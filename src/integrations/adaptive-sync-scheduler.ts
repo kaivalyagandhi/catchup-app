@@ -14,14 +14,14 @@ import { IntegrationType } from './token-health-monitor';
 export interface SyncSchedule {
   userId: string;
   integrationType: IntegrationType;
-  currentFrequency: number;        // in milliseconds
-  defaultFrequency: number;        // base frequency
-  minFrequency: number;            // minimum allowed
-  maxFrequency: number;            // maximum allowed
-  consecutiveNoChanges: number;    // counter for adaptive logic
+  currentFrequency: number; // in milliseconds
+  defaultFrequency: number; // base frequency
+  minFrequency: number; // minimum allowed
+  maxFrequency: number; // maximum allowed
+  consecutiveNoChanges: number; // counter for adaptive logic
   lastSyncAt: Date | null;
   nextSyncAt: Date;
-  onboardingUntil: Date | null;    // when onboarding period ends (24h after first connection)
+  onboardingUntil: Date | null; // when onboarding period ends (24h after first connection)
 }
 
 interface SyncScheduleRow {
@@ -47,17 +47,17 @@ interface SyncScheduleRow {
  */
 export const SYNC_FREQUENCIES = {
   contacts: {
-    default: 7 * 24 * 60 * 60 * 1000,  // 7 days (was 3 days)
-    min: 30 * 24 * 60 * 60 * 1000,     // 30 days (was 7 days)
-    max: 1 * 24 * 60 * 60 * 1000,      // 1 day (unchanged)
-    onboarding: 1 * 60 * 60 * 1000,    // 1 hour (new: for first 24h after connection)
+    default: 7 * 24 * 60 * 60 * 1000, // 7 days (was 3 days)
+    min: 30 * 24 * 60 * 60 * 1000, // 30 days (was 7 days)
+    max: 1 * 24 * 60 * 60 * 1000, // 1 day (unchanged)
+    onboarding: 1 * 60 * 60 * 1000, // 1 hour (new: for first 24h after connection)
   },
   calendar: {
-    default: 24 * 60 * 60 * 1000,      // 24 hours (was 4 hours)
-    min: 24 * 60 * 60 * 1000,          // 24 hours (was 4 hours)
-    max: 4 * 60 * 60 * 1000,           // 4 hours (was 1 hour)
+    default: 24 * 60 * 60 * 1000, // 24 hours (was 4 hours)
+    min: 24 * 60 * 60 * 1000, // 24 hours (was 4 hours)
+    max: 4 * 60 * 60 * 1000, // 4 hours (was 1 hour)
     webhookFallback: 12 * 60 * 60 * 1000, // 12 hours (was 8 hours, when webhook active)
-    onboarding: 2 * 60 * 60 * 1000,    // 2 hours (new: for first 24h after connection)
+    onboarding: 2 * 60 * 60 * 1000, // 2 hours (new: for first 24h after connection)
   },
 };
 
@@ -65,8 +65,8 @@ export const SYNC_FREQUENCIES = {
  * Exponential backoff configuration
  */
 const BACKOFF_CONFIG = {
-  initialDelay: 5 * 60 * 1000,      // 5 minutes
-  maxDelay: 24 * 60 * 60 * 1000,    // 24 hours
+  initialDelay: 5 * 60 * 1000, // 5 minutes
+  maxDelay: 24 * 60 * 60 * 1000, // 24 hours
   multiplier: 2,
 };
 
@@ -93,7 +93,7 @@ export class AdaptiveSyncScheduler {
    * Calculate next sync time based on change detection
    *
    * Requirements: 5.1, 5.2, 5.3, 5.5
-   * 
+   *
    * Onboarding Mitigation: During the first 24 hours after connection,
    * use onboarding frequency (1h for contacts, 2h for calendar) instead of adaptive logic.
    * Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 3: Onboarding-Specific Frequency"
@@ -119,20 +119,20 @@ export class AdaptiveSyncScheduler {
     }
 
     const now = new Date();
-    
+
     // Check if still in onboarding period
     const isOnboarding = schedule.onboardingUntil && now < schedule.onboardingUntil;
-    
+
     if (isOnboarding) {
       // During onboarding: use onboarding frequency, ignore adaptive logic
       const config = this.getFrequencyConfig(integrationType);
       const nextSyncAt = new Date(now.getTime() + config.onboarding);
-      
+
       console.log(
         `[AdaptiveSyncScheduler] User ${userId} (${integrationType}) in onboarding period. ` +
-        `Next sync in ${config.onboarding / (60 * 60 * 1000)}h at ${nextSyncAt.toISOString()}`
+          `Next sync in ${config.onboarding / (60 * 60 * 1000)}h at ${nextSyncAt.toISOString()}`
       );
-      
+
       // Update schedule with onboarding frequency
       await this.updateSchedule(
         userId,
@@ -142,10 +142,10 @@ export class AdaptiveSyncScheduler {
         now,
         nextSyncAt
       );
-      
+
       return nextSyncAt;
     }
-    
+
     // Past onboarding period: use normal adaptive logic
     let newFrequency = schedule.currentFrequency;
     let newConsecutiveNoChanges = schedule.consecutiveNoChanges;
@@ -225,12 +225,9 @@ export class AdaptiveSyncScheduler {
    *
    * Requirement 3.5: Backoff reset on success
    */
-  async resetBackoff(
-    userId: string,
-    integrationType: IntegrationType
-  ): Promise<void> {
+  async resetBackoff(userId: string, integrationType: IntegrationType): Promise<void> {
     const schedule = await this.getSchedule(userId, integrationType);
-    
+
     if (!schedule) {
       return;
     }
@@ -271,12 +268,9 @@ export class AdaptiveSyncScheduler {
   /**
    * Reset to default frequency (after changes detected)
    */
-  async resetToDefault(
-    userId: string,
-    integrationType: IntegrationType
-  ): Promise<void> {
+  async resetToDefault(userId: string, integrationType: IntegrationType): Promise<void> {
     const schedule = await this.getSchedule(userId, integrationType);
-    
+
     if (!schedule) {
       await this.initializeSchedule(userId, integrationType);
       return;
@@ -351,11 +345,9 @@ export class AdaptiveSyncScheduler {
    *
    * Requirements: 5.1, 5.2
    */
-  async getUsersDueForSync(
-    integrationType: IntegrationType
-  ): Promise<string[]> {
+  async getUsersDueForSync(integrationType: IntegrationType): Promise<string[]> {
     const now = new Date();
-    
+
     const result = await pool.query<{ user_id: string }>(
       `SELECT user_id FROM sync_schedule
        WHERE integration_type = $1
@@ -364,7 +356,7 @@ export class AdaptiveSyncScheduler {
       [integrationType, now]
     );
 
-    return result.rows.map(row => row.user_id);
+    return result.rows.map((row) => row.user_id);
   }
 
   /**
@@ -422,9 +414,9 @@ export class AdaptiveSyncScheduler {
   /**
    * Initialize sync schedule for a user with custom frequency
    * Public method for OAuth connection flows
-   * 
+   *
    * Requirements: 5.1, 6.3, 6.5
-   * 
+   *
    * Onboarding Mitigation: If this is a first connection, use onboarding frequency
    * (1h for contacts, 2h for calendar) for the first 24 hours.
    * Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 3: Onboarding-Specific Frequency"
@@ -436,14 +428,14 @@ export class AdaptiveSyncScheduler {
   ): Promise<void> {
     const config = this.getFrequencyConfig(integrationType);
     const now = new Date();
-    
+
     // Check if this is a first connection
     const isFirstConnection = await this.isFirstConnection(userId, integrationType);
-    
+
     // Determine frequency and onboarding period
     let frequency: number;
     let onboardingUntil: Date | null = null;
-    
+
     if (customFrequency) {
       // Custom frequency provided (e.g., webhook fallback)
       frequency = customFrequency;
@@ -453,13 +445,13 @@ export class AdaptiveSyncScheduler {
       onboardingUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
       console.log(
         `[AdaptiveSyncScheduler] First connection for user ${userId} (${integrationType}). ` +
-        `Using onboarding frequency: ${frequency / (60 * 60 * 1000)}h until ${onboardingUntil.toISOString()}`
+          `Using onboarding frequency: ${frequency / (60 * 60 * 1000)}h until ${onboardingUntil.toISOString()}`
       );
     } else {
       // Existing connection: use default frequency
       frequency = config.default;
     }
-    
+
     const nextSyncAt = new Date(now.getTime() + frequency);
 
     await pool.query(
@@ -496,13 +488,10 @@ export class AdaptiveSyncScheduler {
   /**
    * Remove sync schedule for a user
    * Used during disconnection flows
-   * 
+   *
    * Requirements: 5.1
    */
-  async removeSchedule(
-    userId: string,
-    integrationType: IntegrationType
-  ): Promise<void> {
+  async removeSchedule(userId: string, integrationType: IntegrationType): Promise<void> {
     await pool.query(
       `DELETE FROM sync_schedule 
        WHERE user_id = $1 AND integration_type = $2`,
@@ -513,14 +502,11 @@ export class AdaptiveSyncScheduler {
   /**
    * Check if this is the first connection for a user
    * Returns true if no previous syncs exist for this integration type
-   * 
+   *
    * Used for onboarding mitigation - immediate first sync
    * Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 1: Immediate First Sync"
    */
-  async isFirstConnection(
-    userId: string,
-    integrationType: IntegrationType
-  ): Promise<boolean> {
+  async isFirstConnection(userId: string, integrationType: IntegrationType): Promise<boolean> {
     if (integrationType === 'google_contacts') {
       // Check if user has any sync history in google_contacts_sync_state
       const result = await pool.query(

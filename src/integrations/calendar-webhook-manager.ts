@@ -260,7 +260,9 @@ export class CalendarWebhookManager {
       // Requirements: 6.2
       if (resourceState === 'sync') {
         // Initial confirmation - ignore
-        console.log(`[CalendarWebhookManager] Ignoring 'sync' notification for channel ${channelId}`);
+        console.log(
+          `[CalendarWebhookManager] Ignoring 'sync' notification for channel ${channelId}`
+        );
         return { userId: subscription.userId, shouldSync: false };
       } else if (resourceState === 'exists') {
         // Calendar data changed - trigger sync
@@ -537,7 +539,7 @@ export class CalendarWebhookManager {
         error
       );
       await this.deleteWebhookSubscription(userId);
-      
+
       // Restore normal polling frequency even if API call failed
       await adaptiveSyncScheduler.restoreNormalPollingFrequency(userId);
     }
@@ -647,4 +649,3 @@ export class CalendarWebhookManager {
 
 // Export singleton instance
 export const calendarWebhookManager = new CalendarWebhookManager();
-

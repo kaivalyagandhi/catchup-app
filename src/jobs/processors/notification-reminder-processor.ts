@@ -36,7 +36,9 @@ export async function processNotificationReminder(
   try {
     // Get notifications needing reminders
     const notifications = await notificationService.getNotificationsNeedingReminders();
-    console.log(`[Notification Reminder] Found ${notifications.length} notifications needing reminders`);
+    console.log(
+      `[Notification Reminder] Found ${notifications.length} notifications needing reminders`
+    );
 
     // Send reminder for each notification
     for (const notification of notifications) {

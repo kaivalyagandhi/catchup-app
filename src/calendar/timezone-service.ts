@@ -20,9 +20,9 @@ export interface TimezoneGroup {
  * Timezone information
  */
 export interface TimezoneInfo {
-  value: string;        // IANA timezone identifier
-  label: string;        // Display name
-  offset: string;       // UTC offset (e.g., "UTC-5")
+  value: string; // IANA timezone identifier
+  label: string; // Display name
+  offset: string; // UTC offset (e.g., "UTC-5")
 }
 
 /**
@@ -42,7 +42,7 @@ export interface ITimezoneService {
 export class TimezoneService implements ITimezoneService {
   /**
    * Convert a UTC date to user's timezone
-   * 
+   *
    * @param date - Date in UTC
    * @param userTimezone - IANA timezone identifier (e.g., "America/New_York")
    * @returns Date object representing the same moment in user's timezone
@@ -56,7 +56,7 @@ export class TimezoneService implements ITimezoneService {
 
   /**
    * Convert a date from user's timezone to UTC
-   * 
+   *
    * @param date - Date in user's timezone
    * @param userTimezone - IANA timezone identifier
    * @returns Date object in UTC
@@ -70,7 +70,7 @@ export class TimezoneService implements ITimezoneService {
 
   /**
    * Format a date in user's timezone
-   * 
+   *
    * @param date - Date to format
    * @param userTimezone - IANA timezone identifier
    * @param formatStr - Format string (date-fns format)
@@ -85,7 +85,7 @@ export class TimezoneService implements ITimezoneService {
 
   /**
    * Get list of all supported timezones grouped by region
-   * 
+   *
    * @returns Array of timezone groups
    */
   getTimezoneList(): TimezoneGroup[] {
@@ -105,7 +105,11 @@ export class TimezoneService implements ITimezoneService {
           { value: 'America/Vancouver', label: 'Pacific Time (Vancouver)', offset: 'UTC-8' },
           { value: 'America/Mexico_City', label: 'Central Time (Mexico City)', offset: 'UTC-6' },
           { value: 'America/Sao_Paulo', label: 'Brasilia Time (São Paulo)', offset: 'UTC-3' },
-          { value: 'America/Buenos_Aires', label: 'Argentina Time (Buenos Aires)', offset: 'UTC-3' },
+          {
+            value: 'America/Buenos_Aires',
+            label: 'Argentina Time (Buenos Aires)',
+            offset: 'UTC-3',
+          },
         ],
       },
       {
@@ -116,10 +120,18 @@ export class TimezoneService implements ITimezoneService {
           { value: 'Europe/Berlin', label: 'Central European Time (Berlin)', offset: 'UTC+1' },
           { value: 'Europe/Rome', label: 'Central European Time (Rome)', offset: 'UTC+1' },
           { value: 'Europe/Madrid', label: 'Central European Time (Madrid)', offset: 'UTC+1' },
-          { value: 'Europe/Amsterdam', label: 'Central European Time (Amsterdam)', offset: 'UTC+1' },
+          {
+            value: 'Europe/Amsterdam',
+            label: 'Central European Time (Amsterdam)',
+            offset: 'UTC+1',
+          },
           { value: 'Europe/Brussels', label: 'Central European Time (Brussels)', offset: 'UTC+1' },
           { value: 'Europe/Vienna', label: 'Central European Time (Vienna)', offset: 'UTC+1' },
-          { value: 'Europe/Stockholm', label: 'Central European Time (Stockholm)', offset: 'UTC+1' },
+          {
+            value: 'Europe/Stockholm',
+            label: 'Central European Time (Stockholm)',
+            offset: 'UTC+1',
+          },
           { value: 'Europe/Athens', label: 'Eastern European Time (Athens)', offset: 'UTC+2' },
           { value: 'Europe/Istanbul', label: 'Turkey Time (Istanbul)', offset: 'UTC+3' },
           { value: 'Europe/Moscow', label: 'Moscow Time (Moscow)', offset: 'UTC+3' },
@@ -142,10 +154,26 @@ export class TimezoneService implements ITimezoneService {
         region: 'Australia & Pacific',
         timezones: [
           { value: 'Australia/Perth', label: 'Australian Western Time (Perth)', offset: 'UTC+8' },
-          { value: 'Australia/Adelaide', label: 'Australian Central Time (Adelaide)', offset: 'UTC+9:30' },
-          { value: 'Australia/Sydney', label: 'Australian Eastern Time (Sydney)', offset: 'UTC+10' },
-          { value: 'Australia/Melbourne', label: 'Australian Eastern Time (Melbourne)', offset: 'UTC+10' },
-          { value: 'Australia/Brisbane', label: 'Australian Eastern Time (Brisbane)', offset: 'UTC+10' },
+          {
+            value: 'Australia/Adelaide',
+            label: 'Australian Central Time (Adelaide)',
+            offset: 'UTC+9:30',
+          },
+          {
+            value: 'Australia/Sydney',
+            label: 'Australian Eastern Time (Sydney)',
+            offset: 'UTC+10',
+          },
+          {
+            value: 'Australia/Melbourne',
+            label: 'Australian Eastern Time (Melbourne)',
+            offset: 'UTC+10',
+          },
+          {
+            value: 'Australia/Brisbane',
+            label: 'Australian Eastern Time (Brisbane)',
+            offset: 'UTC+10',
+          },
           { value: 'Pacific/Auckland', label: 'New Zealand Time (Auckland)', offset: 'UTC+12' },
         ],
       },
@@ -153,7 +181,11 @@ export class TimezoneService implements ITimezoneService {
         region: 'Africa & Middle East',
         timezones: [
           { value: 'Africa/Cairo', label: 'Eastern European Time (Cairo)', offset: 'UTC+2' },
-          { value: 'Africa/Johannesburg', label: 'South Africa Time (Johannesburg)', offset: 'UTC+2' },
+          {
+            value: 'Africa/Johannesburg',
+            label: 'South Africa Time (Johannesburg)',
+            offset: 'UTC+2',
+          },
           { value: 'Africa/Lagos', label: 'West Africa Time (Lagos)', offset: 'UTC+1' },
           { value: 'Africa/Nairobi', label: 'East Africa Time (Nairobi)', offset: 'UTC+3' },
           { value: 'Asia/Jerusalem', label: 'Israel Time (Jerusalem)', offset: 'UTC+2' },
@@ -161,16 +193,14 @@ export class TimezoneService implements ITimezoneService {
       },
       {
         region: 'Other',
-        timezones: [
-          { value: 'UTC', label: 'Coordinated Universal Time (UTC)', offset: 'UTC+0' },
-        ],
+        timezones: [{ value: 'UTC', label: 'Coordinated Universal Time (UTC)', offset: 'UTC+0' }],
       },
     ];
   }
 
   /**
    * Validate if a string is a valid IANA timezone identifier
-   * 
+   *
    * @param timezone - Timezone string to validate
    * @returns true if valid, false otherwise
    */
@@ -185,7 +215,7 @@ export class TimezoneService implements ITimezoneService {
 
   /**
    * Get current time in a specific timezone
-   * 
+   *
    * @param timezone - IANA timezone identifier
    * @returns Current date/time in the specified timezone
    */
@@ -195,7 +225,7 @@ export class TimezoneService implements ITimezoneService {
 
   /**
    * Get UTC offset for a timezone at a specific date
-   * 
+   *
    * @param timezone - IANA timezone identifier
    * @param date - Date to check offset for (defaults to now)
    * @returns Offset string (e.g., "UTC-5", "UTC+5:30")
@@ -208,7 +238,7 @@ export class TimezoneService implements ITimezoneService {
     const formatted = formatInTimeZone(date, timezone, 'XXX');
     const sign = formatted.startsWith('-') ? '-' : '+';
     const offset = formatted.replace(/[+-]/, '');
-    
+
     return `UTC${sign}${offset}`;
   }
 }

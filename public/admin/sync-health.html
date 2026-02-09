@@ -437,6 +437,31 @@
         </div>
       </div>
 
+      <!-- Redis Health Status -->
+      <div class="section">
+        <h2>Redis Health Status</h2>
+        <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
+          Background job queue and caching infrastructure
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <h3>Connection Status</h3>
+            <div class="metric-value" id="redis-status">
+              <span class="status-indicator" id="redis-status-indicator"></span>
+              <span id="redis-status-text">Checking...</span>
+            </div>
+          </div>
+          <div class="metric-card">
+            <h3>Configuration</h3>
+            <div style="font-size: 14px; color: var(--text-primary); margin-top: 8px;">
+              <div style="margin-bottom: 4px;"><strong>Host:</strong> <span id="redis-host">-</span></div>
+              <div style="margin-bottom: 4px;"><strong>Port:</strong> <span id="redis-port">-</span></div>
+              <div><strong>TLS:</strong> <span id="redis-tls">-</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Sync Success Rate -->
       <div class="section">
         <h2>Sync Success Rate (24h)</h2>

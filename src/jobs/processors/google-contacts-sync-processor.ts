@@ -86,9 +86,7 @@ export async function processGoogleContactsSync(
       console.log(
         `Sync skipped for user ${userId}: ${orchestratorResult.skipReason || 'unknown reason'}`
       );
-      result.errors.push(
-        `Sync skipped: ${orchestratorResult.skipReason || 'unknown reason'}`
-      );
+      result.errors.push(`Sync skipped: ${orchestratorResult.skipReason || 'unknown reason'}`);
       result.duration = orchestratorResult.duration || 0;
       return result;
     }

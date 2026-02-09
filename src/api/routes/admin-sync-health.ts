@@ -1,9 +1,9 @@
 /**
  * Admin Sync Health API Routes
- * 
+ *
  * Provides admin dashboard endpoints for monitoring sync health across all users.
  * Protected by requireAdmin middleware.
- * 
+ *
  * Requirements: 10.1, 10.6
  */
 
@@ -17,12 +17,12 @@ const syncHealthService = new SyncHealthService();
 
 /**
  * GET /api/admin/sync-health
- * 
+ *
  * Get comprehensive sync health metrics for admin dashboard
- * 
+ *
  * Query Parameters:
  *   - integration_type (optional): Filter by 'google_contacts' or 'google_calendar'
- * 
+ *
  * Response:
  *   - totalUsers: Total users with active integrations
  *   - activeIntegrations: Count by integration type
@@ -31,7 +31,7 @@ const syncHealthService = new SyncHealthService();
  *   - syncSuccessRate24h: Success rate percentage by type
  *   - apiCallsSaved: API calls saved by optimization type
  *   - persistentFailures: List of users with sync failures >7 days
- * 
+ *
  * Requirements: 10.1, 10.6
  */
 router.get(
@@ -72,16 +72,16 @@ router.get(
 
 /**
  * GET /api/admin/sync-health/user/:userId
- * 
+ *
  * Get detailed sync status for a specific user
- * 
+ *
  * Path Parameters:
  *   - userId: User ID to query
- * 
+ *
  * Response:
  *   - contacts: Sync status for Google Contacts integration
  *   - calendar: Sync status for Google Calendar integration
- * 
+ *
  * Each status includes:
  *   - tokenHealth: Token status and expiry
  *   - circuitBreakerState: Circuit breaker state and failure count
@@ -89,7 +89,7 @@ router.get(
  *   - lastSync: Last sync timestamp
  *   - lastSyncResult: Last sync outcome
  *   - webhookActive: Webhook status (calendar only)
- * 
+ *
  * Requirements: 10.1, 10.2, 10.3
  */
 router.get(

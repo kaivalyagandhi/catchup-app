@@ -93,10 +93,7 @@ export async function getPlansByUser(
 /**
  * Get a plan by ID with ownership check
  */
-export async function getPlanById(
-  planId: string,
-  userId: string
-): Promise<CatchupPlan | null> {
+export async function getPlanById(planId: string, userId: string): Promise<CatchupPlan | null> {
   const plan = await schedulingRepository.getPlanById(planId);
 
   // Verify ownership
@@ -106,7 +103,6 @@ export async function getPlanById(
 
   return plan;
 }
-
 
 /**
  * Finalize a plan with selected time
@@ -260,7 +256,7 @@ export async function addInviteeToPlan(
   }
 
   // Check if invitee already exists
-  const existingInvitee = plan.invitees.find(i => i.contactId === inviteeData.contactId);
+  const existingInvitee = plan.invitees.find((i) => i.contactId === inviteeData.contactId);
   if (existingInvitee) {
     throw new Error('Contact is already an invitee');
   }
@@ -307,7 +303,7 @@ export async function removeInviteeFromPlan(
   }
 
   // Check if invitee exists
-  const existingInvitee = plan.invitees.find(i => i.contactId === contactId);
+  const existingInvitee = plan.invitees.find((i) => i.contactId === contactId);
   if (!existingInvitee) {
     throw new Error('Invitee not found');
   }
@@ -349,7 +345,7 @@ export async function updateInviteeAttendance(
   }
 
   // Check if invitee exists
-  const existingInvitee = plan.invitees.find(i => i.contactId === contactId);
+  const existingInvitee = plan.invitees.find((i) => i.contactId === contactId);
   if (!existingInvitee) {
     throw new Error('Invitee not found');
   }
@@ -415,7 +411,7 @@ export async function unarchivePlan(planId: string, userId: string): Promise<voi
   // For unarchive, we need to check ownership differently since archived plans
   // are excluded from normal getPlanById
   const archivedPlans = await schedulingRepository.getArchivedPlansByUser(userId);
-  const plan = archivedPlans.find(p => p.id === planId);
+  const plan = archivedPlans.find((p) => p.id === planId);
 
   if (!plan) {
     throw new Error('Archived plan not found');
@@ -447,8 +443,12 @@ export async function sendReminders(
   if (lastReminderSent) {
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
     if (lastReminderSent > hourAgo) {
-      const minutesRemaining = Math.ceil((lastReminderSent.getTime() + 60 * 60 * 1000 - Date.now()) / 60000);
-      throw new Error(`Please wait ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''} before sending reminders again`);
+      const minutesRemaining = Math.ceil(
+        (lastReminderSent.getTime() + 60 * 60 * 1000 - Date.now()) / 60000
+      );
+      throw new Error(
+        `Please wait ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''} before sending reminders again`
+      );
     }
   }
 
@@ -460,7 +460,7 @@ export async function sendReminders(
   }
 
   // Create reminder notifications for the plan initiator (to track that reminders were sent)
-  const pendingNames = pendingInvitees.map(inv => inv.contactName);
+  const pendingNames = pendingInvitees.map((inv) => inv.contactName);
   const activityLabel = plan.activityType || 'catchup';
   const message = `Reminders sent to ${pendingInvitees.length} pending invitee${pendingInvitees.length !== 1 ? 's' : ''} for your ${activityLabel} plan: ${pendingNames.join(', ')}`;
 

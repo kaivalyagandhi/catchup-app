@@ -78,16 +78,29 @@ export function startWorker(): void {
   tokenRefreshQueue.process(async (job) => {
     const startTime = new Date();
     console.log(`Processing token refresh job ${job.id}`);
-    
+
     try {
       const result = await processTokenRefresh(job);
       const endTime = new Date();
-      monitorJobDuration('token-refresh', job.id?.toString() || 'unknown', startTime, endTime, 'completed');
+      monitorJobDuration(
+        'token-refresh',
+        job.id?.toString() || 'unknown',
+        startTime,
+        endTime,
+        'completed'
+      );
       return result;
     } catch (error) {
       const endTime = new Date();
       const errorMsg = error instanceof Error ? error.message : String(error);
-      monitorJobDuration('token-refresh', job.id?.toString() || 'unknown', startTime, endTime, 'failed', errorMsg);
+      monitorJobDuration(
+        'token-refresh',
+        job.id?.toString() || 'unknown',
+        startTime,
+        endTime,
+        'failed',
+        errorMsg
+      );
       throw error;
     }
   });
@@ -96,16 +109,29 @@ export function startWorker(): void {
   webhookRenewalQueue.process(async (job) => {
     const startTime = new Date();
     console.log(`Processing webhook renewal job ${job.id}`);
-    
+
     try {
       const result = await processWebhookRenewal(job);
       const endTime = new Date();
-      monitorJobDuration('webhook-renewal', job.id?.toString() || 'unknown', startTime, endTime, 'completed');
+      monitorJobDuration(
+        'webhook-renewal',
+        job.id?.toString() || 'unknown',
+        startTime,
+        endTime,
+        'completed'
+      );
       return result;
     } catch (error) {
       const endTime = new Date();
       const errorMsg = error instanceof Error ? error.message : String(error);
-      monitorJobDuration('webhook-renewal', job.id?.toString() || 'unknown', startTime, endTime, 'failed', errorMsg);
+      monitorJobDuration(
+        'webhook-renewal',
+        job.id?.toString() || 'unknown',
+        startTime,
+        endTime,
+        'failed',
+        errorMsg
+      );
       throw error;
     }
   });
@@ -114,16 +140,29 @@ export function startWorker(): void {
   notificationReminderQueue.process(async (job) => {
     const startTime = new Date();
     console.log(`Processing notification reminder job ${job.id}`);
-    
+
     try {
       const result = await processNotificationReminder(job);
       const endTime = new Date();
-      monitorJobDuration('notification-reminder', job.id?.toString() || 'unknown', startTime, endTime, 'completed');
+      monitorJobDuration(
+        'notification-reminder',
+        job.id?.toString() || 'unknown',
+        startTime,
+        endTime,
+        'completed'
+      );
       return result;
     } catch (error) {
       const endTime = new Date();
       const errorMsg = error instanceof Error ? error.message : String(error);
-      monitorJobDuration('notification-reminder', job.id?.toString() || 'unknown', startTime, endTime, 'failed', errorMsg);
+      monitorJobDuration(
+        'notification-reminder',
+        job.id?.toString() || 'unknown',
+        startTime,
+        endTime,
+        'failed',
+        errorMsg
+      );
       throw error;
     }
   });
@@ -132,16 +171,29 @@ export function startWorker(): void {
   adaptiveSyncQueue.process(async (job) => {
     const startTime = new Date();
     console.log(`Processing adaptive sync job ${job.id}`);
-    
+
     try {
       const result = await processAdaptiveSync(job);
       const endTime = new Date();
-      monitorJobDuration('adaptive-sync', job.id?.toString() || 'unknown', startTime, endTime, 'completed');
+      monitorJobDuration(
+        'adaptive-sync',
+        job.id?.toString() || 'unknown',
+        startTime,
+        endTime,
+        'completed'
+      );
       return result;
     } catch (error) {
       const endTime = new Date();
       const errorMsg = error instanceof Error ? error.message : String(error);
-      monitorJobDuration('adaptive-sync', job.id?.toString() || 'unknown', startTime, endTime, 'failed', errorMsg);
+      monitorJobDuration(
+        'adaptive-sync',
+        job.id?.toString() || 'unknown',
+        startTime,
+        endTime,
+        'failed',
+        errorMsg
+      );
       throw error;
     }
   });
@@ -150,16 +202,29 @@ export function startWorker(): void {
   webhookHealthCheckQueue.process(async (job) => {
     const startTime = new Date();
     console.log(`Processing webhook health check job ${job.id}`);
-    
+
     try {
       const result = await processWebhookHealthCheck(job);
       const endTime = new Date();
-      monitorJobDuration('webhook-health-check', job.id?.toString() || 'unknown', startTime, endTime, 'completed');
+      monitorJobDuration(
+        'webhook-health-check',
+        job.id?.toString() || 'unknown',
+        startTime,
+        endTime,
+        'completed'
+      );
       return result;
     } catch (error) {
       const endTime = new Date();
       const errorMsg = error instanceof Error ? error.message : String(error);
-      monitorJobDuration('webhook-health-check', job.id?.toString() || 'unknown', startTime, endTime, 'failed', errorMsg);
+      monitorJobDuration(
+        'webhook-health-check',
+        job.id?.toString() || 'unknown',
+        startTime,
+        endTime,
+        'failed',
+        errorMsg
+      );
       throw error;
     }
   });

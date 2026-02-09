@@ -40,9 +40,7 @@ export async function processWebhookRenewal(
     // Renew all expiring webhooks
     const result = await webhookManager.renewExpiringWebhooks();
 
-    console.log(
-      `[Webhook Renewal] Completed: ${result.renewed} renewed, ${result.failed} failed`
-    );
+    console.log(`[Webhook Renewal] Completed: ${result.renewed} renewed, ${result.failed} failed`);
 
     // Calculate failure rate
     const total = result.renewed + result.failed;
