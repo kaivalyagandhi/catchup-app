@@ -111,22 +111,21 @@ steps:
       - |
         echo "Waiting for deployment to stabilize..."
         sleep 30
-        SERVICE_URL=$(gcloud run services describe catchup --region=us-central1 --format='value(status.url)')
-        echo "Service URL: $SERVICE_URL"
-        if [ -z "$SERVICE_URL" ]; then
+        SERVICE_URL=$$(gcloud run services describe catchup --region=us-central1 --format='value(status.url)')
+        echo "Service URL: $$SERVICE_URL"
+        if [ -z "$$SERVICE_URL" ]; then
           echo "ERROR: Could not get service URL"
           exit 1
         fi
-        # Get an identity token for authenticated request
-        TOKEN=$(gcloud auth print-identity-token)
+        TOKEN=$$(gcloud auth print-identity-token)
         echo "Testing health endpoint..."
-        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/health")
-        echo "Health check response: $HTTP_STATUS"
-        if [ "$HTTP_STATUS" = "200" ]; then
+        HTTP_STATUS=$$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $$TOKEN" "$$SERVICE_URL/health")
+        echo "Health check response: $$HTTP_STATUS"
+        if [ "$$HTTP_STATUS" = "200" ]; then
           echo "✓ Health check passed!"
           exit 0
         else
-          echo "✗ Health check failed with status: $HTTP_STATUS"
+          echo "✗ Health check failed with status: $$HTTP_STATUS"
           exit 1
         fi
     waitFor: ['deploy-cloud-run']
