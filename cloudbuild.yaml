@@ -38,28 +38,6 @@ steps:
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
 
-  # Step 4.5: Generate version number
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
-    id: 'generate-version'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        # Check if this is a prod tag trigger
-        if [ "$TAG_NAME" = "prod" ]; then
-          # Production version: YYYY.MM.DD.BUILD (use SHORT_SHA for build identifier)
-          APP_VERSION=$(date -u +'%Y.%m.%d').$SHORT_SHA
-          echo "Production build version: $APP_VERSION"
-        else
-          # Development version: dev-YYYY.MM.DD-COMMIT
-          APP_VERSION="dev-$(date -u +'%Y.%m.%d')-$SHORT_SHA"
-          echo "Development build version: $APP_VERSION"
-        fi
-        # Write to file for next steps
-        echo $APP_VERSION > /workspace/VERSION.txt
-        echo "Generated version: $APP_VERSION"
-    waitFor: ['install-dependencies']
-
   # Step 5: Build Docker image with BuildKit
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-image'
@@ -67,18 +45,16 @@ steps:
     args:
       - '-c'
       - |
-        APP_VERSION=$$(cat /workspace/VERSION.txt)
         export DOCKER_BUILDKIT=1
         docker build \
-          --build-arg APP_VERSION=$$APP_VERSION \
+          --build-arg APP_VERSION=$SHORT_SHA \
           --build-arg BUILDKIT_INLINE_CACHE=1 \
           -t us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA \
           -t us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:latest \
           .
-    waitFor: ['lint', 'typecheck', 'test', 'generate-version']
+    waitFor: ['lint', 'typecheck', 'test']
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
-      - 'DOCKER_BUILDKIT=1'
       - 'DOCKER_BUILDKIT=1'
 
   # Step 6: Push image to Artifact Registry
@@ -108,8 +84,6 @@ steps:
     args:
       - '-c'
       - |
-        APP_VERSION=$$(cat /workspace/VERSION.txt)
-        echo "Deploying version: $$APP_VERSION"
         gcloud run deploy catchup \
           --image=us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA \
           --region=us-central1 \
@@ -122,7 +96,7 @@ steps:
           --service-account=catchup-cloud-run@$PROJECT_ID.iam.gserviceaccount.com \
           --allow-unauthenticated \
           --add-cloudsql-instances=$PROJECT_ID:us-central1:catchup-db \
-          --set-env-vars=NODE_ENV=production,LOG_LEVEL=info,TEST_MODE=false,APP_VERSION=$$APP_VERSION,REDIS_TLS=true \
+          --set-env-vars=NODE_ENV=production,LOG_LEVEL=info,TEST_MODE=false,APP_VERSION=$SHORT_SHA,REDIS_TLS=true \
           --update-secrets=DATABASE_HOST=database-host:latest,DATABASE_PORT=database-port:latest,DATABASE_NAME=database-name:latest,DATABASE_USER=database-user:latest,DATABASE_PASSWORD=db-password:latest,GOOGLE_CLIENT_ID=google-oauth-client-id:latest,GOOGLE_CLIENT_SECRET=google-oauth-client-secret:latest,GOOGLE_REDIRECT_URI=google-redirect-uri:latest,GOOGLE_CALENDAR_REDIRECT_URI=google-calendar-redirect-uri:latest,GOOGLE_CONTACTS_REDIRECT_URI=google-contacts-redirect-uri:latest,JWT_SECRET=jwt-secret:latest,ENCRYPTION_KEY=encryption-key:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,GOOGLE_CLOUD_API_KEY=google-cloud-speech-key:latest,GOOGLE_GEMINI_API_KEY=google-gemini-api-key:latest,REDIS_HOST=upstash-redis-host:latest,REDIS_PORT=upstash-redis-port:latest,REDIS_PASSWORD=upstash-redis-password:latest
     waitFor: ['push-image', 'push-image-latest']
     env:
