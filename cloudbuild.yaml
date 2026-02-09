@@ -67,10 +67,10 @@ steps:
     args:
       - '-c'
       - |
-        APP_VERSION=$(cat /workspace/VERSION.txt)
+        APP_VERSION=$$(cat /workspace/VERSION.txt)
         export DOCKER_BUILDKIT=1
         docker build \
-          --build-arg APP_VERSION=$APP_VERSION \
+          --build-arg APP_VERSION=$$APP_VERSION \
           --build-arg BUILDKIT_INLINE_CACHE=1 \
           -t us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA \
           -t us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:latest \
@@ -78,6 +78,7 @@ steps:
     waitFor: ['lint', 'typecheck', 'test', 'generate-version']
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+      - 'DOCKER_BUILDKIT=1'
       - 'DOCKER_BUILDKIT=1'
 
   # Step 6: Push image to Artifact Registry
@@ -107,8 +108,8 @@ steps:
     args:
       - '-c'
       - |
-        APP_VERSION=$(cat /workspace/VERSION.txt)
-        echo "Deploying version: $APP_VERSION"
+        APP_VERSION=$$(cat /workspace/VERSION.txt)
+        echo "Deploying version: $$APP_VERSION"
         gcloud run deploy catchup \
           --image=us-central1-docker.pkg.dev/$PROJECT_ID/catchup-repo/catchup:$SHORT_SHA \
           --region=us-central1 \
@@ -121,7 +122,7 @@ steps:
           --service-account=catchup-cloud-run@$PROJECT_ID.iam.gserviceaccount.com \
           --allow-unauthenticated \
           --add-cloudsql-instances=$PROJECT_ID:us-central1:catchup-db \
-          --set-env-vars=NODE_ENV=production,LOG_LEVEL=info,TEST_MODE=false,APP_VERSION=$APP_VERSION,REDIS_TLS=true \
+          --set-env-vars=NODE_ENV=production,LOG_LEVEL=info,TEST_MODE=false,APP_VERSION=$$APP_VERSION,REDIS_TLS=true \
           --update-secrets=DATABASE_HOST=database-host:latest,DATABASE_PORT=database-port:latest,DATABASE_NAME=database-name:latest,DATABASE_USER=database-user:latest,DATABASE_PASSWORD=db-password:latest,GOOGLE_CLIENT_ID=google-oauth-client-id:latest,GOOGLE_CLIENT_SECRET=google-oauth-client-secret:latest,GOOGLE_REDIRECT_URI=google-redirect-uri:latest,GOOGLE_CALENDAR_REDIRECT_URI=google-calendar-redirect-uri:latest,GOOGLE_CONTACTS_REDIRECT_URI=google-contacts-redirect-uri:latest,JWT_SECRET=jwt-secret:latest,ENCRYPTION_KEY=encryption-key:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,GOOGLE_CLOUD_API_KEY=google-cloud-speech-key:latest,GOOGLE_GEMINI_API_KEY=google-gemini-api-key:latest,REDIS_HOST=upstash-redis-host:latest,REDIS_PORT=upstash-redis-port:latest,REDIS_PASSWORD=upstash-redis-password:latest
     waitFor: ['push-image', 'push-image-latest']
     env:
