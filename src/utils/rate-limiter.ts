@@ -1,18 +1,14 @@
-import Redis from 'ioredis';
+import { httpRedis } from './http-redis-client';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-/**
- * Create Redis client for rate limiting
- * Supports both connection string format (recommended for Upstash) and object format (for local Redis)
- * 
- * Upstash format: rediss://:PASSWORD@ENDPOINT:PORT
- * Local format: redis://localhost:6379
- */
+// OLD CODE - Using ioredis (TCP connection)
+// Kept for rollback purposes - remove after Phase 3
+/*
+import Redis from 'ioredis';
+
 function createRedisClient(): Redis {
-  // If REDIS_URL is provided (connection string format), use it
-  // This is the recommended format for Upstash: rediss://:PASSWORD@ENDPOINT:PORT
   if (process.env.REDIS_URL) {
     console.log('[Rate Limiter] Connecting using REDIS_URL connection string');
     return new Redis(process.env.REDIS_URL, {
@@ -21,18 +17,15 @@ function createRedisClient(): Redis {
         return delay;
       },
       maxRetriesPerRequest: 3,
-      // Upstash requires TLS, connection string with rediss:// handles this automatically
     });
   }
 
-  // Otherwise, use object configuration (for local Redis or custom setup)
   console.log('[Rate Limiter] Connecting using object configuration');
   return new Redis({
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD,
     db: parseInt(process.env.REDIS_DB || '0', 10),
-    // TLS support for Upstash and other cloud Redis providers
     tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
     retryStrategy: (times: number) => {
       const delay = Math.min(times * 50, 2000);
@@ -42,9 +35,11 @@ function createRedisClient(): Redis {
   });
 }
 
-// Redis client for rate limiting
-// Supports both local Redis and Upstash (serverless Redis with TLS)
 const redis = createRedisClient();
+*/
+
+// NEW CODE - Using HTTP Redis (no persistent connection)
+console.log('[Rate Limiter] Using HTTP Redis client (0 connections)');
 
 /**
  * Rate limit configuration
@@ -140,15 +135,15 @@ export async function checkRateLimit(
 
   try {
     // Remove old entries outside the window
-    await redis.zremrangebyscore(key, 0, windowStart);
+    await httpRedis.zremrangebyscore(key, 0, windowStart);
 
     // Count requests in current window
-    const requestCount = await redis.zcard(key);
+    const requestCount = await httpRedis.zcard(key);
 
     // Check if limit exceeded
     if (requestCount >= config.maxRequests) {
       // Get oldest request timestamp to calculate retry after
-      const oldestRequest = await redis.zrange(key, 0, 0, 'WITHSCORES');
+      const oldestRequest = await httpRedis.zrange(key, 0, 0, true);
       const oldestTimestamp = oldestRequest.length > 1 ? parseInt(oldestRequest[1]) : now;
 
       const resetAt = new Date(oldestTimestamp + config.windowMs);
@@ -163,10 +158,10 @@ export async function checkRateLimit(
     }
 
     // Add current request
-    await redis.zadd(key, now, `${now}-${Math.random()}`);
+    await httpRedis.zadd(key, now, `${now}-${Math.random()}`);
 
     // Set expiration on key
-    await redis.expire(key, Math.ceil(config.windowMs / 1000));
+    await httpRedis.expire(key, Math.ceil(config.windowMs / 1000));
 
     // Calculate reset time (end of current window)
     const resetAt = new Date(now + config.windowMs);
@@ -328,7 +323,8 @@ export const externalAPILimiter = new ExternalAPIRateLimiter();
 
 /**
  * Close Redis connection
+ * Note: HTTP Redis doesn't maintain persistent connections, so this is a no-op
  */
 export async function closeRateLimiter(): Promise<void> {
-  await redis.quit();
+  console.log('HTTP Redis rate limiter closed (no persistent connection)');
 }

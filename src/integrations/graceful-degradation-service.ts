@@ -194,9 +194,9 @@ export class GracefulDegradationService {
       let reauthUrl: string | undefined;
       if (requiresReauth) {
         if (integrationType === 'google_contacts') {
-          reauthUrl = '/api/contacts/oauth/authorize';
+          reauthUrl = `/api/contacts/oauth/authorize?userId=${userId}`;
         } else {
-          reauthUrl = '/api/calendar/oauth/authorize';
+          reauthUrl = `/api/calendar/oauth/authorize?userId=${userId}`;
         }
       }
 

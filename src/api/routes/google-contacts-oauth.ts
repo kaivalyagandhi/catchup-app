@@ -76,8 +76,15 @@ router.get('/callback', async (req: Request, res: Response) => {
     try {
       tokens = await googleContactsOAuthService.handleCallback(code, userId);
 
-      // Clear any unresolved token health notifications
+      // Clear token health status and notifications after storing new tokens
       try {
+        // Clear token health status so it gets rechecked with new token
+        const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
+        const tokenHealthMonitor = TokenHealthMonitor.getInstance();
+        await tokenHealthMonitor.clearTokenHealth(userId, 'google_contacts');
+        console.log(`Cleared token health status for user ${userId}`);
+
+        // Clear any unresolved token health notifications
         const { tokenHealthNotificationService } = await import(
           '../../integrations/token-health-notification-service'
         );
@@ -90,7 +97,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         }
       } catch (notificationError) {
         // Log error but don't fail the OAuth flow
-        console.error('Failed to resolve token health notifications:', notificationError);
+        console.error('Failed to clear token health status:', notificationError);
       }
     } catch (tokenError) {
       const tokenErrorMsg = tokenError instanceof Error ? tokenError.message : String(tokenError);

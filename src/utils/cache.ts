@@ -1,18 +1,14 @@
-import Redis, { RedisOptions } from 'ioredis';
+import { httpRedis } from './http-redis-client';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-/**
- * Create Redis client configuration
- * Supports both connection string format (recommended for Upstash) and object format (for local Redis)
- * 
- * Upstash format: rediss://:PASSWORD@ENDPOINT:PORT
- * Local format: redis://localhost:6379
- */
+// OLD CODE - Using ioredis (TCP connection)
+// Kept for rollback purposes - remove after Phase 3
+/*
+import Redis, { RedisOptions } from 'ioredis';
+
 function createRedisClient(): Redis {
-  // If REDIS_URL is provided (connection string format), use it
-  // This is the recommended format for Upstash: rediss://:PASSWORD@ENDPOINT:PORT
   if (process.env.REDIS_URL) {
     console.log('[Redis Cache] Connecting using REDIS_URL connection string');
     return new Redis(process.env.REDIS_URL, {
@@ -21,18 +17,14 @@ function createRedisClient(): Redis {
         return delay;
       },
       maxRetriesPerRequest: 3,
-      // Upstash requires TLS, connection string with rediss:// handles this automatically
     });
   }
 
-  // Otherwise, use object configuration (for local Redis or custom setup)
   const redisConfig: RedisOptions = {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD,
     db: parseInt(process.env.REDIS_DB || '0', 10),
-    // TLS support for Upstash and other cloud Redis providers
-    // Set REDIS_TLS=true for Upstash connections
     tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
     retryStrategy: (times: number) => {
       const delay = Math.min(times * 50, 2000);
@@ -41,7 +33,6 @@ function createRedisClient(): Redis {
     maxRetriesPerRequest: 3,
   };
 
-  // Log Redis configuration on startup (without password)
   console.log('[Redis Cache] Connecting to Redis:', {
     host: redisConfig.host,
     port: redisConfig.port,
@@ -53,10 +44,8 @@ function createRedisClient(): Redis {
   return new Redis(redisConfig);
 }
 
-// Create Redis client
 const redis = createRedisClient();
 
-// Handle Redis events
 redis.on('error', (err) => {
   console.error('[Redis Cache] Connection error:', err.message);
 });
@@ -76,6 +65,10 @@ redis.on('close', () => {
 redis.on('reconnecting', () => {
   console.log('[Redis Cache] Reconnecting to Redis...');
 });
+*/
+
+// NEW CODE - Using HTTP Redis (no persistent connection)
+console.log('[Redis Cache] Using HTTP Redis client (0 connections)');
 
 /**
  * Cache key prefixes for different data types
@@ -104,11 +97,7 @@ export const CacheTTL = {
  */
 export async function getCache<T>(key: string): Promise<T | null> {
   try {
-    const value = await redis.get(key);
-    if (!value) {
-      return null;
-    }
-    return JSON.parse(value) as T;
+    return await httpRedis.get<T>(key);
   } catch (error) {
     console.error(`Cache get error for key ${key}:`, error);
     return null;
@@ -120,12 +109,7 @@ export async function getCache<T>(key: string): Promise<T | null> {
  */
 export async function setCache(key: string, value: any, ttl?: number): Promise<void> {
   try {
-    const serialized = JSON.stringify(value);
-    if (ttl && ttl > 0) {
-      await redis.setex(key, ttl, serialized);
-    } else {
-      await redis.set(key, serialized);
-    }
+    await httpRedis.set(key, value, ttl);
   } catch (error) {
     console.error(`Cache set error for key ${key}:`, error);
   }
@@ -136,7 +120,7 @@ export async function setCache(key: string, value: any, ttl?: number): Promise<v
  */
 export async function deleteCache(key: string): Promise<void> {
   try {
-    await redis.del(key);
+    await httpRedis.del(key);
   } catch (error) {
     console.error(`Cache delete error for key ${key}:`, error);
   }
@@ -150,33 +134,7 @@ export async function deleteCache(key: string): Promise<void> {
  */
 export async function deleteCachePattern(pattern: string): Promise<void> {
   try {
-    let cursor = '0';
-    const keysToDelete: string[] = [];
-    
-    // Use SCAN instead of KEYS to avoid blocking Redis
-    do {
-      const [nextCursor, keys] = await redis.scan(
-        cursor,
-        'MATCH',
-        pattern,
-        'COUNT',
-        100 // Process 100 keys at a time
-      );
-      
-      cursor = nextCursor;
-      keysToDelete.push(...keys);
-      
-      // Delete in batches to avoid memory issues
-      if (keysToDelete.length >= 100) {
-        await redis.del(...keysToDelete);
-        keysToDelete.length = 0; // Clear array
-      }
-    } while (cursor !== '0');
-    
-    // Delete remaining keys
-    if (keysToDelete.length > 0) {
-      await redis.del(...keysToDelete);
-    }
+    await httpRedis.deletePattern(pattern);
   } catch (error) {
     console.error(`Cache delete pattern error for pattern ${pattern}:`, error);
   }
@@ -187,8 +145,7 @@ export async function deleteCachePattern(pattern: string): Promise<void> {
  */
 export async function existsCache(key: string): Promise<boolean> {
   try {
-    const exists = await redis.exists(key);
-    return exists === 1;
+    return await httpRedis.exists(key);
   } catch (error) {
     console.error(`Cache exists error for key ${key}:`, error);
     return false;
@@ -244,10 +201,11 @@ export async function invalidateCalendarCache(userId: string): Promise<void> {
 
 /**
  * Close Redis connection
+ * Note: HTTP Redis doesn't maintain persistent connections, so this is a no-op
  */
 export async function closeCache(): Promise<void> {
-  await redis.quit();
-  console.log('Redis connection closed');
+  console.log('HTTP Redis client closed (no persistent connection)');
 }
 
-export default redis;
+// Export httpRedis for backward compatibility
+export default httpRedis;

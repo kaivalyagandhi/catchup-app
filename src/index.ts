@@ -36,9 +36,9 @@ async function main() {
   console.log('CatchUp Application Ready');
   console.log(`Running version: ${getVersion()}`);
 
-  // Start background job worker
-  const { startWorker } = await import('./jobs/worker');
-  startWorker();
+  // Start background job worker (Bull or BullMQ based on USE_BULLMQ env var)
+  const { startWorker } = await import('./jobs/worker-selector');
+  await startWorker();
 
   // Start API server
   const port = parseInt(process.env.PORT || '3000', 10);
@@ -55,6 +55,10 @@ const gracefulShutdown = async () => {
       console.log('HTTP server closed');
     });
   }
+
+  // Stop background job worker
+  const { stopWorker } = await import('./jobs/worker-selector');
+  await stopWorker();
 
   // Close database connections
   const { closePool } = await import('./db/connection');

@@ -25,6 +25,24 @@ class SyncWarningBanner {
       this.createBanner();
     }
 
+    // Check if we just returned from OAuth reconnection
+    if (sessionStorage.getItem('recheckSyncHealth') === 'true') {
+      sessionStorage.removeItem('recheckSyncHealth');
+      // Wait a moment for the OAuth callback to complete, then recheck
+      setTimeout(() => {
+        this.checkSyncHealth();
+      }, 2000);
+    }
+
+    // Check if we just completed OAuth successfully (calendar_success or contacts_success in URL)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('calendar_success') === 'true' || urlParams.get('contacts_success') === 'true') {
+      // Wait for sync to complete (give it 3 seconds), then recheck health
+      setTimeout(() => {
+        this.checkSyncHealth();
+      }, 3000);
+    }
+
     // Start periodic health checks
     this.startHealthChecks();
   }
@@ -223,12 +241,35 @@ class SyncWarningBanner {
   /**
    * Handle reconnect button click
    */
-  handleReconnect() {
+  async handleReconnect() {
     const reconnectBtn = this.banner.querySelector('.sync-warning-reconnect-btn');
     const url = reconnectBtn.dataset.url;
     
     if (url) {
-      window.location.href = url;
+      try {
+        // Fetch the authorization URL from the endpoint
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          },
+        });
+        
+        if (!response.ok) {
+          console.error('Failed to get authorization URL:', response.statusText);
+          return;
+        }
+        
+        const data = await response.json();
+        
+        // Redirect to the Google OAuth URL
+        if (data.authUrl) {
+          // Store a flag to recheck health after OAuth completes
+          sessionStorage.setItem('recheckSyncHealth', 'true');
+          window.location.href = data.authUrl;
+        }
+      } catch (error) {
+        console.error('Error fetching authorization URL:', error);
+      }
     }
   }
 

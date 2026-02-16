@@ -4666,7 +4666,7 @@ async function refreshCalendar() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                integrationType: 'calendar'
+                integration_type: 'calendar'
             })
         });
         
@@ -4761,7 +4761,7 @@ async function syncCalendarNow() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                integrationType: 'calendar'
+                integration_type: 'calendar'
             })
         });
         

@@ -211,7 +211,7 @@ async function syncGoogleContactsNow() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                integrationType: 'contacts'
+                integration_type: 'contacts'
             })
         });
         

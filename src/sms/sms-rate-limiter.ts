@@ -1,18 +1,14 @@
-import Redis from 'ioredis';
+import { httpRedis } from '../utils/http-redis-client';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-/**
- * Create Redis client for SMS rate limiting
- * Supports both connection string format (recommended for Upstash) and object format (for local Redis)
- * 
- * Upstash format: rediss://:PASSWORD@ENDPOINT:PORT
- * Local format: redis://localhost:6379
- */
+// OLD CODE - Using ioredis (TCP connection)
+// Kept for rollback purposes - remove after Phase 3
+/*
+import Redis from 'ioredis';
+
 function createRedisClient(): Redis {
-  // If REDIS_URL is provided (connection string format), use it
-  // This is the recommended format for Upstash: rediss://:PASSWORD@ENDPOINT:PORT
   if (process.env.REDIS_URL) {
     console.log('[SMS Rate Limiter] Connecting using REDIS_URL connection string');
     return new Redis(process.env.REDIS_URL, {
@@ -21,18 +17,15 @@ function createRedisClient(): Redis {
         return delay;
       },
       maxRetriesPerRequest: 3,
-      // Upstash requires TLS, connection string with rediss:// handles this automatically
     });
   }
 
-  // Otherwise, use object configuration (for local Redis or custom setup)
   console.log('[SMS Rate Limiter] Connecting using object configuration');
   return new Redis({
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD,
     db: parseInt(process.env.REDIS_DB || '0', 10),
-    // TLS support for Upstash and other cloud Redis providers
     tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
     retryStrategy: (times: number) => {
       const delay = Math.min(times * 50, 2000);
@@ -42,14 +35,15 @@ function createRedisClient(): Redis {
   });
 }
 
-// Redis client for SMS rate limiting
-// Supports both local Redis and Upstash (serverless Redis with TLS)
 const redis = createRedisClient();
 
-// Handle Redis errors
 redis.on('error', (err) => {
   console.error('SMS Rate Limiter Redis connection error:', err);
 });
+*/
+
+// NEW CODE - Using HTTP Redis (no persistent connection)
+console.log('[SMS Rate Limiter] Using HTTP Redis client (0 connections)');
 
 /**
  * SMS Rate Limit Configuration
@@ -90,15 +84,15 @@ export async function checkSMSRateLimit(phoneNumber: string): Promise<SMSRateLim
 
   try {
     // Remove old entries outside the current time window
-    await redis.zremrangebyscore(key, 0, windowStart);
+    await httpRedis.zremrangebyscore(key, 0, windowStart);
 
     // Count messages in current window
-    const messageCount = await redis.zcard(key);
+    const messageCount = await httpRedis.zcard(key);
 
     // Check if limit exceeded
     if (messageCount >= SMS_RATE_LIMIT_CONFIG.maxMessages) {
       // Get oldest message timestamp to calculate when the window resets
-      const oldestMessage = await redis.zrange(key, 0, 0, 'WITHSCORES');
+      const oldestMessage = await httpRedis.zrange(key, 0, 0, true);
       const oldestTimestamp = oldestMessage.length > 1 ? parseInt(oldestMessage[1]) : now;
 
       const resetAt = new Date(oldestTimestamp + SMS_RATE_LIMIT_CONFIG.windowMs);
@@ -115,7 +109,7 @@ export async function checkSMSRateLimit(phoneNumber: string): Promise<SMSRateLim
     }
 
     // Calculate reset time (when the oldest message will expire)
-    const oldestMessage = await redis.zrange(key, 0, 0, 'WITHSCORES');
+    const oldestMessage = await httpRedis.zrange(key, 0, 0, true);
     const oldestTimestamp = oldestMessage.length > 1 ? parseInt(oldestMessage[1]) : now;
     const resetAt = new Date(oldestTimestamp + SMS_RATE_LIMIT_CONFIG.windowMs);
 
@@ -153,12 +147,12 @@ export async function incrementSMSCounter(phoneNumber: string): Promise<void> {
 
   try {
     // Add current message with timestamp
-    await redis.zadd(key, now, `${now}-${Math.random()}`);
+    await httpRedis.zadd(key, now, `${now}-${Math.random()}`);
 
     // Set expiration on key (cleanup after window expires)
     // Add extra time to ensure we don't lose data prematurely
     const expirationSeconds = Math.ceil(SMS_RATE_LIMIT_CONFIG.windowMs / 1000) + 60;
-    await redis.expire(key, expirationSeconds);
+    await httpRedis.expire(key, expirationSeconds);
   } catch (error) {
     console.error('SMS counter increment error:', error);
     // Don't throw - we don't want to fail message processing due to rate limit tracking errors
@@ -191,10 +185,10 @@ export async function getCurrentMessageCount(phoneNumber: string): Promise<numbe
 
   try {
     // Remove old entries
-    await redis.zremrangebyscore(key, 0, windowStart);
+    await httpRedis.zremrangebyscore(key, 0, windowStart);
 
     // Count messages in current window
-    const count = await redis.zcard(key);
+    const count = await httpRedis.zcard(key);
     return count;
   } catch (error) {
     console.error('Get message count error:', error);
@@ -213,7 +207,7 @@ export async function resetSMSRateLimit(phoneNumber: string): Promise<void> {
   const key = `${SMS_RATE_LIMIT_CONFIG.keyPrefix}:${phoneNumber}`;
 
   try {
-    await redis.del(key);
+    await httpRedis.del(key);
   } catch (error) {
     console.error('SMS rate limit reset error:', error);
     throw error;
@@ -248,9 +242,10 @@ export async function getSMSRateLimitStatus(phoneNumber: string): Promise<{
 
 /**
  * Close Redis connection (for cleanup)
+ * Note: HTTP Redis doesn't maintain persistent connections, so this is a no-op
  */
 export async function closeSMSRateLimiter(): Promise<void> {
-  await redis.quit();
+  console.log('HTTP Redis SMS rate limiter closed (no persistent connection)');
 }
 
 /**

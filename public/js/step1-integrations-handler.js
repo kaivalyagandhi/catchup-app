@@ -316,13 +316,16 @@ class Step1IntegrationsHandler {
    */
   async triggerManualSync(integrationType) {
     try {
+      // Convert 'google_contacts' -> 'contacts', 'google_calendar' -> 'calendar'
+      const integration_type = integrationType.replace('google_', '');
+      
       const response = await fetch(`${API_BASE}/sync/manual`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`
         },
-        body: JSON.stringify({ integrationType })
+        body: JSON.stringify({ integration_type })
       });
       
       if (!response.ok) {

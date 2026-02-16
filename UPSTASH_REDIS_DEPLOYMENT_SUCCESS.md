@@ -70,14 +70,14 @@ Successfully migrated from Google Cloud Memorystore Redis to Upstash Redis, achi
 ## Configuration Details
 
 ### Upstash Redis
-- **Endpoint**: generous-lamb-35770.upstash.io
+- **Endpoint**: your-database.upstash.io
 - **Port**: 6379
 - **Protocol**: TLS (rediss://)
 - **Plan**: Free Tier (10K commands/day)
 
 ### Environment Variables
 ```bash
-REDIS_URL=rediss://:PASSWORD@generous-lamb-35770.upstash.io:6379
+REDIS_URL=rediss://:PASSWORD@your-database.upstash.io:6379
 ```
 
 ## Next Steps

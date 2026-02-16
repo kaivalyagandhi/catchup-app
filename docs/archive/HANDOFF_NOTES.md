@@ -1,12 +1,12 @@
 # Deployment Complete ✅
 
 ## Service URL
-https://catchup-402592213346.us-central1.run.app
+https://catchup-<project-id>.us-central1.run.app
 
 ## Health Check
 ```bash
 TOKEN=$(gcloud auth print-identity-token)
-curl -H "Authorization: Bearer $TOKEN" "https://catchup-402592213346.us-central1.run.app/health"
+curl -H "Authorization: Bearer $TOKEN" "https://catchup-<project-id>.us-central1.run.app/health"
 ```
 
 ## Key Fixes Made

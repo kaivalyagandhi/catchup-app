@@ -119,8 +119,15 @@ router.get('/callback', async (req: Request, res: Response) => {
         emailToStore
       );
 
-      // Clear any unresolved token health notifications
+      // Clear token health status and notifications after storing new tokens
       try {
+        // Clear token health status so it gets rechecked with new token
+        const { TokenHealthMonitor } = await import('../../integrations/token-health-monitor');
+        const tokenHealthMonitor = TokenHealthMonitor.getInstance();
+        await tokenHealthMonitor.clearTokenHealth(userId, 'google_calendar');
+        console.log(`Cleared token health status for user ${userId}`);
+
+        // Clear any unresolved token health notifications
         const { tokenHealthNotificationService } = await import(
           '../../integrations/token-health-notification-service'
         );
@@ -133,7 +140,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         }
       } catch (notificationError) {
         // Log error but don't fail the OAuth flow
-        console.error('Failed to resolve token health notifications:', notificationError);
+        console.error('Failed to clear token health status:', notificationError);
       }
     } catch (dbError) {
       const dbErrorMsg = dbError instanceof Error ? dbError.message : String(dbError);
@@ -191,40 +198,39 @@ router.get('/callback', async (req: Request, res: Response) => {
       // Don't fail the OAuth flow if schedule initialization fails
     }
 
-    // Check if this is the first connection and trigger immediate sync
+    // Trigger immediate sync on every OAuth callback (first connection or reconnection)
+    // This ensures users see fresh data immediately after connecting/reconnecting
     // Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 1: Immediate First Sync"
     try {
       const { AdaptiveSyncScheduler } = await import('../../integrations/adaptive-sync-scheduler');
       const scheduler = AdaptiveSyncScheduler.getInstance();
       const isFirstConnection = await scheduler.isFirstConnection(userId, 'google_calendar');
 
-      if (isFirstConnection) {
-        console.log(
-          `[GoogleCalendarOAuth] First connection detected for user ${userId}, triggering immediate sync`
-        );
+      console.log(
+        `[GoogleCalendarOAuth] ${isFirstConnection ? 'First connection' : 'Reconnection'} detected for user ${userId}, triggering immediate sync`
+      );
 
-        const { SyncOrchestrator } = await import('../../integrations/sync-orchestrator');
-        const orchestrator = new SyncOrchestrator();
+      const { SyncOrchestrator } = await import('../../integrations/sync-orchestrator');
+      const orchestrator = new SyncOrchestrator();
 
-        // Trigger immediate initial sync (bypasses schedule)
-        await orchestrator.executeSyncJob({
-          userId,
-          integrationType: 'google_calendar',
-          syncType: 'initial', // Use 'initial' for first sync
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token || undefined,
-          bypassCircuitBreaker: true, // Bypass circuit breaker for initial sync
-        });
+      // Trigger immediate sync (bypasses schedule and circuit breaker)
+      // Use 'initial' for first connection, 'manual' for reconnection
+      await orchestrator.executeSyncJob({
+        userId,
+        integrationType: 'google_calendar',
+        syncType: isFirstConnection ? 'initial' : 'manual',
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token || undefined,
+        bypassCircuitBreaker: true, // Bypass circuit breaker for OAuth syncs
+      });
 
-        console.log(`[GoogleCalendarOAuth] Initial sync completed for user ${userId}`);
-      }
-    } catch (firstSyncError) {
+      console.log(`[GoogleCalendarOAuth] Immediate sync completed for user ${userId}`);
+    } catch (syncError) {
       // Log error but don't fail the OAuth flow
-      const firstSyncErrorMsg =
-        firstSyncError instanceof Error ? firstSyncError.message : String(firstSyncError);
+      const syncErrorMsg = syncError instanceof Error ? syncError.message : String(syncError);
       console.error(
-        `[GoogleCalendarOAuth] Initial sync check/execution failed for user ${userId}:`,
-        firstSyncErrorMsg
+        `[GoogleCalendarOAuth] Immediate sync failed for user ${userId}:`,
+        syncErrorMsg
       );
       // User can retry via manual sync or wait for scheduled sync
     }
