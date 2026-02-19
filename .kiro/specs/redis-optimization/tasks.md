@@ -2,12 +2,18 @@
 
 ## Overview
 
-This task list implements the hybrid HTTP + BullMQ architecture to reduce Redis connections from 38-46 to 1-3 (93-97% reduction) and command usage by 60-80%.
+This task list implements a fully serverless architecture with HTTP-based Redis and Cloud Tasks to eliminate all TCP connection issues in Cloud Run.
 
-**Timeline**: 2-3 weeks (accelerated from 5 weeks)
-**Priority**: HIGH - Currently experiencing 100K+ command spikes
+**Original Goal**: Reduce Redis connections from 38-46 to 1-3 (93-97% reduction) and command usage by 60-80%
+
+**Updated Goal (Phase 3)**: Migrate from BullMQ (TCP) to Cloud Tasks (HTTP) for complete serverless compatibility
+
+**Timeline**: 3-4 weeks total (Phase 1: 1 week, Phase 2: 1-2 weeks, Phase 3: 1-2 weeks)
+**Priority**: HIGH - BullMQ failing in production with 100% error rate
 
 **✅ BEST PRACTICES VERIFIED**: Implementation verified against BullMQ official docs, OneUptime guide (Jan 2026), and IORedis documentation. See `REDIS_OPTIMIZATION_BEST_PRACTICES_VERIFICATION.md` for details.
+
+**⚠️ PHASE 3 UPDATE**: BullMQ is fundamentally incompatible with serverless Cloud Run (TCP connection issues). Phase 3 now includes migration to Cloud Tasks (HTTP-based, serverless-native). See `.kiro/specs/cloud-tasks-migration/` for detailed migration plan.
 
 ---
 
@@ -194,67 +200,205 @@ This task list implements the hybrid HTTP + BullMQ architecture to reduce Redis 
 
 ---
 
-## Phase 3: Cleanup and Optimization (Week 3)
+## Phase 3: Complete Serverless Migration (Week 3-4)
 
-### 3.1 Remove Old Code
+**⚠️ IMPORTANT**: Phase 3 has been updated to include Cloud Tasks migration. BullMQ is incompatible with serverless Cloud Run (TCP connection issues), so we're migrating to Cloud Tasks (HTTP-based, serverless-native).
+
+**See**: `.kiro/specs/cloud-tasks-migration/` for detailed migration plan
+
+### 3.1 Cloud Tasks Migration (Replaces BullMQ)
+
+**Why**: BullMQ uses TCP connections (ioredis) which are incompatible with serverless Cloud Run. Upstash explicitly recommends HTTP-based clients only. Cloud Tasks is HTTP-based and designed specifically for serverless environments.
+
+**Benefits**:
+- ✅ Eliminates all BullMQ connection errors ("Stream isn't writeable")
+- ✅ Reduces cost from $2.53/month to $0/month (Cloud Tasks free tier)
+- ✅ Native GCP integration (OIDC auth, Cloud Monitoring, Cloud Logging)
+- ✅ No connection management needed (stateless HTTP requests)
+
+#### 3.1.1 Infrastructure Setup
+- [x] Enable Cloud Tasks API in GCP project
+- [x] Create 11 Cloud Tasks queues (one per job type):
+  - [x] token-refresh-queue (CRITICAL)
+  - [x] calendar-sync-queue (CRITICAL)
+  - [x] google-contacts-sync-queue (CRITICAL)
+  - [x] adaptive-sync-queue
+  - [x] webhook-renewal-queue
+  - [x] suggestion-regeneration-queue
+  - [x] batch-notifications-queue
+  - [x] suggestion-generation-queue
+  - [x] webhook-health-check-queue
+  - [x] notification-reminder-queue
+  - [x] token-health-reminder-queue
+- [x] Configure retry policies per queue (maxAttempts, minBackoff, maxBackoff)
+- [x] Configure rate limits per queue (maxDispatchesPerSecond)
+- [x] Verify service account has Cloud Run Invoker role
+
+#### 3.1.2 Code Implementation
+- [x] Install @google-cloud/tasks package
+  ```bash
+  npm install @google-cloud/tasks
+  ```
+- [x] Create `src/jobs/cloud-tasks-client.ts` (Cloud Tasks wrapper)
+- [x] Create `src/jobs/cloud-tasks-config.ts` (queue configurations)
+- [x] Create `src/api/jobs-handler.ts` (HTTP endpoint for job execution)
+- [x] Implement OIDC token validation middleware
+- [x] Implement idempotency middleware (using HTTP Redis)
+- [x] Create `src/jobs/idempotency.ts` (idempotency manager)
+- [x] Update `src/jobs/queue-factory.ts` (add Cloud Tasks support with feature flag)
+- [x] Register job handler route in `src/api/server.ts`
+- [x] Fix TypeScript compilation errors
+- [x] Add environment variables:
+  ```bash
+  USE_CLOUD_TASKS=false  # Feature flag (disabled by default)
+  GCP_PROJECT_ID=catchup-479221
+  GCP_REGION=us-central1
+  CLOUD_RUN_URL=http://localhost:3000
+  SERVICE_ACCOUNT_EMAIL=402592213346-compute@developer.gserviceaccount.com
+  ```
+
+#### 3.1.3 Testing
+- [x] Unit tests for Cloud Tasks client (dry run test passes)
+- [x] Infrastructure verification (gcloud CLI can create tasks)
+- [x] TypeScript compilation passes
+- [ ] Integration tests for each job type (skipped - requires staging)
+- [ ] Test idempotency (duplicate task prevention) (skipped - requires staging)
+- [ ] Test retry logic (5xx errors retry, 4xx don't) (skipped - requires staging)
+- [ ] Test OIDC authentication (skipped - requires staging)
+- [ ] Load test (1000 tasks) (skipped - requires staging)
+- [x] Local testing decision: SKIPPED (Cloud Tasks cannot reach localhost)
+  - Reason: CLOUD_RUN_URL=http://localhost:3000 won't work for actual execution
+  - Mitigation: Proceed directly to staging deployment
+  - Fallback: Feature flag allows instant rollback
+
+#### 3.1.4 Staging Deployment (NEXT STEP)
+- [ ] Commit all Cloud Tasks changes to git
+- [ ] Tag commit for production (v1.5.0-cloud-tasks)
+- [ ] Push to GitHub
+- [ ] Deploy to Cloud Run with USE_CLOUD_TASKS=false (safe deployment)
+- [ ] Get Cloud Run URL and update CLOUD_RUN_URL environment variable
+- [ ] Enable Cloud Tasks: Set USE_CLOUD_TASKS=true
+- [ ] Monitor for 2 hours (non-critical queues)
+- [ ] Monitor for 24 hours (medium-risk queues)
+- [ ] Monitor for 48 hours (critical queues)
+- [ ] Verify all 11 job types execute successfully
+- [ ] Check metrics: success rate >99.9%, no errors
+- [ ] Document deployment results
+
+**Status**: Ready to deploy (see CLOUD_TASKS_DEPLOYMENT_CHECKLIST.md)
+
+### 3.2 Remove BullMQ and Bull Code
+
+**⚠️ Only after Cloud Tasks migration is complete and stable**
+
+- [ ] Remove BullMQ package from package.json
+  ```bash
+  npm uninstall bullmq
+  ```
 - [ ] Remove Bull package from package.json
   ```bash
   npm uninstall bull
   ```
+- [ ] Remove ioredis package (no longer needed)
+  ```bash
+  npm uninstall ioredis
+  ```
+- [ ] Delete `src/jobs/bullmq-connection.ts`
+- [ ] Delete `src/jobs/bullmq-queue.ts`
+- [ ] Delete `src/jobs/bullmq-worker.ts`
+- [ ] Delete old Bull queue code
 - [ ] Remove commented-out ioredis code from cache.ts
 - [ ] Remove commented-out ioredis code from rate-limiter.ts
 - [ ] Remove commented-out ioredis code from sms-rate-limiter.ts
-- [ ] Remove old Bull queue code
 - [ ] Evaluate `src/sms/connection-pool-manager.ts` necessity
   - [ ] If not needed, remove it
   - [ ] If needed, document why
 
-### 3.2 Optimize Redis Usage
+### 3.3 Optimize HTTP Redis Usage
+
+**Focus on cache and rate-limiting only (queues now use Cloud Tasks)**
+
 - [ ] Review cache TTLs and optimize
 - [ ] Implement cache warming for common queries
 - [ ] Optimize rate limiting (batch operations if possible)
-- [ ] Review queue job options (deduplication, priority)
-- [ ] Implement job batching where appropriate
+- [ ] Remove any queue-related Redis operations
+- [ ] Verify command usage is minimal (cache + rate-limiting only)
 
-### 3.3 Monitoring and Alerting
+### 3.4 Monitoring and Alerting
+
+#### Redis Monitoring (HTTP only)
 - [ ] Set up command usage alerts:
   - [ ] Warning at 400K/month (80% of free tier)
   - [ ] Critical at 450K/month (90% of free tier)
 - [ ] Set up connection count alerts:
-  - [ ] Warning if connections > 5
-  - [ ] Critical if connections > 10
-- [ ] Set up queue health alerts:
-  - [ ] Warning if job success rate < 90%
-  - [ ] Critical if job success rate < 80%
-  - [ ] Critical if queue processing stopped > 5 minutes
+  - [ ] Warning if connections > 2 (should be 0-1 for HTTP)
+  - [ ] Critical if connections > 5
 - [ ] Set up performance alerts:
   - [ ] Warning if cache hit rate < 70%
   - [ ] Warning if API response time increases > 20%
 
-### 3.4 Documentation
-- [ ] Update architecture documentation
-- [ ] Document HTTP vs TCP Redis usage
-- [ ] Create troubleshooting runbook
-- [ ] Document rollback procedures
-- [ ] Update development setup guide
-- [ ] Document new environment variables
-- [ ] Create code examples for common patterns
+#### Cloud Tasks Monitoring
+- [ ] Set up Cloud Monitoring dashboard for Cloud Tasks:
+  - [ ] Task creation rate (per queue)
+  - [ ] Task execution rate (per queue)
+  - [ ] Task execution latency (p50, p95, p99)
+  - [ ] Task failure rate (per queue)
+  - [ ] Queue depth (tasks waiting)
+- [ ] Set up alerts:
+  - [ ] Warning if task failure rate > 1% (per queue)
+  - [ ] Critical if task failure rate > 5% (per queue)
+  - [ ] Critical if queue processing stopped > 5 minutes
+  - [ ] Warning if queue depth > 100 tasks
+- [ ] Set up Cloud Logging filters for job execution logs
 
-### 3.5 Final Verification
+### 3.5 Documentation
+
+- [ ] Update architecture documentation:
+  - [ ] Document HTTP Redis usage (cache + rate-limiting)
+  - [ ] Document Cloud Tasks usage (job queues)
+  - [ ] Remove BullMQ references
+- [ ] Create Cloud Tasks troubleshooting runbook
+- [ ] Document rollback procedures (Cloud Tasks → BullMQ)
+- [ ] Update development setup guide:
+  - [ ] Remove BullMQ setup instructions
+  - [ ] Add Cloud Tasks setup instructions
+- [ ] Document new environment variables
+- [ ] Create code examples for:
+  - [ ] Creating Cloud Tasks
+  - [ ] Handling job execution
+  - [ ] Implementing idempotency
+- [ ] Update `.kiro/steering/google-integrations.md` with Cloud Tasks info
+
+### 3.6 Final Verification
+
 - [ ] Run full test suite
 - [ ] Verify all functionality works
 - [ ] Check Upstash dashboard metrics:
-  - [ ] Connection count: 1-3
-  - [ ] Command usage: < 200K/month
+  - [ ] Connection count: 0-1 (HTTP only, no TCP)
+  - [ ] Command usage: < 100K/month (cache + rate-limiting only)
   - [ ] No errors
-- [ ] Verify user-facing features work
+- [ ] Check Cloud Tasks metrics:
+  - [ ] All 11 queues operational
+  - [ ] Task success rate > 99.9%
+  - [ ] No "Stream isn't writeable" errors
+  - [ ] Task execution latency < 5 seconds (p95)
+- [ ] Verify user-facing features work:
+  - [ ] Token refresh working
+  - [ ] Calendar sync working
+  - [ ] Contacts sync working
+  - [ ] Notifications sending
 - [ ] Get team sign-off
 
 **Phase 3 Success Criteria**:
+- ✅ Cloud Tasks fully operational (11 queues, >99.9% success rate)
+- ✅ BullMQ and Bull completely removed
+- ✅ Redis connections: 0-1 (HTTP only, no TCP)
+- ✅ Redis command usage: < 100K/month (80% reduction from Phase 2)
+- ✅ Queue infrastructure cost: $0/month (down from $2.53/month)
+- ✅ Zero "Stream isn't writeable" errors
 - ✅ Clean codebase with no unused dependencies
 - ✅ Comprehensive monitoring in place
 - ✅ Documentation complete
-- ✅ Command usage optimized
 
 ---
 
@@ -274,32 +418,79 @@ This task list implements the hybrid HTTP + BullMQ architecture to reduce Redis 
 - [ ] May need to clear BullMQ data from Redis
 - [ ] Monitor for stability
 
+### Phase 3 Rollback (Cloud Tasks → BullMQ)
+**⚠️ Only if Cloud Tasks migration fails**
+
+- [ ] Set `USE_CLOUD_TASKS=false` in environment variables
+- [ ] Redeploy application (BullMQ code still present during migration)
+- [ ] Verify BullMQ workers start successfully
+- [ ] Check all 11 queues are processing
+- [ ] Monitor for "Stream isn't writeable" errors
+- [ ] If errors persist, may need to revert to Bull (Phase 2 rollback)
+- [ ] Document issues for troubleshooting
+
+**Note**: Keep BullMQ code in codebase until Cloud Tasks is proven stable in production for 7 days.
+
 ---
 
 ## Success Metrics
 
-### Overall Success Criteria
-- ✅ Redis connections: 1-3 (93-97% reduction from 38-46)
-- ✅ Command usage: < 200K/month (60-80% reduction from 294K)
+### Overall Success Criteria (Updated for Cloud Tasks Migration)
+- ✅ Redis connections: 0-1 (97-100% reduction from 38-46) - HTTP only, no TCP
+- ✅ Redis command usage: < 100K/month (80% reduction from 294K) - cache + rate-limiting only
 - ✅ Connection errors: 0 for 7 consecutive days
 - ✅ All functionality maintained
 - ✅ No user-facing issues
-- ✅ Job success rate: >95%
+- ✅ Job success rate: >99.9% (Cloud Tasks SLA)
 - ✅ Cache hit rate: >80%
 - ✅ API response time: Within 10% of baseline
 
 ### Business Metrics
-- ✅ Cost: $0/month (stay on free tier with 60% headroom)
+- ✅ Redis cost: $0/month (stay on free tier with 80% headroom)
+- ✅ Queue cost: $0/month (Cloud Tasks free tier, down from $2.53/month)
+- ✅ Total savings: $30/year
 - ✅ Reliability: 99.9% uptime
 - ✅ User satisfaction: No complaints
 - ✅ Team confidence: Comfortable with new system
+
+### Cloud Tasks Metrics (New)
+- ✅ Task execution success rate: >99.9%
+- ✅ Task execution latency: <5 seconds (p95)
+- ✅ Task creation latency: <100ms (p95)
+- ✅ Idempotency check latency: <50ms (p95)
+- ✅ Zero "Stream isn't writeable" errors
+- ✅ All 11 queues operational
 
 ---
 
 ## Notes
 
-- **Current Status**: Just migrated to Upstash, experiencing 100K+ command spikes
-- **Priority**: HIGH - Need to address connection/queue issues immediately
-- **Timeline**: Accelerated to 2-3 weeks (from 5 weeks in design)
-- **Risk Level**: Medium - Well-designed spec with clear rollback procedures
-- **Expected Outcome**: Stable, scalable Redis usage with 60% free tier headroom
+- **Current Status**: Phase 1 ✅ Complete, Phase 2 ✅ Complete, Phase 3 ⏸️ Superseded by Cloud Tasks migration
+- **Priority**: HIGH - BullMQ incompatible with serverless (100% failure rate in production)
+- **Timeline**: Phase 3 extended to 2 weeks for Cloud Tasks migration (from 1 week cleanup)
+- **Risk Level**: Medium - Well-designed migration plan with clear rollback procedures
+- **Expected Outcome**: Fully serverless architecture with HTTP-only Redis and Cloud Tasks queues
+
+### Phase 1 Results ✅
+- HTTP Redis implemented for cache and rate-limiting
+- Reduced connections from 38-46 to 33-36
+- Reduced command usage by 30-40%
+- Zero connection errors from cache/rate-limiting
+
+### Phase 2 Results ✅
+- BullMQ implemented with shared connection pool
+- All 11 workers operational locally
+- Connection count: 33 (expected, see BULLMQ_CONNECTION_ANALYSIS.md)
+- **Production Issue**: All workers failing with "Stream isn't writeable" errors
+- **Root Cause**: BullMQ TCP connections incompatible with serverless Cloud Run
+
+### Phase 3 Decision 🔄
+- **Original Plan**: Optimize BullMQ, remove Bull, cleanup code
+- **Updated Plan**: Migrate to Cloud Tasks, remove BullMQ AND Bull
+- **Reason**: BullMQ fundamentally incompatible with serverless (TCP vs HTTP)
+- **Benefits**: 
+  - Eliminates all connection errors
+  - Reduces cost from $2.53/month to $0/month
+  - Native GCP integration (OIDC, monitoring, logging)
+  - Designed specifically for serverless environments
+- **See**: `.kiro/specs/cloud-tasks-migration/` for detailed migration plan

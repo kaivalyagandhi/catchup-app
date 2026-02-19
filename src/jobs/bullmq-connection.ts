@@ -10,11 +10,17 @@ dotenv.config();
  * reducing the total connection count from 33 (11 queues × 3 connections)
  * to just 1-3 connections total.
  * 
- * Key optimizations:
- * - maxRetriesPerRequest: null (required for BullMQ)
+ * Production Best Practices (from BullMQ docs):
+ * - maxRetriesPerRequest: null (required for Workers to handle disconnections)
  * - enableReadyCheck: false (skip ready check for faster startup)
- * - enableOfflineQueue: false (fail fast instead of queuing)
- * - Connection pooling handled by ioredis internally
+ * - enableOfflineQueue: true (queue commands during reconnection)
+ * - retryStrategy: exponential backoff (1s min, 20s max)
+ * - Connection pooling: shared connection reduces overhead
+ * 
+ * Serverless Optimizations:
+ * - lazyConnect: false (connect immediately to detect issues early)
+ * - keepAlive: 30000 (keep connections alive in Cloud Run)
+ * - connectTimeout: 10000 (fail fast on connection issues)
  */
 export const bullmqConnection: ConnectionOptions = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -23,19 +29,23 @@ export const bullmqConnection: ConnectionOptions = {
   db: parseInt(process.env.REDIS_DB || '0', 10),
   tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
   
-  // BullMQ-specific settings
-  maxRetriesPerRequest: null, // Required for BullMQ blocking commands
+  // BullMQ-specific settings (CRITICAL for Workers)
+  maxRetriesPerRequest: null, // Required: Workers need unlimited retries for blocking commands
   enableReadyCheck: false,    // Skip ready check for faster startup
-  enableOfflineQueue: false,  // Fail fast instead of queuing commands
+  enableOfflineQueue: true,   // Queue commands during reconnection (prevents "Stream isn't writeable")
   
-  // Connection settings
-  connectTimeout: 10000,      // 10 second timeout
-  keepAlive: 30000,           // Keep connection alive
+  // Connection settings optimized for Cloud Run
+  connectTimeout: 10000,      // 10 second timeout - fail fast on connection issues
+  keepAlive: 30000,           // Keep connection alive (important for serverless)
   family: 4,                  // IPv4 only
+  lazyConnect: false,         // Connect immediately to detect issues early
   
-  // Retry strategy
+  // Retry strategy: exponential backoff (BullMQ production best practice)
   retryStrategy: (times: number) => {
-    const delay = Math.min(times * 50, 2000);
+    // Exponential backoff: min 1s, max 20s
+    // Formula: Math.max(Math.min(Math.exp(times), 20000), 1000)
+    const delay = Math.max(Math.min(Math.exp(times), 20000), 1000);
+    console.log(`[BullMQ] Retry attempt ${times}, waiting ${delay}ms`);
     return delay;
   },
   
@@ -49,6 +59,8 @@ export const bullmqConnection: ConnectionOptions = {
  * 
  * If REDIS_URL is provided, parse it and use those values.
  * This is useful for Upstash and other managed Redis services.
+ * 
+ * Applies the same production best practices as the main connection.
  */
 export function getBullMQConnection(): ConnectionOptions {
   if (process.env.REDIS_URL) {
@@ -65,19 +77,21 @@ export function getBullMQConnection(): ConnectionOptions {
       db: parseInt(url.pathname.slice(1) || '0', 10),
       tls: url.protocol === 'rediss:' ? {} : undefined,
       
-      // BullMQ-specific settings
+      // BullMQ-specific settings (CRITICAL for Workers)
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
-      enableOfflineQueue: false,
+      enableOfflineQueue: true,
       
-      // Connection settings
+      // Connection settings optimized for Cloud Run
       connectTimeout: 10000,
       keepAlive: 30000,
       family: 4,
+      lazyConnect: false,
       
-      // Retry strategy
+      // Retry strategy: exponential backoff (BullMQ production best practice)
       retryStrategy: (times: number) => {
-        const delay = Math.min(times * 50, 2000);
+        const delay = Math.max(Math.min(Math.exp(times), 20000), 1000);
+        console.log(`[BullMQ] Retry attempt ${times}, waiting ${delay}ms`);
         return delay;
       },
       

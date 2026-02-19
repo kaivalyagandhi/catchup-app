@@ -13,6 +13,10 @@
 
 import { Queue, JobsOptions } from 'bullmq';
 import { createQueue } from './queue-factory';
+import { CloudTasksQueue } from './cloud-tasks-client';
+
+// Type for queues that can be either BullMQ or Cloud Tasks
+type QueueInstance = Queue | CloudTasksQueue;
 
 // Job queue names (same as Bull for compatibility)
 export const QUEUE_NAMES = {
@@ -42,66 +46,66 @@ export const DEFAULT_JOB_OPTIONS: JobsOptions = {
   removeOnFail: false, // Keep failed jobs for debugging
 };
 
-// Create all queues using the factory (shares connection pool)
-export const suggestionGenerationQueue = createQueue(
+// Create all queues using the factory (shares connection pool or uses Cloud Tasks)
+export const suggestionGenerationQueue: QueueInstance = createQueue(
   QUEUE_NAMES.SUGGESTION_GENERATION,
   {
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
   }
 );
 
-export const batchNotificationQueue = createQueue(
+export const batchNotificationQueue: QueueInstance = createQueue(
   QUEUE_NAMES.BATCH_NOTIFICATIONS,
   {
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
   }
 );
 
-export const calendarSyncQueue = createQueue(QUEUE_NAMES.CALENDAR_SYNC, {
+export const calendarSyncQueue: QueueInstance = createQueue(QUEUE_NAMES.CALENDAR_SYNC, {
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
-export const suggestionRegenerationQueue = createQueue(
+export const suggestionRegenerationQueue: QueueInstance = createQueue(
   QUEUE_NAMES.SUGGESTION_REGENERATION,
   {
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
   }
 );
 
-export const googleContactsSyncQueue = createQueue(
+export const googleContactsSyncQueue: QueueInstance = createQueue(
   QUEUE_NAMES.GOOGLE_CONTACTS_SYNC,
   {
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
   }
 );
 
-export const tokenHealthReminderQueue = createQueue(
+export const tokenHealthReminderQueue: QueueInstance = createQueue(
   QUEUE_NAMES.TOKEN_HEALTH_REMINDER,
   {
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
   }
 );
 
-export const tokenRefreshQueue = createQueue(QUEUE_NAMES.TOKEN_REFRESH, {
+export const tokenRefreshQueue: QueueInstance = createQueue(QUEUE_NAMES.TOKEN_REFRESH, {
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
-export const webhookRenewalQueue = createQueue(QUEUE_NAMES.WEBHOOK_RENEWAL, {
+export const webhookRenewalQueue: QueueInstance = createQueue(QUEUE_NAMES.WEBHOOK_RENEWAL, {
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
-export const notificationReminderQueue = createQueue(
+export const notificationReminderQueue: QueueInstance = createQueue(
   QUEUE_NAMES.NOTIFICATION_REMINDER,
   {
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
   }
 );
 
-export const adaptiveSyncQueue = createQueue(QUEUE_NAMES.ADAPTIVE_SYNC, {
+export const adaptiveSyncQueue: QueueInstance = createQueue(QUEUE_NAMES.ADAPTIVE_SYNC, {
   defaultJobOptions: DEFAULT_JOB_OPTIONS,
 });
 
-export const webhookHealthCheckQueue = createQueue(
+export const webhookHealthCheckQueue: QueueInstance = createQueue(
   QUEUE_NAMES.WEBHOOK_HEALTH_CHECK,
   {
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
@@ -118,7 +122,7 @@ export async function enqueueJob(
   data: any,
   options?: JobsOptions
 ): Promise<any> {
-  const queueMap: Record<QueueName, Queue> = {
+  const queueMap: Record<QueueName, Queue | any> = {
     [QUEUE_NAMES.SUGGESTION_GENERATION]: suggestionGenerationQueue,
     [QUEUE_NAMES.BATCH_NOTIFICATIONS]: batchNotificationQueue,
     [QUEUE_NAMES.CALENDAR_SYNC]: calendarSyncQueue,

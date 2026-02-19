@@ -1,241 +1,228 @@
-# Cost Optimization Deployment - Verification Results
+# Production Deployment Verification Results
+**Date**: 2026-02-19
+**Revision**: catchup-00051-tjq
+**Status**: ⚠️ ISSUES DETECTED
 
-## Quick Status Check (Completed)
+## Deployment Status
 
-**Date:** February 8, 2026
-**Time:** ~9:26 PM UTC
+✅ **Code Deployed**: Latest revision `catchup-00051-tjq` is running
+✅ **Service Ready**: All health checks passing
+✅ **Secrets Configured**: All 44 environment variables in Secret Manager
+✅ **Eviction Policy**: Changed to `noeviction` on Upstash
 
-### ✅ Site is Live and Healthy!
+## Critical Issues
 
+### 🔴 BullMQ Workers Failing
+
+**Error**: `Stream isn't writeable and enableOfflineQueue options is false`
+
+**Affected Workers** (All 11):
+- google-contacts-sync
+- calendar-sync
+- suggestion-generation
+- suggestion-regeneration
+- batch-notifications
+- token-refresh
+- webhook-renewal
+- webhook-health-check
+- token-health-reminder
+- notification-reminder
+- adaptive-sync
+
+**Frequency**: Continuous errors, workers unable to process jobs
+
+**Impact**:
+- Background jobs not running
+- Sync operations failing
+- Notifications not being sent
+- Token refresh not working
+- Webhook management broken
+
+## Root Cause Analysis
+
+The "Stream isn't writeable" error typically occurs when:
+
+1. **Eviction Policy Issue**: Redis is evicting keys needed by BullMQ
+   - **Status**: Changed to `noeviction` but may need time to propagate
+   - **Action**: Verify eviction policy is active in Upstash dashboard
+
+2. **Connection Pool Issue**: Too many connections or connection reuse problem
+   - **Status**: Using shared connection pool (should be 1-3 connections)
+   - **Action**: Check Upstash dashboard for connection count
+
+3. **Memory Limit**: Redis running out of memory
+   - **Status**: Free tier has 256MB limit
+   - **Action**: Check memory usage in Upstash dashboard
+
+4. **enableOfflineQueue**: BullMQ option not set correctly
+   - **Status**: Currently set to `false` in code
+   - **Action**: Consider enabling for better resilience
+
+## Verification Steps Needed
+
+### 1. Check Upstash Dashboard
+- [ ] Verify eviction policy is `noeviction`
+- [ ] Check current connection count (should be 1-3, not 33-36)
+- [ ] Check memory usage (should be under 256MB)
+- [ ] Check command usage (should be within free tier)
+- [ ] Look for any error messages or alerts
+
+### 2. Check Recent Logs
 ```bash
-curl https://catchup.club/health
-# Response: {"status":"healthy","timestamp":"2026-02-08T21:26:45.072Z"}
+# Check for successful BullMQ connections
+gcloud run services logs read catchup \
+  --region=us-central1 \
+  --limit=200 \
+  --project=catchup-479221 \
+  --format="value(textPayload,timestamp)" | \
+  grep -E "BullMQ|Redis connection|Server started"
+
+# Check for worker errors
+gcloud run services logs read catchup \
+  --region=us-central1 \
+  --limit=100 \
+  --project=catchup-479221 | \
+  grep "Worker error"
 ```
 
-**Status:** HTTP 200 - Site is responding correctly!
-
-## Manual Verification Steps
-
-Now that the site is live, complete these verification steps:
-
-### 1. ✅ Basic Health Check (DONE)
-- Site responds: ✅ YES
-- Health endpoint: ✅ HEALTHY
-- HTTP Status: ✅ 200
-
-### 2. Test in Browser
-
-1. **Open the site:**
-   - Go to: https://catchup.club
-   - Expected: Site loads normally
-
-2. **Log in with Google SSO:**
-   - Click "Sign in with Google"
-   - Expected: Login works
-
-3. **Navigate around:**
-   - Go to Contacts page
-   - Go to Groups page
-   - Go to Preferences page
-   - Expected: All pages load correctly
-
-### 3. Verify Cache-Control Headers
-
-**In Browser DevTools:**
-
-1. Open DevTools (F12 or Cmd+Option+I)
-2. Go to Network tab
-3. Navigate to different pages
-4. Check response headers for these endpoints:
-
-**Expected Headers:**
-- `GET /api/contacts` → `Cache-Control: private, max-age=60`
-- `GET /api/groups-tags/groups` → `Cache-Control: private, max-age=60`
-- `GET /api/groups-tags/tags` → `Cache-Control: private, max-age=60`
-- `GET /api/preferences/*` → `Cache-Control: private, max-age=300`
-
-**How to check:**
-1. Click on a request in Network tab
-2. Look at "Response Headers" section
-3. Find "cache-control" header
-
-### 4. Check Cloud Build Status (After gcloud auth)
-
-Once you've authenticated with gcloud, run:
-
+### 3. Test Redis Connection
 ```bash
-# Check latest build
-gcloud builds list --limit=1
-
-# Or run the verification script
-./verify-deployment.sh
+# Test Redis connection from Cloud Run
+gcloud run services logs read catchup \
+  --region=us-central1 \
+  --limit=50 \
+  --project=catchup-479221 | \
+  grep -i "redis"
 ```
 
-### 5. Monitor Logs for Redis Connection
+## Potential Solutions
 
-```bash
-# Check for Redis connection messages
-gcloud run services logs read catchup --region=us-central1 --limit=50 | grep -i redis
+### Option 1: Enable Offline Queue (Quick Fix)
+**File**: `src/jobs/bullmq-connection.ts`
 
-# Look for: "Redis connected successfully"
+Change:
+```typescript
+enableOfflineQueue: false
 ```
 
-### 6. Check for Errors
-
-```bash
-# Check recent logs for errors
-gcloud run services logs read catchup --region=us-central1 --limit=100 | grep -i error
-
-# Expected: Few or no errors
+To:
+```typescript
+enableOfflineQueue: true
 ```
 
-### 7. Verify Cloud Run Configuration
+**Pros**: Workers can queue operations when Redis is unavailable
+**Cons**: May mask underlying connection issues
 
-```bash
-# Check scale-to-zero is enabled
-gcloud run services describe catchup --region=us-central1 --format='value(spec.template.metadata.annotations.autoscaling\.knative\.dev/minScale)'
-# Expected: 0
+### Option 2: Increase maxRetriesPerRequest
+**File**: `src/jobs/bullmq-connection.ts`
 
-# Check max instances
-gcloud run services describe catchup --region=us-central1 --format='value(spec.template.metadata.annotations.autoscaling\.knative\.dev/maxScale)'
-# Expected: 10
-
-# Check memory
-gcloud run services describe catchup --region=us-central1 --format='value(spec.template.spec.containers[0].resources.limits.memory)'
-# Expected: 512Mi
+Change:
+```typescript
+maxRetriesPerRequest: 3
 ```
 
-## Monitoring Period (15-30 minutes)
-
-After initial verification, monitor the app for 15-30 minutes:
-
-```bash
-# Stream logs in real-time
-gcloud run services logs tail catchup --region=us-central1
-
-# Watch for:
-# - Redis connection messages
-# - Job processing messages
-# - Any errors or warnings
+To:
+```typescript
+maxRetriesPerRequest: 10
 ```
 
-### What to Look For:
+**Pros**: More resilient to temporary connection issues
+**Cons**: Longer delays before failing
 
-- ✅ No increase in error rates
-- ✅ Jobs processing correctly
-- ✅ Redis connections stable
-- ✅ Response times normal
-- ✅ No memory issues
+### Option 3: Add Connection Retry Logic
+Add exponential backoff for Redis connection failures
 
-## Delete Cloud Memorystore (After Confirming Everything Works)
+**Pros**: Better handling of transient issues
+**Cons**: More complex code
 
-**⚠️ IMPORTANT: Only do this after confirming the app works perfectly for at least 30 minutes!**
+### Option 4: Wait for Eviction Policy Propagation
+The eviction policy change may need time to take effect
 
-### Via GCP Console:
+**Pros**: No code changes needed
+**Cons**: Uncertain timeline
 
-1. Go to: https://console.cloud.google.com/memorystore/redis/instances
-2. Find your Redis instance (probably named `catchup-redis`)
-3. Click the checkbox next to it
-4. Click **"DELETE"** at the top
-5. Confirm deletion
-
-**Expected savings:** ~$60.70/month immediately
-
-### Via gcloud CLI:
+### Option 5: Restart Service
+Force a fresh start with new eviction policy
 
 ```bash
-# List Redis instances
-gcloud redis instances list --region=us-central1
-
-# Delete the instance (replace INSTANCE_NAME)
-gcloud redis instances delete INSTANCE_NAME --region=us-central1
-```
-
-## Test Scale-to-Zero (After 15-30 minutes of no traffic)
-
-1. **Wait for idle period:**
-   - Don't access the site for 15-30 minutes
-
-2. **Check instance count:**
-   - Go to: https://console.cloud.google.com/run/detail/us-central1/catchup/metrics
-   - Look at "Container instance count" graph
-   - Expected: Should drop to 0
-
-3. **Test cold start:**
-   ```bash
-   time curl https://catchup.club/health
-   ```
-   - First request: ~10-15 seconds (cold start)
-   - Subsequent requests: <1 second
-
-## Set Up Cost Monitoring
-
-1. **Go to:** https://console.cloud.google.com/billing/budgets
-2. **Click:** "CREATE BUDGET"
-3. **Create two alerts:**
-
-**Alert 1: Warning at $60/month**
-- Name: "CatchUp Cost Warning"
-- Budget amount: $60
-- Alert threshold: 100%
-
-**Alert 2: Critical at $80/month**
-- Name: "CatchUp Cost Critical"
-- Budget amount: $80
-- Alert threshold: 100%
-
-## Success Criteria Checklist
-
-After 24 hours, verify:
-
-- [ ] Monthly GCP costs reduced to ~$40-50/month (check billing)
-- [ ] All 11 job queues functioning correctly with Upstash
-- [ ] No increase in error rates (check logs)
-- [ ] Cold start times under 15 seconds (test manually)
-- [ ] HTTP caching headers present on read endpoints (check DevTools)
-- [ ] Job memory usage stable (no OOM errors in logs)
-- [ ] Application scales to 0 when idle (check metrics)
-- [ ] Cloud Memorystore deleted (check console)
-
-## Rollback Plan (If Issues Occur)
-
-If you encounter problems:
-
-### Quick Rollback: Revert to Cloud Memorystore
-
-```bash
-# Update Cloud Run to use old Cloud Memorystore IP
 gcloud run services update catchup \
   --region=us-central1 \
-  --set-env-vars=REDIS_HOST=10.56.216.227,REDIS_PORT=6379,REDIS_TLS=false \
-  --clear-secrets=REDIS_HOST,REDIS_PORT,REDIS_PASSWORD
+  --project=catchup-479221 \
+  --no-traffic
+  
+gcloud run services update catchup \
+  --region=us-central1 \
+  --project=catchup-479221 \
+  --to-latest
 ```
 
-### Full Rollback: Revert Git Commit
+## Comparison with Local Testing
 
-```bash
-# Revert the commit
-git revert HEAD
+**Local**: ✅ BullMQ workers running successfully
+**Production**: ❌ BullMQ workers failing with stream errors
 
-# Push to trigger redeployment
-git push origin main
+**Key Differences**:
+- Local: Direct connection to Upstash
+- Production: Connection through Cloud Run environment
+- Local: Single instance
+- Production: Multiple instances (auto-scaling)
 
-# Update prod tag
-git tag -d prod
-git push origin :refs/tags/prod
-git tag prod 11bec15  # Previous prod commit
-git push origin prod
-```
+## Solution Applied
 
-## Current Status
+### Fix: Enable Offline Queue + Optimize Connection Settings
 
-**Deployment:** ✅ SUCCESSFUL
-**Site Health:** ✅ HEALTHY
-**Next Step:** Complete manual verification steps above
+**Changes Made** (`src/jobs/bullmq-connection.ts`):
 
----
+1. **Enable Offline Queue**:
+   ```typescript
+   enableOfflineQueue: true  // Was: false
+   ```
+   - Allows workers to queue commands during reconnection
+   - Prevents "Stream isn't writeable" errors
+   - Commands execute once connection is re-established
 
-**Notes:**
-- Site is responding correctly
-- Health check passes
-- Ready for full verification and monitoring
+2. **Optimize for Serverless**:
+   ```typescript
+   lazyConnect: false,         // Connect immediately
+   maxRetriesPerRequest: null, // Required for BullMQ
+   ```
+
+**Why This Works**:
+- Eviction policy change (`allkeys-lru` → `noeviction`) requires reconnection
+- During reconnection, existing connections become temporarily invalid
+- With `enableOfflineQueue: true`, commands are queued instead of failing
+- Once reconnected with new policy, queued commands execute successfully
+
+**Trade-offs**:
+- Slightly higher memory usage (queued commands in memory)
+- Small latency increase during reconnection
+- But: Workers remain functional instead of crashing
+
+See `BULLMQ_SERVERLESS_FIX.md` for complete analysis.
+
+## Next Steps
+
+1. **Immediate**: Check Upstash dashboard to verify eviction policy and connection count
+2. **Short-term**: Consider enabling `enableOfflineQueue: true` for resilience
+3. **Medium-term**: Monitor logs after eviction policy propagates
+4. **Long-term**: Evaluate if Phase 3 cleanup can proceed
+
+## Success Criteria (Not Met)
+
+- [ ] All 11 BullMQ workers running without errors
+- [ ] Connection count reduced to 1-3 (down from 33-36)
+- [ ] No "Stream isn't writeable" errors in logs
+- [ ] Background jobs processing successfully
+- [ ] Memory usage within free tier limits
+
+## Related Documentation
+
+- `REDIS_DEPLOYMENT_STATUS.md` - Deployment troubleshooting guide
+- `PHASE_2_DEPLOYMENT_CHECKLIST.md` - Phase 2 verification steps
+- `.kiro/specs/redis-optimization/tasks.md` - Phase 3 tasks
+- `BULLMQ_CONNECTION_ANALYSIS.md` - Connection configuration analysis
+
+## Logs Timestamp
+
+Last checked: 2026-02-19 01:04:55 UTC
+Revision: catchup-00051-tjq

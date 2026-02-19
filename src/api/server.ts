@@ -46,6 +46,7 @@ import manualSyncRouter from './routes/manual-sync';
 import syncStatusRouter from './routes/sync-status';
 import adminSyncHealthRouter from './routes/admin-sync-health';
 import jobMonitoringRouter from './routes/job-monitoring';
+import jobsHandler from './jobs-handler';
 import { apiRateLimiter } from '../utils/rate-limiter';
 import { enforceHttps, securityHeaders } from './middleware/security';
 import { VoiceNoteWebSocketHandler } from '../voice/websocket-handler';
@@ -203,6 +204,9 @@ export function createServer(): Express {
   // Admin routes (protected by requireAdmin middleware)
   app.use('/api/admin', adminSyncHealthRouter);
   app.use('/api/admin/jobs', jobMonitoringRouter);
+
+  // Cloud Tasks job handler (OIDC authenticated)
+  app.use('/api', jobsHandler);
 
   // Test data routes (for development/testing)
   try {
