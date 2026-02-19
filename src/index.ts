@@ -36,9 +36,16 @@ async function main() {
   console.log('CatchUp Application Ready');
   console.log(`Running version: ${getVersion()}`);
 
-  // Start background job worker (Bull or BullMQ based on USE_BULLMQ env var)
-  const { startWorker } = await import('./jobs/worker-selector');
-  await startWorker();
+  // Start background job worker (only if not using Cloud Tasks)
+  const useCloudTasks = process.env.USE_CLOUD_TASKS?.trim() === 'true';
+  
+  if (useCloudTasks) {
+    console.log('[Startup] Using Cloud Tasks - workers not needed');
+  } else {
+    console.log('[Startup] Using BullMQ/Bull - starting workers');
+    const { startWorker } = await import('./jobs/worker-selector');
+    await startWorker();
+  }
 
   // Start API server
   const port = parseInt(process.env.PORT || '3000', 10);
