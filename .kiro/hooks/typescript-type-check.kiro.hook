@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "TypeScript Type Check",
+  "description": "Run TypeScript type checking on save to catch type errors early",
+  "version": "1.0.0",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["src/**/*.ts", "src/**/*.tsx"]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "npm run typecheck"
+  }
+}

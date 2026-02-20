@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Database Migration Safety",
+  "description": "Warn when editing migration files directly",
+  "version": "1.0.0",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["scripts/migrations/*.sql", "src/db/migrations/*.sql"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A database migration file was edited. Reminder: Migration files should be immutable once deployed. If this is a new migration, ensure you've tested it locally with `npm run db:migrate` and verified rollback works. If modifying an existing migration that's been deployed, create a new migration instead."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "Security Review Trigger",
+  "description": "Trigger security review for auth and API changes",
+  "version": "1.0.0",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/api/**/*.ts",
+      "src/integrations/google-*.ts",
+      "src/utils/encryption.ts"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Security-sensitive code was modified. Please verify:\n1. No secrets or API keys are hardcoded\n2. All external API calls have proper error handling\n3. OAuth tokens remain encrypted at rest\n4. JWT validation is present on protected endpoints\n5. Rate limiting is applied where appropriate\n6. Input validation is comprehensive"
+  }
+}
