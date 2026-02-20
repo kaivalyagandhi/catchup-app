@@ -1,10 +1,16 @@
 /**
  * Batch Notification Service
  *
- * Handles scheduled batch notification delivery using Bull job queue.
+ * DEPRECATED: This service used Bull queues for batch notifications.
+ * With Cloud Tasks, batch notifications are handled by batch-notification-processor.
+ * 
+ * TODO: Remove this file after verifying no dependencies.
+ * See BULL_CLEANUP_TASK.md for details.
  */
 
-import Bull from 'bull';
+// DEPRECATED: Bull import removed
+// import Bull from 'bull';
+
 import { Suggestion, Contact, SuggestionStatus } from '../types';
 import { SMSService, smsService as defaultSMSService } from './sms-service';
 import { EmailService, emailService as defaultEmailService } from './email-service';
@@ -28,65 +34,43 @@ export interface BatchNotificationResult {
 
 /**
  * Batch Notification Service
+ * 
+ * DEPRECATED: Use batch-notification-processor with Cloud Tasks instead
  */
 export class BatchNotificationService {
-  private queue: Bull.Queue<BatchNotificationJob>;
+  // DEPRECATED: Queue removed
+  // private queue: Bull.Queue<BatchNotificationJob>;
   private smsService: SMSService;
   private emailService: EmailService;
 
   constructor(redisUrl?: string, smsService?: SMSService, emailService?: EmailService) {
-    const url = redisUrl || process.env.REDIS_URL || 'redis://localhost:6379';
-
-    this.queue = new Bull<BatchNotificationJob>('batch-notifications', url, {
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
-        removeOnComplete: true,
-        removeOnFail: false,
-      },
-    });
-
+    console.warn('BatchNotificationService is deprecated - use Cloud Tasks batch-notification-processor');
+    
     this.smsService = smsService || defaultSMSService;
     this.emailService = emailService || defaultEmailService;
-
-    // Set up job processor
-    this.queue.process(this.processJob.bind(this));
-
-    // Set up error handler
-    this.queue.on('failed', (job, err) => {
-      console.error(`Batch notification job ${job.id} failed:`, err);
-    });
   }
 
   /**
    * Schedule batch notification for a user
+   * 
+   * DEPRECATED: Use Cloud Tasks instead
    */
   async scheduleBatchNotification(userId: string, delay?: number): Promise<void> {
-    const jobData: BatchNotificationJob = { userId };
-
-    if (delay) {
-      await this.queue.add(jobData, { delay });
-    } else {
-      await this.queue.add(jobData);
-    }
-
-    console.log(`Scheduled batch notification for user ${userId}`);
+    console.warn('scheduleBatchNotification is deprecated - use Cloud Tasks');
   }
 
   /**
    * Send batch notification immediately
    */
   async sendBatchNotification(userId: string): Promise<BatchNotificationResult> {
-    return await this.processJob({ data: { userId } } as Bull.Job<BatchNotificationJob>);
+    // This method still works for direct calls (not via queue)
+    return await this.processJob({ data: { userId } } as any);
   }
 
   /**
    * Process batch notification job
    */
-  private async processJob(job: Bull.Job<BatchNotificationJob>): Promise<BatchNotificationResult> {
+  private async processJob(job: { data: BatchNotificationJob }): Promise<BatchNotificationResult> {
     const { userId } = job.data;
 
     console.log(`Processing batch notification for user ${userId}`);
@@ -173,9 +157,11 @@ export class BatchNotificationService {
 
   /**
    * Close the queue (for cleanup)
+   * 
+   * DEPRECATED: No-op with Cloud Tasks
    */
   async close(): Promise<void> {
-    await this.queue.close();
+    console.warn('BatchNotificationService.close() is deprecated');
   }
 }
 

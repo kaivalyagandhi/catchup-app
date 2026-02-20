@@ -10,7 +10,7 @@
  * Requirements: Enhanced webhook monitoring
  */
 
-import { Job } from 'bull';
+import { Job } from '../job-types';
 import {
   getAllActiveSubscriptions,
   getWebhooksWithNoRecentNotifications,

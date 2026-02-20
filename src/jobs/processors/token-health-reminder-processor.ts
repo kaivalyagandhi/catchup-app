@@ -5,7 +5,7 @@
  * Requirements: 4.3
  */
 
-import { Job } from 'bull';
+import { Job } from '../job-types';
 import { tokenHealthNotificationService } from '../../integrations/token-health-notification-service';
 
 export interface TokenHealthReminderJob {

@@ -13,7 +13,7 @@
  * Requirements: 3.7, 4.5, 10.5
  */
 
-import Bull from 'bull';
+import { Job } from '../job-types';
 import { GoogleContactsSyncJobData, GoogleContactsSyncResult } from '../types';
 import { googleContactsOAuthService } from '../../integrations/google-contacts-oauth-service';
 import { groupSyncService } from '../../integrations/group-sync-service';
@@ -31,7 +31,7 @@ import { syncOrchestrator } from '../../integrations/sync-orchestrator';
  * Requirements: 1.1, 1.4, 2.2, 5.1, 5.2, 10.5
  */
 export async function processGoogleContactsSync(
-  job: Bull.Job<GoogleContactsSyncJobData>
+  job: Job<GoogleContactsSyncJobData>
 ): Promise<GoogleContactsSyncResult> {
   const { userId, syncType } = job.data;
 

@@ -3,42 +3,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// OLD CODE - Using ioredis (TCP connection)
-// Kept for rollback purposes - remove after Phase 3
-/*
-import Redis from 'ioredis';
-
-function createRedisClient(): Redis {
-  if (process.env.REDIS_URL) {
-    console.log('[Rate Limiter] Connecting using REDIS_URL connection string');
-    return new Redis(process.env.REDIS_URL, {
-      retryStrategy: (times: number) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-      maxRetriesPerRequest: 3,
-    });
-  }
-
-  console.log('[Rate Limiter] Connecting using object configuration');
-  return new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDIS_PASSWORD,
-    db: parseInt(process.env.REDIS_DB || '0', 10),
-    tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
-    retryStrategy: (times: number) => {
-      const delay = Math.min(times * 50, 2000);
-      return delay;
-    },
-    maxRetriesPerRequest: 3,
-  });
-}
-
-const redis = createRedisClient();
-*/
-
-// NEW CODE - Using HTTP Redis (no persistent connection)
 console.log('[Rate Limiter] Using HTTP Redis client (0 connections)');
 
 /**

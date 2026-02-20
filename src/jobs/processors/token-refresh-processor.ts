@@ -7,7 +7,7 @@
  * Requirements: 8.2
  */
 
-import { Job } from 'bull';
+import { Job } from '../job-types';
 import { TokenHealthMonitor } from '../../integrations/token-health-monitor';
 
 export interface TokenRefreshJobData {

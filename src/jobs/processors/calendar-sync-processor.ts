@@ -13,7 +13,7 @@
  * Requirements: 7.8, 8.1
  */
 
-import Bull from 'bull';
+import { Job } from '../job-types';
 import { CalendarSyncJobData, CalendarSyncResult } from '../types';
 import * as oauthRepository from '../../integrations/oauth-repository';
 import * as calendarService from '../../calendar/calendar-service';
@@ -31,7 +31,7 @@ import { syncOrchestrator } from '../../integrations/sync-orchestrator';
  * Requirements: 1.1, 1.4, 2.2, 5.1, 5.2, 10.5
  */
 export async function processCalendarSync(
-  job: Bull.Job<CalendarSyncJobData>
+  job: Job<CalendarSyncJobData>
 ): Promise<CalendarSyncResult> {
   const { userId } = job.data;
 

@@ -7,7 +7,7 @@
  * Requirements: 9.1-11.4
  */
 
-import Bull from 'bull';
+import { Job } from '../job-types';
 import { SuggestionGenerationJobData, SuggestionGenerationResult } from '../types';
 import * as oauthRepository from '../../integrations/oauth-repository';
 import * as calendarService from '../../calendar/calendar-service';
@@ -27,7 +27,7 @@ const SUGGESTION_WINDOW_DAYS = 14; // Generate suggestions for next 2 weeks
  * 4. Caching suggestions until status changes
  */
 export async function processSuggestionGeneration(
-  job: Bull.Job<SuggestionGenerationJobData>
+  job: Job<SuggestionGenerationJobData>
 ): Promise<SuggestionGenerationResult> {
   const { batchSize = DEFAULT_BATCH_SIZE, offset = 0 } = job.data;
 

@@ -5,7 +5,7 @@
  * suggestions don't overlap with newly added calendar events.
  */
 
-import Bull from 'bull';
+import { Job } from '../job-types';
 import * as suggestionService from '../../matching/suggestion-service';
 import * as suggestionRepository from '../../matching/suggestion-repository';
 import * as availabilityService from '../../calendar/availability-service';
@@ -29,7 +29,7 @@ export interface SuggestionRegenerationResult {
  * 2. Generates new suggestions for available time slots
  */
 export async function processSuggestionRegeneration(
-  job: Bull.Job<SuggestionRegenerationJobData>
+  job: Job<SuggestionRegenerationJobData>
 ): Promise<SuggestionRegenerationResult> {
   const { userId } = job.data;
 

@@ -236,14 +236,19 @@ router.get('/callback', async (req: Request, res: Response) => {
     }
 
     // Enqueue suggestion regeneration in background (after sync completes)
+    // Note: With Cloud Tasks, we use the CloudTasksQueue directly
     try {
-      const { enqueueJob, QUEUE_NAMES } = await import('../../jobs/queue');
+      const { CloudTasksQueue } = await import('../../jobs/cloud-tasks-client');
+      const suggestionQueue = new CloudTasksQueue('suggestion-regeneration');
 
       // Enqueue suggestion regeneration
-      await enqueueJob(QUEUE_NAMES.SUGGESTION_REGENERATION, {
-        userId: userId,
-        reason: 'calendar_sync',
-      });
+      await suggestionQueue.add(
+        `suggestion-regen-${userId}-${Date.now()}`,
+        {
+          userId: userId,
+          reason: 'calendar_sync',
+        }
+      );
       console.log(`Suggestion regeneration queued for user ${userId}`);
     } catch (jobError) {
       console.error('Failed to enqueue suggestion regeneration:', jobError);

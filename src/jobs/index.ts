@@ -1,14 +1,13 @@
 /**
  * Jobs Module
  *
- * Exports job queue, worker, and scheduler functionality.
+ * Exports job queue factory and scheduler functionality.
+ * Note: Bull/BullMQ removed - use Cloud Tasks via queue-factory.ts
  */
 
-export * from './queue';
 export * from './types';
-export * from './worker';
+export * from './queue-factory';
 export * from './scheduler';
-export * from './job-monitoring-service';
 export { processSuggestionGeneration } from './processors/suggestion-generation-processor';
 export { processBatchNotification } from './processors/batch-notification-processor';
 export { processCalendarSync } from './processors/calendar-sync-processor';

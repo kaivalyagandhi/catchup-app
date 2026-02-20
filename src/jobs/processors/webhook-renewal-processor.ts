@@ -7,7 +7,7 @@
  * Requirements: 6.4
  */
 
-import { Job } from 'bull';
+import { Job } from '../job-types';
 import { CalendarWebhookManager } from '../../integrations/calendar-webhook-manager';
 
 export interface WebhookRenewalJobData {

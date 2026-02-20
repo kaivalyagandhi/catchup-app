@@ -7,7 +7,7 @@
  * Requirements: 12.1-12.5
  */
 
-import Bull from 'bull';
+import { Job } from '../job-types';
 import { BatchNotificationJobData, BatchNotificationResult } from '../types';
 import * as preferencesRepository from '../../notifications/preferences-repository';
 import * as suggestionRepository from '../../matching/suggestion-repository';
@@ -27,7 +27,7 @@ import { SuggestionStatus } from '../../types';
  * 4. Tracking delivery status
  */
 export async function processBatchNotification(
-  job: Bull.Job<BatchNotificationJobData>
+  job: Job<BatchNotificationJobData>
 ): Promise<BatchNotificationResult> {
   const { userId } = job.data;
 

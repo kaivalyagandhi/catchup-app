@@ -7,7 +7,7 @@
  * Requirements: 5.1, 5.2
  */
 
-import { Job } from 'bull';
+import { Job } from '../job-types';
 import { AdaptiveSyncScheduler } from '../../integrations/adaptive-sync-scheduler';
 import { SyncOrchestrator } from '../../integrations/sync-orchestrator';
 import * as oauthRepository from '../../integrations/oauth-repository';

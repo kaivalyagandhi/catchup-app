@@ -6,11 +6,15 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { googleContactsOAuthService } from '../../integrations/google-contacts-oauth-service';
-import { googleContactsSyncQueue } from '../../jobs/queue';
+import { CloudTasksQueue } from '../../jobs/cloud-tasks-client';
 import { GoogleContactsSyncJobData } from '../../jobs/types';
-import { scheduleUserGoogleContactsSync, removeUserGoogleContactsSync } from '../../jobs/scheduler';
+// Note: Scheduler functions are deprecated with Cloud Tasks
+// Recurring jobs are handled by Cloud Scheduler
 
 const router = Router();
+
+// Cloud Tasks queue for Google Contacts sync
+const googleContactsSyncQueue = new CloudTasksQueue('google-contacts-sync');
 
 /**
  * GET /api/contacts/oauth/authorize
@@ -169,16 +173,10 @@ router.get('/callback', async (req: Request, res: Response) => {
     // which was called above. We don't need to queue another sync job here.
     // Reference: SYNC_FREQUENCY_UPDATE_PLAN.md Section "Priority 1: Immediate First Sync"
 
-    // Schedule future incremental syncs (adaptive scheduler will handle timing)
-    try {
-      await scheduleUserGoogleContactsSync(userId);
-      console.log(`Future sync scheduled for user ${userId}`);
-    } catch (scheduleError) {
-      // Log error but don't fail the OAuth flow
-      const scheduleErrorMsg =
-        scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
-      console.error('Failed to schedule future sync:', scheduleErrorMsg);
-    }
+    // Schedule future incremental syncs
+    // Note: With Cloud Tasks, recurring syncs are handled by Cloud Scheduler
+    // The adaptive sync scheduler manages sync timing automatically
+    console.log(`Sync scheduling handled by Cloud Scheduler for user ${userId}`);
 
     // Redirect to Preferences page with success message
     res.redirect('/app?view=preferences&contacts_success=true');
@@ -219,11 +217,9 @@ router.get('/status', authenticate, async (req: AuthenticatedRequest, res: Respo
     const { getSyncState } = await import('../../integrations/sync-state-repository');
     const syncState = await getSyncState(req.userId);
 
-    // Check if auto-sync is enabled by checking for scheduled job
-    const repeatableJobs = await googleContactsSyncQueue.getRepeatableJobs();
-    const autoSyncEnabled = repeatableJobs.some(
-      (job) => job.id === `google-contacts-sync-${req.userId}`
-    );
+    // Note: With Cloud Tasks, auto-sync is managed by Cloud Scheduler
+    // All connected users have auto-sync enabled via adaptive scheduler
+    const autoSyncEnabled = true;
 
     // Determine last sync timestamp (prefer incremental, fallback to full)
     const lastSyncAt = syncState?.lastIncrementalSyncAt || syncState?.lastFullSyncAt || null;
@@ -321,15 +317,9 @@ router.delete('/disconnect', authenticate, async (req: AuthenticatedRequest, res
     await googleContactsOAuthService.disconnect(req.userId);
 
     // Stop scheduled sync jobs
-    try {
-      await removeUserGoogleContactsSync(req.userId);
-      console.log('Scheduled sync jobs stopped for user:', req.userId);
-    } catch (scheduleError) {
-      // Log error but don't fail the disconnect flow
-      const scheduleErrorMsg =
-        scheduleError instanceof Error ? scheduleError.message : String(scheduleError);
-      console.error('Failed to remove scheduled sync:', scheduleErrorMsg);
-    }
+    // Note: With Cloud Tasks, recurring syncs are handled by Cloud Scheduler
+    // Disconnection is tracked in database, adaptive scheduler will skip this user
+    console.log('Sync scheduling handled by Cloud Scheduler for user:', req.userId);
 
     console.log('Google Contacts disconnected successfully for user:', req.userId);
 

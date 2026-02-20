@@ -42,9 +42,8 @@ async function main() {
   if (useCloudTasks) {
     console.log('[Startup] Using Cloud Tasks - workers not needed');
   } else {
-    console.log('[Startup] Using BullMQ/Bull - starting workers');
-    const { startWorker } = await import('./jobs/worker-selector');
-    await startWorker();
+    console.log('[Startup] Bull/BullMQ removed - only Cloud Tasks supported');
+    console.log('[Startup] Set USE_CLOUD_TASKS=true to enable Cloud Tasks');
   }
 
   // Start API server
@@ -62,10 +61,6 @@ const gracefulShutdown = async () => {
       console.log('HTTP server closed');
     });
   }
-
-  // Stop background job worker
-  const { stopWorker } = await import('./jobs/worker-selector');
-  await stopWorker();
 
   // Close database connections
   const { closePool } = await import('./db/connection');

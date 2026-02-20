@@ -17,16 +17,16 @@ describe('Circuit Breaker Manager - Property-Based Tests', () => {
   beforeEach(async () => {
     // Create test users
     await pool.query(
-      `INSERT INTO users (id, email, name, google_id, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, NOW(), NOW())
-       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, google_id = EXCLUDED.google_id`,
-      [TEST_USER_ID, `test-${Date.now()}-1@example.com`, 'Test User 1', 'google-test-1']
+      `INSERT INTO users (id, email, name, google_id, auth_method, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, google_id = EXCLUDED.google_id, auth_method = EXCLUDED.auth_method`,
+      [TEST_USER_ID, `test-${Date.now()}-1@example.com`, 'Test User 1', 'google-test-1', 'google']
     );
     await pool.query(
-      `INSERT INTO users (id, email, name, google_id, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, NOW(), NOW())
-       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, google_id = EXCLUDED.google_id`,
-      [TEST_USER_ID_2, `test-${Date.now()}-2@example.com`, 'Test User 2', 'google-test-2']
+      `INSERT INTO users (id, email, name, google_id, auth_method, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, google_id = EXCLUDED.google_id, auth_method = EXCLUDED.auth_method`,
+      [TEST_USER_ID_2, `test-${Date.now()}-2@example.com`, 'Test User 2', 'google-test-2', 'google']
     );
 
     // Clean up test data

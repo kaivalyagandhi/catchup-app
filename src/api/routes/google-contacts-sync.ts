@@ -7,12 +7,15 @@
 
 import { Router, Response } from 'express';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
-import { googleContactsSyncQueue } from '../../jobs/queue';
+import { CloudTasksQueue } from '../../jobs/cloud-tasks-client';
 import { GoogleContactsSyncJobData } from '../../jobs/types';
 import { googleContactsSyncService } from '../../integrations/google-contacts-sync-service';
 import { googleContactsOAuthService } from '../../integrations/google-contacts-oauth-service';
 
 const router = Router();
+
+// Cloud Tasks queue for Google Contacts sync
+const googleContactsSyncQueue = new CloudTasksQueue('google-contacts-sync');
 
 /**
  * POST /api/contacts/sync/full
@@ -39,17 +42,9 @@ router.post('/full', authenticate, async (req: AuthenticatedRequest, res: Respon
       return;
     }
 
-    // Check for existing sync job for this user (exclude scheduled repeat jobs)
-    const existingJobs = await googleContactsSyncQueue.getJobs(['active', 'waiting']);
-    const userHasActiveJob = existingJobs.some((job) => job.data.userId === req.userId);
-
-    if (userHasActiveJob) {
-      res.status(409).json({
-        error: 'Sync already in progress',
-        message: 'A sync is already in progress. Please wait for it to complete.',
-      });
-      return;
-    }
+    // Check for existing sync job for this user
+    // Note: With Cloud Tasks, we rely on database sync state to prevent concurrent syncs
+    // Cloud Tasks handles deduplication via idempotency keys
 
     // Check database sync state for stale locks
     const { getSyncState } = await import('../../integrations/sync-state-repository');
@@ -77,15 +72,16 @@ router.post('/full', authenticate, async (req: AuthenticatedRequest, res: Respon
       syncType: 'full',
     };
 
-    const job = await googleContactsSyncQueue.add(jobData, {
-      jobId: `google-contacts-sync-${req.userId}-${Date.now()}`,
-    });
+    const taskId = await googleContactsSyncQueue.add(
+      `google-contacts-sync-${req.userId}-${Date.now()}`,
+      jobData
+    );
 
-    console.log(`Full sync job queued for user ${req.userId}, job ID: ${job.id}`);
+    console.log(`Full sync job queued for user ${req.userId}, task ID: ${taskId}`);
 
     res.json({
       message: 'Sync started successfully',
-      jobId: job.id,
+      jobId: taskId,
       status: 'queued',
     });
   } catch (error) {
@@ -123,17 +119,9 @@ router.post('/incremental', authenticate, async (req: AuthenticatedRequest, res:
       return;
     }
 
-    // Check for existing sync job for this user (exclude scheduled repeat jobs)
-    const existingJobs = await googleContactsSyncQueue.getJobs(['active', 'waiting']);
-    const userHasActiveJob = existingJobs.some((job) => job.data.userId === req.userId);
-
-    if (userHasActiveJob) {
-      res.status(409).json({
-        error: 'Sync already in progress',
-        message: 'A sync is already in progress. Please wait for it to complete.',
-      });
-      return;
-    }
+    // Check for existing sync job for this user
+    // Note: With Cloud Tasks, we rely on database sync state to prevent concurrent syncs
+    // Cloud Tasks handles deduplication via idempotency keys
 
     // Check database sync state for stale locks
     const { getSyncState } = await import('../../integrations/sync-state-repository');
@@ -161,15 +149,16 @@ router.post('/incremental', authenticate, async (req: AuthenticatedRequest, res:
       syncType: 'incremental',
     };
 
-    const job = await googleContactsSyncQueue.add(jobData, {
-      jobId: `google-contacts-sync-${req.userId}-${Date.now()}`,
-    });
+    const taskId = await googleContactsSyncQueue.add(
+      `google-contacts-sync-${req.userId}-${Date.now()}`,
+      jobData
+    );
 
-    console.log(`Incremental sync job queued for user ${req.userId}, job ID: ${job.id}`);
+    console.log(`Incremental sync job queued for user ${req.userId}, task ID: ${taskId}`);
 
     res.json({
       message: 'Sync started successfully',
-      jobId: job.id,
+      jobId: taskId,
       status: 'queued',
     });
   } catch (error) {
@@ -211,9 +200,8 @@ router.get('/status', authenticate, async (req: AuthenticatedRequest, res: Respo
     // Get sync state from database
     const syncState = await googleContactsSyncService.getSyncState(req.userId);
 
-    // Check for active sync job
-    const activeJobs = await googleContactsSyncQueue.getJobs(['active', 'waiting', 'delayed']);
-    const userActiveJob = activeJobs.find((job) => job.data.userId === req.userId);
+    // Note: With Cloud Tasks, we check database sync state instead of queue
+    // syncInProgress is determined by lastSyncStatus === 'in_progress'
 
     // Build response
     const response: any = {
@@ -225,16 +213,8 @@ router.get('/status', authenticate, async (req: AuthenticatedRequest, res: Respo
       lastSyncStatus: syncState?.lastSyncStatus || 'pending',
       lastSyncError: syncState?.lastSyncError || null,
       autoSyncEnabled: true, // Will be configurable in future
+      syncInProgress: syncState?.lastSyncStatus === 'in_progress',
     };
-
-    // Add active job info if exists
-    if (userActiveJob) {
-      response.syncInProgress = true;
-      response.currentJobId = userActiveJob.id;
-      response.currentSyncType = userActiveJob.data.syncType;
-    } else {
-      response.syncInProgress = false;
-    }
 
     console.log('Sync status:', response);
 

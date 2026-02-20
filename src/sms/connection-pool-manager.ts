@@ -5,14 +5,14 @@
  * - Google Cloud Speech-to-Text
  * - Google Gemini API
  * - Twilio API
- * - Redis connections
+ *
+ * Note: Redis connections are now handled by HTTP Redis (no pooling needed)
  *
  * Requirements: All (Performance optimization for external API calls)
  */
 
 import { SpeechClient } from '@google-cloud/speech';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import Redis from 'ioredis';
 import { Twilio } from 'twilio';
 
 /**
@@ -111,100 +111,6 @@ class SpeechClientPool {
 }
 
 /**
- * Redis connection pool
- */
-class RedisPool {
-  private clients: Redis[] = [];
-  private availableClients: Redis[] = [];
-  private config: PoolConfig;
-  private redisUrl?: string;
-  private redisConfig?: any;
-
-  constructor(redisConfig: any, poolConfig: Partial<PoolConfig> = {}) {
-    // Support both connection string and object config
-    if (typeof redisConfig === 'string') {
-      this.redisUrl = redisConfig;
-    } else {
-      this.redisConfig = redisConfig;
-    }
-    this.config = { ...DEFAULT_POOL_CONFIG, ...poolConfig };
-    this.initialize();
-  }
-
-  private createClient(): Redis {
-    if (this.redisUrl) {
-      return new Redis(this.redisUrl);
-    } else {
-      return new Redis(this.redisConfig);
-    }
-  }
-
-  private initialize(): void {
-    // Create minimum number of connections
-    for (let i = 0; i < this.config.minConnections; i++) {
-      const client = this.createClient();
-      this.clients.push(client);
-      this.availableClients.push(client);
-    }
-  }
-
-  async acquire(): Promise<Redis> {
-    // Return available client if exists
-    if (this.availableClients.length > 0) {
-      return this.availableClients.pop()!;
-    }
-
-    // Create new client if under max limit
-    if (this.clients.length < this.config.maxConnections) {
-      const client = this.createClient();
-      this.clients.push(client);
-      return client;
-    }
-
-    // Wait for available client
-    return new Promise((resolve) => {
-      const checkInterval = setInterval(() => {
-        if (this.availableClients.length > 0) {
-          clearInterval(checkInterval);
-          resolve(this.availableClients.pop()!);
-        }
-      }, 100);
-
-      // Timeout after configured time
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        // Create new client even if over limit (emergency)
-        const client = this.createClient();
-        this.clients.push(client);
-        resolve(client);
-      }, this.config.connectionTimeoutMs);
-    });
-  }
-
-  release(client: Redis): void {
-    if (!this.availableClients.includes(client)) {
-      this.availableClients.push(client);
-    }
-  }
-
-  getStats() {
-    return {
-      total: this.clients.length,
-      available: this.availableClients.length,
-      inUse: this.clients.length - this.availableClients.length,
-    };
-  }
-
-  async close(): Promise<void> {
-    for (const client of this.clients) {
-      await client.quit();
-    }
-    this.clients = [];
-    this.availableClients = [];
-  }
-}
-
-/**
  * Twilio client pool
  */
 class TwilioClientPool {
@@ -289,7 +195,6 @@ class TwilioClientPool {
  */
 export class ConnectionPoolManager {
   private speechClientPool?: SpeechClientPool;
-  private redisPool?: RedisPool;
   private twilioClientPool?: TwilioClientPool;
 
   /**
@@ -299,16 +204,6 @@ export class ConnectionPoolManager {
     if (!this.speechClientPool) {
       this.speechClientPool = new SpeechClientPool(config);
       console.log('Speech-to-Text client pool initialized');
-    }
-  }
-
-  /**
-   * Initialize Redis connection pool
-   */
-  initializeRedisPool(redisConfig: any, poolConfig?: Partial<PoolConfig>): void {
-    if (!this.redisPool) {
-      this.redisPool = new RedisPool(redisConfig, poolConfig);
-      console.log('Redis connection pool initialized');
     }
   }
 
@@ -346,34 +241,6 @@ export class ConnectionPoolManager {
   }
 
   /**
-   * Get Redis client from pool
-   */
-  async getRedisClient(): Promise<Redis> {
-    if (!this.redisPool) {
-      // Use REDIS_URL if available (recommended for Upstash)
-      const redisConfig = process.env.REDIS_URL || {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379', 10),
-        password: process.env.REDIS_PASSWORD,
-        db: parseInt(process.env.REDIS_DB || '0', 10),
-        // TLS support for Upstash and other cloud Redis providers
-        tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
-      };
-      this.initializeRedisPool(redisConfig);
-    }
-    return this.redisPool!.acquire();
-  }
-
-  /**
-   * Release Redis client back to pool
-   */
-  releaseRedisClient(client: Redis): void {
-    if (this.redisPool) {
-      this.redisPool.release(client);
-    }
-  }
-
-  /**
    * Get Twilio client from pool
    */
   async getTwilioClient(): Promise<Twilio> {
@@ -400,8 +267,8 @@ export class ConnectionPoolManager {
   getAllStats() {
     return {
       speechClient: this.speechClientPool?.getStats() || null,
-      redis: this.redisPool?.getStats() || null,
       twilio: this.twilioClientPool?.getStats() || null,
+      redis: { note: 'HTTP Redis - no connection pooling needed' },
     };
   }
 
@@ -413,10 +280,6 @@ export class ConnectionPoolManager {
 
     if (this.speechClientPool) {
       promises.push(this.speechClientPool.close());
-    }
-
-    if (this.redisPool) {
-      promises.push(this.redisPool.close());
     }
 
     if (this.twilioClientPool) {

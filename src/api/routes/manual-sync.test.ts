@@ -20,10 +20,10 @@ describe('Manual Sync Routes', () => {
     // Create test user
     const uniqueEmail = `test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
     await pool.query(
-      `INSERT INTO users (id, email, name, created_at, updated_at)
-       VALUES ($1, $2, $3, NOW(), NOW())
-       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email`,
-      [TEST_USER_ID, uniqueEmail, 'Test User']
+      `INSERT INTO users (id, email, name, auth_method, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, auth_method = EXCLUDED.auth_method`,
+      [TEST_USER_ID, uniqueEmail, 'Test User', 'google']
     );
 
     // Generate auth token
