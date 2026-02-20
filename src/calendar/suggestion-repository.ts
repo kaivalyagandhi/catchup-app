@@ -45,7 +45,13 @@ export async function getUserSuggestions(
 ): Promise<Suggestion[]> {
   // Use imported pool
 
-  let query = 'SELECT * FROM suggestions WHERE user_id = $1';
+  // Optimized: Use column projection instead of SELECT *
+  let query = `SELECT 
+    id, user_id, contact_id, trigger_type,
+    proposed_timeslot_start, proposed_timeslot_end, proposed_timeslot_timezone,
+    reasoning, status, dismissal_reason, calendar_event_id,
+    snoozed_until, priority, created_at, updated_at
+  FROM suggestions WHERE user_id = $1`;
   const params: any[] = [userId];
 
   if (statuses && statuses.length > 0) {
@@ -65,7 +71,16 @@ export async function getUserSuggestions(
 export async function getSuggestionById(suggestionId: string): Promise<Suggestion | null> {
   // Use imported pool
 
-  const result = await pool.query('SELECT * FROM suggestions WHERE id = $1', [suggestionId]);
+  // Optimized: Use column projection instead of SELECT *
+  const result = await pool.query(
+    `SELECT 
+      id, user_id, contact_id, trigger_type,
+      proposed_timeslot_start, proposed_timeslot_end, proposed_timeslot_timezone,
+      reasoning, status, dismissal_reason, calendar_event_id,
+      snoozed_until, priority, created_at, updated_at
+    FROM suggestions WHERE id = $1`,
+    [suggestionId]
+  );
 
   if (result.rows.length === 0) {
     return null;

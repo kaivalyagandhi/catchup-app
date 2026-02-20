@@ -23,6 +23,8 @@ import { ContactRepository, PostgresContactRepository } from '../contacts/reposi
 import { getPeopleClient } from './google-contacts-config';
 import { BatchProcessor, defaultBatchProcessor } from '../utils/batch-processor';
 import { PerformanceMonitor, defaultPerformanceMonitor } from '../utils/performance-monitor';
+import { MemoryCircuitBreaker, MemoryCircuitBreakerError } from '../utils/memory-circuit-breaker';
+import { MemoryMonitor } from '../utils/memory-monitor';
 
 /**
  * Google Contacts Sync Service
@@ -35,6 +37,8 @@ export class GoogleContactsSyncService {
   private contactRepository: ContactRepository;
   private batchProcessor: BatchProcessor;
   private performanceMonitor: PerformanceMonitor;
+  private memoryBreaker: MemoryCircuitBreaker;
+  private memoryMonitor: MemoryMonitor;
 
   constructor(
     oauthService?: GoogleContactsOAuthService,
@@ -52,6 +56,8 @@ export class GoogleContactsSyncService {
     this.contactRepository = contactRepository || new PostgresContactRepository();
     this.batchProcessor = batchProcessor || defaultBatchProcessor;
     this.performanceMonitor = performanceMonitor || defaultPerformanceMonitor;
+    this.memoryBreaker = new MemoryCircuitBreaker({ maxHeapPercent: 80 });
+    this.memoryMonitor = new MemoryMonitor();
   }
 
   /**
@@ -70,10 +76,16 @@ export class GoogleContactsSyncService {
 
     console.log(`Starting full sync for user ${userId}`);
 
+    // Log memory before operation
+    const memoryBefore = process.memoryUsage();
+
     // Start performance monitoring
     this.performanceMonitor.startOperation(operationId, 'Full Sync', { userId });
 
     try {
+      // Check memory before starting
+      await this.memoryBreaker.checkMemory();
+
       // Mark sync as in progress
       await this.syncStateRepository.markSyncInProgress(userId);
 
@@ -83,6 +95,9 @@ export class GoogleContactsSyncService {
       // Process pages one at a time, releasing memory after each
       do {
         try {
+          // Check memory before processing each page
+          await this.memoryBreaker.checkMemory();
+
           // Execute request with rate limiting and track API request
           this.performanceMonitor.incrementApiRequestCount(operationId);
           const response = await this.rateLimiter.executeRequest(userId, async () => {
@@ -149,10 +164,19 @@ export class GoogleContactsSyncService {
           if (global.gc) {
             global.gc();
           }
+
+          // Yield to event loop
+          await new Promise((resolve) => setImmediate(resolve));
         } catch (error) {
           // Handle pagination errors
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error(`Error fetching page: ${errorMessage}`);
+
+          // Check if this is a memory circuit breaker error
+          if (error instanceof MemoryCircuitBreakerError) {
+            console.error('Memory circuit breaker triggered during contact sync');
+            throw error;
+          }
 
           // Check if this is a token expiration error
           if (this.isSyncTokenExpiredError(error)) {
@@ -181,6 +205,10 @@ export class GoogleContactsSyncService {
       // End performance monitoring
       const perfMetrics = this.performanceMonitor.endOperation(operationId, contactsImported);
       const duration = perfMetrics?.duration || 0;
+
+      // Log memory after operation
+      const memoryAfter = process.memoryUsage();
+      this.memoryMonitor.logMemoryUsage('contact-sync-full', memoryBefore, memoryAfter);
 
       const result: SyncResult = {
         contactsImported,
@@ -227,10 +255,16 @@ export class GoogleContactsSyncService {
 
     console.log(`Starting incremental sync for user ${userId}`);
 
+    // Log memory before operation
+    const memoryBefore = process.memoryUsage();
+
     // Start performance monitoring
     this.performanceMonitor.startOperation(operationId, 'Incremental Sync', { userId });
 
     try {
+      // Check memory before starting
+      await this.memoryBreaker.checkMemory();
+
       // Mark sync as in progress
       await this.syncStateRepository.markSyncInProgress(userId);
 
@@ -333,6 +367,10 @@ export class GoogleContactsSyncService {
         const totalProcessed = contactsUpdated + contactsDeleted;
         const perfMetrics = this.performanceMonitor.endOperation(operationId, totalProcessed);
         const duration = perfMetrics?.duration || 0;
+
+        // Log memory after operation
+        const memoryAfter = process.memoryUsage();
+        this.memoryMonitor.logMemoryUsage('contact-sync-incremental', memoryBefore, memoryAfter);
 
         const result: SyncResult = {
           contactsUpdated,

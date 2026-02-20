@@ -40,8 +40,14 @@ function rowToGoogleCalendar(row: GoogleCalendarRow): GoogleCalendar {
  * Get all calendars for a user
  */
 export async function getUserCalendars(userId: string): Promise<GoogleCalendar[]> {
+  // Optimized: Use column projection instead of SELECT *
   const result = await pool.query<GoogleCalendarRow>(
-    'SELECT * FROM google_calendars WHERE user_id = $1 ORDER BY is_primary DESC, name ASC',
+    `SELECT 
+      id, user_id, calendar_id, name, description,
+      selected, is_primary, created_at, updated_at
+    FROM google_calendars 
+    WHERE user_id = $1 
+    ORDER BY is_primary DESC, name ASC`,
     [userId]
   );
 
@@ -52,8 +58,14 @@ export async function getUserCalendars(userId: string): Promise<GoogleCalendar[]
  * Get selected calendars for a user
  */
 export async function getSelectedCalendars(userId: string): Promise<GoogleCalendar[]> {
+  // Optimized: Use column projection instead of SELECT *
   const result = await pool.query<GoogleCalendarRow>(
-    'SELECT * FROM google_calendars WHERE user_id = $1 AND selected = true ORDER BY is_primary DESC, name ASC',
+    `SELECT 
+      id, user_id, calendar_id, name, description,
+      selected, is_primary, created_at, updated_at
+    FROM google_calendars 
+    WHERE user_id = $1 AND selected = true 
+    ORDER BY is_primary DESC, name ASC`,
     [userId]
   );
 
@@ -141,7 +153,12 @@ export async function setSelectedCalendars(
 
     // Return all calendars for the user
     const result = await client.query<GoogleCalendarRow>(
-      'SELECT * FROM google_calendars WHERE user_id = $1 ORDER BY is_primary DESC, name ASC',
+      `SELECT 
+        id, user_id, calendar_id, name, description,
+        selected, is_primary, created_at, updated_at
+      FROM google_calendars 
+      WHERE user_id = $1 
+      ORDER BY is_primary DESC, name ASC`,
       [userId]
     );
 

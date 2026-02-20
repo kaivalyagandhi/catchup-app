@@ -65,5 +65,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Switch to non-root user
 USER nodejs
 
-# Start the application
-CMD ["node", "--max-old-space-size=4096", "dist/index.js"]
+# Start the application with garbage collection exposed
+CMD ["node", "--expose-gc", "--max-old-space-size=4096", "dist/index.js"]

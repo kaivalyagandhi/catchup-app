@@ -1,9 +1,18 @@
 import { httpRedis } from './http-redis-client';
 import dotenv from 'dotenv';
+import {
+  contactCache,
+  calendarEventCache,
+  suggestionCache,
+  userPreferencesCache,
+  getCacheStats as getLRUCacheStats,
+  logCacheStats,
+} from './lru-cache';
 
 dotenv.config();
 
 console.log('[Redis Cache] Using HTTP Redis client (0 connections)');
+console.log('[LRU Cache] In-memory LRU caches initialized');
 
 /**
  * Cache key prefixes for different data types
@@ -28,11 +37,44 @@ export const CacheTTL = {
 };
 
 /**
- * Get value from cache
+ * Get appropriate LRU cache for a key
+ */
+function getLRUCache(key: string) {
+  if (key.startsWith('contact:')) {
+    return contactCache;
+  } else if (key.startsWith('calendar:')) {
+    return calendarEventCache;
+  } else if (key.startsWith('suggestion:')) {
+    return suggestionCache;
+  } else if (key.startsWith('user:prefs:')) {
+    return userPreferencesCache;
+  }
+  return null;
+}
+
+/**
+ * Get value from cache (two-tier: LRU → Redis)
  */
 export async function getCache<T>(key: string): Promise<T | null> {
   try {
-    return await httpRedis.get<T>(key);
+    // Try LRU cache first (in-memory, fast)
+    const lruCache = getLRUCache(key);
+    if (lruCache) {
+      const lruValue = lruCache.get(key);
+      if (lruValue !== undefined) {
+        return lruValue as T;
+      }
+    }
+
+    // Fall back to Redis
+    const redisValue = await httpRedis.get<T>(key);
+    
+    // If found in Redis, populate LRU cache
+    if (redisValue !== null && lruCache) {
+      lruCache.set(key, redisValue);
+    }
+    
+    return redisValue;
   } catch (error) {
     console.error(`Cache get error for key ${key}:`, error);
     return null;
@@ -40,10 +82,17 @@ export async function getCache<T>(key: string): Promise<T | null> {
 }
 
 /**
- * Set value in cache with TTL
+ * Set value in cache with TTL (two-tier: LRU + Redis)
  */
 export async function setCache(key: string, value: any, ttl?: number): Promise<void> {
   try {
+    // Set in LRU cache (in-memory)
+    const lruCache = getLRUCache(key);
+    if (lruCache) {
+      lruCache.set(key, value, ttl ? { ttl: ttl * 1000 } : undefined);
+    }
+
+    // Set in Redis (persistent)
     await httpRedis.set(key, value, ttl);
   } catch (error) {
     console.error(`Cache set error for key ${key}:`, error);
@@ -51,10 +100,17 @@ export async function setCache(key: string, value: any, ttl?: number): Promise<v
 }
 
 /**
- * Delete value from cache
+ * Delete value from cache (two-tier: LRU + Redis)
  */
 export async function deleteCache(key: string): Promise<void> {
   try {
+    // Delete from LRU cache
+    const lruCache = getLRUCache(key);
+    if (lruCache) {
+      lruCache.delete(key);
+    }
+
+    // Delete from Redis
     await httpRedis.del(key);
   } catch (error) {
     console.error(`Cache delete error for key ${key}:`, error);
@@ -111,9 +167,16 @@ export async function getOrSetCache<T>(
 }
 
 /**
- * Invalidate contact-related caches
+ * Invalidate contact-related caches (two-tier: LRU + Redis)
  */
 export async function invalidateContactCache(userId: string, contactId?: string): Promise<void> {
+  // Clear from LRU cache
+  contactCache.delete(CacheKeys.CONTACT_LIST(userId));
+  if (contactId) {
+    contactCache.delete(CacheKeys.CONTACT_PROFILE(contactId));
+  }
+
+  // Clear from Redis
   await deleteCache(CacheKeys.CONTACT_LIST(userId));
   if (contactId) {
     await deleteCache(CacheKeys.CONTACT_PROFILE(contactId));
@@ -121,17 +184,53 @@ export async function invalidateContactCache(userId: string, contactId?: string)
 }
 
 /**
- * Invalidate suggestion cache for a user
+ * Invalidate suggestion cache for a user (two-tier: LRU + Redis)
  */
 export async function invalidateSuggestionCache(userId: string): Promise<void> {
+  // Clear from LRU cache
+  suggestionCache.delete(CacheKeys.SUGGESTION_LIST(userId));
+
+  // Clear from Redis
   await deleteCache(CacheKeys.SUGGESTION_LIST(userId));
 }
 
 /**
- * Invalidate calendar cache for a user
+ * Invalidate calendar cache for a user (two-tier: LRU + Redis)
  */
 export async function invalidateCalendarCache(userId: string): Promise<void> {
+  // Clear from LRU cache (need to iterate and delete matching keys)
+  const keysToDelete: string[] = [];
+  calendarEventCache.forEach((_, key) => {
+    if (key.startsWith(CacheKeys.CALENDAR_FREE_SLOTS(userId, ''))) {
+      keysToDelete.push(key);
+    }
+  });
+  keysToDelete.forEach((key) => calendarEventCache.delete(key));
+
+  // Clear from Redis
   await deleteCachePattern(CacheKeys.CALENDAR_FREE_SLOTS(userId, '*'));
+}
+
+/**
+ * Get cache statistics (LRU + Redis)
+ */
+export function getCacheStats() {
+  return {
+    lru: getLRUCacheStats(),
+    redis: {
+      type: 'HTTP Redis',
+      connections: 0,
+      note: 'HTTP-based, no persistent connections',
+    },
+  };
+}
+
+/**
+ * Log cache statistics
+ */
+export function logCacheStatistics(): void {
+  logCacheStats(); // Log LRU cache stats
+  console.log('[Cache] Two-tier caching: LRU (in-memory) → Redis (persistent)');
 }
 
 /**

@@ -322,8 +322,13 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
    * Get contacts that need maintenance
    */
   private async getMaintenanceContacts(userId: string, limit: number): Promise<any[]> {
+    // Optimized: Use column projection for minimal data needed
     const result = await pool.query(
-      `SELECT * FROM contacts
+      `SELECT 
+        id, user_id, name, email, phone, 
+        last_contact_date, dunbar_circle, frequency_preference,
+        created_at, updated_at
+       FROM contacts
        WHERE user_id = $1
          AND archived = false
          AND dunbar_circle IS NOT NULL
@@ -340,8 +345,13 @@ export class PostgresWeeklyCatchupService implements WeeklyCatchupService {
    * Get contacts that might need pruning
    */
   private async getPruneContacts(userId: string, limit: number): Promise<any[]> {
+    // Optimized: Use column projection for minimal data needed
     const result = await pool.query(
-      `SELECT * FROM contacts
+      `SELECT 
+        id, user_id, name, email, phone,
+        last_contact_date, dunbar_circle, frequency_preference,
+        created_at, updated_at
+       FROM contacts
        WHERE user_id = $1
          AND archived = false
          AND dunbar_circle IS NOT NULL

@@ -15,6 +15,12 @@ import * as oauthRepository from '../integrations/oauth-repository';
 import { getOrSetCache, CacheKeys, CacheTTL, invalidateCalendarCache } from '../utils/cache';
 import { logAuditEvent, AuditAction } from '../utils/audit-logger';
 import { userPreferencesService } from '../users/preferences-service';
+import { MemoryCircuitBreaker, MemoryCircuitBreakerError } from '../utils/memory-circuit-breaker';
+import { MemoryMonitor } from '../utils/memory-monitor';
+
+// Initialize memory management utilities
+const memoryBreaker = new MemoryCircuitBreaker({ maxHeapPercent: 80 });
+const memoryMonitor = new MemoryMonitor();
 
 /**
  * Connect Google Calendar by exchanging auth code for tokens
@@ -247,6 +253,8 @@ async function fetchEventsFromGoogle(
 
 /**
  * Sync calendar events from Google to database cache
+ * 
+ * Memory-optimized with circuit breaker checks and monitoring.
  */
 async function syncEventsToCache(
   userId: string,
@@ -256,14 +264,24 @@ async function syncEventsToCache(
 ): Promise<void> {
   const BATCH_SIZE = 100; // Process events in batches of 100
 
-  // Fetch events from Google (already batched internally)
-  const googleEvents = await fetchEventsFromGoogle(auth, calendarIds, dateRange);
+  // Log memory before operation
+  const memoryBefore = process.memoryUsage();
 
-  console.log(`Processing ${googleEvents.length} events in batches of ${BATCH_SIZE}`);
+  try {
+    // Check memory before starting
+    await memoryBreaker.checkMemory();
 
-  // Process events in batches to prevent memory issues
-  for (let i = 0; i < googleEvents.length; i += BATCH_SIZE) {
-    const batch = googleEvents.slice(i, i + BATCH_SIZE);
+    // Fetch events from Google (already batched internally)
+    const googleEvents = await fetchEventsFromGoogle(auth, calendarIds, dateRange);
+
+    console.log(`Processing ${googleEvents.length} events in batches of ${BATCH_SIZE}`);
+
+    // Process events in batches to prevent memory issues
+    for (let i = 0; i < googleEvents.length; i += BATCH_SIZE) {
+      // Check memory before each batch
+      await memoryBreaker.checkMemory();
+
+      const batch = googleEvents.slice(i, i + BATCH_SIZE);
 
     // Convert batch to our format
     const eventsToCache = batch
@@ -300,6 +318,9 @@ async function syncEventsToCache(
     if (global.gc) {
       global.gc();
     }
+
+    // Yield to event loop
+    await new Promise((resolve) => setImmediate(resolve));
   }
 
   // Update last sync time
@@ -308,7 +329,18 @@ async function syncEventsToCache(
   // Clean up old events
   await calendarEventsRepository.deleteOldEvents(userId);
 
+  // Log memory after operation
+  const memoryAfter = process.memoryUsage();
+  memoryMonitor.logMemoryUsage('calendar-sync', memoryBefore, memoryAfter);
+
   console.log(`Completed syncing ${googleEvents.length} calendar events for user ${userId}`);
+  } catch (error) {
+    if (error instanceof MemoryCircuitBreakerError) {
+      console.error('Memory circuit breaker triggered during calendar sync');
+      throw error;
+    }
+    throw error;
+  }
 }
 
 /**

@@ -86,8 +86,13 @@ async function mapRowToSuggestionWithContacts(row: any): Promise<Suggestion> {
   const suggestion = mapRowToSuggestion(row);
 
   // Fetch contacts for this suggestion
+  // Optimized: Use column projection for contact data
   const contactsResult = await pool.query(
-    `SELECT c.* FROM contacts c
+    `SELECT 
+      c.id, c.user_id, c.name, c.email, c.phone,
+      c.last_contact_date, c.dunbar_circle, c.frequency_preference,
+      c.created_at, c.updated_at
+     FROM contacts c
      JOIN suggestion_contacts sc ON c.id = sc.contact_id
      WHERE sc.suggestion_id = $1`,
     [suggestion.id]
