@@ -2,121 +2,60 @@
 inclusion: manual
 ---
 
-# CatchUp API Quick Reference
+# CatchUp API Reference
 
-Quick reference for CatchUp API endpoints. Full documentation: `docs/API.md`
+Base URL: `http://localhost:3000` (dev) | Production: Cloud Run
+Auth: `Authorization: Bearer <jwt_token>` on all `/api/*` routes
 
-## Base URL
-- Development: `http://localhost:3000`
-- Production: `https://api.catchup.app`
+## Route Mounts (from server.ts)
 
-## Authentication
-All authenticated endpoints require JWT token:
-```
-Authorization: Bearer <jwt_token>
-```
-
-## Key Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/logout` - Logout user
-- `GET /api/auth/me` - Get current user
-- `POST /api/auth/google` - Google SSO login
-
-### Contacts
-- `GET /api/contacts` - List all contacts
-- `POST /api/contacts` - Create contact
-- `GET /api/contacts/:id` - Get contact details
-- `PUT /api/contacts/:id` - Update contact
-- `DELETE /api/contacts/:id` - Delete contact
-- `POST /api/contacts/:id/tags` - Add tags to contact
-- `DELETE /api/contacts/:id/tags/:tagId` - Remove tag from contact
-
-### Groups & Tags
-- `GET /api/groups-tags/groups` - List all groups
-- `POST /api/groups-tags/groups` - Create group
-- `PUT /api/groups-tags/groups/:id` - Update group
-- `DELETE /api/groups-tags/groups/:id` - Delete group
-- `GET /api/groups-tags/tags` - List all tags
-- `POST /api/groups-tags/tags` - Create tag
-- `PUT /api/groups-tags/tags/:id` - Update tag
-- `DELETE /api/groups-tags/tags/:id` - Delete tag
-
-### Google Integrations
-- `GET /api/calendar/oauth/authorize` - Get Google Calendar auth URL
-- `GET /api/calendar/oauth/callback` - Handle OAuth callback
-- `GET /api/calendar/oauth/status` - Check connection status
-- `DELETE /api/calendar/oauth/disconnect` - Disconnect calendar
-- `GET /api/calendar/api/events` - Get calendar events
-- `GET /api/contacts/oauth/authorize` - Get Google Contacts auth URL
-- `POST /api/contacts/sync/full` - Full contacts sync
-- `POST /api/contacts/sync/incremental` - Incremental sync
-
-### Voice Notes & Enrichment
-- `POST /api/voice-notes` - Upload voice note
-- `GET /api/voice-notes` - List voice notes
-- `GET /api/voice-notes/:id` - Get voice note details
-- `DELETE /api/voice-notes/:id` - Delete voice note
-- `GET /api/enrichment-items` - List enrichment items
-- `POST /api/enrichment-items/:id/apply` - Apply enrichment
-- `DELETE /api/enrichment-items/:id` - Reject enrichment
-
-### Edits (Pending Changes)
-- `GET /api/edits` - List pending edits
-- `POST /api/edits` - Create pending edit
-- `POST /api/edits/:id/apply` - Apply edit to contact
-- `DELETE /api/edits/:id` - Delete pending edit
-- `POST /api/edits/apply-all` - Apply all pending edits
-
-### Suggestions
-- `GET /api/suggestions` - Get catchup suggestions
-- `POST /api/suggestions/:id/dismiss` - Dismiss suggestion
-- `POST /api/suggestions/:id/complete` - Mark suggestion complete
-
-### Preferences
-- `GET /api/preferences` - Get user preferences
-- `PUT /api/preferences` - Update preferences
-- `GET /api/preferences/notification` - Get notification preferences
-- `PUT /api/preferences/notification` - Update notification preferences
-
-### Account
-- `GET /api/account` - Get account info
-- `PUT /api/account` - Update account
-- `DELETE /api/account` - Delete account
-
-## Rate Limits
-- General API: 60 requests/minute per user
-- Voice uploads: 10 requests/hour per user
-- SMS: 10 requests/hour per user
-- Google Calendar: 10 requests/minute per user
-
-## Common Response Codes
-- `200` - Success
-- `201` - Created
-- `400` - Bad Request (validation error)
-- `401` - Unauthorized (missing/invalid token)
-- `403` - Forbidden (insufficient permissions)
-- `404` - Not Found
-- `429` - Too Many Requests (rate limit exceeded)
-- `500` - Internal Server Error
-
-## Error Response Format
-```json
-{
-  "error": "Error type",
-  "message": "Human-readable error message",
-  "details": {} // Optional additional context
-}
-```
-
-## Testing
-- Test mode available via `TEST_MODE=true` environment variable
-- Test endpoints prefixed with `/api/test-data/`
-- Seed data generation available for development
+| Mount | Router | Description |
+|-------|--------|-------------|
+| `/api/auth` | auth | Register, login, logout, me |
+| `/api/auth/google` | google-sso | Google SSO OAuth flow |
+| `/api/auth/statistics` | auth-statistics | Auth metrics |
+| `/api/audit` | audit | Audit log access |
+| `/api/contacts` | contacts, contacts-archive | CRUD, tags, archive |
+| `/api/groups-tags` | groups-tags | Groups and tags CRUD |
+| `/api/suggestions` | suggestions | Catchup suggestions |
+| `/api/calendar/oauth` | google-calendar-oauth | Calendar OAuth flow |
+| `/api/calendar` | calendar-api, calendar | Events, free slots, feeds |
+| `/api/contacts/oauth` | google-contacts-oauth | Contacts OAuth flow |
+| `/api/contacts/sync` | google-contacts-sync | Full/incremental sync |
+| `/api/voice-notes` | voice-notes | Upload, list, delete voice notes |
+| `/api/enrichment-items` | enrichment-items | AI enrichment review/apply |
+| `/api/edits` | edits | Pending edits review/apply |
+| `/api/preferences` | preferences | User + notification prefs |
+| `/api/account` | account | Account info, update, delete |
+| `/api/onboarding` | onboarding | Init, state, progress, complete |
+| `/api/circles` | circles | Circle assignment (inner/close/active/casual) |
+| `/api/ai` | ai-suggestions, ai-quick-start, ai-batch | AI suggestion endpoints |
+| `/api/gamification` | gamification | Achievements, streaks |
+| `/api/weekly-catchup` | weekly-catchup | Weekly catchup plans |
+| `/api/privacy` | privacy | Privacy settings |
+| `/api/user/phone-number` | phone-number | Phone number management |
+| `/api/sms/webhook` | sms-webhook | Twilio inbound webhook |
+| `/api/sms/monitoring` | sms-monitoring | SMS metrics |
+| `/api/sms/performance` | sms-performance | SMS performance stats |
+| `/api/scheduling` | scheduling, availability, preferences, notifications | Group scheduling |
+| `/api/webhooks` | calendar-webhooks | Google Calendar push notifications |
+| `/api/sync` | manual-sync, sync-status | Manual sync trigger, status |
+| `/api/admin` | admin-sync-health, job-monitoring | Admin dashboard APIs |
+| `/api/jobs` | jobs-handler | Cloud Tasks job receiver (OIDC auth) |
+| `/api/test-data` | test-data | Dev/test seed data |
 
 ## WebSocket
-- Voice notes: `ws://localhost:3000/ws/voice-notes`
-- Real-time enrichment updates
-- Connection requires JWT token as query parameter
+- `ws://localhost:3000/ws/voice-notes` — real-time voice transcription, requires JWT as query param
+
+## Rate Limits
+- General API: 60 req/min per user
+- Voice uploads: 10 req/hr per user
+- SMS: 10 req/hr per user
+
+## Error Format
+```json
+{ "error": "Error type", "message": "Human-readable message", "details": {} }
+```
+
+## Response Codes
+200 Success, 201 Created, 400 Validation, 401 Unauthorized, 403 Forbidden, 404 Not Found, 429 Rate Limited, 500 Server Error
