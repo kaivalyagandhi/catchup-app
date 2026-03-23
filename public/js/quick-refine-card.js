@@ -23,6 +23,12 @@ class QuickRefineCard {
     this.containerId = options.containerId || 'quick-refine-container';
     this.userId = options.userId;
     
+    // Groups context support (Task 8.1, Requirements 7.1, 7.3)
+    this.context = options.context || 'circles';
+    this.groups = options.groups || [];
+    this.shortcuts = options.shortcuts || {};
+    this.pendingGroupAssignments = []; // Track multi-group assignments for current contact
+    
     // Session tracking for gamification
     this.sessionScore = 0;
     this.highScore = this.loadHighScore();
@@ -91,11 +97,86 @@ class QuickRefineCard {
       .swipe-mode-container {
         display: grid;
         grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto 1fr;
         gap: 1.5rem;
         padding: 1rem;
         max-width: 100%;
         min-height: 480px;
         align-items: start;
+      }
+      
+      /* Groups context: narrower left, wider right for 2-col groups */
+      .swipe-mode-container.swipe-groups-context {
+        grid-template-columns: 2fr 3fr;
+      }
+      
+      /* Action row at top spanning both columns */
+      .swipe-action-row {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--bg-secondary, #f5f5f4);
+        border-radius: 10px;
+        flex-wrap: wrap;
+      }
+      
+      .swipe-action-compact {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.875rem;
+        border-radius: 8px;
+        border: 2px solid var(--border-color, #e5e7eb);
+        background: var(--bg-surface, #ffffff);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+      }
+      
+      .swipe-action-compact:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      
+      .swipe-action-compact.btn-archive { border-color: #ef4444; color: #ef4444; border: 2px solid #ef4444; opacity: 1; width: auto; height: auto; }
+      .swipe-action-compact.btn-archive:hover { background: #ef4444; color: white; transform: translateY(-1px); }
+      .swipe-action-compact.btn-save-later { border-color: #f59e0b; color: #f59e0b; }
+      .swipe-action-compact.btn-save-later:hover { background: #f59e0b; color: white; }
+      .swipe-action-compact.btn-done { border-color: #6366f1; color: #6366f1; }
+      .swipe-action-compact.btn-done:hover { background: #6366f1; color: white; }
+      .swipe-action-compact.btn-next-contact { border-color: #10b981; color: #10b981; }
+      .swipe-action-compact.btn-next-contact:hover { background: #10b981; color: white; }
+      .swipe-action-compact.btn-shortcuts { border-color: #6b7280; color: #6b7280; margin-left: auto; }
+      .swipe-action-compact.btn-shortcuts:hover { background: #6b7280; color: white; }
+      
+      .swipe-action-compact-icon {
+        font-size: 1rem;
+        line-height: 1;
+      }
+      
+      .swipe-action-compact-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+      
+      .swipe-action-compact-shortcut {
+        font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 3px;
+        border: 1.5px solid currentColor;
+        opacity: 0.6;
+      }
+      
+      .swipe-action-compact:hover .swipe-action-compact-shortcut {
+        opacity: 1;
+        border-color: white;
+        color: white;
       }
       
       /* Left Column - Stats and Contact */
@@ -327,6 +408,31 @@ class QuickRefineCard {
         flex-direction: column;
         gap: 0.5rem;
         padding-top: 0.5rem;
+      }
+      
+      /* Groups context: 2-column grid for group buttons */
+      .swipe-groups-context .swipe-right-column {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.375rem;
+        padding-top: 0.5rem;
+      }
+      
+      .swipe-groups-context .swipe-action-btn-full {
+        padding: 0.5rem 0.625rem;
+        min-height: 40px;
+        font-size: 0.8125rem;
+      }
+      
+      .swipe-groups-context .swipe-action-btn-icon {
+        font-size: 1rem;
+        width: 22px;
+      }
+      
+      .swipe-groups-context .swipe-action-btn-shortcut {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+        min-width: 24px;
       }
       
       /* Action Button - Full width with label */
@@ -643,9 +749,20 @@ class QuickRefineCard {
       @media (max-width: 768px) {
         .swipe-mode-container {
           grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto;
           gap: 1rem;
           padding: 0.75rem;
           min-height: auto;
+        }
+        
+        .swipe-action-row {
+          flex-wrap: wrap;
+          gap: 0.375rem;
+        }
+        
+        .swipe-action-compact {
+          padding: 0.375rem 0.625rem;
+          font-size: 0.75rem;
         }
         
         .swipe-left-column {
@@ -693,6 +810,66 @@ class QuickRefineCard {
       .swipe-circle-buttons,
       .swipe-action-buttons {
         display: none;
+      }
+
+      /* Group button styles (Task 8.2) */
+      .swipe-action-btn-full.btn-group {
+        border-color: #6366f1;
+        color: #6366f1;
+      }
+      .swipe-action-btn-full.btn-group:hover {
+        background: #6366f1;
+        color: white;
+      }
+      .swipe-action-btn-full.btn-group-assigned {
+        background: #6366f1;
+        border-color: #6366f1;
+        color: white;
+      }
+      .swipe-action-btn-full.btn-group-assigned:hover {
+        background: #4f46e5;
+        opacity: 0.9;
+      }
+      .swipe-action-btn-full.btn-group-next {
+        border-color: #10b981;
+        color: #10b981;
+      }
+      .swipe-action-btn-full.btn-group-next:hover {
+        background: #10b981;
+        color: white;
+      }
+
+      /* Gear button for keyboard shortcut preferences (Task 9.6) */
+      .swipe-shortcut-gear-btn {
+        background: none;
+        border: 1px solid var(--border-subtle, #d1d5db);
+        border-radius: 6px;
+        font-size: 1.125rem;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        line-height: 1;
+        margin-left: auto;
+        transition: background 0.15s ease;
+      }
+      .swipe-shortcut-gear-btn:hover {
+        background: var(--bg-secondary, #f5f5f4);
+      }
+      .swipe-shortcut-gear-btn:focus {
+        outline: 2px solid #6366f1;
+        outline-offset: 1px;
+      }
+
+      /* Aria-live announcer (Task 8.7) */
+      .swipe-aria-announcer {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
       
       .swipe-action-btn {
@@ -987,11 +1164,16 @@ class QuickRefineCard {
     if (this.contacts.length === 0 || this.currentIndex >= this.contacts.length) {
       container.innerHTML = this.renderComplete();
       this.attachCompleteListeners();
+      this.updateAriaAnnouncement('All contacts have been reviewed.');
       return;
     }
     
     container.innerHTML = this.renderCard();
     this.attachEventListeners();
+    
+    // Announce current contact for screen readers (Task 8.7, Requirement 12.2)
+    const contact = this.contacts[this.currentIndex];
+    this.updateAriaAnnouncement(`${contact.name}, Contact ${this.currentIndex + 1} of ${this.contacts.length}`);
   }
   
   renderCard() {
@@ -1000,7 +1182,42 @@ class QuickRefineCard {
     const savedCount = this.savedForLater.length;
     
     return `
-      <div class="swipe-mode-container">
+      <div class="swipe-mode-container${this.context === 'groups' ? ' swipe-groups-context' : ''}">
+        <!-- Aria-live region for screen reader announcements (Task 8.7, Requirement 12.2) -->
+        <div class="swipe-aria-announcer" id="swipe-aria-announcer" aria-live="polite" role="status"></div>
+        
+        <!-- Action buttons row at top, always visible -->
+        <div class="swipe-action-row">
+          <button class="swipe-action-compact btn-archive" id="archive-contact" title="Archive Contact">
+            <span class="swipe-action-compact-icon">🗑️</span>
+            <span class="swipe-action-compact-label">Archive</span>
+            <span class="swipe-action-compact-shortcut">A</span>
+          </button>
+          <button class="swipe-action-compact btn-save-later" id="save-later-contact" title="Save for Later">
+            <span class="swipe-action-compact-icon">📌</span>
+            <span class="swipe-action-compact-label">Save for Later</span>
+            <span class="swipe-action-compact-shortcut">S</span>
+          </button>
+          <button class="swipe-action-compact btn-done" id="done-refining" title="Done for Now">
+            <span class="swipe-action-compact-icon">✓</span>
+            <span class="swipe-action-compact-label">Done for Now</span>
+            <span class="swipe-action-compact-shortcut">D</span>
+          </button>
+          ${this.context === 'groups' && this.pendingGroupAssignments.length > 0 ? `
+            <button class="swipe-action-compact btn-next-contact" id="group-next-contact" title="Next Contact">
+              <span class="swipe-action-compact-icon">➡️</span>
+              <span class="swipe-action-compact-label">Next</span>
+              <span class="swipe-action-compact-shortcut">Enter</span>
+            </button>
+          ` : ''}
+          ${this.context === 'groups' ? `
+            <button class="swipe-action-compact btn-shortcuts" id="open-shortcut-prefs" aria-label="Keyboard shortcut preferences" title="Keyboard Shortcuts">
+              <span class="swipe-action-compact-icon">⚙️</span>
+              <span class="swipe-action-compact-label">Shortcuts</span>
+            </button>
+          ` : ''}
+        </div>
+        
         <!-- Left Column: Stats + Contact Card -->
         <div class="swipe-left-column">
           <div class="swipe-session-stats">
@@ -1041,51 +1258,194 @@ class QuickRefineCard {
           </div>
         </div>
         
-        <!-- Right Column: Action Buttons -->
+        <!-- Right Column: Circle/Group Buttons only -->
         <div class="swipe-right-column">
-          <button class="swipe-action-btn-full btn-inner" data-circle="inner">
-            <span class="swipe-action-btn-icon">💜</span>
-            <span class="swipe-action-btn-label">Inner Circle</span>
-            <span class="swipe-action-btn-shortcut">1</span>
-          </button>
-          <button class="swipe-action-btn-full btn-close" data-circle="close">
-            <span class="swipe-action-btn-icon">💗</span>
-            <span class="swipe-action-btn-label">Close Friends</span>
-            <span class="swipe-action-btn-shortcut">2</span>
-          </button>
-          <button class="swipe-action-btn-full btn-active" data-circle="active">
-            <span class="swipe-action-btn-icon">💚</span>
-            <span class="swipe-action-btn-label">Active Friends</span>
-            <span class="swipe-action-btn-shortcut">3</span>
-          </button>
-          <button class="swipe-action-btn-full btn-casual" data-circle="casual">
-            <span class="swipe-action-btn-icon">💙</span>
-            <span class="swipe-action-btn-label">Casual Friends</span>
-            <span class="swipe-action-btn-shortcut">4</span>
-          </button>
-          
-          <div class="swipe-action-divider"></div>
-          
-          <button class="swipe-action-btn-full btn-archive" id="archive-contact">
-            <span class="swipe-action-btn-icon">🗑️</span>
-            <span class="swipe-action-btn-label">Archive Contact</span>
-            <span class="swipe-action-btn-shortcut">A</span>
-          </button>
-          <button class="swipe-action-btn-full btn-save-later" id="save-later-contact">
-            <span class="swipe-action-btn-icon">📌</span>
-            <span class="swipe-action-btn-label">Save for Later</span>
-            <span class="swipe-action-btn-shortcut">S</span>
-          </button>
-          <button class="swipe-action-btn-full btn-done" id="done-refining">
-            <span class="swipe-action-btn-icon">✓</span>
-            <span class="swipe-action-btn-label">Done for Now</span>
-            <span class="swipe-action-btn-shortcut">D</span>
-          </button>
+          ${this.context === 'groups' ? this.renderGroupButtons() : this.renderCircleButtons()}
         </div>
       </div>
     `;
   }
   
+  /**
+   * Render circle assignment buttons (existing circles context)
+   * Task 8.2 - Extracted from renderCard for branching
+   */
+  renderCircleButtons() {
+    return `
+      <button class="swipe-action-btn-full btn-inner" data-circle="inner">
+        <span class="swipe-action-btn-icon">💜</span>
+        <span class="swipe-action-btn-label">Inner Circle</span>
+        <span class="swipe-action-btn-shortcut">1</span>
+      </button>
+      <button class="swipe-action-btn-full btn-close" data-circle="close">
+        <span class="swipe-action-btn-icon">💗</span>
+        <span class="swipe-action-btn-label">Close Friends</span>
+        <span class="swipe-action-btn-shortcut">2</span>
+      </button>
+      <button class="swipe-action-btn-full btn-active" data-circle="active">
+        <span class="swipe-action-btn-icon">💚</span>
+        <span class="swipe-action-btn-label">Active Friends</span>
+        <span class="swipe-action-btn-shortcut">3</span>
+      </button>
+      <button class="swipe-action-btn-full btn-casual" data-circle="casual">
+        <span class="swipe-action-btn-icon">💙</span>
+        <span class="swipe-action-btn-label">Casual Friends</span>
+        <span class="swipe-action-btn-shortcut">4</span>
+      </button>
+    `;
+  }
+
+  /**
+   * Render group assignment buttons with shortcut labels (groups context)
+   * Task 8.2, Requirements 7.3, 7.5
+   */
+  renderGroupButtons() {
+    // Build reverse lookup: shortcut number -> groupId
+    const shortcutToGroup = {};
+    for (const [key, groupId] of Object.entries(this.shortcuts)) {
+      shortcutToGroup[groupId] = key;
+    }
+
+    const groupButtons = this.groups.map(group => {
+      const shortcutNum = shortcutToGroup[group.id] || '';
+      const isAssigned = this.pendingGroupAssignments.includes(group.id);
+      return `
+        <button class="swipe-action-btn-full btn-group${isAssigned ? ' btn-group-assigned' : ''}" data-group-id="${group.id}">
+          <span class="swipe-action-btn-icon">👥</span>
+          <span class="swipe-action-btn-label">${this.escapeHtml(group.name)}${isAssigned ? ' ✓' : ''}</span>
+          ${shortcutNum !== '' ? `<span class="swipe-action-btn-shortcut">${shortcutNum}</span>` : ''}
+        </button>
+      `;
+    }).join('');
+
+    return groupButtons;
+  }
+
+  /**
+   * Handle group assignment with optimistic update (Task 8.3)
+   * POST to /api/contacts/:id/groups/:groupId
+   * Supports multi-group via "Add Another" — stays on same contact
+   * Requirements 7.3, 7.4, 7.5, 11.1
+   */
+  async handleGroupAssignment(groupId) {
+    if (this.isAnimating) return;
+    
+    const contact = this.contacts[this.currentIndex];
+    if (!contact) return;
+
+    // Toggle: if already assigned, deselect (undo)
+    const existingIdx = this.pendingGroupAssignments.indexOf(groupId);
+    if (existingIdx > -1) {
+      // Deselect — remove from pending and call DELETE API
+      this.pendingGroupAssignments.splice(existingIdx, 1);
+      this.sessionScore = Math.max(0, this.sessionScore - 1);
+      this.updateScoreDisplay();
+
+      try {
+        const response = await fetch(`/api/contacts/${contact.id}/groups/${groupId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+        if (!response.ok) throw new Error('Failed to remove group');
+      } catch (error) {
+        console.error('Error removing contact from group:', error);
+        // Re-add on failure
+        this.pendingGroupAssignments.push(groupId);
+        this.sessionScore++;
+        this.updateScoreDisplay();
+      }
+
+      this.render();
+      return;
+    }
+
+    // Assign: add to pending
+    this.pendingGroupAssignments.push(groupId);
+
+    // Show score popup
+    this.showScorePopup('+1');
+    this.sessionScore++;
+    this.updateScoreDisplay();
+
+    // POST to API
+    try {
+      const response = await fetch(`/api/contacts/${contact.id}/groups/${groupId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Failed to assign group');
+
+      this.onAssign(contact.id, groupId);
+      this.onProgress({ current: this.currentIndex + 1, total: this.contacts.length, assigned: groupId });
+
+    } catch (error) {
+      console.error('Error assigning contact to group:', error);
+      // Revert optimistic update on failure
+      const idx = this.pendingGroupAssignments.indexOf(groupId);
+      if (idx > -1) this.pendingGroupAssignments.splice(idx, 1);
+      this.sessionScore--;
+      this.updateScoreDisplay();
+      if (typeof showToast === 'function') {
+        showToast('Failed to save group assignment', 'error', {
+          action: { label: 'Retry', callback: () => this.handleGroupAssignment(groupId) }
+        });
+      }
+    }
+
+    // Re-render to show updated button states (stay on same contact for multi-group)
+    this.render();
+  }
+
+  /**
+   * Open the KeyboardShortcutPreferences popover (Task 9.6)
+   * Only available in groups context
+   */
+  openShortcutPreferences() {
+    if (typeof KeyboardShortcutPreferences === 'undefined') {
+      console.error('KeyboardShortcutPreferences not loaded');
+      return;
+    }
+
+    const prefs = new KeyboardShortcutPreferences(this.groups, {
+      onSave: (savedShortcuts) => {
+        // savedShortcuts is { groupId: shortcutNumber }
+        // QuickRefineCard expects { shortcutNumber: groupId }
+        const inverted = {};
+        for (const [groupId, key] of Object.entries(savedShortcuts)) {
+          if (key !== '' && key !== undefined) {
+            inverted[key] = groupId;
+          }
+        }
+        this.shortcuts = inverted;
+        this.render();
+      }
+    });
+
+    // Pre-populate: invert from { key: groupId } to { groupId: key }
+    const prefsFormat = {};
+    for (const [key, groupId] of Object.entries(this.shortcuts)) {
+      prefsFormat[groupId] = key;
+    }
+    prefs.shortcuts = prefsFormat;
+    prefs.render();
+  }
+
+  /**
+   * Advance to next contact, clearing pending group assignments
+   * Used in groups context after multi-group assignment
+   */
+  advanceToNextContact() {
+    this.pendingGroupAssignments = [];
+    this.currentIndex++;
+    this.render();
+  }
+
   getContactMeta(contact) {
     if (contact.company) return this.escapeHtml(contact.company);
     if (contact.email) return this.escapeHtml(contact.email);
@@ -1199,30 +1559,56 @@ class QuickRefineCard {
   }
   
   attachEventListeners() {
-    // Circle buttons (new full-width style)
-    const circleButtons = document.querySelectorAll('.swipe-action-btn-full[data-circle]');
-    circleButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const circle = e.currentTarget.dataset.circle;
-        e.currentTarget.classList.add('pressed');
-        setTimeout(() => e.currentTarget.classList.remove('pressed'), 200);
-        this.handleAssignment(circle);
+    // Circle buttons (circles context) or Group buttons (groups context)
+    if (this.context === 'groups') {
+      // Group buttons (Task 8.2, 8.3)
+      const groupButtons = document.querySelectorAll('.swipe-action-btn-full[data-group-id]');
+      groupButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const groupId = e.currentTarget.dataset.groupId;
+          e.currentTarget.classList.add('pressed');
+          setTimeout(() => e.currentTarget.classList.remove('pressed'), 200);
+          this.handleGroupAssignment(groupId);
+        });
       });
-    });
+      
+      // Next Contact button (multi-group support)
+      const nextBtn = document.getElementById('group-next-contact');
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => this.advanceToNextContact());
+      }
+
+      // Gear icon for keyboard shortcut preferences (Task 9.6)
+      const gearBtn = document.getElementById('open-shortcut-prefs');
+      if (gearBtn) {
+        gearBtn.addEventListener('click', () => this.openShortcutPreferences());
+      }
+    } else {
+      // Circle buttons (existing behavior unchanged)
+      const circleButtons = document.querySelectorAll('.swipe-action-btn-full[data-circle]');
+      circleButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const circle = e.currentTarget.dataset.circle;
+          e.currentTarget.classList.add('pressed');
+          setTimeout(() => e.currentTarget.classList.remove('pressed'), 200);
+          this.handleAssignment(circle);
+        });
+      });
+    }
     
-    // Archive button
+    // Archive button (shared, Task 8.5)
     const archiveBtn = document.getElementById('archive-contact');
     if (archiveBtn) {
       archiveBtn.addEventListener('click', () => this.handleArchive());
     }
     
-    // Save for later button
+    // Save for later button (shared, Task 8.5)
     const saveLaterBtn = document.getElementById('save-later-contact');
     if (saveLaterBtn) {
       saveLaterBtn.addEventListener('click', () => this.handleSaveForLater());
     }
     
-    // Done button
+    // Done button (shared, Task 8.5)
     const doneBtn = document.getElementById('done-refining');
     if (doneBtn) {
       doneBtn.addEventListener('click', () => this.handleDone());
@@ -1244,19 +1630,54 @@ class QuickRefineCard {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (this.isAnimating) return;
       
-      const handledKeys = ['1', '2', '3', '4', 's', 'd', 'a', ' ', 'Enter'];
-      if (handledKeys.includes(e.key.toLowerCase())) {
-        e.preventDefault();
-      }
+      // Shared shortcuts: A (archive), S (save for later), D (done) — work in both contexts (Task 8.5)
+      const sharedKeys = ['s', 'd', 'a', ' '];
       
-      switch(e.key) {
-        case '1': this.handleAssignment('inner'); break;
-        case '2': this.handleAssignment('close'); break;
-        case '3': this.handleAssignment('active'); break;
-        case '4': this.handleAssignment('casual'); break;
-        case 's': case 'S': case ' ': this.handleSaveForLater(); break;
-        case 'd': case 'D': case 'Enter': this.handleDone(); break;
-        case 'a': case 'A': this.handleArchive(); break;
+      if (this.context === 'groups') {
+        // Groups context: numeric keys 0-9 for group shortcuts (Task 8.4)
+        const numericKeys = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        const handledKeys = [...numericKeys, ...sharedKeys, 'Enter'];
+        if (handledKeys.includes(e.key.toLowerCase()) || numericKeys.includes(e.key)) {
+          e.preventDefault();
+        }
+        
+        // Handle numeric shortcuts for groups
+        if (numericKeys.includes(e.key)) {
+          const groupId = this.shortcuts[e.key];
+          if (groupId) {
+            this.handleGroupAssignment(groupId);
+          }
+          return;
+        }
+        
+        // Enter advances to next contact in groups context (multi-group support)
+        if (e.key === 'Enter') {
+          this.advanceToNextContact();
+          return;
+        }
+        
+        // Shared shortcuts (Task 8.5)
+        switch(e.key.toLowerCase()) {
+          case 's': case ' ': this.handleSaveForLater(); break;
+          case 'd': this.handleDone(); break;
+          case 'a': this.handleArchive(); break;
+        }
+      } else {
+        // Circles context: existing behavior unchanged (Task 8.5)
+        const handledKeys = ['1', '2', '3', '4', 's', 'd', 'a', ' ', 'Enter'];
+        if (handledKeys.includes(e.key.toLowerCase())) {
+          e.preventDefault();
+        }
+        
+        switch(e.key) {
+          case '1': this.handleAssignment('inner'); break;
+          case '2': this.handleAssignment('close'); break;
+          case '3': this.handleAssignment('active'); break;
+          case '4': this.handleAssignment('casual'); break;
+          case 's': case 'S': case ' ': this.handleSaveForLater(); break;
+          case 'd': case 'D': case 'Enter': this.handleDone(); break;
+          case 'a': case 'A': this.handleArchive(); break;
+        }
       }
     };
     
@@ -1408,13 +1829,29 @@ class QuickRefineCard {
   }
   
   handleSwipe(deltaX) {
-    let circle;
-    if (deltaX < -150) circle = 'inner';
-    else if (deltaX < 0) circle = 'close';
-    else if (deltaX < 150) circle = 'active';
-    else circle = 'casual';
-    
-    this.handleAssignment(circle);
+    if (this.context === 'groups') {
+      // Groups context: swipe right assigns to first group, swipe left skips (Task 8.6)
+      if (deltaX > 0) {
+        // Swipe right: assign to first shortcut group or first group
+        const firstShortcutKey = Object.keys(this.shortcuts).sort()[0];
+        const groupId = firstShortcutKey ? this.shortcuts[firstShortcutKey] : (this.groups[0] && this.groups[0].id);
+        if (groupId) {
+          this.handleGroupAssignment(groupId);
+        }
+      } else {
+        // Swipe left: skip / advance to next contact
+        this.advanceToNextContact();
+      }
+    } else {
+      // Circles context: existing behavior unchanged
+      let circle;
+      if (deltaX < -150) circle = 'inner';
+      else if (deltaX < 0) circle = 'close';
+      else if (deltaX < 150) circle = 'active';
+      else circle = 'casual';
+      
+      this.handleAssignment(circle);
+    }
   }
 
   
@@ -1647,8 +2084,24 @@ class QuickRefineCard {
   }
   
   nextContact() {
+    // Clear pending group assignments when advancing (Task 8.3)
+    this.pendingGroupAssignments = [];
     this.currentIndex++;
     this.render();
+  }
+
+  /**
+   * Update the aria-live region with an announcement (Task 8.7, Requirement 12.2)
+   * @param {string} message - The announcement text
+   */
+  updateAriaAnnouncement(message) {
+    // Use a small delay to ensure the DOM has updated before announcing
+    requestAnimationFrame(() => {
+      const announcer = document.getElementById('swipe-aria-announcer');
+      if (announcer) {
+        announcer.textContent = message;
+      }
+    });
   }
   
   getInitials(name) {

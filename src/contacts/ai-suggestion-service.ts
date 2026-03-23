@@ -84,6 +84,17 @@ export class PostgresAISuggestionService implements AISuggestionService {
   }
 
   /**
+   * Check if the user is in cold-start mode (fewer than 10 interactions).
+   * Cold-start mode adjusts AI suggestion weights to provide better
+   * suggestions for new users with limited interaction history.
+   * Requirements: 3.1
+   */
+  async isColdStart(userId: string): Promise<boolean> {
+    const count = await this.interactionRepository.countByUserId(userId);
+    return count < 10;
+  }
+
+  /**
    * Analyze a single contact and generate circle suggestion
    */
   async analyzeContact(userId: string, contactId: string): Promise<CircleSuggestion> {
@@ -105,8 +116,11 @@ export class PostgresAISuggestionService implements AISuggestionService {
     // Calculate suggestion factors
     const factors = await this.calculateFactors(contact, interactions, userId);
 
+    // Check cold-start mode for confidence threshold adjustment
+    const coldStart = await this.isColdStart(userId);
+
     // Determine suggested circle based on factors
-    const { suggestedCircle, confidence, alternatives } = this.determineCircle(factors, userId);
+    const { suggestedCircle, confidence, alternatives } = this.determineCircle(factors, userId, coldStart);
 
     const suggestion: CircleSuggestion = {
       contactId,
@@ -177,7 +191,81 @@ export class PostgresAISuggestionService implements AISuggestionService {
       }
     }
 
+    // Cold-start targeting: ensure minimum 3 suggestions per Dunbar tier (Requirements: 3.4)
+    const coldStart = await this.isColdStart(userId);
+    if (coldStart) {
+      return this.applyColdStartTargeting(results);
+    }
+
     return results;
+  }
+
+  /**
+   * Apply cold-start targeting to ensure minimum 3 suggestions per Dunbar tier.
+   * Promotes the highest-confidence contacts from their alternative circles
+   * to fill under-represented tiers.
+   * Requirements: 3.4
+   */
+  private applyColdStartTargeting(suggestions: CircleSuggestion[]): CircleSuggestion[] {
+    const MIN_PER_TIER = 3;
+    const tiers: DunbarCircle[] = ['inner', 'close', 'active', 'casual'];
+
+    // Count suggestions per tier
+    const tierCounts: Record<DunbarCircle, number> = {
+      inner: 0,
+      close: 0,
+      active: 0,
+      casual: 0,
+    };
+    for (const s of suggestions) {
+      tierCounts[s.suggestedCircle]++;
+    }
+
+    // For each under-represented tier, try to promote contacts from alternatives
+    for (const tier of tiers) {
+      if (tierCounts[tier] >= MIN_PER_TIER) continue;
+
+      const needed = MIN_PER_TIER - tierCounts[tier];
+
+      // Find candidates: contacts NOT already in this tier that have this tier as an alternative
+      const candidates = suggestions
+        .filter(
+          (s) =>
+            s.suggestedCircle !== tier &&
+            s.alternativeCircles.some((alt) => alt.circle === tier)
+        )
+        .map((s) => ({
+          suggestion: s,
+          altConfidence: s.alternativeCircles.find((alt) => alt.circle === tier)!.confidence,
+        }))
+        .sort((a, b) => b.altConfidence - a.altConfidence);
+
+      // Promote up to `needed` candidates, but only from over-represented tiers
+      let promoted = 0;
+      for (const candidate of candidates) {
+        if (promoted >= needed) break;
+        const fromTier = candidate.suggestion.suggestedCircle;
+        if (tierCounts[fromTier] <= MIN_PER_TIER) continue;
+
+        // Promote: swap suggested circle with the alternative
+        const originalCircle = candidate.suggestion.suggestedCircle;
+        const originalConfidence = candidate.suggestion.confidence;
+        candidate.suggestion.suggestedCircle = tier;
+        candidate.suggestion.confidence = candidate.altConfidence;
+
+        // Update alternatives to include the original circle
+        candidate.suggestion.alternativeCircles = candidate.suggestion.alternativeCircles
+          .filter((alt) => alt.circle !== tier)
+          .concat({ circle: originalCircle, confidence: originalConfidence })
+          .sort((a, b) => b.confidence - a.confidence);
+
+        tierCounts[fromTier]--;
+        tierCounts[tier]++;
+        promoted++;
+      }
+    }
+
+    return suggestions;
   }
 
   /**
@@ -324,7 +412,10 @@ export class PostgresAISuggestionService implements AISuggestionService {
   }
 
   /**
-   * Calculate suggestion factors based on contact and interaction data
+   * Calculate suggestion factors based on contact and interaction data.
+   * In cold-start mode (< 10 interactions), calendar co-attendance weight
+   * is boosted from 15% to 30% and contact metadata from 10% to 25%.
+   * Requirements: 3.3
    */
   private async calculateFactors(
     contact: Contact,
@@ -333,6 +424,7 @@ export class PostgresAISuggestionService implements AISuggestionService {
   ): Promise<SuggestionFactor[]> {
     const factors: SuggestionFactor[] = [];
     const now = new Date();
+    const coldStart = await this.isColdStart(userId);
 
     // Factor 1: Communication Frequency
     const frequencyFactor = this.calculateFrequencyFactor(interactions, now);
@@ -346,12 +438,20 @@ export class PostgresAISuggestionService implements AISuggestionService {
     const consistencyFactor = this.calculateConsistencyFactor(interactions);
     factors.push(consistencyFactor);
 
-    // Factor 4: Multi-channel communication
+    // Factor 4: Multi-channel communication (calendar co-attendance proxy)
+    // Cold-start: boost from 0.15 to 0.30 (Requirements: 3.3)
     const multiChannelFactor = this.calculateMultiChannelFactor(interactions);
+    if (coldStart) {
+      multiChannelFactor.weight = 0.30;
+    }
     factors.push(multiChannelFactor);
 
-    // Factor 5: Voice notes enrichment (NEW)
+    // Factor 5: Voice notes enrichment (contact metadata proxy)
+    // Cold-start: boost from 0.10 to 0.25 (Requirements: 3.3)
     const voiceNotesFactor = await this.calculateVoiceNotesFactor(contact.id, userId);
+    if (coldStart) {
+      voiceNotesFactor.weight = 0.25;
+    }
     factors.push(voiceNotesFactor);
 
     return factors;
@@ -717,10 +817,13 @@ export class PostgresAISuggestionService implements AISuggestionService {
 
   /**
    * Determine circle based on weighted factors
+   * In cold-start mode, confidence threshold is lowered from 40 to 20.
+   * Requirements: 3.2
    */
   private determineCircle(
     factors: SuggestionFactor[],
-    userId: string
+    userId: string,
+    coldStart: boolean = false
   ): {
     suggestedCircle: DunbarCircle;
     confidence: number;
@@ -762,6 +865,13 @@ export class PostgresAISuggestionService implements AISuggestionService {
     console.log(
       `[AI Suggestions] Determined circle: ${suggestedCircle} (confidence: ${confidence.toFixed(1)})`
     );
+
+    // Cold-start: lower confidence threshold from 40 to 20
+    // This ensures new users still get useful suggestions (Requirements: 3.2)
+    if (coldStart) {
+      const coldStartMinConfidence = 20;
+      confidence = Math.max(coldStartMinConfidence, confidence);
+    }
 
     // Generate alternative suggestions
     const alternatives = this.generateAlternatives(weightedScore, suggestedCircle);

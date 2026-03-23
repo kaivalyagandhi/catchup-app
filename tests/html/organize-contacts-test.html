@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organize Contacts - Full Modal Test</title>
+  <style>
+    :root {
+      --bg-surface: #ffffff;
+      --bg-secondary: #f5f5f4;
+      --bg-app: #f9fafb;
+      --bg-hover: #f3f4f6;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --text-tertiary: #9ca3af;
+      --border-subtle: #e5e7eb;
+      --accent-primary: #fb923c;
+      --accent-hover: #f97316;
+      --accent-subtle: #fff7ed;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #FDFCF8;
+      color: #44403C;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 8px; color: #292524; }
+    p.desc { color: #6b7280; margin-bottom: 20px; font-size: 14px; }
+    .test-section {
+      background: white;
+      border: 1px solid #E7E5E4;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .test-section h2 { margin-bottom: 12px; font-size: 18px; color: #292524; }
+    .test-section p { margin-bottom: 10px; font-size: 13px; color: #6b7280; line-height: 1.6; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 18px; border: 2px solid #e5e7eb; border-radius: 8px;
+      background: white; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; margin: 4px;
+    }
+    .btn:hover { border-color: #fb923c; color: #fb923c; }
+    .btn-primary { background: #fb923c; color: white; border-color: #fb923c; }
+    .btn-primary:hover { background: #f97316; }
+    .result-log {
+      margin-top: 12px; padding: 12px; background: #f9fafb;
+      border-radius: 8px; font-family: monospace; font-size: 12px;
+      max-height: 200px; overflow-y: auto; white-space: pre-wrap;
+    }
+    .pass { color: #10b981; }
+    .fail { color: #ef4444; }
+    .info { color: #3b82f6; }
+
+    /* Modal styles */
+    .manage-circles-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); display: flex;
+      align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+    }
+    .manage-circles-modal {
+      background: white; border-radius: 16px; max-width: 900px; width: 100%;
+      max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .manage-circles__header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; border-bottom: 1px solid #e5e7eb;
+    }
+    .manage-circles__header h2 { font-size: 18px; }
+    .manage-circles__header-actions { display: flex; gap: 8px; }
+    .manage-circles__mode-toggle-container { padding: 12px 24px; }
+    .manage-circles__context-toggle-container {
+      flex: 0 0 auto; display: flex; align-items: center; margin: 0 12px;
+    }
+    .manage-circles__progress-container { padding: 0 24px; }
+    .btn-secondary, .btn-primary-modal {
+      padding: 8px 16px; border-radius: 8px; border: 1px solid #e5e7eb; cursor: pointer; font-size: 13px;
+    }
+    .btn-primary-modal { background: #fb923c; color: white; border-color: #fb923c; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .progress-indicator {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; background: #f9fafb; border-radius: 10px; font-size: 13px; color: #6b7280;
+    }
+    .progress-indicator__text strong { color: #1f2937; font-weight: 700; }
+    .progress-indicator__bar { flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; min-width: 80px; }
+    .progress-indicator__fill { height: 100%; background: linear-gradient(90deg, #fb923c, #f97316); border-radius: 3px; }
+    .progress-indicator__percentage { font-weight: 600; color: #fb923c; min-width: 36px; text-align: right; }
+    .progress-indicator--groups { justify-content: center; }
+    .education-tip {
+      display: flex; gap: 12px; padding: 12px 16px; background: #FFFBEB;
+      border: 1px solid #FDE68A; border-radius: 10px; margin-bottom: 16px; font-size: 13px;
+    }
+    .education-tip__icon { font-size: 20px; flex-shrink: 0; }
+    .education-tip__content { line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <h1>🧪 Organize Contacts - Full Modal Test</h1>
+  <p class="desc">Tests context switching, both list and swipe modes, and group assignment flow (Task 12.4)</p>
+
+  <!-- Section 1: Context Toggle -->
+  <div class="test-section">
+    <h2>1. Context Toggle</h2>
+    <p>Test switching between Circles and Groups contexts within the modal.</p>
+    <button class="btn btn-primary" onclick="openModalCircles()">Open Modal (Circles)</button>
+    <button class="btn" onclick="openModalGroups()">Open Modal (Groups)</button>
+    <button class="btn" onclick="runContextToggleTests()">Run Automated Checks</button>
+    <div class="result-log" id="context-log"></div>
+  </div>
+
+  <!-- Section 2: CircleListView in Groups Mode -->
+  <div class="test-section">
+    <h2>2. CircleListView — Groups Mode</h2>
+    <p>Verify group sections render with contacts and AI suggestion pills.</p>
+    <button class="btn btn-primary" onclick="openModalGroupsOrganize()">Open Groups Organize Mode</button>
+    <button class="btn" onclick="runGroupListTests()">Run Automated Checks</button>
+    <div class="result-log" id="group-list-log"></div>
+  </div>
+
+  <!-- Section 3: QuickRefineCard in Groups Mode -->
+  <div class="test-section">
+    <h2>3. QuickRefineCard — Groups Mode</h2>
+    <p>Verify group buttons with shortcut labels, keyboard shortcuts (0-9), and multi-group assignment.</p>
+    <button class="btn btn-primary" onclick="openModalGroupsSwipe()">Open Groups Swipe Mode</button>
+    <button class="btn" onclick="runGroupSwipeTests()">Run Automated Checks</button>
+    <div class="result-log" id="group-swipe-log"></div>
+  </div>
+
+  <!-- Section 4: Full Modal Flow -->
+  <div class="test-section">
+    <h2>4. Full Modal Flow</h2>
+    <p>Test the complete flow: open modal → switch context → switch mode → assign contacts → close.</p>
+    <button class="btn btn-primary" onclick="runFullFlowTest()">Run Full Flow Test</button>
+    <div class="result-log" id="flow-log"></div>
+  </div>
+
+  <!-- Load dependencies -->
+  <script src="../../public/js/context-toggle.js"></script>
+  <script src="../../public/js/keyboard-shortcut-preferences.js"></script>
+  <script>
+    // ── Stubs ──────────────────────────────────────────────────────────────
+    class ModeToggle {
+      constructor(opts) { this.mode = opts.defaultMode || 'organize'; this.containerId = opts.containerId; this.onModeChange = opts.onModeChange; }
+      mount() {
+        const c = document.getElementById(this.containerId);
+        if (c) c.innerHTML = `<div style="display:flex;gap:8px;"><button onclick="window._modeToggleSwitch('organize')" style="padding:6px 14px;border-radius:6px;border:1px solid #e5e7eb;cursor:pointer;">Organize</button><button onclick="window._modeToggleSwitch('swipe')" style="padding:6px 14px;border-radius:6px;border:1px solid #e5e7eb;cursor:pointer;">Swipe</button></div>`;
+      }
+      getMode() { return this.mode; }
+      setMode(m) { const prev = this.mode; this.mode = m; if (this.onModeChange) this.onModeChange(m, prev); }
+      destroy() {}
+    }
+    window._modeToggleSwitch = function(m) {
+      if (window._currentHandler && window._currentHandler.modeToggle) {
+        window._currentHandler.modeToggle.setMode(m);
+      }
+    };
+
+    class CircleListView {
+      constructor(opts) { this.opts = opts; this.containerId = opts.containerId; }
+      async mount() {
+        const c = document.getElementById(this.containerId);
+        if (!c) return;
+        if (this.opts.context === 'groups') {
+          const groups = this.opts.groups || [];
+          c.innerHTML = groups.map(g =>
+            `<div class="clv-circle-section" style="border:1px solid #e5e7eb;border-radius:10px;margin-bottom:10px;padding:12px;">
+              <strong>${g.name}</strong> <span style="color:#9ca3af;">(${g.contactCount || 0} contacts)</span>
+              <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+                <span style="padding:4px 10px;background:#f3f4f6;border-radius:16px;font-size:12px;">Alice</span>
+                <span style="padding:4px 10px;border:2px dashed #d1d5db;border-radius:16px;font-size:12px;color:#6b7280;">🤖 Bob (AI)</span>
+              </div>
+            </div>`
+          ).join('') + `<div class="clv-ungrouped" style="border:1px solid #e5e7eb;border-radius:10px;padding:12px;"><strong>Ungrouped</strong><div style="margin-top:8px;"><span style="padding:4px 10px;background:#f3f4f6;border-radius:16px;font-size:12px;">Dave</span></div></div>`;
+        } else {
+          c.innerHTML = '<div class="clv-stub">[CircleListView context=circles — existing behavior]</div>';
+        }
+      }
+      destroy() {}
+    }
+
+    class QuickRefineCard {
+      constructor(contacts, opts) { this.opts = opts; this.containerId = opts.containerId; this.contacts = contacts; }
+      async render() {
+        const c = document.getElementById(this.containerId);
+        if (!c) return;
+        if (this.opts.context === 'groups') {
+          const groups = this.opts.groups || [];
+          const shortcuts = this.opts.shortcuts || {};
+          c.innerHTML = `
+            <div style="text-align:center;padding:20px;">
+              <div style="font-size:48px;margin-bottom:8px;">👤</div>
+              <div style="font-size:18px;font-weight:600;">Bob</div>
+              <div style="font-size:13px;color:#6b7280;">Contact 1 of ${this.contacts.length}</div>
+              <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;max-width:300px;margin:16px auto 0;">
+                ${groups.map(g => {
+                  const shortcut = Object.entries(shortcuts).find(([gid]) => gid === g.id);
+                  return `<button style="padding:10px;border:2px solid #6366f1;border-radius:8px;background:white;cursor:pointer;font-weight:600;color:#6366f1;">${g.name} ${shortcut ? `[${shortcut[1]}]` : ''}</button>`;
+                }).join('')}
+                <button style="padding:10px;border:2px solid #10b981;border-radius:8px;background:white;cursor:pointer;font-weight:600;color:#10b981;">+ Add Another</button>
+              </div>
+              <div aria-live="polite" role="status" style="position:absolute;width:1px;height:1px;overflow:hidden;">Bob, Contact 1 of ${this.contacts.length}</div>
+            </div>`;
+        } else {
+          c.innerHTML = '<div class="qrc-stub">[QuickRefineCard context=circles — existing behavior]</div>';
+        }
+      }
+      destroy() {}
+      removeKeyboardListeners() {}
+    }
+
+    // Stub globals
+    window.userId = 'test-user-123';
+    window.API_BASE = '/api';
+    function showToast(msg, type) { console.log('[Toast]', type, msg); }
+    function navigateTo() {}
+    function switchDirectoryTab() {}
+    function refreshContacts() {}
+
+    // Mock fetch
+    window.fetch = async function(url) {
+      if (typeof url === 'string') {
+        if (url.includes('/api/contacts') && !url.includes('groups') && !url.includes('ungrouped')) {
+          return { ok: true, json: async () => ([
+            { id: '1', name: 'Alice', circle: 'inner', dunbarCircle: 'inner', groups: [{ id: 'g1' }] },
+            { id: '2', name: 'Bob', circle: null, dunbarCircle: null, groups: [] },
+            { id: '3', name: 'Carol', circle: 'close', dunbarCircle: 'close', groups: [{ id: 'g1' }, { id: 'g2' }] },
+            { id: '4', name: 'Dave', circle: null, dunbarCircle: null, groups: [] },
+            { id: '5', name: 'Eve', circle: 'active', dunbarCircle: 'active', groups: [{ id: 'g2' }] },
+          ]) };
+        }
+        if (url.includes('/groups-tags/groups')) {
+          return { ok: true, json: async () => ({ groups: [
+            { id: 'g1', name: 'Work Team', contactCount: 2 },
+            { id: 'g2', name: 'Book Club', contactCount: 2 },
+            { id: 'g3', name: 'Family', contactCount: 0 },
+          ]}) };
+        }
+        if (url.includes('/users/preferences/keyboard-shortcuts')) {
+          return { ok: true, json: async () => ({ value: { g1: '1', g2: '2', g3: '3' } }) };
+        }
+        if (url.includes('/contacts/') && url.includes('/groups/')) {
+          return { ok: true, json: async () => ({ success: true }) };
+        }
+      }
+      return { ok: true, json: async () => ({}) };
+    };
+    localStorage.setItem('authToken', 'test-token');
+  </script>
+  <script src="../../public/js/step2-circles-handler.js"></script>
+  <script>
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    function log(id, msg, cls) {
+      const el = document.getElementById(id);
+      const line = document.createElement('div');
+      line.className = cls || '';
+      line.textContent = msg;
+      el.appendChild(line);
+    }
+    function assert(id, cond, pass, fail) {
+      log(id, (cond ? '✅ ' : '❌ ') + (cond ? pass : fail), cond ? 'pass' : 'fail');
+    }
+    function clearModal() {
+      const existing = document.getElementById('onboarding-flow-container');
+      if (existing) existing.remove();
+      document.body.style.overflow = '';
+    }
+
+    // ── Section 1: Context Toggle ──────────────────────────────────────────
+    async function openModalCircles() {
+      clearModal();
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      window._currentHandler = handler;
+      await handler.openManageCirclesFlow('circles');
+    }
+    async function openModalGroups() {
+      clearModal();
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      window._currentHandler = handler;
+      await handler.openManageCirclesFlow('groups');
+    }
+    async function runContextToggleTests() {
+      clearModal();
+      document.getElementById('context-log').innerHTML = '';
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow('circles');
+      await new Promise(r => setTimeout(r, 200));
+
+      const ct = document.getElementById('context-toggle-container');
+      assert('context-log', ct && ct.querySelector('.context-toggle'), 'ContextToggle rendered in header', 'ContextToggle not found');
+
+      const title = document.getElementById('modal-title');
+      assert('context-log', title && title.textContent === 'Organize Your Circles', 'Title is "Organize Your Circles" for circles', 'Wrong title');
+
+      // Switch to groups
+      await handler.handleContextChange('groups', 'circles');
+      await new Promise(r => setTimeout(r, 300));
+      assert('context-log', handler.activeContext === 'groups', 'Context switched to groups', 'Context not switched');
+      assert('context-log', title && title.textContent === 'Organize Contacts', 'Title updated to "Organize Contacts"', 'Title not updated');
+
+      // Switch back
+      await handler.handleContextChange('circles', 'groups');
+      await new Promise(r => setTimeout(r, 200));
+      assert('context-log', handler.activeContext === 'circles', 'Context switched back to circles', 'Context not restored');
+      assert('context-log', title && title.textContent === 'Organize Your Circles', 'Title restored', 'Title not restored');
+
+      clearModal();
+    }
+
+    // ── Section 2: Groups Organize Mode ────────────────────────────────────
+    async function openModalGroupsOrganize() {
+      clearModal();
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      window._currentHandler = handler;
+      await handler.openManageCirclesFlow('groups');
+    }
+    async function runGroupListTests() {
+      clearModal();
+      document.getElementById('group-list-log').innerHTML = '';
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow('groups');
+      await new Promise(r => setTimeout(r, 300));
+
+      const content = document.getElementById('mode-content-container');
+      assert('group-list-log', content && content.innerHTML.includes('group-list-view-container'), 'Groups organize mode loaded CircleListView container', 'Missing group list view container');
+
+      const sections = content ? content.querySelectorAll('.clv-circle-section') : [];
+      assert('group-list-log', sections.length >= 2, `Found ${sections.length} group sections`, 'Expected at least 2 group sections');
+
+      const ungrouped = content ? content.querySelector('.clv-ungrouped') : null;
+      assert('group-list-log', ungrouped !== null, 'Ungrouped section rendered', 'Missing ungrouped section');
+
+      const progress = document.getElementById('progress-indicator-container');
+      assert('group-list-log', progress && progress.innerHTML.includes('contacts in groups'), 'Progress shows groups format', 'Wrong progress format');
+
+      clearModal();
+    }
+
+    // ── Section 3: Groups Swipe Mode ───────────────────────────────────────
+    async function openModalGroupsSwipe() {
+      clearModal();
+      localStorage.setItem('circle-management-mode', 'swipe');
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      window._currentHandler = handler;
+      await handler.openManageCirclesFlow('groups');
+      localStorage.removeItem('circle-management-mode');
+    }
+    async function runGroupSwipeTests() {
+      clearModal();
+      document.getElementById('group-swipe-log').innerHTML = '';
+      localStorage.setItem('circle-management-mode', 'swipe');
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow('groups');
+      await new Promise(r => setTimeout(r, 400));
+
+      const content = document.getElementById('mode-content-container');
+      assert('group-swipe-log', content && content.innerHTML.includes('group-quick-refine-container'), 'Groups swipe mode loaded QuickRefineCard container', 'Missing quick refine container');
+
+      // Check for aria-live region
+      const ariaLive = content ? content.querySelector('[aria-live="polite"]') : null;
+      assert('group-swipe-log', ariaLive !== null, 'aria-live="polite" region present for screen readers', 'Missing aria-live region');
+
+      localStorage.removeItem('circle-management-mode');
+      clearModal();
+    }
+
+    // ── Section 4: Full Flow ───────────────────────────────────────────────
+    async function runFullFlowTest() {
+      clearModal();
+      document.getElementById('flow-log').innerHTML = '';
+      log('flow-log', '1. Opening modal in circles context...', 'info');
+
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow('circles');
+      await new Promise(r => setTimeout(r, 200));
+      assert('flow-log', document.getElementById('onboarding-flow-container') !== null, 'Modal opened', 'Modal not opened');
+
+      log('flow-log', '2. Switching to groups context...', 'info');
+      await handler.handleContextChange('groups', 'circles');
+      await new Promise(r => setTimeout(r, 300));
+      assert('flow-log', handler.activeContext === 'groups', 'Switched to groups', 'Failed to switch');
+
+      log('flow-log', '3. Verifying groups content loaded...', 'info');
+      const content = document.getElementById('mode-content-container');
+      assert('flow-log', content && content.innerHTML.length > 50, 'Groups content loaded', 'Content empty');
+
+      log('flow-log', '4. Switching back to circles...', 'info');
+      await handler.handleContextChange('circles', 'groups');
+      await new Promise(r => setTimeout(r, 200));
+      assert('flow-log', handler.activeContext === 'circles', 'Switched back to circles', 'Failed to switch back');
+
+      log('flow-log', '5. Closing modal...', 'info');
+      clearModal();
+      assert('flow-log', document.getElementById('onboarding-flow-container') === null, 'Modal closed', 'Modal still open');
+
+      log('flow-log', '✅ Full flow test complete!', 'pass');
+    }
+  </script>
+</body>
+</html>

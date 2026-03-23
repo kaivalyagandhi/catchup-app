@@ -60,6 +60,7 @@ export {
   InteractionRepository,
   PostgresInteractionRepository,
   InteractionLogData,
+  countByUserId,
 } from './interaction-repository';
 
 // Export frequency service

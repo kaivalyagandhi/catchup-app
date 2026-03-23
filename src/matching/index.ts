@@ -13,3 +13,4 @@
 export * from './suggestion-service';
 export * from './suggestion-repository';
 export * from './group-matching-service';
+export * from './group-suggestion-feedback-repository';

@@ -1872,6 +1872,89 @@ async function loadGroupsTagsManagement() {
     await loadGroupMappingsSection();
 }
 
+/**
+ * Render Groups tab banner showing ungrouped contacts count
+ * Fetches ungrouped count from GET /api/contacts/ungrouped-count
+ * Only displays when ungrouped count > 0
+ * Requirements: 9.2, 9.3 (Task 10.3, 10.4)
+ */
+async function renderGroupsBanner() {
+    // Remove any existing groups banner
+    const existingBanner = document.getElementById('groups-organize-banner');
+    if (existingBanner) {
+        existingBanner.remove();
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/contacts/ungrouped-count`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'x-user-id': userId
+            }
+        });
+        
+        if (!response.ok) {
+            console.warn('[Groups] Failed to fetch ungrouped count, status:', response.status);
+            return;
+        }
+        
+        const data = await response.json();
+        const ungroupedCount = data.count || 0;
+        
+        if (ungroupedCount <= 0) {
+            return;
+        }
+        
+        // Insert banner at the top of the groups tab content
+        const groupsTab = document.getElementById('directory-groups-tab');
+        if (!groupsTab) return;
+        
+        const bannerContainer = document.createElement('div');
+        bannerContainer.id = 'groups-organize-banner';
+        bannerContainer.className = 'circles-organize-banner';
+        bannerContainer.innerHTML = `
+            <div class="circles-organize-banner__content">
+                <div class="circles-organize-banner__icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+                <div class="circles-organize-banner__text">
+                    <strong>${ungroupedCount} contact${ungroupedCount === 1 ? '' : 's'}</strong> not in any group — Organize now
+                </div>
+                <button 
+                    class="circles-organize-banner__button accent"
+                    id="organize-groups-btn"
+                >
+                    Organize Groups
+                </button>
+            </div>
+        `;
+        
+        // Insert at the top of the groups tab, before the groups-list
+        const groupsList = document.getElementById('groups-list');
+        if (groupsList) {
+            groupsTab.insertBefore(bannerContainer, groupsList);
+        } else {
+            groupsTab.prepend(bannerContainer);
+        }
+        
+        // Wire "Organize Groups" button to open modal with groups context (Task 10.4)
+        const organizeBtn = document.getElementById('organize-groups-btn');
+        if (organizeBtn) {
+            organizeBtn.addEventListener('click', () => {
+                openManageCirclesFromDirectory('groups');
+            });
+        }
+        
+    } catch (error) {
+        console.error('[Groups] Error rendering groups banner:', error);
+    }
+}
+
 // New functions for directory tabs
 async function loadGroupsManagement() {
     // Ensure contacts are loaded first (needed for group member lists)
@@ -1881,6 +1964,9 @@ async function loadGroupsManagement() {
     
     // Initialize Step 3 handler if on Step 3 of onboarding
     await initializeStep3Handler();
+    
+    // Render groups banner if there are ungrouped contacts (Task 10.3)
+    await renderGroupsBanner();
     
     await loadGroupsList();
     await loadGroupMappingsSection();
@@ -2069,7 +2155,7 @@ async function openManageCirclesFlow() {
  * This is used when user clicks "Continue Organizing" from the Circles tab
  * Requirements: 10.3, 10.4
  */
-async function openManageCirclesFromDirectory() {
+async function openManageCirclesFromDirectory(entryContext = 'circles') {
     try {
         // Check if dialog is already open
         const existingOverlay = document.querySelector('.manage-circles-overlay');
@@ -2100,8 +2186,8 @@ async function openManageCirclesFromDirectory() {
         // Create Step2CirclesHandler instance with onboarding state
         const step2Handler = new Step2CirclesHandler(savedState || { currentStep: 2, isComplete: false });
         
-        // Open the flow
-        await step2Handler.openManageCirclesFlow();
+        // Open the flow with the specified entry context (Task 10.1)
+        await step2Handler.openManageCirclesFlow(entryContext);
         
     } catch (error) {
         console.error('Error opening Manage Circles from Directory:', error);
@@ -2166,21 +2252,13 @@ async function loadCirclesVisualization() {
                             </svg>
                         </div>
                         <div class="circles-organize-banner__text">
-                            <strong>${uncategorizedCount} contact${uncategorizedCount === 1 ? '' : 's'}</strong> 
-                            waiting to be organized into circles.
+                            <strong>${uncategorizedCount} contact${uncategorizedCount === 1 ? '' : 's'}</strong> not in any circle — Organize now
                         </div>
                         <button 
                             class="circles-organize-banner__button accent"
                             id="continue-organizing-btn"
                         >
-                            Continue Organizing
-                        </button>
-                        <button 
-                            class="circles-organize-banner__dismiss"
-                            id="dismiss-organize-banner"
-                            aria-label="Dismiss"
-                        >
-                            ×
+                            Organize Circles
                         </button>
                     </div>
                 `;
@@ -2192,13 +2270,6 @@ async function loadCirclesVisualization() {
                     continueBtn.addEventListener('click', () => {
                         // Use the AI-powered flow (Quick Start → Batch → Quick Refine)
                         openManageCirclesFromDirectory();
-                    });
-                }
-                
-                const dismissBtn = document.getElementById('dismiss-organize-banner');
-                if (dismissBtn) {
-                    dismissBtn.addEventListener('click', () => {
-                        bannerContainer.style.display = 'none';
                     });
                 }
             }
@@ -7632,7 +7703,7 @@ function showGroupTagSuccess(message) {
 let toastCounter = 0;
 const activeToasts = new Map();
 
-function showToast(message, type = 'info') {
+function showToast(message, type = 'info', options = {}) {
     const toastId = ++toastCounter;
     
     // Create toast element
@@ -7657,6 +7728,18 @@ function showToast(message, type = 'info') {
         <div class="toast-message">${escapeHtml(message)}</div>
     `;
     
+    // Add action button if provided (Requirement 11.3 - Retry support)
+    if (options.action && options.action.label && typeof options.action.callback === 'function') {
+        const actionBtn = document.createElement('button');
+        actionBtn.className = 'toast-action-btn';
+        actionBtn.textContent = options.action.label;
+        actionBtn.addEventListener('click', () => {
+            hideToast(toastId);
+            options.action.callback();
+        });
+        toast.appendChild(actionBtn);
+    }
+    
     // Add to DOM
     let toastContainer = document.getElementById('toast-container');
     if (!toastContainer) {
@@ -7673,9 +7756,9 @@ function showToast(message, type = 'info') {
         toast.classList.add('toast-show');
     }, 10);
     
-    // Auto-dismiss for non-loading toasts
+    // Auto-dismiss for non-loading toasts (longer duration when action button present)
     if (type !== 'loading') {
-        const duration = type === 'error' ? 5000 : 3000;
+        const duration = options.action ? 8000 : (type === 'error' ? 5000 : 3000);
         setTimeout(() => {
             hideToast(toastId);
         }, duration);

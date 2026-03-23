@@ -345,18 +345,19 @@
 }
 
 /* Mode Toggle Container - Requirement 6.1 */
+/* Note: When inside .manage-circles__toggles-row, these are overridden by step2-circles-handler.js styles */
 .manage-circles__mode-toggle-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 16px 0;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 0;
+  margin-bottom: 0;
+  border-bottom: none;
 }
 
 .manage-circles__mode-toggle-container .mode-toggle {
   margin-bottom: 0;
-  max-width: 320px;
+  max-width: none;
 }
 
 /* Mode Content Container - Consistent height for both modes */

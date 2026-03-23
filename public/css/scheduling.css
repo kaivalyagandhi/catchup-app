@@ -5332,6 +5332,32 @@
   color: var(--text-primary);
 }
 
+/* Toast Action Button (Requirement 11.3 - Retry support) */
+.toast-action-btn {
+  flex-shrink: 0;
+  margin-left: 12px;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.toast-action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  opacity: 0.9;
+}
+
+.toast-action-btn:focus {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 /* Toast Variants */
 .toast-success {
   border-left: 4px solid var(--status-success);

@@ -9,6 +9,7 @@ import authRouter from './routes/auth';
 import auditRouter from './routes/audit';
 import contactsRouter from './routes/contacts';
 import contactsArchiveRouter from './routes/contacts-archive';
+import contactGroupsRouter from './routes/contact-groups';
 import groupsTagsRouter from './routes/groups-tags';
 import suggestionsRouter from './routes/suggestions';
 import calendarRouter from './routes/calendar';
@@ -20,6 +21,7 @@ import googleSSORouter from './routes/google-sso';
 import authStatisticsRouter from './routes/auth-statistics';
 import voiceNotesRouter from './routes/voice-notes';
 import preferencesRouter from './routes/preferences';
+import userPreferencesRouter from './routes/user-preferences';
 import accountRouter from './routes/account';
 import testDataRouter from './routes/test-data';
 import editsRouter from './routes/edits';
@@ -157,8 +159,9 @@ export function createServer(): Express {
   app.use('/api/auth/google', googleSSORouter);
   app.use('/api/auth/statistics', authStatisticsRouter);
   app.use('/api/audit', auditRouter);
-  // Archive routes must come before general contacts routes to avoid /:id matching 'archive'
+  // Specific contacts sub-routes must come before general contacts routes to avoid /:id matching
   app.use('/api/contacts', contactsArchiveRouter);
+  app.use('/api/contacts', contactGroupsRouter);
   app.use('/api/contacts', contactsRouter);
   app.use('/api/groups-tags', groupsTagsRouter);
   app.use('/api/suggestions', suggestionsRouter);
@@ -171,6 +174,7 @@ export function createServer(): Express {
   app.use('/api/google-contacts', googleContactsSyncRouter);
   app.use('/api/voice-notes', voiceNotesRouter);
   app.use('/api/preferences', preferencesRouter);
+  app.use('/api/users/preferences', userPreferencesRouter);
   app.use('/api/account', accountRouter);
   app.use('/api/edits', editsRouter);
   app.use('/api/onboarding', onboardingRouter);

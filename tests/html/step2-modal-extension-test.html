@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Step2CirclesHandler Modal Extension Tests (Tasks 6.1-6.8)</title>
+  <style>
+    :root {
+      --bg-surface: #ffffff;
+      --bg-secondary: #f5f5f4;
+      --bg-app: #f9fafb;
+      --bg-hover: #f3f4f6;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --text-tertiary: #9ca3af;
+      --border-subtle: #e5e7eb;
+      --accent-primary: #fb923c;
+      --accent-hover: #f97316;
+      --accent-subtle: #fff7ed;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f4;
+      color: #1f2937;
+      padding: 20px;
+    }
+
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    h2 { font-size: 18px; margin: 24px 0 12px; color: #374151; }
+    p.desc { color: #6b7280; margin-bottom: 20px; font-size: 14px; }
+
+    .test-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .test-section h3 {
+      font-size: 15px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .test-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin: 4px;
+    }
+    .test-btn:hover { border-color: #fb923c; color: #fb923c; }
+    .test-btn.primary { background: #fb923c; color: white; border-color: #fb923c; }
+    .test-btn.primary:hover { background: #f97316; }
+
+    .result-log {
+      margin-top: 12px;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .pass { color: #10b981; }
+    .fail { color: #ef4444; }
+    .info { color: #3b82f6; }
+
+    /* Modal styles needed for testing */
+    .manage-circles-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .manage-circles-modal {
+      background: white;
+      border-radius: 16px;
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .manage-circles__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .manage-circles__header h2 { font-size: 18px; }
+    .manage-circles__header-actions { display: flex; gap: 8px; }
+    .manage-circles__mode-toggle-container { padding: 12px 24px; }
+    .manage-circles__context-toggle-container {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      margin: 0 12px;
+    }
+    .manage-circles__progress-container { padding: 0 24px; }
+    .btn-secondary, .btn-primary { padding: 8px 16px; border-radius: 8px; border: 1px solid #e5e7eb; cursor: pointer; font-size: 13px; }
+    .btn-primary { background: #fb923c; color: white; border-color: #fb923c; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* Progress indicator styles */
+    .progress-indicator {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; background: #f9fafb; border-radius: 10px;
+      font-size: 13px; color: #6b7280;
+    }
+    .progress-indicator__text strong { color: #1f2937; font-weight: 700; }
+    .progress-indicator__bar { flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; min-width: 80px; }
+    .progress-indicator__fill { height: 100%; background: linear-gradient(90deg, #fb923c, #f97316); border-radius: 3px; transition: width 0.3s; }
+    .progress-indicator__percentage { font-weight: 600; color: #fb923c; min-width: 36px; text-align: right; }
+    .progress-indicator--groups { justify-content: center; }
+  </style>
+</head>
+<body>
+  <h1>🧪 Step2CirclesHandler Modal Extension Tests</h1>
+  <p class="desc">Tasks 6.1-6.8: ContextToggle integration, groups context, progress indicator, focus trapping, backward compatibility</p>
+
+  <!-- Task 6.8: Backward Compatibility -->
+  <div class="test-section">
+    <h3>📋 Task 6.8: Backward Compatibility (circles context)</h3>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:12px;">
+      When entryContext is 'circles' or omitted, the modal must render identically to current production behavior.
+    </p>
+    <button class="test-btn primary" onclick="testCirclesDefault()">Open Modal (default/circles)</button>
+    <button class="test-btn" onclick="runBackwardCompatTests()">Run Automated Checks</button>
+    <div class="result-log" id="compat-log"></div>
+  </div>
+
+  <!-- Task 6.1: entryContext parameter -->
+  <div class="test-section">
+    <h3>🔀 Task 6.1: entryContext Parameter</h3>
+    <button class="test-btn" onclick="testGroupsEntry()">Open Modal (groups context)</button>
+    <button class="test-btn" onclick="runEntryContextTests()">Run Automated Checks</button>
+    <div class="result-log" id="entry-log"></div>
+  </div>
+
+  <!-- Task 6.2: ContextToggle in header -->
+  <div class="test-section">
+    <h3>🔄 Task 6.2: ContextToggle in Modal Header</h3>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:12px;">
+      ContextToggle should appear between title and ModeToggle. Title changes based on context.
+    </p>
+    <button class="test-btn" onclick="runContextToggleTests()">Run Automated Checks</button>
+    <div class="result-log" id="toggle-log"></div>
+  </div>
+
+  <!-- Task 6.3: handleContextChange -->
+  <div class="test-section">
+    <h3>🔃 Task 6.3: Context Switching</h3>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:12px;">
+      Switching context preserves unsaved state and updates title/content.
+    </p>
+    <button class="test-btn" onclick="runContextSwitchTests()">Run Automated Checks</button>
+    <div class="result-log" id="switch-log"></div>
+  </div>
+
+  <!-- Task 6.6: Progress Indicator -->
+  <div class="test-section">
+    <h3>📊 Task 6.6: Context-Aware Progress Indicator</h3>
+    <button class="test-btn" onclick="runProgressTests()">Run Automated Checks</button>
+    <div class="result-log" id="progress-log"></div>
+  </div>
+
+  <!-- Task 6.7: Focus Trapping -->
+  <div class="test-section">
+    <h3>🔒 Task 6.7: Focus Trapping</h3>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:12px;">
+      Tab/Shift+Tab should cycle within modal. Open modal and test manually.
+    </p>
+    <button class="test-btn" onclick="testFocusTrap()">Open Modal & Test Focus</button>
+    <button class="test-btn" onclick="runFocusTrapTests()">Run Automated Checks</button>
+    <div class="result-log" id="focus-log"></div>
+  </div>
+
+  <!-- Load dependencies -->
+  <script src="../../public/js/context-toggle.js"></script>
+  <script>
+    // ---- Stubs for components not under test ----
+    class ModeToggle {
+      constructor(opts) { this.mode = opts.defaultMode || 'organize'; this.containerId = opts.containerId; this.onModeChange = opts.onModeChange; }
+      mount() {
+        const c = document.getElementById(this.containerId);
+        if (c) c.innerHTML = '<div class="mode-toggle-stub">[ModeToggle: ' + this.mode + ']</div>';
+      }
+      getMode() { return this.mode; }
+      setMode(m) { this.mode = m; if (this.onModeChange) this.onModeChange(m, this.mode); }
+      destroy() {}
+    }
+    class CircleListView {
+      constructor(opts) { this.opts = opts; this.containerId = opts.containerId; }
+      async mount() {
+        const c = document.getElementById(this.containerId);
+        if (c) c.innerHTML = '<div class="clv-stub">[CircleListView context=' + (this.opts.context || 'circles') + ']</div>';
+      }
+      destroy() {}
+    }
+    class QuickRefineCard {
+      constructor(contacts, opts) { this.opts = opts; this.containerId = opts.containerId; }
+      async render() {
+        const c = document.getElementById(this.containerId);
+        if (c) c.innerHTML = '<div class="qrc-stub">[QuickRefineCard context=' + (this.opts.context || 'circles') + ']</div>';
+      }
+      destroy() {}
+      removeKeyboardListeners() {}
+    }
+
+    // Stub globals
+    window.userId = 'test-user-123';
+    window.API_BASE = '/api';
+    function showToast(msg, type) { console.log('[Toast]', type, msg); }
+    function navigateTo() {}
+    function switchDirectoryTab() {}
+    function refreshContacts() {}
+
+    // Mock fetch
+    const originalFetch = window.fetch;
+    window.fetch = async function(url, opts) {
+      if (typeof url === 'string') {
+        if (url.includes('/api/contacts') && !url.includes('groups') && !url.includes('ungrouped')) {
+          return { ok: true, json: async () => ([
+            { id: '1', name: 'Alice', circle: 'inner', dunbarCircle: 'inner', groups: [{ id: 'g1' }] },
+            { id: '2', name: 'Bob', circle: null, dunbarCircle: null, groups: [] },
+            { id: '3', name: 'Carol', circle: 'close', dunbarCircle: 'close', groups: [{ id: 'g1' }, { id: 'g2' }] },
+            { id: '4', name: 'Dave', circle: null, dunbarCircle: null, groups: [] },
+            { id: '5', name: 'Eve', circle: 'active', dunbarCircle: 'active', groups: [{ id: 'g2' }] },
+          ]) };
+        }
+        if (url.includes('/groups-tags/groups')) {
+          return { ok: true, json: async () => ({ groups: [
+            { id: 'g1', name: 'Work Team', contactCount: 2 },
+            { id: 'g2', name: 'Book Club', contactCount: 2 },
+          ]}) };
+        }
+        if (url.includes('/users/preferences/keyboard-shortcuts')) {
+          return { ok: true, json: async () => ({ value: { g1: 1, g2: 2 } }) };
+        }
+      }
+      return { ok: true, json: async () => ({}) };
+    };
+    localStorage.setItem('authToken', 'test-token');
+  </script>
+  <script src="../../public/js/step2-circles-handler.js"></script>
+  <script>
+    // ---- Utility ----
+    function log(id, msg, cls) {
+      const el = document.getElementById(id);
+      const line = document.createElement('div');
+      line.className = cls || '';
+      line.textContent = msg;
+      el.appendChild(line);
+    }
+    function assert(id, condition, passMsg, failMsg) {
+      if (condition) { log(id, '✅ ' + passMsg, 'pass'); }
+      else { log(id, '❌ ' + failMsg, 'fail'); }
+    }
+    function clearModal() {
+      const existing = document.getElementById('onboarding-flow-container');
+      if (existing) existing.remove();
+      document.body.style.overflow = '';
+    }
+
+    // ---- Task 6.8: Backward Compatibility ----
+    async function testCirclesDefault() {
+      clearModal();
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow(); // no entryContext = defaults to 'circles'
+    }
+
+    async function runBackwardCompatTests() {
+      clearModal();
+      document.getElementById('compat-log').innerHTML = '';
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+
+      // Test 1: default entryContext
+      assert('compat-log', handler.activeContext === 'circles', 'Default activeContext is "circles"', 'activeContext should be "circles" but got: ' + handler.activeContext);
+
+      // Test 2: open with no args
+      await handler.openManageCirclesFlow();
+      await new Promise(r => setTimeout(r, 200));
+
+      const title = document.getElementById('modal-title');
+      assert('compat-log', title && title.textContent === 'Organize Your Circles',
+        'Title is "Organize Your Circles" (default)',
+        'Title should be "Organize Your Circles" but got: ' + (title ? title.textContent : 'null'));
+
+      // Test 3: ContextToggle exists
+      const ctContainer = document.getElementById('context-toggle-container');
+      assert('compat-log', ctContainer && ctContainer.children.length > 0,
+        'ContextToggle rendered in header',
+        'ContextToggle not found in header');
+
+      // Test 4: ModeToggle exists
+      const mtContainer = document.getElementById('mode-toggle-container');
+      assert('compat-log', mtContainer && mtContainer.children.length > 0,
+        'ModeToggle rendered',
+        'ModeToggle not found');
+
+      // Test 5: Content container has circles content
+      const content = document.getElementById('mode-content-container');
+      assert('compat-log', content && content.innerHTML.includes('circle-list-view-container'),
+        'Circles organize mode content loaded (CircleListView)',
+        'Expected circles content but got different content');
+
+      // Test 6: Progress indicator shows circles format
+      const progress = document.getElementById('progress-indicator-container');
+      assert('compat-log', progress && progress.innerHTML.includes('contacts in circles'),
+        'Progress shows circles format (X/Y contacts in circles)',
+        'Progress indicator not showing circles format');
+
+      // Test 7: Modal has role="dialog"
+      const overlay = document.getElementById('onboarding-flow-container');
+      assert('compat-log', overlay && overlay.getAttribute('role') === 'dialog',
+        'Modal has role="dialog"',
+        'Modal missing role="dialog"');
+
+      assert('compat-log', overlay && overlay.getAttribute('aria-modal') === 'true',
+        'Modal has aria-modal="true"',
+        'Modal missing aria-modal');
+
+      clearModal();
+    }
+
+    // ---- Task 6.1: entryContext ----
+    async function testGroupsEntry() {
+      clearModal();
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow('groups');
+    }
+
+    async function runEntryContextTests() {
+      clearModal();
+      document.getElementById('entry-log').innerHTML = '';
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow('groups');
+      await new Promise(r => setTimeout(r, 300));
+
+      assert('entry-log', handler.activeContext === 'groups',
+        'activeContext set to "groups"',
+        'activeContext should be "groups" but got: ' + handler.activeContext);
+
+      assert('entry-log', handler.groups.length > 0,
+        'Groups fetched (' + handler.groups.length + ' groups)',
+        'Groups should have been fetched but array is empty');
+
+      const title = document.getElementById('modal-title');
+      assert('entry-log', title && title.textContent === 'Organize Contacts',
+        'Title is "Organize Contacts" for groups context',
+        'Title should be "Organize Contacts" but got: ' + (title ? title.textContent : 'null'));
+
+      const progress = document.getElementById('progress-indicator-container');
+      assert('entry-log', progress && progress.innerHTML.includes('contacts in groups'),
+        'Progress shows groups format (X contacts in groups)',
+        'Progress indicator not showing groups format');
+
+      clearModal();
+    }
+
+    // ---- Task 6.2: ContextToggle ----
+    async function runContextToggleTests() {
+      clearModal();
+      document.getElementById('toggle-log').innerHTML = '';
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow('circles');
+      await new Promise(r => setTimeout(r, 200));
+
+      const ctContainer = document.getElementById('context-toggle-container');
+      const toggle = ctContainer ? ctContainer.querySelector('.context-toggle') : null;
+
+      assert('toggle-log', toggle !== null,
+        'ContextToggle component rendered',
+        'ContextToggle not found');
+
+      assert('toggle-log', toggle && toggle.getAttribute('role') === 'tablist',
+        'ContextToggle has role="tablist"',
+        'Missing role="tablist"');
+
+      const tabs = toggle ? toggle.querySelectorAll('[role="tab"]') : [];
+      assert('toggle-log', tabs.length === 2,
+        'Two tab options rendered (Circles, Groups)',
+        'Expected 2 tabs but got: ' + tabs.length);
+
+      if (tabs.length >= 2) {
+        assert('toggle-log', tabs[0].getAttribute('aria-selected') === 'true',
+          'Circles tab is selected by default',
+          'Circles tab should be selected');
+        assert('toggle-log', tabs[1].getAttribute('aria-selected') === 'false',
+          'Groups tab is not selected by default',
+          'Groups tab should not be selected');
+      }
+
+      // Verify header order: title, context-toggle, actions
+      const header = document.querySelector('.manage-circles__header');
+      if (header) {
+        const children = Array.from(header.children);
+        const titleIdx = children.findIndex(c => c.tagName === 'H2');
+        const toggleIdx = children.findIndex(c => c.id === 'context-toggle-container');
+        const actionsIdx = children.findIndex(c => c.classList.contains('manage-circles__header-actions'));
+        assert('toggle-log', titleIdx < toggleIdx && toggleIdx < actionsIdx,
+          'Header order: Title → ContextToggle → Actions',
+          'Header order incorrect');
+      }
+
+      clearModal();
+    }
+
+    // ---- Task 6.3: Context Switching ----
+    async function runContextSwitchTests() {
+      clearModal();
+      document.getElementById('switch-log').innerHTML = '';
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow('circles');
+      await new Promise(r => setTimeout(r, 200));
+
+      // Verify initial state
+      assert('switch-log', handler.activeContext === 'circles',
+        'Initial context is circles',
+        'Expected circles');
+
+      // Switch to groups
+      await handler.handleContextChange('groups', 'circles');
+      await new Promise(r => setTimeout(r, 300));
+
+      assert('switch-log', handler.activeContext === 'groups',
+        'Context switched to groups',
+        'Expected groups but got: ' + handler.activeContext);
+
+      const title = document.getElementById('modal-title');
+      assert('switch-log', title && title.textContent === 'Organize Contacts',
+        'Title updated to "Organize Contacts"',
+        'Title not updated');
+
+      // Verify context state store exists
+      assert('switch-log', handler.contextStateStore.circles !== undefined,
+        'Circles state preserved in contextStateStore',
+        'Circles state not preserved');
+
+      // Switch back to circles
+      await handler.handleContextChange('circles', 'groups');
+      await new Promise(r => setTimeout(r, 200));
+
+      assert('switch-log', handler.activeContext === 'circles',
+        'Context switched back to circles',
+        'Expected circles');
+
+      const title2 = document.getElementById('modal-title');
+      assert('switch-log', title2 && title2.textContent === 'Organize Your Circles',
+        'Title restored to "Organize Your Circles"',
+        'Title not restored');
+
+      clearModal();
+    }
+
+    // ---- Task 6.6: Progress Indicator ----
+    async function runProgressTests() {
+      clearModal();
+      document.getElementById('progress-log').innerHTML = '';
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow('circles');
+      await new Promise(r => setTimeout(r, 200));
+
+      const progress = document.getElementById('progress-indicator-container');
+
+      // Circles: should show X/Y format with bar
+      assert('progress-log', progress && progress.innerHTML.includes('contacts in circles'),
+        'Circles: shows "contacts in circles" text',
+        'Missing circles progress text');
+
+      assert('progress-log', progress && progress.querySelector('.progress-indicator__bar') !== null,
+        'Circles: has percentage bar',
+        'Missing percentage bar for circles');
+
+      assert('progress-log', progress && progress.querySelector('.progress-indicator__percentage') !== null,
+        'Circles: has percentage display',
+        'Missing percentage display');
+
+      // Switch to groups
+      await handler.handleContextChange('groups', 'circles');
+      await new Promise(r => setTimeout(r, 200));
+
+      assert('progress-log', progress && progress.innerHTML.includes('contacts in groups'),
+        'Groups: shows "contacts in groups" text',
+        'Missing groups progress text');
+
+      assert('progress-log', progress && progress.querySelector('.progress-indicator__bar') === null,
+        'Groups: no percentage bar (simple count)',
+        'Groups should not have percentage bar');
+
+      clearModal();
+    }
+
+    // ---- Task 6.7: Focus Trapping ----
+    async function testFocusTrap() {
+      clearModal();
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow('circles');
+      log('focus-log', 'Modal opened. Try pressing Tab and Shift+Tab to verify focus stays within modal.', 'info');
+      log('focus-log', 'Press Escape to close.', 'info');
+    }
+
+    async function runFocusTrapTests() {
+      clearModal();
+      document.getElementById('focus-log').innerHTML = '';
+      const handler = new Step2CirclesHandler({ currentStep: 2, isComplete: false });
+      await handler.openManageCirclesFlow('circles');
+      await new Promise(r => setTimeout(r, 200));
+
+      const overlay = document.getElementById('onboarding-flow-container');
+      assert('focus-log', handler._focusTrapHandler !== null && handler._focusTrapHandler !== undefined,
+        'Focus trap handler is attached',
+        'Focus trap handler not found');
+
+      assert('focus-log', handler._escapeHandler !== null && handler._escapeHandler !== undefined,
+        'Escape key handler is attached',
+        'Escape handler not found');
+
+      // Verify focusable elements exist within modal
+      const modal = overlay ? overlay.querySelector('.manage-circles-modal') : null;
+      if (modal) {
+        const focusable = modal.querySelectorAll('button:not([disabled]), [role="tab"], input, select, textarea, a[href]');
+        assert('focus-log', focusable.length > 0,
+          'Modal contains ' + focusable.length + ' focusable elements',
+          'No focusable elements found in modal');
+      }
+
+      clearModal();
+    }
+  </script>
+</body>
+</html>

@@ -2,9 +2,10 @@
  * Step 2: Circles Organization Handler
  * 
  * Handles Step 2 of the onboarding flow: organizing contacts into circles.
+ * Extended to support both Circles and Groups contexts via ContextToggle.
  * Auto-triggers the Manage Circles flow when user navigates to the Circles tab.
  * 
- * Requirements: 3.1, 3.2, 8.1, 8.2, 8.3, 9.3, 9.4, 10.5
+ * Requirements: 3.1, 3.2, 5, 8.1, 8.2, 8.3, 9.3, 9.4, 10, 10.5, 12
  */
 
 class Step2CirclesHandler {
@@ -18,6 +19,16 @@ class Step2CirclesHandler {
     this.contactsFetchInProgress = false;
     this.lastContactsFetch = 0;
     this.CONTACTS_CACHE_TTL = 5000; // 5 seconds cache
+    
+    // Context state (Task 6.1, 6.3)
+    this.activeContext = 'circles'; // 'circles' or 'groups'
+    this.groups = [];
+    this.contextToggle = null;
+    // Context-keyed store for preserving unsaved state across context switches (Task 6.3)
+    this.contextStateStore = {
+      circles: { pendingAssignments: {}, scrollPosition: 0 },
+      groups: { pendingAssignments: {}, scrollPosition: 0 }
+    };
   }
   
   /**
@@ -48,9 +59,10 @@ class Step2CirclesHandler {
   /**
    * Open the new simplified circle assignment flow
    * QuickStartFlow → QuickRefine (Smart Batching removed per Requirement 1.1)
-   * Requirements: 3.2, 3.3, 3.4, 3.5, 5.1, 6.1, 7.1
+   * Requirements: 3.2, 3.3, 3.4, 3.5, 5.1, 6.1, 7.1, 9.5
+   * @param {string} [entryContext='circles'] - Entry context: 'circles' or 'groups' (Task 6.1)
    */
-  async openManageCirclesFlow() {
+  async openManageCirclesFlow(entryContext = 'circles') {
     try {
       // Check if dialog is already open
       const existingOverlay = document.querySelector('.manage-circles-overlay');
@@ -64,8 +76,16 @@ class Step2CirclesHandler {
       // Reset the flag in case it got stuck
       window.isOpeningManageCircles = false;
       
+      // Store the active context (Task 6.1)
+      this.activeContext = entryContext || 'circles';
+      
       // Fetch contacts
       await this.fetchContacts();
+      
+      // Fetch groups when entryContext is 'groups' (Task 6.1, Requirement 9.5)
+      if (this.activeContext === 'groups') {
+        await this.fetchGroups();
+      }
       
       // Check saved mode preference (Requirement 5.9, 6.6)
       const savedMode = localStorage.getItem('circle-management-mode');
@@ -76,7 +96,7 @@ class Step2CirclesHandler {
       }
       
       // Create the modal container with mode toggle (Requirement 6.1)
-      await this.createModalWithModeToggle(initialMode);
+      await this.createModalWithModeToggle(initialMode, this.activeContext, this.groups);
       
       // Set up event listeners for progress tracking
       this.setupEventListeners();
@@ -91,26 +111,78 @@ class Step2CirclesHandler {
   }
   
   /**
-   * Create the modal container with mode toggle at the top
-   * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5
-   * @param {string} initialMode - Initial mode ('ai-assisted' or 'manual')
+   * Fetch user groups from API (Task 6.1)
+   * @returns {Promise<Array>} Array of group objects
    */
-  async createModalWithModeToggle(initialMode) {
+  async fetchGroups() {
+    try {
+      const userId = window.userId || localStorage.getItem('userId');
+      const authToken = localStorage.getItem('authToken');
+      
+      if (!userId || !authToken) {
+        console.warn('[Step2] User not authenticated, returning empty groups');
+        this.groups = [];
+        return;
+      }
+      
+      const response = await fetch(`${window.API_BASE || '/api'}/groups-tags/groups`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        console.warn('[Step2] Failed to fetch groups, status:', response.status);
+        this.groups = [];
+        return;
+      }
+      
+      const data = await response.json();
+      this.groups = data.groups || data || [];
+      console.log(`[Step2] Loaded ${this.groups.length} groups`);
+    } catch (error) {
+      console.error('[Step2] Error fetching groups:', error);
+      this.groups = [];
+    }
+  }
+  
+  /**
+   * Create the modal container with mode toggle at the top
+   * Requirements: 5.1, 5.2, 5.3, 5.4, 6.1, 6.2, 6.3, 6.4, 6.5, 12.3
+   * @param {string} initialMode - Initial mode ('organize' or 'swipe')
+   * @param {string} [entryContext='circles'] - Entry context: 'circles' or 'groups' (Task 6.2)
+   * @param {Array} [groups=[]] - User groups array (Task 6.2)
+   */
+  async createModalWithModeToggle(initialMode, entryContext = 'circles', groups = []) {
+    // Consistent modal title regardless of context
+    const modalTitle = 'Organize Contacts';
+    
     // Create container for the flow
     const container = document.createElement('div');
     container.id = 'onboarding-flow-container';
     container.className = 'manage-circles-overlay';
+    container.setAttribute('role', 'dialog');
+    container.setAttribute('aria-modal', 'true');
+    container.setAttribute('aria-label', modalTitle);
     container.innerHTML = `
       <div class="manage-circles-modal">
-        <div class="manage-circles__header">
-          <h2>Organize Your Circles</h2>
-          <div class="manage-circles__header-actions">
-            <button class="btn-secondary btn-sm" id="flow-skip">Skip for Now</button>
-            <button class="btn-primary btn-sm" id="flow-done">Done</button>
+        <div class="manage-circles__sticky-header">
+          <div class="manage-circles__header">
+            <h2 id="modal-title">${modalTitle}</h2>
+            <div class="manage-circles__toggles-row">
+              <div class="manage-circles__context-toggle-container" id="context-toggle-container"></div>
+              <span class="manage-circles__toggle-divider"></span>
+              <div class="manage-circles__mode-toggle-container" id="mode-toggle-container"></div>
+            </div>
+            <div class="manage-circles__header-actions">
+              <button class="btn-secondary btn-sm" id="flow-skip">Skip</button>
+              <button class="btn-primary btn-sm" id="flow-done">Done</button>
+            </div>
           </div>
+          <div class="manage-circles__progress-container" id="progress-indicator-container"></div>
+          <div class="manage-circles__sticky-extras" id="sticky-extras-container"></div>
         </div>
-        <div class="manage-circles__mode-toggle-container" id="mode-toggle-container"></div>
-        <div id="mode-content-container"></div>
+        <div class="manage-circles__scrollable-content" id="mode-content-container"></div>
       </div>
     `;
     
@@ -133,6 +205,21 @@ class Step2CirclesHandler {
     // Prevent body scroll
     document.body.style.overflow = 'hidden';
     
+    // Initialize ContextToggle component (Task 6.2, Requirement 5.4)
+    const contextToggleContainer = document.getElementById('context-toggle-container');
+    if (typeof ContextToggle !== 'undefined' && contextToggleContainer) {
+      this.contextToggle = new ContextToggle({
+        defaultContext: entryContext,
+        onContextChange: (newContext, previousContext) => this.handleContextChange(newContext, previousContext)
+      });
+      // Override localStorage restore — use the entryContext passed in
+      this.contextToggle.context = entryContext;
+      const toggleEl = this.contextToggle.render();
+      contextToggleContainer.appendChild(toggleEl);
+    } else {
+      console.warn('[Step2] ContextToggle component not loaded');
+    }
+    
     // Initialize Mode Toggle component (Requirement 6.1, 6.2, 6.3)
     if (typeof ModeToggle !== 'undefined') {
       this.modeToggle = new ModeToggle({
@@ -145,8 +232,14 @@ class Step2CirclesHandler {
       console.warn('[Step2] ModeToggle component not loaded, defaulting to AI-Assisted mode');
     }
     
-    // Load the appropriate content based on mode
+    // Render initial progress indicator (Task 6.6)
+    this.renderProgressIndicator();
+    
+    // Load the appropriate content based on mode and context
     await this.loadModeContent(initialMode);
+    
+    // Set up focus trapping within the modal (Task 6.7, Requirement 12.3)
+    this.setupFocusTrap(container);
   }
   
   /**
@@ -192,24 +285,562 @@ class Step2CirclesHandler {
       }
       this.circleListView = null;
     }
+    
+    // Clean up group-specific components
+    if (this.groupCircleListView) {
+      if (typeof this.groupCircleListView.destroy === 'function') {
+        this.groupCircleListView.destroy();
+      }
+      this.groupCircleListView = null;
+    }
+    
+    if (this.groupQuickRefineCard) {
+      if (typeof this.groupQuickRefineCard.destroy === 'function') {
+        this.groupQuickRefineCard.destroy();
+      }
+      this.groupQuickRefineCard = null;
+    }
   }
   
   /**
-   * Load content based on the selected mode
-   * Requirements: 6.4, 6.5
+   * Handle context change from ContextToggle (Task 6.3)
+   * Swaps the mode content container between circles and groups views,
+   * preserving any unsaved assignment state in a context-keyed store.
+   * Requirements: 5.5, 5.6, 10.4
+   * @param {string} newContext - 'circles' or 'groups'
+   * @param {string} previousContext - The previous context
+   */
+  async handleContextChange(newContext, previousContext) {
+    console.log(`[Step2] Context changed from ${previousContext} to ${newContext}`);
+    
+    // Preserve unsaved state from the previous context (Requirement 5.5)
+    const contentContainer = document.getElementById('mode-content-container');
+    if (contentContainer && previousContext) {
+      this.contextStateStore[previousContext] = this.contextStateStore[previousContext] || {};
+      this.contextStateStore[previousContext].scrollPosition = contentContainer.scrollTop || 0;
+      // Preserve pending assignments from current components
+      if (previousContext === 'circles') {
+        this.contextStateStore.circles.pendingAssignments = { ...this.currentAssignments };
+      } else if (previousContext === 'groups') {
+        this.contextStateStore.groups.pendingAssignments = this.contextStateStore.groups.pendingAssignments || {};
+      }
+    }
+    
+    // Update active context
+    this.activeContext = newContext;
+    
+    // Fetch groups if switching to groups context and not yet loaded
+    if (newContext === 'groups' && this.groups.length === 0) {
+      await this.fetchGroups();
+    }
+    
+    // Clean up current mode components before switching
+    this.cleanupCurrentModeComponents();
+    
+    // Determine current mode from ModeToggle
+    let currentMode = 'organize';
+    if (this.modeToggle && typeof this.modeToggle.getCurrentMode === 'function') {
+      currentMode = this.modeToggle.getCurrentMode();
+    }
+    
+    // Load content for the new context
+    await this.loadModeContent(currentMode);
+    
+    // Restore scroll position for the new context
+    if (contentContainer && this.contextStateStore[newContext]) {
+      contentContainer.scrollTop = this.contextStateStore[newContext].scrollPosition || 0;
+    }
+  }
+  
+  /**
+   * Load Group Organize Mode content with CircleListView in groups context (Task 6.4)
+   * Mirrors the pattern of loadOrganizeModeContent() but with context: 'groups'
+   * Requirements: 5.3, 6.1, 6.3, 6.4
+   * @param {HTMLElement} contentContainer - Container to render into
+   */
+  async loadGroupOrganizeModeContent(contentContainer) {
+    // Render education tip in sticky header area
+    const stickyExtras = document.getElementById('sticky-extras-container');
+    if (stickyExtras) {
+      stickyExtras.innerHTML = `
+        <div class="education-tip">
+          <div class="education-tip__icon">👥</div>
+          <div class="education-tip__content">
+            <strong>Organize Your Groups:</strong> Your contacts are shown below organized by group.
+            AI suggestions appear as dotted outlines — click ✓ to accept, or use search to find and add contacts.
+            <a href="#" class="education-tip__learn-more" id="learn-more-groups-organize">Learn more about groups</a>
+          </div>
+        </div>
+      `;
+      const learnMoreBtn = document.getElementById('learn-more-groups-organize');
+      if (learnMoreBtn) {
+        learnMoreBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.showGroupsEducation();
+        });
+      }
+    }
+    
+    contentContainer.innerHTML = `
+      <div id="group-list-view-container"></div>
+    `;
+    
+    // Initialize CircleListView with groups context
+    if (typeof CircleListView !== 'undefined') {
+      // Load keyboard shortcuts for group number display in search
+      let keyboardShortcuts = {};
+      try {
+        const authToken = localStorage.getItem('authToken');
+        const shortcutsResp = await fetch(`${window.API_BASE || '/api'}/users/preferences/keyboard-shortcuts`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (shortcutsResp.ok) {
+          const shortcutsData = await shortcutsResp.json();
+          const savedValue = shortcutsData.value || {};
+          // API stores { groupId: shortcutNumber } — use directly
+          const keys = Object.keys(savedValue);
+          const looksLikeGroupIdKeys = keys.length > 0 && keys.some(k => k.length > 1);
+          if (looksLikeGroupIdKeys) {
+            keyboardShortcuts = savedValue;
+          } else {
+            // Invert { shortcutNumber: groupId } to { groupId: shortcutNumber }
+            for (const [key, groupId] of Object.entries(savedValue)) {
+              keyboardShortcuts[groupId] = key;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Step2] Could not load keyboard shortcuts for groups list view:', e);
+      }
+      
+      // Auto-assign shortcuts if none saved
+      if (Object.keys(keyboardShortcuts).length === 0 && this.groups.length > 0) {
+        const limit = Math.min(this.groups.length, 10);
+        for (let i = 0; i < limit; i++) {
+          keyboardShortcuts[this.groups[i].id] = String(i);
+        }
+      }
+      
+      this.groupCircleListView = new CircleListView({
+        containerId: 'group-list-view-container',
+        userId: window.userId || localStorage.getItem('userId'),
+        context: 'groups',
+        groups: this.groups,
+        keyboardShortcuts: keyboardShortcuts,
+        onContactMove: async (contactId, groupId) => {
+          await this.handleGroupAssignment(contactId, groupId);
+        },
+        onContactRemove: async (contactId, groupId) => {
+          await this.handleGroupRemoval(contactId, groupId);
+        },
+        onSuggestionAccept: async (contactId, groupId) => {
+          await this.handleGroupAssignment(contactId, groupId);
+        },
+        onSave: () => this.handleFlowComplete(),
+        onCancel: () => {
+          this.handleSkip();
+          this.closeFlow();
+        }
+      });
+      await this.groupCircleListView.mount();
+    } else {
+      console.error('[Step2] CircleListView component not loaded');
+      contentContainer.innerHTML = `
+        <div class="error-state">
+          <p>Failed to load group organizer. Please refresh and try again.</p>
+        </div>
+      `;
+    }
+  }
+  
+  /**
+   * Load Group Swipe Mode content with QuickRefineCard in groups context (Task 6.5)
+   * Mirrors the pattern of loadSwipeModeContent() but with context: 'groups'
+   * Requirements: 5.3, 7.1, 7.3, 7.4
+   * @param {HTMLElement} contentContainer - Container to render into
+   */
+  async loadGroupSwipeModeContent(contentContainer) {
+    // Render education tip in sticky header area
+    const stickyExtras = document.getElementById('sticky-extras-container');
+    if (stickyExtras) {
+      stickyExtras.innerHTML = `
+        <div class="education-tip">
+          <div class="education-tip__icon">👆</div>
+          <div class="education-tip__content">
+            <strong>Swipe Mode (Groups):</strong> Quickly assign contacts to groups one at a time.
+            Use number keys (0-9) for group shortcuts, S to skip, A to archive, D when done.
+            <a href="#" class="education-tip__learn-more" id="learn-more-groups-swipe">Learn more</a>
+          </div>
+        </div>
+      `;
+      const learnMoreBtn = document.getElementById('learn-more-groups-swipe');
+      if (learnMoreBtn) {
+        learnMoreBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.showRefineEducation();
+        });
+      }
+    }
+    
+    contentContainer.innerHTML = `
+      <div id="group-quick-refine-container"><div class="loading-state"><div class="spinner"></div><p>Loading contacts...</p></div></div>
+    `;
+    
+    // Check if QuickRefineCard component is available
+    if (typeof QuickRefineCard === 'undefined') {
+      console.error('[Step2] QuickRefineCard component not loaded');
+      contentContainer.innerHTML = `
+        <div class="error-state">
+          <p>Swipe mode is not available. Please try another mode.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    try {
+      // Fetch contacts not in any group (ungrouped)
+      const userId = window.userId || localStorage.getItem('userId');
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${window.API_BASE || '/api'}/contacts?userId=${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch contacts');
+      }
+      
+      const allContacts = await response.json();
+      const ungrouped = allContacts.filter(c =>
+        !c.archived_at && (!c.groups || c.groups.length === 0)
+      );
+      
+      if (ungrouped.length === 0) {
+        const container = document.getElementById('group-quick-refine-container');
+        if (container) {
+          container.innerHTML = `
+            <div class="quick-refine-empty">
+              <div class="quick-refine-empty-icon">🎉</div>
+              <h3>All Done!</h3>
+              <p>All your contacts are already organized into groups.</p>
+              <button class="refine-btn refine-btn-done" id="group-swipe-mode-done">Continue</button>
+            </div>
+          `;
+          const doneBtn = document.getElementById('group-swipe-mode-done');
+          if (doneBtn) {
+            doneBtn.addEventListener('click', () => this.handleFlowComplete());
+          }
+        }
+        return;
+      }
+      
+      // Load keyboard shortcuts from preferences
+      let shortcuts = {};
+      try {
+        const shortcutsResp = await fetch(`${window.API_BASE || '/api'}/users/preferences/keyboard-shortcuts`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (shortcutsResp.ok) {
+          const shortcutsData = await shortcutsResp.json();
+          const savedValue = shortcutsData.value || {};
+          // API stores { groupId: shortcutNumber }, QuickRefineCard expects { shortcutNumber: groupId }
+          // Detect format: if keys look like group IDs (not single digits), invert
+          const keys = Object.keys(savedValue);
+          const looksLikeGroupIdKeys = keys.length > 0 && keys.some(k => k.length > 1);
+          if (looksLikeGroupIdKeys) {
+            for (const [groupId, key] of Object.entries(savedValue)) {
+              if (key !== '' && key !== undefined) {
+                shortcuts[String(key)] = groupId;
+              }
+            }
+          } else {
+            shortcuts = savedValue;
+          }
+        }
+      } catch (e) {
+        console.warn('[Step2] Could not load keyboard shortcuts:', e);
+      }
+      
+      // Auto-assign shortcuts if none saved yet
+      if (Object.keys(shortcuts).length === 0 && this.groups.length > 0) {
+        const limit = Math.min(this.groups.length, 10);
+        for (let i = 0; i < limit; i++) {
+          shortcuts[String(i)] = this.groups[i].id;
+        }
+      }
+      
+      // Render Quick Refine for groups
+      const quickRefineContainer = document.getElementById('group-quick-refine-container');
+      if (quickRefineContainer) {
+        quickRefineContainer.innerHTML = '';
+      }
+      
+      this.groupQuickRefineCard = new QuickRefineCard(ungrouped, {
+        containerId: 'group-quick-refine-container',
+        context: 'groups',
+        groups: this.groups,
+        shortcuts: shortcuts,
+        onAssign: (contactId, groupId) => {
+          console.log('[Step2] Group assigned:', contactId, groupId);
+          this.handleGroupAssignment(contactId, groupId);
+        },
+        onDone: () => {
+          console.log('[Step2] Group Swipe Mode: Done');
+          this.handleFlowComplete();
+        },
+        onSkip: () => {
+          console.log('[Step2] Group Swipe Mode: Skipped');
+          this.handleFlowComplete();
+        }
+      });
+      
+      await this.groupQuickRefineCard.render();
+      
+    } catch (error) {
+      console.error('[Step2] Error loading Group Swipe Mode:', error);
+      const container = document.getElementById('group-quick-refine-container');
+      if (container) {
+        container.innerHTML = `
+          <div class="error-state">
+            <p>Failed to load contacts. Please try again.</p>
+          </div>
+        `;
+      }
+    }
+  }
+  
+  /**
+   * Handle group assignment (optimistic update) (Task 6.4, 6.5)
+   * Requirements: 11.1
+   * @param {string} contactId - Contact ID
+   * @param {string} groupId - Group ID
+   */
+  async handleGroupAssignment(contactId, groupId) {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`${window.API_BASE || '/api'}/contacts/${contactId}/groups/${groupId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to assign contact to group');
+      }
+      
+      // Update progress indicator
+      this.renderProgressIndicator();
+      
+    } catch (error) {
+      console.error('[Step2] Error assigning contact to group:', error);
+      if (typeof showToast === 'function') {
+        showToast('Failed to save group assignment', 'error', {
+          action: { label: 'Retry', callback: () => this.handleGroupAssignment(contactId, groupId) }
+        });
+      }
+    }
+  }
+  
+  /**
+   * Handle group removal (optimistic update) (Task 6.4)
+   * Requirements: 11.2
+   * @param {string} contactId - Contact ID
+   * @param {string} groupId - Group ID
+   */
+  async handleGroupRemoval(contactId, groupId) {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`${window.API_BASE || '/api'}/contacts/${contactId}/groups/${groupId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to remove contact from group');
+      }
+      
+      // Update progress indicator
+      this.renderProgressIndicator();
+      
+    } catch (error) {
+      console.error('[Step2] Error removing contact from group:', error);
+      if (typeof showToast === 'function') {
+        showToast('Failed to remove group assignment', 'error');
+      }
+    }
+  }
+  
+  /**
+   * Render context-aware progress indicator (Task 6.6)
+   * Circles: "X/Y contacts in circles" with percentage bar (existing behavior)
+   * Groups: "X contacts in groups" as simple count
+   * Requirements: 10.1, 10.2, 10.3, 10.4
+   */
+  renderProgressIndicator() {
+    const container = document.getElementById('progress-indicator-container');
+    if (!container) return;
+    
+    if (this.activeContext === 'groups') {
+      // Groups context: bar + percentage like circles (Requirement 10.2)
+      const totalContacts = this.contacts.filter(c => !c.archived_at).length;
+      const groupedContacts = this.contacts.filter(c =>
+        !c.archived_at && c.groups && c.groups.length > 0
+      ).length;
+      const percentage = totalContacts > 0 ? Math.round((groupedContacts / totalContacts) * 100) : 0;
+      
+      container.innerHTML = `
+        <div class="progress-indicator">
+          <span class="progress-indicator__text">
+            <strong>${groupedContacts}/${totalContacts}</strong> contacts in groups
+          </span>
+          <div class="progress-indicator__bar">
+            <div class="progress-indicator__fill" style="width: ${percentage}%"></div>
+          </div>
+          <span class="progress-indicator__percentage">${percentage}%</span>
+        </div>
+      `;
+    } else {
+      // Circles context: percentage bar (Requirement 10.1, existing behavior)
+      const totalContacts = this.contacts.filter(c => !c.archived_at).length;
+      const categorized = this.contacts.filter(c =>
+        !c.archived_at && (
+          (c.circle && c.circle !== 'uncategorized') ||
+          (c.dunbarCircle && c.dunbarCircle !== 'uncategorized')
+        )
+      ).length;
+      const percentage = totalContacts > 0 ? Math.round((categorized / totalContacts) * 100) : 0;
+      
+      container.innerHTML = `
+        <div class="progress-indicator progress-indicator--circles">
+          <span class="progress-indicator__text">
+            <strong>${categorized}/${totalContacts}</strong> contacts in circles
+          </span>
+          <div class="progress-indicator__bar">
+            <div class="progress-indicator__fill" style="width: ${percentage}%"></div>
+          </div>
+          <span class="progress-indicator__percentage">${percentage}%</span>
+        </div>
+      `;
+    }
+  }
+  
+  /**
+   * Set up focus trapping within the modal boundary (Task 6.7)
+   * Tab/Shift+Tab cycle within modal elements.
+   * Requirement: 12.3
+   * @param {HTMLElement} overlayContainer - The modal overlay container
+   */
+  setupFocusTrap(overlayContainer) {
+    if (!overlayContainer) return;
+    
+    // Remove any existing focus trap handler
+    if (this._focusTrapHandler) {
+      overlayContainer.removeEventListener('keydown', this._focusTrapHandler);
+    }
+    
+    this._focusTrapHandler = (e) => {
+      if (e.key !== 'Tab') return;
+      
+      const modal = overlayContainer.querySelector('.manage-circles-modal');
+      if (!modal) return;
+      
+      // Get all focusable elements within the modal
+      const focusableSelectors = [
+        'a[href]',
+        'button:not([disabled])',
+        'input:not([disabled])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])',
+        '[role="tab"]'
+      ].join(', ');
+      
+      const focusableElements = Array.from(modal.querySelectorAll(focusableSelectors))
+        .filter(el => el.offsetParent !== null); // Only visible elements
+      
+      if (focusableElements.length === 0) return;
+      
+      const firstFocusable = focusableElements[0];
+      const lastFocusable = focusableElements[focusableElements.length - 1];
+      
+      if (e.shiftKey) {
+        // Shift+Tab: if on first element, wrap to last
+        if (document.activeElement === firstFocusable || !modal.contains(document.activeElement)) {
+          e.preventDefault();
+          lastFocusable.focus();
+        }
+      } else {
+        // Tab: if on last element, wrap to first
+        if (document.activeElement === lastFocusable || !modal.contains(document.activeElement)) {
+          e.preventDefault();
+          firstFocusable.focus();
+        }
+      }
+    };
+    
+    overlayContainer.addEventListener('keydown', this._focusTrapHandler);
+    
+    // Also close on Escape key
+    this._escapeHandler = (e) => {
+      if (e.key === 'Escape') {
+        this.handleSkip();
+        this.closeFlow();
+      }
+    };
+    overlayContainer.addEventListener('keydown', this._escapeHandler);
+    
+    // Focus the first focusable element in the modal
+    requestAnimationFrame(() => {
+      const modal = overlayContainer.querySelector('.manage-circles-modal');
+      if (modal) {
+        const firstFocusable = modal.querySelector('button, [tabindex]:not([tabindex="-1"]), input, select, textarea, a[href], [role="tab"]');
+        if (firstFocusable) {
+          firstFocusable.focus();
+        }
+      }
+    });
+  }
+  
+  /**
+   * Show groups education modal
+   */
+  showGroupsEducation() {
+    this.showEducationModal('groups');
+  }
+  
+  /**
+   * Load content based on the selected mode and active context
+   * Requirements: 5.2, 5.3, 6.4, 6.5
    * @param {string} mode - The mode to load ('organize' or 'swipe')
    */
   async loadModeContent(mode) {
     const contentContainer = document.getElementById('mode-content-container');
     if (!contentContainer) return;
     
-    if (mode === 'swipe') {
-      // Load Swipe Mode with QuickRefineCard
-      await this.loadSwipeModeContent(contentContainer);
+    // Route to context-specific content (Task 6.4, 6.5)
+    if (this.activeContext === 'groups') {
+      if (mode === 'swipe') {
+        await this.loadGroupSwipeModeContent(contentContainer);
+      } else {
+        await this.loadGroupOrganizeModeContent(contentContainer);
+      }
     } else {
-      // Load unified Organize Mode (merged AI + Manual)
-      await this.loadOrganizeModeContent(contentContainer);
+      // Default circles context — existing behavior unchanged (Task 6.8)
+      if (mode === 'swipe') {
+        await this.loadSwipeModeContent(contentContainer);
+      } else {
+        await this.loadOrganizeModeContent(contentContainer);
+      }
     }
+    
+    // Update progress indicator after content loads (Task 6.6)
+    this.renderProgressIndicator();
   }
   
   /**
@@ -218,26 +849,31 @@ class Step2CirclesHandler {
    * @param {HTMLElement} contentContainer - Container to render into
    */
   async loadOrganizeModeContent(contentContainer) {
-    contentContainer.innerHTML = `
-      <div class="education-tip">
-        <div class="education-tip__icon">✨</div>
-        <div class="education-tip__content">
-          <strong>Organize Your Circles:</strong> Your contacts are shown below with AI suggestions (dotted outline).
-          Click ✓ to accept a suggestion, or use the search bar to find and add contacts manually.
-          <a href="#" class="education-tip__learn-more" id="learn-more-organize">Learn more about circles</a>
+    // Render education tip in sticky header area
+    const stickyExtras = document.getElementById('sticky-extras-container');
+    if (stickyExtras) {
+      stickyExtras.innerHTML = `
+        <div class="education-tip">
+          <div class="education-tip__icon">✨</div>
+          <div class="education-tip__content">
+            <strong>Organize Your Circles:</strong> Your contacts are shown below with AI suggestions (dotted outline).
+            Click ✓ to accept a suggestion, or use the search bar to find and add contacts manually.
+            <a href="#" class="education-tip__learn-more" id="learn-more-organize">Learn more about circles</a>
+          </div>
         </div>
-      </div>
+      `;
+      const learnMoreBtn = document.getElementById('learn-more-organize');
+      if (learnMoreBtn) {
+        learnMoreBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.showCirclesEducation();
+        });
+      }
+    }
+    
+    contentContainer.innerHTML = `
       <div id="circle-list-view-container"></div>
     `;
-    
-    // Add learn more handler
-    const learnMoreBtn = document.getElementById('learn-more-organize');
-    if (learnMoreBtn) {
-      learnMoreBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.showCirclesEducation();
-      });
-    }
     
     // Fetch AI suggestions for Inner, Close, and Active circles
     const aiSuggestions = await this.fetchCircleSuggestions();
@@ -317,26 +953,31 @@ class Step2CirclesHandler {
    * @param {HTMLElement} contentContainer - Container to render into
    */
   async loadManualModeContent(contentContainer) {
-    contentContainer.innerHTML = `
-      <div class="education-tip">
-        <div class="education-tip__icon">📋</div>
-        <div class="education-tip__content">
-          <strong>Manual Review:</strong> Organize contacts by searching and assigning them to circles directly.
-          Click on a contact chip to remove it, or use the search bar to find and add contacts.
-          <a href="#" class="education-tip__learn-more" id="learn-more-manual">Learn more about circles</a>
+    // Render education tip in sticky header area
+    const stickyExtras = document.getElementById('sticky-extras-container');
+    if (stickyExtras) {
+      stickyExtras.innerHTML = `
+        <div class="education-tip">
+          <div class="education-tip__icon">📋</div>
+          <div class="education-tip__content">
+            <strong>Manual Review:</strong> Organize contacts by searching and assigning them to circles directly.
+            Click on a contact chip to remove it, or use the search bar to find and add contacts.
+            <a href="#" class="education-tip__learn-more" id="learn-more-manual">Learn more about circles</a>
+          </div>
         </div>
-      </div>
+      `;
+      const learnMoreBtn = document.getElementById('learn-more-manual');
+      if (learnMoreBtn) {
+        learnMoreBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.showCirclesEducation();
+        });
+      }
+    }
+    
+    contentContainer.innerHTML = `
       <div id="circle-list-view-container"></div>
     `;
-    
-    // Add learn more handler
-    const learnMoreBtn = document.getElementById('learn-more-manual');
-    if (learnMoreBtn) {
-      learnMoreBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.showCirclesEducation();
-      });
-    }
     
     // Initialize CircleListView component
     if (typeof CircleListView !== 'undefined') {
@@ -371,25 +1012,30 @@ class Step2CirclesHandler {
    * @param {HTMLElement} contentContainer - Container to render into
    */
   async loadSwipeModeContent(contentContainer) {
-    contentContainer.innerHTML = `
-      <div class="education-tip">
-        <div class="education-tip__icon">👆</div>
-        <div class="education-tip__content">
-          <strong>Swipe Mode:</strong> Quickly categorize contacts one at a time. Use keyboard shortcuts (1-4) to assign circles, S to skip, A to archive, D when done.
-          <a href="#" class="education-tip__learn-more" id="learn-more-swipe">Learn more</a>
+    // Render education tip in sticky header area
+    const stickyExtras = document.getElementById('sticky-extras-container');
+    if (stickyExtras) {
+      stickyExtras.innerHTML = `
+        <div class="education-tip">
+          <div class="education-tip__icon">👆</div>
+          <div class="education-tip__content">
+            <strong>Swipe Mode:</strong> Quickly categorize contacts one at a time. Use keyboard shortcuts (1-4) to assign circles, S to skip, A to archive, D when done.
+            <a href="#" class="education-tip__learn-more" id="learn-more-swipe">Learn more</a>
+          </div>
         </div>
-      </div>
+      `;
+      const learnMoreBtn = document.getElementById('learn-more-swipe');
+      if (learnMoreBtn) {
+        learnMoreBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.showRefineEducation();
+        });
+      }
+    }
+    
+    contentContainer.innerHTML = `
       <div id="quick-refine-container"><div class="loading-state"><div class="spinner"></div><p>Loading contacts...</p></div></div>
     `;
-    
-    // Add learn more handler
-    const learnMoreBtn = document.getElementById('learn-more-swipe');
-    if (learnMoreBtn) {
-      learnMoreBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.showRefineEducation();
-      });
-    }
     
     // Check if QuickRefineCard component is available
     if (typeof QuickRefineCard === 'undefined') {
@@ -881,12 +1527,33 @@ class Step2CirclesHandler {
    */
   closeFlow() {
     const container = document.getElementById('onboarding-flow-container');
+    
+    // Remove focus trap handlers before removing container
+    if (container) {
+      if (this._focusTrapHandler) {
+        container.removeEventListener('keydown', this._focusTrapHandler);
+        this._focusTrapHandler = null;
+      }
+      if (this._escapeHandler) {
+        container.removeEventListener('keydown', this._escapeHandler);
+        this._escapeHandler = null;
+      }
+    }
+    
     if (container && container.parentNode) {
       container.parentNode.removeChild(container);
     }
     
     // Restore body scroll
     document.body.style.overflow = '';
+    
+    // Clean up ContextToggle component (Task 6.2)
+    if (this.contextToggle) {
+      if (typeof this.contextToggle.destroy === 'function') {
+        this.contextToggle.destroy();
+      }
+      this.contextToggle = null;
+    }
     
     // Clean up Mode Toggle component
     if (this.modeToggle) {
@@ -921,6 +1588,27 @@ class Step2CirclesHandler {
       }
       this.circleListView = null;
     }
+    
+    // Clean up group-specific components (Task 6.4, 6.5)
+    if (this.groupCircleListView) {
+      if (typeof this.groupCircleListView.destroy === 'function') {
+        this.groupCircleListView.destroy();
+      }
+      this.groupCircleListView = null;
+    }
+    
+    if (this.groupQuickRefineCard) {
+      if (typeof this.groupQuickRefineCard.destroy === 'function') {
+        this.groupQuickRefineCard.destroy();
+      }
+      this.groupQuickRefineCard = null;
+    }
+    
+    // Reset context state store
+    this.contextStateStore = {
+      circles: { pendingAssignments: {}, scrollPosition: 0 },
+      groups: { pendingAssignments: {}, scrollPosition: 0 }
+    };
     
     // Trigger visualization refresh
     this.refreshVisualization();
@@ -1659,6 +2347,37 @@ class Step2CirclesHandler {
       },
       // NOTE: 'batching' education content removed per Requirement 1.4, 1.5
       // Smart Batching UI components have been eliminated from the flow
+      groups: {
+        title: 'Understanding Groups',
+        html: `
+          <div class="education-section-compact">
+            <p><strong>Organize by Groups:</strong> Groups are custom collections you define — like "Book Club", "Work Team", or "Neighbors". A contact can belong to multiple groups.</p>
+          </div>
+          
+          <div class="education-features-compact">
+            <div class="feature-item-compact">
+              <span class="feature-icon-compact">👥</span>
+              <div class="feature-text-compact">
+                <strong>Custom Groups:</strong> Create groups that match how you think about your contacts
+              </div>
+            </div>
+            
+            <div class="feature-item-compact">
+              <span class="feature-icon-compact">🤖</span>
+              <div class="feature-text-compact">
+                <strong>AI Suggestions:</strong> We suggest groups based on your Google contacts, interactions, and shared events
+              </div>
+            </div>
+            
+            <div class="feature-item-compact">
+              <span class="feature-icon-compact">🔢</span>
+              <div class="feature-text-compact">
+                <strong>Keyboard Shortcuts:</strong> Assign number keys (0-9) to groups for fast swipe-mode assignment
+              </div>
+            </div>
+          </div>
+        `
+      },
       refine: {
         title: 'Quick Refine',
         html: `
@@ -2151,6 +2870,191 @@ class Step2CirclesHandler {
         
         .circle-info-compact li {
           font-size: 10px;
+        }
+      }
+      
+      /* ============================================================================
+         PROGRESS INDICATOR (Task 6.6)
+         Context-aware progress display
+         Requirements: 10.1, 10.2, 10.3, 10.4
+         ============================================================================ */
+      
+      .manage-circles__progress-container {
+        padding: 0;
+        margin-bottom: 0;
+      }
+      
+      .progress-indicator {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        background: var(--bg-secondary, #f9fafb);
+        border-radius: 10px;
+        font-size: 13px;
+        color: var(--text-secondary, #6b7280);
+      }
+      
+      .progress-indicator__text {
+        white-space: nowrap;
+      }
+      
+      .progress-indicator__text strong {
+        color: var(--text-primary, #1f2937);
+        font-weight: 700;
+      }
+      
+      .progress-indicator__bar {
+        flex: 1;
+        height: 6px;
+        background: var(--border-subtle, #e5e7eb);
+        border-radius: 3px;
+        overflow: hidden;
+        min-width: 80px;
+      }
+      
+      .progress-indicator__fill {
+        height: 100%;
+        background: linear-gradient(90deg, #fb923c, #f97316);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+      }
+      
+      .progress-indicator__percentage {
+        font-weight: 600;
+        color: var(--accent-primary, #fb923c);
+        min-width: 36px;
+        text-align: right;
+      }
+      
+      .progress-indicator--groups {
+        /* Same layout as circles */
+      }
+      
+      /* ============================================================================
+         CONTEXT TOGGLE CONTAINER (Task 6.2)
+         Positioned in header between title and mode toggle
+         ============================================================================ */
+      
+      .manage-circles__context-toggle-container {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        border-radius: 8px;
+      }
+      
+      .manage-circles__toggles-row {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        flex: 0 1 auto;
+        min-width: 0;
+        background: var(--bg-secondary, #f5f5f4);
+        border-radius: 10px;
+        padding: 3px;
+      }
+      
+      .manage-circles__toggle-divider {
+        width: 1px;
+        height: 24px;
+        background: var(--border-subtle, #d1d5db);
+        flex-shrink: 0;
+        margin: 0 2px;
+        display: block;
+        z-index: 5;
+        position: relative;
+      }
+      
+      /* Unified sizing for both toggles inside the row */
+      .manage-circles__toggles-row .context-toggle,
+      .manage-circles__toggles-row .mode-toggle {
+        background: transparent;
+        border-radius: 8px;
+        padding: 0;
+        margin-bottom: 0;
+        max-width: none;
+        width: auto;
+      }
+      
+      .manage-circles__toggles-row .context-toggle__option,
+      .manage-circles__toggles-row .mode-toggle__option {
+        padding: 6px 12px;
+        font-size: 13px;
+        min-height: 34px;
+        gap: 5px;
+      }
+      
+      .manage-circles__toggles-row .context-toggle__icon,
+      .manage-circles__toggles-row .mode-toggle__icon {
+        font-size: 13px;
+      }
+      
+      .manage-circles__toggles-row .context-toggle__slider,
+      .manage-circles__toggles-row .mode-toggle__slider {
+        top: 0;
+        height: 100%;
+      }
+      
+      .manage-circles__mode-toggle-container {
+        flex: 0 0 auto;
+        overflow: hidden;
+        border-radius: 8px;
+      }
+      
+      /* Sticky extras area for education tip */
+      .manage-circles__sticky-extras {
+        margin-top: 8px;
+      }
+      
+      .manage-circles__sticky-extras:empty {
+        display: none;
+        margin-top: 0;
+      }
+      
+      .manage-circles__sticky-extras .education-tip {
+        margin-bottom: 0;
+      }
+      
+      .manage-circles__header {
+        flex-wrap: nowrap;
+        gap: 8px;
+      }
+      
+      @media (max-width: 768px) {
+        .manage-circles__toggles-row {
+          order: 3;
+          width: 100%;
+          flex-wrap: wrap;
+          gap: 0;
+        }
+        
+        .manage-circles__toggle-divider {
+          width: 100%;
+          height: 1px;
+          margin: 2px 0;
+        }
+        
+        .manage-circles__header {
+          flex-wrap: wrap;
+        }
+        
+        .manage-circles__context-toggle-container {
+          flex: 1;
+        }
+        
+        .manage-circles__mode-toggle-container {
+          flex: 1;
+        }
+        
+        .manage-circles__progress-container {
+          padding: 0 16px;
+        }
+        
+        .progress-indicator {
+          padding: 8px 12px;
+          font-size: 12px;
+          gap: 8px;
         }
       }
     `;

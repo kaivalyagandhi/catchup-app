@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keyboard Shortcut Preferences - Test Page</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #FDFCF8;
+      color: #44403C;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 8px; color: #292524; }
+    p.desc { color: #6b7280; margin-bottom: 20px; font-size: 14px; }
+    .test-section {
+      background: white;
+      border: 1px solid #E7E5E4;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .test-section h2 { margin-bottom: 12px; font-size: 18px; color: #292524; }
+    .test-section p { margin-bottom: 10px; font-size: 13px; color: #6b7280; line-height: 1.6; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 18px; border: 2px solid #e5e7eb; border-radius: 8px;
+      background: white; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; margin: 4px;
+    }
+    .btn:hover { border-color: #6366f1; color: #6366f1; }
+    .btn-primary { background: #6366f1; color: white; border-color: #6366f1; }
+    .btn-primary:hover { background: #4f46e5; }
+    .result-log {
+      margin-top: 12px; padding: 12px; background: #f9fafb;
+      border-radius: 8px; font-family: monospace; font-size: 12px;
+      max-height: 250px; overflow-y: auto; white-space: pre-wrap;
+    }
+    .pass { color: #10b981; }
+    .fail { color: #ef4444; }
+    .info { color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <h1>⌨️ Keyboard Shortcut Preferences - Test Page</h1>
+  <p class="desc">Tests for KeyboardShortcutPreferences popover: rendering, auto-assign, validation, save (Task 12.5)</p>
+
+  <!-- Section 1: Open Popover -->
+  <div class="test-section">
+    <h2>1. Open Popover</h2>
+    <p>Open the KeyboardShortcutPreferences popover with mock groups data.</p>
+    <button class="btn btn-primary" onclick="openPopover()">Open Popover</button>
+    <button class="btn" onclick="openPopoverManyGroups()">Open with 12 Groups</button>
+  </div>
+
+  <!-- Section 2: Auto-Assign -->
+  <div class="test-section">
+    <h2>2. Auto-Assign</h2>
+    <p>Test that auto-assign sequentially assigns shortcuts 0-9 to groups.</p>
+    <button class="btn btn-primary" onclick="testAutoAssign()">Run Auto-Assign Test</button>
+    <div class="result-log" id="auto-log"></div>
+  </div>
+
+  <!-- Section 3: Validation -->
+  <div class="test-section">
+    <h2>3. Validation (Duplicate Detection)</h2>
+    <p>Test that duplicate shortcut assignments are detected and reported.</p>
+    <button class="btn btn-primary" onclick="testValidation()">Run Validation Test</button>
+    <div class="result-log" id="validation-log"></div>
+  </div>
+
+  <!-- Section 4: Save -->
+  <div class="test-section">
+    <h2>4. Save Flow</h2>
+    <p>Test the save flow: valid shortcuts save successfully, invalid ones show errors.</p>
+    <button class="btn btn-primary" onclick="testSave()">Run Save Test</button>
+    <div class="result-log" id="save-log"></div>
+  </div>
+
+  <!-- Section 5: Run All -->
+  <div class="test-section">
+    <h2>5. Run All Automated Tests</h2>
+    <button class="btn btn-primary" onclick="runAllTests()">Run All</button>
+    <div class="result-log" id="all-log"></div>
+  </div>
+
+  <script src="../../public/js/keyboard-shortcut-preferences.js"></script>
+  <script>
+    // ── Mock Data ──────────────────────────────────────────────────────────
+    const mockGroups = [
+      { id: 'g1', name: 'Work Team' },
+      { id: 'g2', name: 'Book Club' },
+      { id: 'g3', name: 'Family' },
+      { id: 'g4', name: 'College Friends' },
+      { id: 'g5', name: 'Gym Buddies' },
+    ];
+
+    const manyGroups = Array.from({ length: 12 }, (_, i) => ({
+      id: `g${i + 1}`,
+      name: `Group ${i + 1}`,
+    }));
+
+    // Mock fetch for save
+    const originalFetch = window.fetch;
+    window.fetch = async function(url, opts) {
+      if (typeof url === 'string' && url.includes('/api/users/preferences/keyboard-shortcuts')) {
+        console.log('[Mock Fetch] PUT keyboard-shortcuts:', opts?.body);
+        return { ok: true, json: async () => ({ key: 'keyboard-shortcuts', value: JSON.parse(opts?.body || '{}').value }) };
+      }
+      return originalFetch ? originalFetch(url, opts) : { ok: true, json: async () => ({}) };
+    };
+    localStorage.setItem('authToken', 'test-token');
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    function log(id, msg, cls) {
+      const el = document.getElementById(id);
+      const line = document.createElement('div');
+      line.className = cls || '';
+      line.textContent = msg;
+      el.appendChild(line);
+    }
+    function assert(id, cond, pass, fail) {
+      log(id, (cond ? '✅ ' : '❌ ') + (cond ? pass : fail), cond ? 'pass' : 'fail');
+    }
+
+    // ── Section 1: Open Popover ────────────────────────────────────────────
+    function openPopover() {
+      const ksp = new KeyboardShortcutPreferences(mockGroups, {
+        onSave: (shortcuts) => {
+          console.log('Shortcuts saved:', shortcuts);
+          alert('Saved shortcuts: ' + JSON.stringify(shortcuts));
+        }
+      });
+      ksp.render();
+    }
+
+    function openPopoverManyGroups() {
+      const ksp = new KeyboardShortcutPreferences(manyGroups, {
+        onSave: (shortcuts) => {
+          console.log('Shortcuts saved:', shortcuts);
+          alert('Saved shortcuts: ' + JSON.stringify(shortcuts));
+        }
+      });
+      ksp.render();
+    }
+
+    // ── Section 2: Auto-Assign ─────────────────────────────────────────────
+    function testAutoAssign() {
+      document.getElementById('auto-log').innerHTML = '';
+
+      // Test with 5 groups (< 10)
+      const ksp5 = new KeyboardShortcutPreferences(mockGroups);
+      ksp5.autoAssign();
+
+      assert('auto-log', Object.keys(ksp5.shortcuts).length === 5,
+        `Auto-assigned ${Object.keys(ksp5.shortcuts).length} shortcuts for 5 groups`,
+        `Expected 5 shortcuts, got ${Object.keys(ksp5.shortcuts).length}`);
+
+      assert('auto-log', ksp5.shortcuts['g1'] === '0',
+        'First group assigned shortcut 0',
+        `Expected "0" for g1, got "${ksp5.shortcuts['g1']}"`);
+
+      assert('auto-log', ksp5.shortcuts['g5'] === '4',
+        'Fifth group assigned shortcut 4',
+        `Expected "4" for g5, got "${ksp5.shortcuts['g5']}"`);
+
+      // Verify uniqueness
+      const values5 = Object.values(ksp5.shortcuts);
+      const unique5 = new Set(values5);
+      assert('auto-log', unique5.size === values5.length,
+        'All shortcuts are unique (5 groups)',
+        'Duplicate shortcuts found');
+
+      // Test with 12 groups (> 10)
+      const ksp12 = new KeyboardShortcutPreferences(manyGroups);
+      ksp12.autoAssign();
+
+      assert('auto-log', Object.keys(ksp12.shortcuts).length === 10,
+        `Auto-assigned 10 shortcuts for 12 groups (max 10)`,
+        `Expected 10 shortcuts, got ${Object.keys(ksp12.shortcuts).length}`);
+
+      const values12 = Object.values(ksp12.shortcuts);
+      const unique12 = new Set(values12);
+      assert('auto-log', unique12.size === values12.length,
+        'All shortcuts are unique (12 groups, only first 10 assigned)',
+        'Duplicate shortcuts found');
+
+      // Test with empty groups
+      const ksp0 = new KeyboardShortcutPreferences([]);
+      ksp0.autoAssign();
+      assert('auto-log', Object.keys(ksp0.shortcuts).length === 0,
+        'No shortcuts assigned for empty groups',
+        `Expected 0 shortcuts, got ${Object.keys(ksp0.shortcuts).length}`);
+    }
+
+    // ── Section 3: Validation ──────────────────────────────────────────────
+    function testValidation() {
+      document.getElementById('validation-log').innerHTML = '';
+
+      // Valid: no duplicates
+      const ksp1 = new KeyboardShortcutPreferences(mockGroups);
+      ksp1.shortcuts = { g1: '0', g2: '1', g3: '2' };
+      const result1 = ksp1.validate();
+      assert('validation-log', result1.valid === true,
+        'Valid: no duplicates detected',
+        'Should be valid but got errors: ' + result1.errors.join(', '));
+
+      // Invalid: duplicate shortcut
+      const ksp2 = new KeyboardShortcutPreferences(mockGroups);
+      ksp2.shortcuts = { g1: '0', g2: '0' };
+      const result2 = ksp2.validate();
+      assert('validation-log', result2.valid === false,
+        'Invalid: duplicate shortcut detected',
+        'Should be invalid but passed validation');
+      assert('validation-log', result2.errors.length > 0,
+        `Error message: "${result2.errors[0]}"`,
+        'Expected error messages');
+
+      // Valid: empty shortcuts
+      const ksp3 = new KeyboardShortcutPreferences(mockGroups);
+      ksp3.shortcuts = {};
+      const result3 = ksp3.validate();
+      assert('validation-log', result3.valid === true,
+        'Valid: empty shortcuts pass validation',
+        'Empty shortcuts should be valid');
+
+      // Valid: partial assignment
+      const ksp4 = new KeyboardShortcutPreferences(mockGroups);
+      ksp4.shortcuts = { g1: '5' };
+      const result4 = ksp4.validate();
+      assert('validation-log', result4.valid === true,
+        'Valid: partial assignment (only 1 group assigned)',
+        'Partial assignment should be valid');
+    }
+
+    // ── Section 4: Save ────────────────────────────────────────────────────
+    async function testSave() {
+      document.getElementById('save-log').innerHTML = '';
+
+      // Test save with valid shortcuts
+      let savedShortcuts = null;
+      const ksp = new KeyboardShortcutPreferences(mockGroups, {
+        onSave: (shortcuts) => { savedShortcuts = shortcuts; }
+      });
+      ksp.autoAssign();
+      ksp.render();
+      await new Promise(r => setTimeout(r, 100));
+
+      // Trigger save
+      await ksp.save();
+      await new Promise(r => setTimeout(r, 100));
+
+      assert('save-log', savedShortcuts !== null,
+        'onSave callback fired with shortcuts',
+        'onSave callback not fired');
+
+      assert('save-log', savedShortcuts && Object.keys(savedShortcuts).length === 5,
+        `Saved ${Object.keys(savedShortcuts || {}).length} shortcuts`,
+        'Wrong number of saved shortcuts');
+
+      // Test save with duplicate (should show errors, not save)
+      let savedAgain = false;
+      const ksp2 = new KeyboardShortcutPreferences(mockGroups, {
+        onSave: () => { savedAgain = true; }
+      });
+      ksp2.shortcuts = { g1: '0', g2: '0' }; // duplicate
+      ksp2.render();
+      await new Promise(r => setTimeout(r, 100));
+
+      await ksp2.save();
+      await new Promise(r => setTimeout(r, 100));
+
+      assert('save-log', savedAgain === false,
+        'Save blocked when duplicates exist',
+        'Save should have been blocked');
+
+      // Check error display
+      const errorsEl = document.querySelector('#ksp-errors .ksp-errors');
+      assert('save-log', errorsEl !== null,
+        'Error message displayed in popover',
+        'Error message not displayed');
+
+      // Clean up
+      ksp2.destroy();
+    }
+
+    // ── Section 5: Run All ─────────────────────────────────────────────────
+    async function runAllTests() {
+      document.getElementById('all-log').innerHTML = '';
+      log('all-log', 'Running all automated tests...', 'info');
+
+      // Auto-assign tests
+      log('all-log', '\n--- Auto-Assign ---', 'info');
+      const ksp = new KeyboardShortcutPreferences(mockGroups);
+      ksp.autoAssign();
+      const vals = Object.values(ksp.shortcuts);
+      assert('all-log', vals.length === 5, 'Auto-assign: 5 shortcuts for 5 groups', 'Wrong count');
+      assert('all-log', new Set(vals).size === vals.length, 'Auto-assign: all unique', 'Duplicates found');
+      assert('all-log', ksp.shortcuts['g1'] === '0', 'Auto-assign: first group = 0', 'Wrong first shortcut');
+
+      // Validation tests
+      log('all-log', '\n--- Validation ---', 'info');
+      ksp.shortcuts = { g1: '0', g2: '1' };
+      assert('all-log', ksp.validate().valid, 'Validate: unique shortcuts pass', 'Should pass');
+      ksp.shortcuts = { g1: '0', g2: '0' };
+      assert('all-log', !ksp.validate().valid, 'Validate: duplicate shortcuts fail', 'Should fail');
+      ksp.shortcuts = {};
+      assert('all-log', ksp.validate().valid, 'Validate: empty shortcuts pass', 'Should pass');
+
+      // Render tests
+      log('all-log', '\n--- Render ---', 'info');
+      const ksp2 = new KeyboardShortcutPreferences(mockGroups);
+      const overlay = ksp2.render();
+      assert('all-log', overlay !== null, 'Render: returns overlay element', 'No overlay');
+      assert('all-log', document.getElementById('ksp-overlay') !== null, 'Render: overlay in DOM', 'Not in DOM');
+
+      const rows = document.querySelectorAll('.ksp-group-row');
+      assert('all-log', rows.length === 5, `Render: ${rows.length} group rows`, 'Wrong row count');
+
+      const selects = document.querySelectorAll('.ksp-shortcut-select');
+      assert('all-log', selects.length === 5, `Render: ${selects.length} shortcut dropdowns`, 'Wrong dropdown count');
+
+      // Destroy
+      ksp2.destroy();
+      assert('all-log', document.getElementById('ksp-overlay') === null, 'Destroy: overlay removed', 'Overlay still in DOM');
+
+      log('all-log', '\n✅ All automated tests complete!', 'pass');
+    }
+  </script>
+</body>
+</html>

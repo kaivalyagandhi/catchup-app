@@ -26,6 +26,7 @@ export interface InteractionRepository {
   create(data: InteractionLogData): Promise<InteractionLog>;
   findByContactId(contactId: string, userId: string): Promise<InteractionLog[]>;
   findById(id: string, userId: string): Promise<InteractionLog | null>;
+  countByUserId(userId: string): Promise<number>;
 }
 
 /**
@@ -104,6 +105,14 @@ export class PostgresInteractionRepository implements InteractionRepository {
     return this.mapRowToInteractionLog(result.rows[0]);
   }
 
+  async countByUserId(userId: string): Promise<number> {
+    const result = await pool.query(
+      'SELECT COUNT(*) as count FROM interaction_logs WHERE user_id = $1',
+      [userId]
+    );
+    return parseInt(result.rows[0].count, 10);
+  }
+
   private mapRowToInteractionLog(row: any): InteractionLog {
     return {
       id: row.id,
@@ -125,3 +134,4 @@ export const create = (data: InteractionLogData) => defaultRepository.create(dat
 export const findByContactId = (contactId: string, userId: string) =>
   defaultRepository.findByContactId(contactId, userId);
 export const findById = (id: string, userId: string) => defaultRepository.findById(id, userId);
+export const countByUserId = (userId: string) => defaultRepository.countByUserId(userId);

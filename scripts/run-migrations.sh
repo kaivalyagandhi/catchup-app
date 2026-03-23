@@ -216,4 +216,12 @@ echo "Running migration 046: Create webhook_notifications table..."
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/046_create_webhook_notifications_table.sql
 
 echo ""
+echo "Running migration 047: Create group_suggestion_feedback table..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/047_create_group_suggestion_feedback_table.sql
+
+echo ""
+echo "Running migration 048: Create user_preferences table..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f scripts/migrations/048_create_user_preferences_table.sql
+
+echo ""
 echo "✓ All migrations completed successfully!"

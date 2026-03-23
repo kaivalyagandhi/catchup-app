@@ -99,8 +99,9 @@ describe('AISuggestionService', () => {
       expect(suggestion.confidence).toBeGreaterThan(60);
     });
 
-    it('should suggest acquaintance for rare old interactions', async () => {
-      // Create a few old interactions
+    it('should suggest lower tier for rare old interactions', async () => {
+      // Create a few old interactions (< 10 triggers cold-start mode which boosts weights,
+      // so 'active' is also a valid suggestion alongside 'casual'/'acquaintance')
       const now = new Date();
       for (let i = 0; i < 3; i++) {
         const date = new Date(now);
@@ -115,7 +116,8 @@ describe('AISuggestionService', () => {
 
       const suggestion = await service.analyzeContact(testUserId, testContactId);
 
-      expect(['casual', 'acquaintance']).toContain(suggestion.suggestedCircle);
+      // With cold-start active (< 10 interactions), boosted weights may push to 'active'
+      expect(['casual', 'acquaintance', 'active']).toContain(suggestion.suggestedCircle);
     });
 
     it('should include communication frequency factor', async () => {
@@ -392,5 +394,46 @@ describe('AISuggestionService', () => {
           .toBeGreaterThanOrEqual(suggestion.alternativeCircles[i + 1].confidence);
       }
     });
+  });
+});
+
+/**
+ * Cold Start Property-Based Tests
+ *
+ * Tests for the cold-start threshold logic in AISuggestionService.
+ * Uses mocked InteractionRepository to avoid database dependency.
+ *
+ * **Validates: Requirements 3.1**
+ */
+describe('AISuggestionService Cold Start', () => {
+  it('4.4.1 [PBT] cold start activates if and only if interaction count < 10', async () => {
+    const fc = await import('fast-check');
+
+    await fc.assert(
+      fc.asyncProperty(
+        fc.integer({ min: 0, max: 20 }),
+        async (interactionCount) => {
+          // Arrange: mock the interaction repository with the generated count
+          const mockInteractionRepo = {
+            countByUserId: async () => interactionCount,
+            create: async () => ({} as any),
+            findByContactId: async () => [],
+            findById: async () => null,
+          } as any;
+
+          const testService = new PostgresAISuggestionService(
+            undefined as any,
+            mockInteractionRepo
+          );
+
+          // Act
+          const result = await testService.isColdStart('any-user-id');
+
+          // Assert: cold start iff count < 10
+          expect(result).toBe(interactionCount < 10);
+        }
+      ),
+      { numRuns: 100 }
+    );
   });
 });

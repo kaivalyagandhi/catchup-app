@@ -37,8 +37,17 @@ class CircleListView {
     this.aiSuggestions = options.aiSuggestions || { inner: [], close: [], active: [], casual: [] };
     this.acceptedSuggestions = new Set(); // Track accepted suggestion IDs
     
+    // Groups context support (Task 7.1, Requirement 6.1)
+    this.context = options.context || 'circles';
+    this.groups = options.groups || [];
+    this.groupSuggestions = options.groupSuggestions || {}; // { contactId: [{ groupId, groupName, confidence, signals }] }
+    this.acceptedGroupSuggestions = new Set(); // Track accepted group suggestion keys "contactId:groupId"
+    
+    // Keyboard shortcuts mapping: { groupId: shortcutNumber } for showing shortcut numbers in search
+    this.keyboardShortcuts = options.keyboardShortcuts || {};
+    
     // Debug logging
-    console.log('[CircleListView] Initialized with aiSuggestions:', this.aiSuggestions);
+    console.log('[CircleListView] Initialized with context:', this.context, 'aiSuggestions:', this.aiSuggestions);
     
     this.contacts = [];
     this.searchQuery = '';
@@ -81,18 +90,24 @@ class CircleListView {
         flex-direction: column;
         gap: 20px;
         padding: 0;
-        max-height: calc(80vh - 200px);
-        overflow-y: auto;
       }
 
-      /* Search Section */
+      /* Search Section — rendered in sticky header, not inside scrollable content */
       .clv-search-section {
-        position: sticky;
-        top: 0;
+        position: relative;
         background: var(--bg-surface, #ffffff);
         z-index: 10;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--border-subtle, #e5e7eb);
+        padding: 8px 0 0 0;
+      }
+
+      /* Blur overlay when search is active — targets the scrollable content area */
+      .manage-circles__scrollable-content.clv-search-active {
+        position: relative;
+      }
+      .manage-circles__scrollable-content.clv-search-active > * {
+        filter: blur(3px);
+        opacity: 0.4;
+        pointer-events: none;
       }
 
       .clv-search-container {
@@ -166,9 +181,9 @@ class CircleListView {
         border: 1px solid var(--border-subtle, #e5e7eb);
         border-radius: 10px;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-        max-height: 300px;
+        max-height: 350px;
         overflow-y: auto;
-        z-index: 20;
+        z-index: 50;
         display: none;
       }
 
@@ -280,6 +295,37 @@ class CircleListView {
         background: #3b82f6;
       }
 
+      /* Group quick-assign buttons in search results */
+      .clv-quick-assign-btn[data-group-id] {
+        background: #eef2ff;
+        font-size: 10px;
+        font-weight: 600;
+        color: #4338ca;
+        min-width: 28px;
+        width: auto;
+        padding: 0 4px;
+      }
+      .clv-quick-assign-btn[data-group-id]:hover {
+        background: #6366f1;
+        color: white;
+      }
+      .clv-quick-assign-btn[data-group-id].active {
+        background: #6366f1;
+        color: white;
+        box-shadow: 0 0 0 2px #6366f1;
+      }
+      .clv-quick-assign-groups {
+        flex-wrap: wrap;
+        gap: 3px;
+      }
+      .clv-more-groups {
+        display: flex;
+        align-items: center;
+        font-size: 11px;
+        color: var(--text-secondary, #6b7280);
+        padding: 0 4px;
+      }
+
       /* Circles Container */
       .clv-circles-container {
         display: flex;
@@ -321,6 +367,23 @@ class CircleListView {
 
       .clv-circle-emoji {
         font-size: 18px;
+      }
+
+      /* Keyboard shortcut badge for group headers */
+      .clv-group-shortcut-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        min-width: 20px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        border: 1.5px solid var(--accent-primary, #6366f1);
+        color: var(--accent-primary, #6366f1);
+        background: var(--bg-surface, #ffffff);
+        line-height: 1.2;
       }
 
       /* Generate AI Button */
@@ -930,6 +993,11 @@ class CircleListView {
     // Fetch contacts
     await this.fetchContacts();
 
+    // Fetch group suggestions when in groups context (Task 7.2)
+    if (this.context === 'groups') {
+      await this.fetchGroupSuggestions();
+    }
+
     // Render the component
     this.render();
   }
@@ -998,20 +1066,49 @@ class CircleListView {
   /**
    * Render the component
    * Requirement: 5.3 - Display all contacts in a searchable grid view
+   * Requirement: 6.2, 6.3 - Branch on context for circles vs groups rendering (Task 7.3)
    */
   render() {
     const container = document.getElementById(this.containerId);
     if (!container) return;
 
-    container.innerHTML = `
-      <div class="circle-list-view">
-        ${this.renderSearchSection()}
-        <div class="clv-circles-container">
-          ${this.circles.map(circle => this.renderCircleSection(circle)).join('')}
+    // Render search section into sticky header area (below education tip)
+    const stickyExtras = document.getElementById('sticky-extras-container');
+    if (stickyExtras) {
+      // Preserve existing education tip, append search after it
+      let existingTip = stickyExtras.querySelector('.education-tip');
+      const searchHtml = this.renderSearchSection();
+      if (existingTip) {
+        // Remove any previous search section
+        const oldSearch = stickyExtras.querySelector('.clv-search-section');
+        if (oldSearch) oldSearch.remove();
+        existingTip.insertAdjacentHTML('afterend', searchHtml);
+      } else {
+        stickyExtras.innerHTML += searchHtml;
+      }
+    }
+
+    if (this.context === 'groups') {
+      // Groups context: render group sections + ungrouped section (Task 7.3)
+      container.innerHTML = `
+        <div class="circle-list-view">
+          <div class="clv-circles-container">
+            ${this.groups.map(group => this.renderGroupSection(group)).join('')}
+          </div>
+          ${this.renderUngroupedSection()}
         </div>
-        ${this.renderUncategorizedSection()}
-      </div>
-    `;
+      `;
+    } else {
+      // Circles context: existing behavior unchanged
+      container.innerHTML = `
+        <div class="circle-list-view">
+          <div class="clv-circles-container">
+            ${this.circles.map(circle => this.renderCircleSection(circle)).join('')}
+          </div>
+          ${this.renderUncategorizedSection()}
+        </div>
+      `;
+    }
 
     this.attachEventListeners();
   }
@@ -1333,6 +1430,52 @@ class CircleListView {
       });
     });
 
+    // Groups context event listeners (Task 7.2, 7.5, 7.6)
+    if (this.context === 'groups') {
+      // Accept buttons on group suggestion chips
+      const groupAcceptBtns = document.querySelectorAll('.clv-group-accept-btn');
+      groupAcceptBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const contactId = btn.dataset.contactId;
+          const groupId = btn.dataset.group;
+          this.acceptGroupSuggestion(contactId, groupId);
+        });
+      });
+
+      // Reject buttons on group suggestion chips
+      const groupRejectBtns = document.querySelectorAll('.clv-group-reject-btn');
+      groupRejectBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const contactId = btn.dataset.contactId;
+          const groupId = btn.dataset.group;
+          this.rejectGroupSuggestion(contactId, groupId);
+        });
+      });
+
+      // Remove buttons on group contact chips
+      const groupRemoveBtns = document.querySelectorAll('.clv-group-remove-btn');
+      groupRemoveBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const contactId = btn.dataset.contactId;
+          const groupId = btn.dataset.group;
+          this.onContactRemove(contactId, groupId);
+        });
+      });
+
+      // Generate AI Suggestions buttons for groups
+      const groupGenerateBtns = document.querySelectorAll('.clv-generate-ai-btn[data-group]');
+      groupGenerateBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const groupId = btn.dataset.group;
+          this.generateGroupAISuggestions(groupId);
+        });
+      });
+    }
+
     // Close search results when clicking outside
     document.addEventListener('click', (e) => {
       const searchContainer = document.querySelector('.clv-search-container');
@@ -1450,6 +1593,7 @@ class CircleListView {
   /**
    * Handle search input with debounce
    * Requirement: 5.6 - Provide search functionality to filter contacts by name
+   * Requirement: 6.8 - Filter across group sections in groups context (Task 7.7)
    */
   handleSearchInput(query) {
     // Update clear button visibility
@@ -1466,8 +1610,175 @@ class CircleListView {
     // Set new timer with 300ms debounce
     this.debounceTimer = setTimeout(() => {
       this.searchQuery = query;
-      this.renderSearchResults();
+
+      if (this.context === 'groups') {
+        // Groups context: filter contacts across all group sections (Task 7.7)
+        this.filterGroupSections();
+      } else {
+        // Circles context: existing search results dropdown behavior
+        this.renderSearchResults();
+        // Toggle blur on scrollable content
+        const scrollable = document.querySelector('.manage-circles__scrollable-content');
+        if (scrollable) {
+          if (query) {
+            scrollable.classList.add('clv-search-active');
+          } else {
+            scrollable.classList.remove('clv-search-active');
+          }
+        }
+      }
     }, 300);
+  }
+
+  /**
+   * Filter contacts across all group sections in groups context (Task 7.7)
+   * Shows only matching contacts, hides non-matching ones.
+   */
+  filterGroupSections() {
+    const query = (this.searchQuery || '').toLowerCase().trim();
+
+    // Filter within each group section
+    this.groups.forEach(group => {
+      const contactsContainer = document.getElementById(`clv-group-${group.id}-contacts`);
+      if (!contactsContainer) return;
+
+      const chips = contactsContainer.querySelectorAll('.clv-contact-chip, .clv-suggestion-chip');
+      chips.forEach(chip => {
+        const contactId = chip.dataset.contactId;
+        const contact = this.contacts.find(c => c.id === contactId);
+        if (!contact) {
+          chip.style.display = query ? 'none' : '';
+          return;
+        }
+
+        const name = (contact.name || '').toLowerCase();
+        const email = (contact.email || '').toLowerCase();
+        const matches = !query || name.includes(query) || email.includes(query);
+        chip.style.display = matches ? '' : 'none';
+      });
+    });
+
+    // Filter ungrouped section
+    const ungroupedContainer = document.getElementById('clv-ungrouped-contacts');
+    if (ungroupedContainer) {
+      const chips = ungroupedContainer.querySelectorAll('.clv-uncategorized-chip');
+      chips.forEach(chip => {
+        const contactId = chip.dataset.contactId;
+        const contact = this.contacts.find(c => c.id === contactId);
+        if (!contact) {
+          chip.style.display = query ? 'none' : '';
+          return;
+        }
+
+        const name = (contact.name || '').toLowerCase();
+        const email = (contact.email || '').toLowerCase();
+        const matches = !query || name.includes(query) || email.includes(query);
+        chip.style.display = matches ? '' : 'none';
+      });
+    }
+
+    // Show search results dropdown with assignable contacts (like circles mode)
+    this.renderGroupSearchResults();
+    
+    // Toggle blur effect based on whether search is active
+    const scrollable = document.querySelector('.manage-circles__scrollable-content');
+    if (scrollable) {
+      if (query) {
+        scrollable.classList.add('clv-search-active');
+      } else {
+        scrollable.classList.remove('clv-search-active');
+      }
+    }
+  }
+
+  /**
+   * Render search results dropdown for groups context with quick-assign group buttons.
+   * Shows matching contacts (including ungrouped) with buttons to assign to any group.
+   */
+  renderGroupSearchResults() {
+    let resultsContainer = document.getElementById('clv-search-results');
+    if (!resultsContainer) return;
+
+    const query = (this.searchQuery || '').toLowerCase().trim();
+    if (!query) {
+      resultsContainer.classList.remove('visible');
+      return;
+    }
+
+    // Find all matching contacts
+    const matchingContacts = this.contacts.filter(c => {
+      if (c.archived_at) return false;
+      const name = (c.name || '').toLowerCase();
+      const email = (c.email || '').toLowerCase();
+      return name.includes(query) || email.includes(query);
+    });
+
+    if (matchingContacts.length === 0) {
+      resultsContainer.innerHTML = `
+        <div class="clv-search-result-item" style="justify-content: center; cursor: default;">
+          <span style="color: var(--text-secondary);">No contacts found matching "${this.escapeHtml(query)}"</span>
+        </div>
+      `;
+      resultsContainer.classList.add('visible');
+      return;
+    }
+
+    resultsContainer.innerHTML = matchingContacts.slice(0, 10).map(contact => {
+      const contactGroups = (contact.groups || []).map(g => {
+        const group = this.groups.find(gr => gr.id === (g.id || g));
+        return group ? group.name : '';
+      }).filter(Boolean);
+      const groupDisplay = contactGroups.length > 0 ? contactGroups.join(', ') : 'Ungrouped';
+
+      return `
+        <div class="clv-search-result-item" data-contact-id="${contact.id}">
+          <div class="clv-search-result-avatar">${this.getInitials(contact.name)}</div>
+          <div class="clv-search-result-info">
+            <div class="clv-search-result-name">${this.escapeHtml(contact.name)}</div>
+            <div class="clv-search-result-circle ${contactGroups.length > 0 ? 'in-circle' : ''}">${this.escapeHtml(groupDisplay)}</div>
+          </div>
+          <div class="clv-quick-assign-buttons clv-quick-assign-groups">
+            ${this.groups.filter(group => {
+              // Only show groups that have keyboard shortcuts assigned (0-9)
+              const shortcutNum = this.keyboardShortcuts[group.id];
+              return shortcutNum !== undefined && shortcutNum !== '';
+            }).map(group => {
+              const isInGroup = (contact.groups || []).some(g => (g.id || g) === group.id);
+              const shortcutNum = this.keyboardShortcuts[group.id];
+              return `
+                <button 
+                  class="clv-quick-assign-btn ${isInGroup ? 'active' : ''}" 
+                  data-group-id="${group.id}" 
+                  data-contact-id="${contact.id}"
+                  title="${this.escapeHtml(group.name)}"
+                >${shortcutNum}</button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    resultsContainer.classList.add('visible');
+
+    // Attach click handlers to group quick-assign buttons
+    const groupAssignBtns = resultsContainer.querySelectorAll('.clv-quick-assign-btn[data-group-id]');
+    groupAssignBtns.forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const contactId = btn.dataset.contactId;
+        const groupId = btn.dataset.groupId;
+        if (btn.classList.contains('active')) {
+          // Already in group — remove
+          await this.rejectGroupSuggestion(contactId, groupId);
+          btn.classList.remove('active');
+        } else {
+          // Add to group
+          await this.acceptGroupSuggestion(contactId, groupId);
+          btn.classList.add('active');
+        }
+      });
+    });
   }
 
   /**
@@ -1485,6 +1796,11 @@ class CircleListView {
       clearBtn.classList.remove('visible');
     }
     this.hideSearchResults();
+    
+    // Also un-filter group sections when clearing search
+    if (this.context === 'groups') {
+      this.filterGroupSections();
+    }
   }
 
   /**
@@ -1504,6 +1820,8 @@ class CircleListView {
   showSearchResults() {
     if (this.searchQuery) {
       this.renderSearchResults();
+      const scrollable = document.querySelector('.manage-circles__scrollable-content');
+      if (scrollable) scrollable.classList.add('clv-search-active');
     }
   }
 
@@ -1515,6 +1833,8 @@ class CircleListView {
     if (resultsContainer) {
       resultsContainer.classList.remove('visible');
     }
+    const scrollable = document.querySelector('.manage-circles__scrollable-content');
+    if (scrollable) scrollable.classList.remove('clv-search-active');
   }
 
   /**
@@ -2011,6 +2331,450 @@ class CircleListView {
     }
   }
 
+  // ============================================================================
+  // GROUPS CONTEXT METHODS (Task 7.2, 7.4, 7.5, 7.6)
+  // Requirement 6: Groups Support in List Mode
+  // ============================================================================
+
+  /**
+   * Get contacts belonging to a specific group (Task 7.4)
+   * Contacts can belong to multiple groups simultaneously.
+   * @param {string} groupId - Group ID
+   * @returns {Array} Contacts in this group
+   */
+  getContactsByGroup(groupId) {
+    return this.contacts.filter(contact => {
+      const groups = contact.groups || [];
+      return groups.some(g => (g.id || g) === groupId);
+    });
+  }
+
+  /**
+   * Get contacts not in any group (Task 7.3)
+   * @returns {Array} Ungrouped contacts
+   */
+  getUngroupedContacts() {
+    return this.contacts.filter(contact => {
+      const groups = contact.groups || [];
+      return groups.length === 0;
+    });
+  }
+
+  /**
+   * Get AI group suggestions for a specific group
+   * @param {string} groupId - Group ID
+   * @returns {Array} Suggestions for this group
+   */
+  getGroupSuggestionsForGroup(groupId) {
+    if (!this.groupSuggestions) return [];
+
+    const suggestions = [];
+    // groupSuggestions is keyed by contactId: [{ groupId, groupName, confidence, signals }]
+    for (const [contactId, contactSuggestions] of Object.entries(this.groupSuggestions)) {
+      if (!Array.isArray(contactSuggestions)) continue;
+      for (const suggestion of contactSuggestions) {
+        if (suggestion.groupId === groupId) {
+          // Don't show suggestions for contacts already in this group
+          const contact = this.contacts.find(c => c.id === contactId);
+          const alreadyInGroup = contact && (contact.groups || []).some(g => (g.id || g) === groupId);
+          if (!alreadyInGroup && !this.acceptedGroupSuggestions.has(`${contactId}:${groupId}`)) {
+            suggestions.push({
+              contactId,
+              name: contact ? contact.name : 'Unknown',
+              groupId: suggestion.groupId,
+              groupName: suggestion.groupName,
+              confidence: suggestion.confidence,
+              signals: suggestion.signals
+            });
+          }
+        }
+      }
+    }
+    return suggestions;
+  }
+
+  /**
+   * Render a group section with contacts and AI suggestion pills (Task 7.2)
+   * Follows the same pattern as renderCircleSection() but for groups.
+   * Requirement: 6.3, 6.4, 6.5
+   * @param {Object} group - Group object { id, name, color? }
+   * @returns {string} HTML for the group section
+   */
+  renderGroupSection(group) {
+    const groupContacts = this.getContactsByGroup(group.id);
+    const suggestions = this.getGroupSuggestionsForGroup(group.id);
+    const count = groupContacts.length;
+    const hasContent = count > 0 || suggestions.length > 0;
+    const groupColor = group.color || '#6366f1';
+    const shortcutNum = this.keyboardShortcuts[group.id];
+    const shortcutBadge = shortcutNum !== undefined && shortcutNum !== ''
+      ? `<span class="clv-group-shortcut-badge">${shortcutNum}</span>`
+      : '';
+
+    return `
+      <div class="clv-circle-section" data-group="${group.id}">
+        <div class="clv-circle-header">
+          <h4 class="clv-circle-title">
+            <span class="clv-circle-emoji">👥</span>
+            ${this.escapeHtml(group.name)}
+            ${shortcutBadge}
+            <button 
+              class="clv-generate-ai-btn" 
+              id="clv-generate-ai-group-${group.id}"
+              data-group="${group.id}"
+              title="Generate AI suggestions for this group"
+              aria-label="Generate AI suggestions"
+            >
+              <span class="clv-generate-ai-icon">✨</span>
+              <span class="clv-generate-ai-text">Generate AI Suggestions</span>
+            </button>
+          </h4>
+          <span class="clv-circle-count">${count}</span>
+        </div>
+        <div class="clv-circle-contacts ${!hasContent ? 'empty' : ''}" id="clv-group-${group.id}-contacts">
+          ${!hasContent
+            ? `<span class="clv-empty-message">No contacts in this group</span>`
+            : groupContacts.map(contact => this.renderGroupContactChip(contact, group.id)).join('') +
+              suggestions.map(suggestion => this.renderGroupSuggestionChip(suggestion, group.id)).join('')
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render a contact chip within a group section (Task 7.4)
+   * @param {Object} contact - Contact object
+   * @param {string} groupId - Group ID
+   * @returns {string} HTML for the contact chip
+   */
+  renderGroupContactChip(contact, groupId) {
+    return `
+      <div class="clv-contact-chip" data-contact-id="${contact.id}" data-group="${groupId}">
+        <span class="clv-contact-chip-name">${this.escapeHtml(contact.name)}</span>
+        <button
+          class="clv-remove-btn clv-group-remove-btn"
+          data-contact-id="${contact.id}"
+          data-group="${groupId}"
+          title="Remove from group"
+          aria-label="Remove ${this.escapeHtml(contact.name)} from group"
+        >×</button>
+      </div>
+    `;
+  }
+
+  /**
+   * Render an AI suggestion pill for a group (Task 7.2)
+   * Requirement: 6.5 - Display AI suggestion pills with confidence badge
+   * @param {Object} suggestion - { contactId, name, groupId, groupName, confidence }
+   * @param {string} groupId - Target group ID
+   * @returns {string} HTML for the suggestion pill
+   */
+  renderGroupSuggestionChip(suggestion, groupId) {
+    return `
+      <div class="clv-suggestion-chip"
+           data-contact-id="${suggestion.contactId}"
+           data-group="${groupId}"
+           title="AI suggested">
+        <span class="clv-suggestion-chip-name">${this.escapeHtml(suggestion.name)}</span>
+        <span class="clv-ai-badge">AI</span>
+        <button
+          class="clv-accept-btn clv-group-accept-btn"
+          data-contact-id="${suggestion.contactId}"
+          data-group="${groupId}"
+          title="Accept suggestion"
+          aria-label="Accept ${this.escapeHtml(suggestion.name)} to group"
+        >✓</button>
+        <button
+          class="clv-remove-btn clv-group-reject-btn"
+          data-contact-id="${suggestion.contactId}"
+          data-group="${groupId}"
+          title="Reject suggestion"
+          aria-label="Reject ${this.escapeHtml(suggestion.name)} suggestion"
+        >×</button>
+      </div>
+    `;
+  }
+
+  /**
+   * Render the ungrouped section for groups context (Task 7.3)
+   * Shows contacts not in any group.
+   * @returns {string} HTML for the ungrouped section
+   */
+  renderUngroupedSection() {
+    const ungroupedContacts = this.getUngroupedContacts();
+    const count = ungroupedContacts.length;
+
+    return `
+      <div class="clv-uncategorized-section">
+        <div class="clv-uncategorized-header">
+          <h4 class="clv-uncategorized-title">
+            <span class="clv-circle-emoji">📋</span>
+            Ungrouped
+          </h4>
+          <span class="clv-uncategorized-count">${count}</span>
+        </div>
+        <div class="clv-uncategorized-contacts" id="clv-ungrouped-contacts">
+          ${count === 0
+            ? `<span class="clv-empty-message">All contacts are in groups! 🎉</span>`
+            : ungroupedContacts.map(contact => this.renderUncategorizedChip(contact)).join('')
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Accept a group AI suggestion (Task 7.5)
+   * POST to /api/contacts/:id/groups/:groupId, record accepted feedback,
+   * move contact chip into group section with optimistic update.
+   * Requirement: 6.6, 11.1
+   * @param {string} contactId - Contact ID
+   * @param {string} groupId - Target group ID
+   */
+  async acceptGroupSuggestion(contactId, groupId) {
+    const key = `${contactId}:${groupId}`;
+
+    // Optimistic UI update: remove suggestion pill
+    const suggestionChip = document.querySelector(`.clv-suggestion-chip[data-contact-id="${contactId}"][data-group="${groupId}"]`);
+    if (suggestionChip) {
+      suggestionChip.remove();
+    }
+
+    // Track acceptance
+    this.acceptedGroupSuggestions.add(key);
+
+    // Update local contact data to include the group
+    const contact = this.contacts.find(c => c.id === contactId);
+    if (contact) {
+      if (!contact.groups) contact.groups = [];
+      const group = this.groups.find(g => g.id === groupId);
+      if (group && !contact.groups.some(g => (g.id || g) === groupId)) {
+        contact.groups.push({ id: groupId, name: group.name });
+      }
+    }
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+
+      // POST to assign contact to group
+      const assignResponse = await fetch(`/api/contacts/${contactId}/groups/${groupId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!assignResponse.ok) {
+        throw new Error('Failed to assign contact to group');
+      }
+
+      // Record accepted feedback
+      const userId = this.userId || window.userId || localStorage.getItem('userId');
+      await fetch('/api/contacts/batch-group-suggestions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contactId,
+          groupId,
+          feedback: 'accepted',
+          userId
+        })
+      }).catch(err => console.warn('[CircleListView] Failed to record feedback:', err));
+
+      // Notify callback
+      this.onSuggestionAccept(contactId, groupId);
+
+      // Re-render to show contact in group section
+      this.render();
+
+      if (typeof showToast === 'function') {
+        const contactName = contact ? contact.name : 'Contact';
+        const groupName = this.groups.find(g => g.id === groupId)?.name || 'group';
+        showToast(`${contactName} added to ${groupName}`, 'success');
+      }
+
+    } catch (error) {
+      console.error('[CircleListView] Error accepting group suggestion:', error);
+
+      // Revert optimistic update
+      this.acceptedGroupSuggestions.delete(key);
+      if (contact) {
+        contact.groups = (contact.groups || []).filter(g => (g.id || g) !== groupId);
+      }
+      this.render();
+
+      if (typeof showToast === 'function') {
+        showToast('Failed to save group assignment', 'error', {
+          action: { label: 'Retry', callback: () => this.acceptGroupSuggestion(contactId, groupId) }
+        });
+      }
+    }
+  }
+
+  /**
+   * Reject a group AI suggestion (Task 7.6)
+   * POST rejection to feedback API, remove suggestion pill from UI.
+   * Requirement: 6.7
+   * @param {string} contactId - Contact ID
+   * @param {string} groupId - Group ID
+   */
+  async rejectGroupSuggestion(contactId, groupId) {
+    // Optimistic UI update: remove suggestion pill
+    const suggestionChip = document.querySelector(`.clv-suggestion-chip[data-contact-id="${contactId}"][data-group="${groupId}"]`);
+    if (suggestionChip) {
+      suggestionChip.style.opacity = '0';
+      suggestionChip.style.transform = 'scale(0.8)';
+      setTimeout(() => suggestionChip.remove(), 200);
+    }
+
+    // Remove from local groupSuggestions
+    if (this.groupSuggestions[contactId]) {
+      this.groupSuggestions[contactId] = this.groupSuggestions[contactId].filter(
+        s => s.groupId !== groupId
+      );
+    }
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const userId = this.userId || window.userId || localStorage.getItem('userId');
+
+      // Record rejection feedback
+      await fetch('/api/contacts/batch-group-suggestions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contactId,
+          groupId,
+          feedback: 'rejected',
+          userId
+        })
+      });
+
+    } catch (error) {
+      console.error('[CircleListView] Error rejecting group suggestion:', error);
+      if (typeof showToast === 'function') {
+        showToast('Failed to record rejection', 'error');
+      }
+    }
+  }
+
+  /**
+   * Fetch group AI suggestions for all contacts (Task 7.2)
+   * Called during mount() when in groups context.
+   */
+  async fetchGroupSuggestions() {
+    try {
+      const userId = this.userId || window.userId || localStorage.getItem('userId');
+      const authToken = localStorage.getItem('authToken');
+
+      if (!authToken || !userId) return;
+
+      // Get ungrouped contact IDs to fetch suggestions for
+      const ungroupedContacts = this.getUngroupedContacts();
+      if (ungroupedContacts.length === 0) return;
+
+      const contactIds = ungroupedContacts.slice(0, 50).map(c => c.id); // Limit batch size
+
+      const response = await fetch('/api/contacts/batch-group-suggestions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ contactIds })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.groupSuggestions = data.results || {};
+        console.log('[CircleListView] Loaded group suggestions for', Object.keys(this.groupSuggestions).length, 'contacts');
+      }
+    } catch (error) {
+      console.warn('[CircleListView] Failed to fetch group suggestions:', error);
+    }
+  }
+
+  /**
+   * Generate AI suggestions for a specific group
+   * Calls the batch-group-suggestions API for ungrouped contacts,
+   * then re-renders to show suggestions under the target group.
+   * @param {string} groupId - The group to generate suggestions for
+   */
+  async generateGroupAISuggestions(groupId) {
+    const btn = document.getElementById(`clv-generate-ai-group-${groupId}`);
+    if (!btn) return;
+
+    btn.disabled = true;
+    const textEl = btn.querySelector('.clv-generate-ai-text');
+    const originalText = textEl?.textContent || 'Generate AI Suggestions';
+    if (textEl) textEl.textContent = 'Generating...';
+
+    try {
+      const userId = this.userId || window.userId || localStorage.getItem('userId');
+      const authToken = localStorage.getItem('authToken');
+      if (!userId || !authToken) throw new Error('Not authenticated');
+
+      // Get ungrouped contacts to suggest for
+      const ungroupedContacts = this.getUngroupedContacts();
+      if (ungroupedContacts.length === 0) {
+        if (typeof showToast === 'function') {
+          showToast('All contacts are already in groups.', 'info');
+        }
+        return;
+      }
+
+      const contactIds = ungroupedContacts.slice(0, 50).map(c => c.id);
+
+      const response = await fetch('/api/contacts/batch-group-suggestions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ contactIds })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate suggestions: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      this.groupSuggestions = data.results || {};
+
+      // Re-render to show new suggestions
+      this.render();
+
+      const newCount = this.getGroupSuggestionsForGroup(groupId).length;
+      if (typeof showToast === 'function') {
+        if (newCount > 0) {
+          const group = this.groups.find(g => g.id === groupId);
+          showToast(`✨ ${newCount} AI suggestion${newCount === 1 ? '' : 's'} for ${group?.name || 'this group'}`, 'success');
+        } else {
+          showToast('No new suggestions found. Try adding more contact details.', 'info');
+        }
+      }
+    } catch (error) {
+      console.error('[CircleListView] Error generating group AI suggestions:', error);
+      if (typeof showToast === 'function') {
+        showToast(`Failed to generate suggestions: ${error.message}`, 'error');
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        const t = btn.querySelector('.clv-generate-ai-text');
+        if (t) t.textContent = originalText;
+      }
+    }
+  }
+
   /**
    * Clean up the component
    */
@@ -2025,6 +2789,17 @@ class CircleListView {
     if (popup) {
       popup.remove();
     }
+
+    // Remove search section from sticky header
+    const stickyExtras = document.getElementById('sticky-extras-container');
+    if (stickyExtras) {
+      const searchSection = stickyExtras.querySelector('.clv-search-section');
+      if (searchSection) searchSection.remove();
+    }
+
+    // Remove blur class from scrollable content
+    const scrollable = document.querySelector('.manage-circles__scrollable-content');
+    if (scrollable) scrollable.classList.remove('clv-search-active');
 
     // Clear container
     const container = document.getElementById(this.containerId);

@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContextToggle Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #FDFCF8;
+            color: #44403C;
+            padding: 20px;
+        }
+
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #292524;
+        }
+
+        .test-section {
+            background: white;
+            border: 1px solid #E7E5E4;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            margin-bottom: 16px;
+            color: #292524;
+            font-size: 20px;
+        }
+
+        .test-section p {
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: #D97706;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #B45309;
+        }
+
+        .btn-secondary {
+            background: #E7E5E4;
+            color: #44403C;
+        }
+
+        .btn-secondary:hover {
+            background: #D6D3D1;
+        }
+
+        .test-results {
+            margin-top: 16px;
+        }
+
+        .test-result {
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .test-result.pass {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .test-result.fail {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .event-log {
+            background: #F5F5F4;
+            border: 1px solid #E7E5E4;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 12px;
+        }
+
+        .event-log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #E7E5E4;
+        }
+
+        .event-log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .toggle-demo {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .current-state {
+            font-size: 14px;
+            color: #78716c;
+        }
+
+        .current-state strong {
+            color: #292524;
+        }
+
+        .instructions {
+            background: #FFFBEB;
+            border: 1px solid #FDE68A;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .dark-theme-area {
+            background: #1c1917;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 16px;
+        }
+
+        .dark-theme-area [data-theme="dark"] {
+            color: #fafaf9;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>ContextToggle Component Test</h1>
+
+        <!-- Test 1: Basic Rendering & ARIA -->
+        <div class="test-section">
+            <h2>Test 1: Basic Rendering &amp; ARIA Attributes</h2>
+            <p>Verify the toggle renders with correct ARIA roles and attributes.</p>
+            <button class="btn btn-primary" onclick="testBasicRendering()">Run Test</button>
+            <div id="test1-demo" class="toggle-demo"></div>
+            <div id="test1-results" class="test-results"></div>
+        </div>
+
+        <!-- Test 2: Click Interaction -->
+        <div class="test-section">
+            <h2>Test 2: Click Interaction</h2>
+            <p>Click each option and verify the context changes. Events are logged below.</p>
+            <div id="test2-demo" class="toggle-demo"></div>
+            <div class="current-state">Current context: <strong id="test2-state">—</strong></div>
+            <div id="test2-log" class="event-log">Event log:</div>
+        </div>
+
+        <!-- Test 3: Keyboard Navigation -->
+        <div class="test-section">
+            <h2>Test 3: Keyboard Navigation</h2>
+            <div class="instructions">
+                <strong>Manual test:</strong> Tab to the toggle below, then use:<br>
+                • <strong>ArrowLeft / ArrowRight</strong> to move between options<br>
+                • <strong>Enter / Space</strong> to select the focused option<br>
+                Verify focus ring is visible (amber outline, 3:1+ contrast).
+            </div>
+            <div id="test3-demo" class="toggle-demo"></div>
+            <div class="current-state">Current context: <strong id="test3-state">—</strong></div>
+            <div id="test3-log" class="event-log">Keyboard event log:</div>
+        </div>
+
+        <!-- Test 4: localStorage Persistence -->
+        <div class="test-section">
+            <h2>Test 4: localStorage Persistence</h2>
+            <p>Test that context is saved and restored from localStorage.</p>
+            <button class="btn btn-primary" onclick="testLocalStoragePersistence()">Run Test</button>
+            <div id="test4-results" class="test-results"></div>
+        </div>
+
+        <!-- Test 5: Callback & CustomEvent -->
+        <div class="test-section">
+            <h2>Test 5: Callback &amp; CustomEvent</h2>
+            <p>Verify both the onContextChange callback and the context-changed CustomEvent fire.</p>
+            <button class="btn btn-primary" onclick="testCallbackAndEvent()">Run Test</button>
+            <div id="test5-results" class="test-results"></div>
+        </div>
+
+        <!-- Test 6: Dark Theme -->
+        <div class="test-section">
+            <h2>Test 6: Dark Theme Rendering</h2>
+            <p>Verify the toggle looks correct in dark theme. Focus the toggle to check the focus ring contrast.</p>
+            <div class="dark-theme-area" data-theme="dark">
+                <div id="test6-demo" class="toggle-demo"></div>
+            </div>
+        </div>
+
+        <!-- Test 7: Destroy -->
+        <div class="test-section">
+            <h2>Test 7: Destroy Cleanup</h2>
+            <p>Verify that destroy() removes event listeners and clears the container reference.</p>
+            <button class="btn btn-primary" onclick="testDestroy()">Run Test</button>
+            <div id="test7-results" class="test-results"></div>
+        </div>
+
+        <!-- Run All -->
+        <div class="test-section">
+            <h2>Run All Automated Tests</h2>
+            <button class="btn btn-primary" onclick="runAllTests()">Run All</button>
+        </div>
+    </div>
+
+    <script src="../../public/js/context-toggle.js"></script>
+    <script>
+        // Helper to display test results
+        function displayResult(containerId, passed, message) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            div.textContent = `${passed ? '✓' : '✗'} ${message}`;
+            container.appendChild(div);
+        }
+
+        function logEvent(logId, message) {
+            const log = document.getElementById(logId);
+            const entry = document.createElement('div');
+            entry.className = 'event-log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // ---- Test 1: Basic Rendering & ARIA ----
+        function testBasicRendering() {
+            const container = document.getElementById('test1-results');
+            container.innerHTML = '';
+            const demo = document.getElementById('test1-demo');
+            demo.innerHTML = '';
+
+            // Clear localStorage to test default
+            localStorage.removeItem('organize-contacts-context');
+
+            const toggle = new ContextToggle({ defaultContext: 'circles' });
+            const el = toggle.render();
+            demo.appendChild(el);
+
+            // Check role="tablist"
+            displayResult('test1-results',
+                el.getAttribute('role') === 'tablist',
+                'Container has role="tablist"');
+
+            // Check aria-label
+            displayResult('test1-results',
+                el.getAttribute('aria-label') === 'Organization context',
+                'Container has aria-label="Organization context"');
+
+            // Check option buttons
+            const options = el.querySelectorAll('[role="tab"]');
+            displayResult('test1-results',
+                options.length === 2,
+                `Renders 2 tab options (got ${options.length})`);
+
+            // Check first option (Circles) is selected by default
+            const circlesTab = el.querySelector('[data-context="circles"]');
+            displayResult('test1-results',
+                circlesTab && circlesTab.getAttribute('aria-selected') === 'true',
+                'Circles tab has aria-selected="true" by default');
+
+            displayResult('test1-results',
+                circlesTab && circlesTab.getAttribute('tabindex') === '0',
+                'Active tab has tabindex="0"');
+
+            // Check second option (Groups) is not selected
+            const groupsTab = el.querySelector('[data-context="groups"]');
+            displayResult('test1-results',
+                groupsTab && groupsTab.getAttribute('aria-selected') === 'false',
+                'Groups tab has aria-selected="false"');
+
+            displayResult('test1-results',
+                groupsTab && groupsTab.getAttribute('tabindex') === '-1',
+                'Inactive tab has tabindex="-1"');
+
+            // Check slider exists
+            const slider = el.querySelector('.context-toggle__slider');
+            displayResult('test1-results',
+                slider && slider.getAttribute('aria-hidden') === 'true',
+                'Slider element exists with aria-hidden="true"');
+
+            toggle.destroy();
+        }
+
+        // ---- Test 2: Click Interaction ----
+        (function setupTest2() {
+            const toggle = new ContextToggle({
+                defaultContext: 'circles',
+                onContextChange: (ctx, prev) => {
+                    document.getElementById('test2-state').textContent = ctx;
+                    logEvent('test2-log', `Context changed: ${prev} → ${ctx}`);
+                }
+            });
+            // Clear saved state for clean demo
+            localStorage.removeItem('organize-contacts-context');
+            const el = toggle.render();
+            document.getElementById('test2-demo').appendChild(el);
+            document.getElementById('test2-state').textContent = toggle.getContext();
+
+            // Also listen for the CustomEvent
+            el.addEventListener('context-changed', (e) => {
+                logEvent('test2-log', `CustomEvent fired: detail.context = "${e.detail.context}"`);
+            });
+        })();
+
+        // ---- Test 3: Keyboard Navigation ----
+        (function setupTest3() {
+            const toggle = new ContextToggle({
+                defaultContext: 'circles',
+                onContextChange: (ctx, prev) => {
+                    document.getElementById('test3-state').textContent = ctx;
+                    logEvent('test3-log', `Keyboard context change: ${prev} → ${ctx}`);
+                }
+            });
+            localStorage.removeItem('organize-contacts-context');
+            const el = toggle.render();
+            document.getElementById('test3-demo').appendChild(el);
+            document.getElementById('test3-state').textContent = toggle.getContext();
+        })();
+
+        // ---- Test 4: localStorage Persistence ----
+        function testLocalStoragePersistence() {
+            const container = document.getElementById('test4-results');
+            container.innerHTML = '';
+
+            // Clear
+            localStorage.removeItem('organize-contacts-context');
+
+            // Create toggle, set to groups
+            const toggle1 = new ContextToggle({ defaultContext: 'circles' });
+            toggle1.render();
+            toggle1.setContext('groups');
+
+            // Verify localStorage was written
+            const stored = localStorage.getItem('organize-contacts-context');
+            displayResult('test4-results',
+                stored === 'groups',
+                `localStorage stores "groups" after setContext (got "${stored}")`);
+
+            // Create a new toggle — should restore from localStorage
+            const toggle2 = new ContextToggle({ defaultContext: 'circles' });
+            displayResult('test4-results',
+                toggle2.getContext() === 'groups',
+                `New toggle restores "groups" from localStorage (got "${toggle2.getContext()}")`);
+
+            // Clear and verify default is used
+            localStorage.removeItem('organize-contacts-context');
+            const toggle3 = new ContextToggle({ defaultContext: 'circles' });
+            displayResult('test4-results',
+                toggle3.getContext() === 'circles',
+                `Without localStorage, defaults to "circles" (got "${toggle3.getContext()}")`);
+
+            // Test invalid localStorage value
+            localStorage.setItem('organize-contacts-context', 'invalid');
+            const toggle4 = new ContextToggle({ defaultContext: 'circles' });
+            displayResult('test4-results',
+                toggle4.getContext() === 'circles',
+                `Invalid localStorage value ignored, uses default (got "${toggle4.getContext()}")`);
+
+            // Cleanup
+            localStorage.removeItem('organize-contacts-context');
+            toggle1.destroy();
+            toggle2.destroy();
+            toggle3.destroy();
+            toggle4.destroy();
+        }
+
+        // ---- Test 5: Callback & CustomEvent ----
+        function testCallbackAndEvent() {
+            const container = document.getElementById('test5-results');
+            container.innerHTML = '';
+            localStorage.removeItem('organize-contacts-context');
+
+            let callbackFired = false;
+            let callbackContext = null;
+            let eventFired = false;
+            let eventContext = null;
+
+            const toggle = new ContextToggle({
+                defaultContext: 'circles',
+                onContextChange: (ctx) => {
+                    callbackFired = true;
+                    callbackContext = ctx;
+                }
+            });
+
+            const el = toggle.render();
+            // Attach to DOM temporarily for event bubbling
+            document.body.appendChild(el);
+
+            el.addEventListener('context-changed', (e) => {
+                eventFired = true;
+                eventContext = e.detail.context;
+            });
+
+            toggle.setContext('groups');
+
+            displayResult('test5-results',
+                callbackFired && callbackContext === 'groups',
+                `onContextChange callback fired with "groups" (fired=${callbackFired}, ctx="${callbackContext}")`);
+
+            displayResult('test5-results',
+                eventFired && eventContext === 'groups',
+                `context-changed CustomEvent fired with detail.context="groups" (fired=${eventFired}, ctx="${eventContext}")`);
+
+            // Setting same context should not fire again
+            callbackFired = false;
+            eventFired = false;
+            toggle.setContext('groups');
+
+            displayResult('test5-results',
+                !callbackFired && !eventFired,
+                'Setting same context does not fire callback or event');
+
+            // Cleanup
+            document.body.removeChild(el);
+            toggle.destroy();
+            localStorage.removeItem('organize-contacts-context');
+        }
+
+        // ---- Test 6: Dark Theme ----
+        (function setupTest6() {
+            localStorage.removeItem('organize-contacts-context');
+            const toggle = new ContextToggle({ defaultContext: 'circles' });
+            const el = toggle.render();
+            document.getElementById('test6-demo').appendChild(el);
+        })();
+
+        // ---- Test 7: Destroy ----
+        function testDestroy() {
+            const container = document.getElementById('test7-results');
+            container.innerHTML = '';
+            localStorage.removeItem('organize-contacts-context');
+
+            let changeCount = 0;
+            const toggle = new ContextToggle({
+                defaultContext: 'circles',
+                onContextChange: () => { changeCount++; }
+            });
+
+            const el = toggle.render();
+            document.body.appendChild(el);
+
+            // Verify it works before destroy
+            toggle.setContext('groups');
+            displayResult('test7-results',
+                changeCount === 1,
+                'Before destroy: setContext triggers callback');
+
+            toggle.destroy();
+
+            displayResult('test7-results',
+                toggle.container === null,
+                'After destroy: container reference is null');
+
+            // Cleanup DOM
+            document.body.removeChild(el);
+            localStorage.removeItem('organize-contacts-context');
+        }
+
+        // ---- Run All ----
+        function runAllTests() {
+            testBasicRendering();
+            testLocalStoragePersistence();
+            testCallbackAndEvent();
+            testDestroy();
+        }
+    </script>
+</body>
+</html>
