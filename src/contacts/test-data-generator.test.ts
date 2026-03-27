@@ -395,14 +395,9 @@ describe('TestDataGenerator', () => {
         includeCalendarEvents: true
       });
 
-      expect(result.calendarEventsCreated).toBeGreaterThan(0);
-
-      // Verify calendar events were created in database
-      const eventsResult = await pool.query(
-        'SELECT * FROM calendar_events WHERE user_id = $1',
-        [testUserId]
-      );
-      expect(eventsResult.rows.length).toBe(result.calendarEventsCreated);
+      // Calendar event generation was removed in v1 redesign
+      // The flag is accepted but no events are created
+      expect(result.calendarEventsCreated).toBe(0);
     });
 
     it('should not create calendar events when includeCalendarEvents is false', async () => {
@@ -993,10 +988,8 @@ describe('TestDataGenerator', () => {
       );
     });
 
-    // Property 10: Calendar events creation
-    // Feature: test-data-generation-ui, Property 10: Calendar events creation
-    // Validates: Requirements 3.1
-    it('Property 10: Calendar events are created in database', async () => {
+    // Property 10: Calendar events creation (skipped - calendar event generation removed in v1 redesign)
+    it.skip('Property 10: Calendar events are created in database', async () => {
       // Generate calendar events
       const result = await generator.seedTestData(testUserId, {
         contactCount: 5,
@@ -1039,10 +1032,8 @@ describe('TestDataGenerator', () => {
       );
     });
 
-    // Property 11: Calendar events span multiple days
-    // Feature: test-data-generation-ui, Property 11: Calendar events span multiple days
-    // Validates: Requirements 3.2
-    it('Property 11: Generated calendar events span multiple days', async () => {
+    // Property 11: Calendar events span multiple days (skipped - calendar event generation removed in v1 redesign)
+    it.skip('Property 11: Generated calendar events span multiple days', async () => {
       // Generate calendar events
       await generator.seedTestData(testUserId, {
         contactCount: 5,
@@ -1090,10 +1081,8 @@ describe('TestDataGenerator', () => {
       );
     });
 
-    // Property 12: Calendar events include weekdays and weekends
-    // Feature: test-data-generation-ui, Property 12: Calendar events include weekdays and weekends
-    // Validates: Requirements 3.3
-    it('Property 12: Generated calendar events include both weekdays and weekends', async () => {
+    // Property 12: Calendar events include weekdays and weekends (skipped - calendar event generation removed in v1 redesign)
+    it.skip('Property 12: Generated calendar events include both weekdays and weekends', async () => {
       // Generate calendar events
       await generator.seedTestData(testUserId, {
         contactCount: 5,
@@ -1142,10 +1131,8 @@ describe('TestDataGenerator', () => {
       );
     });
 
-    // Property 13: Calendar events time variance
-    // Feature: test-data-generation-ui, Property 13: Calendar events time variance
-    // Validates: Requirements 3.4
-    it('Property 13: Generated calendar events have varied times of day', async () => {
+    // Property 13: Calendar events time variance (skipped - calendar event generation removed in v1 redesign)
+    it.skip('Property 13: Generated calendar events have varied times of day', async () => {
       // Generate calendar events
       await generator.seedTestData(testUserId, {
         contactCount: 5,
@@ -1787,14 +1774,8 @@ describe('TestDataGenerator', () => {
       const testContactsCount = parseInt(testContactsResult.rows[0].count);
       expect(testContactsCount).toBeGreaterThan(0);
 
-      // Verify calendar events are marked as test data (using source column)
-      const testCalendarEventsResult = await pool.query(
-        `SELECT COUNT(*) as count FROM calendar_events 
-         WHERE user_id = $1 AND calendar_id = 'test-calendar'`,
-        [testUserId]
-      );
-      const testCalendarEventsCount = parseInt(testCalendarEventsResult.rows[0].count);
-      expect(testCalendarEventsCount).toBeGreaterThan(0);
+      // Calendar event generation removed in v1 redesign - skip calendar event check
+      const testCalendarEventsCount = 0;
 
       // Verify voice notes exist (they are created with status='ready')
       const testVoiceNotesResult = await pool.query(
@@ -1817,15 +1798,14 @@ describe('TestDataGenerator', () => {
             // Contacts should be marked with 'Test contact' in custom_notes
             expect(counts.testContactsCount).toBeGreaterThan(0);
 
-            // Calendar events should have source='test'
-            expect(counts.testCalendarEventsCount).toBeGreaterThan(0);
+            // Calendar event generation removed in v1 redesign - skip check
+            // expect(counts.testCalendarEventsCount).toBeGreaterThan(0);
 
             // Voice notes should be created and trackable
             expect(counts.testVoiceNotesCount).toBeGreaterThan(0);
 
             // All test data types should be trackable
-            const totalTestData = counts.testContactsCount + counts.testCalendarEventsCount + 
-                                 counts.testVoiceNotesCount;
+            const totalTestData = counts.testContactsCount + counts.testVoiceNotesCount;
             expect(totalTestData).toBeGreaterThan(0);
           }
         ),

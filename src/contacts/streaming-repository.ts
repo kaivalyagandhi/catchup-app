@@ -197,6 +197,7 @@ export class StreamingContactRepository {
       archived: row.archived_at !== null,
       archivedAt: row.archived_at ? new Date(row.archived_at) : undefined,
       source: row.source || undefined,
+      sources: row.sources || [],
       googleResourceName: row.google_resource_name || undefined,
       googleEtag: row.google_etag || undefined,
       lastSyncedAt: row.last_synced_at ? new Date(row.last_synced_at) : undefined,

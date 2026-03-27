@@ -7,10 +7,9 @@
 
 import { google, calendar_v3 } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
-import { GoogleCalendar, TimeSlot, DateRange, AvailabilityParams } from '../types';
+import { GoogleCalendar, TimeSlot, DateRange } from '../types';
 import * as calendarRepository from './calendar-repository';
 import * as calendarEventsRepository from './calendar-events-repository';
-import * as availabilityService from './availability-service';
 import * as oauthRepository from '../integrations/oauth-repository';
 import { getOrSetCache, CacheKeys, CacheTTL, invalidateCalendarCache } from '../utils/cache';
 import { logAuditEvent, AuditAction } from '../utils/audit-logger';
@@ -497,17 +496,6 @@ export async function getFreeTimeSlots(
       // Identify free time slots between busy slots
       let freeSlots = identifyFreeSlots(busySlots, dateRange, timezone, minSlotDuration);
 
-      // Apply availability parameters if requested
-      if (applyAvailabilityFilters) {
-        const availabilityParams = await availabilityService.getAvailabilityParams(userId);
-        if (availabilityParams) {
-          freeSlots = availabilityService.applyAvailabilityParameters(
-            freeSlots,
-            availabilityParams
-          );
-        }
-      }
-
       return freeSlots;
     },
     CacheTTL.CALENDAR_FREE_SLOTS
@@ -622,65 +610,3 @@ export async function forceRefreshCalendarEvents(
 export async function getLastCalendarSync(userId: string): Promise<Date | null> {
   return calendarEventsRepository.getLastSyncTime(userId);
 }
-
-/**
- * Get availability parameters for a user
- *
- * Requirements: 7.6, 20.1, 20.2, 20.3
- */
-export async function getAvailabilityParams(userId: string): Promise<AvailabilityParams | null> {
-  return availabilityService.getAvailabilityParams(userId);
-}
-
-/**
- * Set availability parameters for a user
- *
- * Requirements: 7.6, 20.1, 20.2, 20.3
- */
-export async function setAvailabilityParams(
-  userId: string,
-  params: AvailabilityParams
-): Promise<AvailabilityParams> {
-  return availabilityService.setAvailabilityParams(userId, params);
-}
-
-/**
- * Apply availability parameters to filter time slots
- *
- * Requirements: 7.7, 20.4
- */
-export function applyAvailabilityParameters(
-  slots: TimeSlot[],
-  params: AvailabilityParams
-): TimeSlot[] {
-  return availabilityService.applyAvailabilityParameters(slots, params);
-}
-
-/**
- * Publish suggestion feed for a user
- *
- * Generates signed URLs for both iCal and Google Calendar subscription.
- * URLs expire after 30 days by default.
- *
- * Requirements: 8.1, 8.2
- */
-export { publishSuggestionFeed, CalendarFeedUrl } from './feed-service';
-
-/**
- * Generate iCal feed content for a user's suggestions
- *
- * Requirements: 8.1, 8.4
- */
-export { generateFeedContent } from './feed-service';
-
-/**
- * Update feed event when suggestion status changes
- *
- * Requirements: 8.3
- */
-export { updateFeedEvent } from './feed-service';
-
-/**
- * Verify a signed feed token
- */
-export { verifySignedToken } from './feed-service';

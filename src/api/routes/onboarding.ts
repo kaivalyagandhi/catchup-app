@@ -42,9 +42,16 @@ router.post(
     const userId = req.userId!;
     const { trigger, source, contactCount } = req.body;
 
+    // Validate trigger type
+    const validTriggers = ['new_user', 'post_import', 'manage', 'manual'];
+    if (trigger && !validTriggers.includes(trigger)) {
+      res.status(400).json({ error: `Invalid trigger type: ${trigger}. Must be one of: ${validTriggers.join(', ')}` });
+      return;
+    }
+
     const onboardingService = new PostgresOnboardingService();
     const state = await onboardingService.initializeOnboarding(userId, {
-      type: trigger,
+      type: trigger || 'manual',
       source,
       contactCount,
     });
@@ -107,6 +114,13 @@ router.put(
 
     if (!step) {
       res.status(400).json({ error: 'step is required' });
+      return;
+    }
+
+    // Validate step value
+    const validSteps = ['welcome', 'import_contacts', 'circle_assignment', 'preference_setting', 'group_overlay', 'completion'];
+    if (!validSteps.includes(step)) {
+      res.status(400).json({ error: `Invalid step: ${step}. Must be one of: ${validSteps.join(', ')}` });
       return;
     }
 

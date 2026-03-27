@@ -5,7 +5,6 @@
  */
 
 import { Suggestion, Contact } from '../types';
-import { SMSService, smsService as defaultSMSService } from './sms-service';
 import { EmailService, emailService as defaultEmailService } from './email-service';
 import { generateNotificationContent } from './content-service';
 import * as contactRepository from '../contacts/repository';
@@ -13,7 +12,6 @@ import * as preferencesRepository from './preferences-repository';
 
 export interface RealtimeNotificationResult {
   suggestionId: string;
-  smsDelivered: boolean;
   emailDelivered: boolean;
   publishedToFeed: boolean;
   error?: string;
@@ -23,11 +21,9 @@ export interface RealtimeNotificationResult {
  * Real-time Notification Service
  */
 export class RealtimeNotificationService {
-  private smsService: SMSService;
   private emailService: EmailService;
 
-  constructor(smsService?: SMSService, emailService?: EmailService) {
-    this.smsService = smsService || defaultSMSService;
+  constructor(emailService?: EmailService) {
     this.emailService = emailService || defaultEmailService;
   }
 
@@ -40,7 +36,6 @@ export class RealtimeNotificationService {
   ): Promise<RealtimeNotificationResult> {
     const result: RealtimeNotificationResult = {
       suggestionId: suggestion.id,
-      smsDelivered: false,
       emailDelivered: false,
       publishedToFeed: false,
     };
@@ -58,16 +53,6 @@ export class RealtimeNotificationService {
 
       // Generate notification content
       const content = generateNotificationContent(suggestion, contact);
-
-      // Send SMS if enabled and contact has phone
-      if (prefs.smsEnabled && contact.phone) {
-        const smsResult = await this.smsService.sendSMS(contact.phone, content.sms);
-        result.smsDelivered = smsResult.success;
-
-        if (!smsResult.success) {
-          console.error(`Failed to send SMS for suggestion ${suggestion.id}:`, smsResult.error);
-        }
-      }
 
       // Send email if enabled and contact has email
       if (prefs.emailEnabled && contact.email) {

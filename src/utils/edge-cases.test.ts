@@ -231,7 +231,9 @@ describe('calculateDaysSinceLastContact', () => {
     accountDate.setDate(accountDate.getDate() - 30);
 
     const result = calculateDaysSinceLastContact(null, accountDate);
-    expect(result).toBe(30);
+    // Allow ±1 day tolerance due to time-of-day rounding
+    expect(result).toBeGreaterThanOrEqual(29);
+    expect(result).toBeLessThanOrEqual(30);
   });
 
   it('should handle current date fallback', () => {

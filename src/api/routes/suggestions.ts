@@ -1,20 +1,21 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import * as suggestionService from '../../matching/suggestion-service';
 import pool from '../../db/connection';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
 // GET /suggestions/all - Get ALL suggestions regardless of status
-router.get('/all', async (req: Request, res: Response): Promise<void> => {
+router.get('/all', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId } = req.query;
+    const userId = req.userId;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
-    const suggestions = await suggestionService.getAllSuggestions(userId as string);
+    const suggestions = await suggestionService.getAllSuggestions(userId);
     res.json(suggestions);
   } catch (error) {
     console.error('Error fetching all suggestions:', error);
@@ -25,14 +26,15 @@ router.get('/all', async (req: Request, res: Response): Promise<void> => {
 // GET /suggestions - Get suggestions for a user (with optional status filter)
 // Updated to include group suggestions with multiple contacts and shared context
 // Requirements: 8.1-8.12, 14.1-14.10
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, status } = req.query;
+    const userId = req.userId;
+    const { status } = req.query;
 
     console.log('GET /suggestions called with userId:', userId, 'status:', status);
 
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -40,10 +42,10 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     if (status && status !== 'all') {
       // Fetch suggestions with specific status
       const filters = { status: status as any };
-      suggestions = await suggestionService.getPendingSuggestions(userId as string, filters);
+      suggestions = await suggestionService.getPendingSuggestions(userId, filters);
     } else {
       // Fetch all suggestions (not just pending)
-      suggestions = await suggestionService.getAllSuggestions(userId as string);
+      suggestions = await suggestionService.getAllSuggestions(userId);
     }
 
     console.log('Found suggestions:', suggestions.length);
@@ -76,12 +78,12 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /suggestions/:id/accept - Accept a suggestion
-router.post('/:id/accept', async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/accept', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId } = req.body;
+    const userId = req.userId;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -94,12 +96,13 @@ router.post('/:id/accept', async (req: Request, res: Response): Promise<void> =>
 });
 
 // POST /suggestions/:id/dismiss - Dismiss a suggestion
-router.post('/:id/dismiss', async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/dismiss', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, reason } = req.body;
+    const userId = req.userId;
+    const { reason } = req.body;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -112,12 +115,13 @@ router.post('/:id/dismiss', async (req: Request, res: Response): Promise<void> =
 });
 
 // POST /suggestions/:id/snooze - Snooze a suggestion
-router.post('/:id/snooze', async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/snooze', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, duration } = req.body;
+    const userId = req.userId;
+    const { duration } = req.body;
 
     if (!userId || !duration) {
-      res.status(400).json({ error: 'userId and duration are required' });
+      res.status(400).json({ error: 'duration is required' });
       return;
     }
 
@@ -131,13 +135,14 @@ router.post('/:id/snooze', async (req: Request, res: Response): Promise<void> =>
 
 // POST /suggestions/:id/remove-contact - Remove a contact from a group suggestion
 // Requirements: 14.8, 14.9
-router.post('/:id/remove-contact', async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/remove-contact', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { userId, contactId } = req.body;
+    const userId = req.userId;
+    const { contactId } = req.body;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 

@@ -12,7 +12,6 @@
 // import Bull from 'bull';
 
 import { Suggestion, Contact, SuggestionStatus } from '../types';
-import { SMSService, smsService as defaultSMSService } from './sms-service';
 import { EmailService, emailService as defaultEmailService } from './email-service';
 import { generateNotificationContent } from './content-service';
 import * as suggestionRepository from '../matching/suggestion-repository';
@@ -26,8 +25,6 @@ export interface BatchNotificationJob {
 export interface BatchNotificationResult {
   userId: string;
   suggestionsSent: number;
-  smsSuccess: number;
-  smsFailed: number;
   emailSuccess: number;
   emailFailed: number;
 }
@@ -40,13 +37,11 @@ export interface BatchNotificationResult {
 export class BatchNotificationService {
   // DEPRECATED: Queue removed
   // private queue: Bull.Queue<BatchNotificationJob>;
-  private smsService: SMSService;
   private emailService: EmailService;
 
-  constructor(redisUrl?: string, smsService?: SMSService, emailService?: EmailService) {
+  constructor(redisUrl?: string, emailService?: EmailService) {
     console.warn('BatchNotificationService is deprecated - use Cloud Tasks batch-notification-processor');
     
-    this.smsService = smsService || defaultSMSService;
     this.emailService = emailService || defaultEmailService;
   }
 
@@ -78,8 +73,6 @@ export class BatchNotificationService {
     const result: BatchNotificationResult = {
       userId,
       suggestionsSent: 0,
-      smsSuccess: 0,
-      smsFailed: 0,
       emailSuccess: 0,
       emailFailed: 0,
     };
@@ -120,16 +113,6 @@ export class BatchNotificationService {
 
         // Generate notification content
         const content = generateNotificationContent(suggestion, contact);
-
-        // Send SMS if enabled and contact has phone
-        if (prefs.smsEnabled && contact.phone) {
-          const smsResult = await this.smsService.sendSMS(contact.phone, content.sms);
-          if (smsResult.success) {
-            result.smsSuccess++;
-          } else {
-            result.smsFailed++;
-          }
-        }
 
         // Send email if enabled and contact has email
         if (prefs.emailEnabled && contact.email) {

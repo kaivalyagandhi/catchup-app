@@ -265,6 +265,22 @@ export class CircleAssignmentServiceImpl implements CircleAssignmentService {
             assignment.userOverride ? 'User override' : null,
           ]
         );
+
+        // Also record in circle_assignments for query access
+        await client.query(
+          `INSERT INTO circle_assignments 
+           (user_id, contact_id, from_circle, to_circle, assigned_by, confidence, reason, assigned_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+          [
+            userId,
+            assignment.contactId,
+            contactStates.get(assignment.contactId) || null,
+            assignment.circle,
+            assignedBy,
+            assignment.confidence || null,
+            assignment.userOverride ? 'User override' : null,
+          ]
+        );
       }
 
       // Commit transaction - all succeed

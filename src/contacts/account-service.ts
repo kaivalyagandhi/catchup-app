@@ -7,7 +7,6 @@
 
 import pool from '../db/connection';
 import { logAuditEvent, AuditAction } from '../utils/audit-logger';
-import { accountDeletionService } from '../sms/account-deletion-service';
 
 /**
  * Account Service Interface
@@ -81,16 +80,6 @@ export class AccountServiceImpl implements AccountService {
       }
 
       const userEmail = userResult.rows[0].email;
-
-      // Delete SMS/MMS-related data first (phone numbers, enrichments, temp files)
-      // Requirement 10.5: Account deletion cascade for SMS/MMS data
-      const smsResult = await accountDeletionService.deleteUserSMSData(userId);
-      console.log(`SMS/MMS data deletion result:`, {
-        phoneNumbersDeleted: smsResult.phoneNumbersDeleted,
-        enrichmentsDeleted: smsResult.enrichmentsDeleted,
-        tempFilesDeleted: smsResult.tempFilesDeleted,
-        errors: smsResult.errors,
-      });
 
       // Delete user (CASCADE will handle all related data)
       // The ON DELETE CASCADE constraints in the schema will automatically delete:

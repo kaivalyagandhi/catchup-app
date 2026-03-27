@@ -8,6 +8,8 @@
  * Requirements: 13.4
  */
 
+import { OnboardingError } from './onboarding-errors';
+
 export interface ErrorHandlerOptions {
   maxRetries?: number;
   retryDelay?: number;
@@ -381,27 +383,38 @@ export async function withOnboardingErrorHandling<T>(
       return fallbackValue;
     }
 
-    throw error;
+    // Re-throw OnboardingError subclasses as-is
+    if (error instanceof OnboardingError) {
+      throw error;
+    }
+
+    // Wrap non-onboarding errors
+    throw new OnboardingError(
+      error instanceof Error ? error.message : String(error),
+      'ONBOARDING_OPERATION_FAILED',
+      500,
+      { operationName }
+    );
   }
 }
 
 export async function withAISuggestionHandling<T>(
   operation: () => Promise<T>,
   fallbackValue?: T
-): Promise<{ success: boolean; data?: T; error?: string }> {
+): Promise<{ success: boolean; result?: T; error?: string }> {
   try {
-    const data = await operation();
-    return { success: true, data };
+    const result = await operation();
+    return { success: true, result };
   } catch (error) {
     console.error('AI suggestion operation failed:', error);
 
     if (fallbackValue !== undefined) {
-      return { success: true, data: fallbackValue };
+      return { success: true, result: fallbackValue };
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'AI suggestion failed',
+      error: 'AI suggestions temporarily unavailable',
     };
   }
 }
@@ -412,6 +425,7 @@ export async function withConcurrencyHandling<T>(
   resourceId: string,
   maxRetries: number = 3
 ): Promise<T> {
+  const { OptimisticLockError } = await import('../utils/concurrency');
   let lastError: unknown;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -421,7 +435,7 @@ export async function withConcurrencyHandling<T>(
       lastError = error;
 
       // Check if it's an optimistic lock error
-      if (error instanceof Error && error.message.includes('optimistic lock')) {
+      if (error instanceof OptimisticLockError || (error instanceof Error && error.message.includes('optimistic lock'))) {
         console.log(
           `Optimistic lock conflict on ${resourceType} ${resourceId}, retrying (${attempt + 1}/${maxRetries})...`
         );
@@ -446,12 +460,12 @@ export async function executeBatchOperation<T, R>(
     maxConcurrent?: number;
   } = {}
 ): Promise<{
-  successful: R[];
-  failed: Array<{ item: T; error: unknown }>;
+  successful: Array<{ item: T; result: R }>;
+  failed: Array<{ item: T; error: string }>;
 }> {
   const { continueOnError = true, maxConcurrent = 10 } = options;
-  const successful: R[] = [];
-  const failed: Array<{ item: T; error: unknown }> = [];
+  const successful: Array<{ item: T; result: R }> = [];
+  const failed: Array<{ item: T; error: string }> = [];
 
   // Process in batches to respect maxConcurrent
   for (let i = 0; i < items.length; i += maxConcurrent) {
@@ -459,10 +473,11 @@ export async function executeBatchOperation<T, R>(
     const promises = batch.map(async (item) => {
       try {
         const result = await operation(item);
-        successful.push(result);
+        successful.push({ item, result });
         return { success: true, result };
       } catch (error) {
-        failed.push({ item, error });
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        failed.push({ item, error: errorMsg });
         if (!continueOnError) {
           throw error;
         }
@@ -470,11 +485,14 @@ export async function executeBatchOperation<T, R>(
       }
     });
 
-    await Promise.all(promises);
-
-    // If continueOnError is false and we have failures, stop
-    if (!continueOnError && failed.length > 0) {
-      break;
+    try {
+      await Promise.all(promises);
+    } catch {
+      // If continueOnError is false, Promise.all will reject
+      // We've already recorded the failure, just break
+      if (!continueOnError) {
+        break;
+      }
     }
   }
 
@@ -490,7 +508,7 @@ export async function withTimeout<T>(
     operation(),
     new Promise<T>((_, reject) =>
       setTimeout(
-        () => reject(new Error(`Operation '${operationName}' timed out after ${timeoutMs}ms`)),
+        () => reject(new Error(`Operation '${operationName}' timeout after ${timeoutMs}ms`)),
         timeoutMs
       )
     ),
@@ -500,17 +518,17 @@ export async function withTimeout<T>(
 export async function measurePerformance<T>(
   operation: () => Promise<T>,
   operationName: string
-): Promise<{ result: T; duration: number }> {
+): Promise<{ result: T; durationMs: number }> {
   const startTime = Date.now();
 
   try {
     const result = await operation();
-    const duration = Date.now() - startTime;
-    console.log(`Operation '${operationName}' completed in ${duration}ms`);
-    return { result, duration };
+    const durationMs = Date.now() - startTime;
+    console.log(`Operation '${operationName}' completed in ${durationMs}ms`);
+    return { result, durationMs };
   } catch (error) {
-    const duration = Date.now() - startTime;
-    console.error(`Operation '${operationName}' failed after ${duration}ms:`, error);
+    const durationMs = Date.now() - startTime;
+    console.error(`Operation '${operationName}' failed after ${durationMs}ms:`, error);
     throw error;
   }
 }

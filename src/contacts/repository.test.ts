@@ -55,6 +55,7 @@ describe('ContactRepository - Source Filtering', () => {
     expect(googleContacts).toHaveLength(1);
     expect(googleContacts[0].name).toBe('Google Contact');
     expect(googleContacts[0].source).toBe('google');
+    expect(googleContacts[0].sources).toContain('google');
     expect(googleContacts[0].googleResourceName).toBe('people/test123');
   });
 
@@ -64,6 +65,7 @@ describe('ContactRepository - Source Filtering', () => {
     expect(googleContacts).toHaveLength(1);
     expect(googleContacts[0].name).toBe('Google Contact');
     expect(googleContacts[0].source).toBe('google');
+    expect(googleContacts[0].sources).toContain('google');
   });
 
   it('should return only manual contacts when filtering by manual source', async () => {
@@ -72,6 +74,7 @@ describe('ContactRepository - Source Filtering', () => {
     expect(manualContacts).toHaveLength(1);
     expect(manualContacts[0].name).toBe('Manual Contact');
     expect(manualContacts[0].source).toBe('manual');
+    expect(manualContacts[0].sources).toContain('manual');
   });
 
   it('should preserve source designation when updating a Google contact', async () => {

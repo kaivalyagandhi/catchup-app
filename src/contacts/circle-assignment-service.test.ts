@@ -246,7 +246,6 @@ describe('CircleAssignmentService', () => {
       expect(distribution.close).toBe(0);
       expect(distribution.active).toBe(0);
       expect(distribution.casual).toBe(0);
-      expect(distribution.acquaintance).toBe(0);
       expect(distribution.uncategorized).toBe(testContactIds.length);
       expect(distribution.total).toBe(testContactIds.length);
     });
@@ -268,7 +267,6 @@ describe('CircleAssignmentService', () => {
       expect(distribution.close).toBe(3);
       expect(distribution.active).toBe(1);
       expect(distribution.casual).toBe(0);
-      expect(distribution.acquaintance).toBe(0);
       expect(distribution.uncategorized).toBe(4);
       expect(distribution.total).toBe(10);
     });
@@ -299,9 +297,9 @@ describe('CircleAssignmentService', () => {
     });
 
     it('should suggest rebalancing when circle exceeds 150% of recommended size', async () => {
-      // Create enough contacts to exceed 150% of inner circle recommended size (5 * 1.5 = 7.5, so 8+)
+      // Inner circle recommended size is 10, threshold is 10 * 1.5 = 15, so need 16+ contacts
       const extraContacts: string[] = [];
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 16; i++) {
         const contact = await contactRepository.create(testUserId, {
           name: `Rebalance Contact ${i}`,
         });
@@ -324,28 +322,28 @@ describe('CircleAssignmentService', () => {
     });
 
     it('should not suggest rebalancing for the largest circle', async () => {
-      // Create many contacts in acquaintance circle
+      // Create many contacts in casual circle (the largest circle, no larger to move to)
       const extraContacts: string[] = [];
-      for (let i = 0; i < 1000; i++) {
+      for (let i = 0; i < 200; i++) {
         const contact = await contactRepository.create(testUserId, {
-          name: `Acquaintance ${i}`,
+          name: `Casual ${i}`,
         });
         extraContacts.push(contact.id);
       }
 
       const assignments: CircleAssignment[] = extraContacts.map((id) => ({
         contactId: id,
-        circle: 'acquaintance' as DunbarCircle,
+        circle: 'casual' as DunbarCircle,
       }));
       await service.batchAssign(testUserId, assignments, 'user');
 
       const suggestions = await service.suggestCircleRebalancing(testUserId);
 
-      // Should not suggest moving from acquaintance (no larger circle)
-      const acquaintanceSuggestions = suggestions.filter(
-        (s) => s.currentCircle === 'acquaintance'
+      // Should not suggest moving from casual (no larger circle)
+      const casualSuggestions = suggestions.filter(
+        (s) => s.currentCircle === 'casual'
       );
-      expect(acquaintanceSuggestions).toEqual([]);
+      expect(casualSuggestions).toEqual([]);
     });
   });
 });

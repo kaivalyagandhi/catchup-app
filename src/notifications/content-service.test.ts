@@ -18,6 +18,7 @@ describe('Notification Content Service', () => {
     email: 'john@example.com',
     groups: [],
     tags: [],
+    sources: [],
     archived: false,
     createdAt: new Date(),
     updatedAt: new Date(),

@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { ContactServiceImpl } from '../../contacts/service';
 import { GroupServiceImpl } from '../../contacts/group-service';
 import { TagServiceImpl } from '../../contacts/tag-service';
@@ -12,11 +12,11 @@ const router = Router();
 // GET /circle-counts - Get circle counts for all four circles
 // Requirements: 3.1 (Onboarding Flow Improvements)
 // Used by: step2-circles-handler.js checkInnerCircleCapacity()
-router.get('/circle-counts', async (req: Request, res: Response): Promise<void> => {
+router.get('/circle-counts', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId } = req.query;
+    const userId = req.userId;
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -24,7 +24,7 @@ router.get('/circle-counts', async (req: Request, res: Response): Promise<void> 
       '../../contacts/circle-assignment-service'
     );
     const circleService = new CircleAssignmentServiceImpl();
-    const distribution = await circleService.getCircleDistribution(userId as string);
+    const distribution = await circleService.getCircleDistribution(userId);
 
     // Return only the four circle counts as expected by the frontend
     const circleCounts = {
@@ -45,15 +45,15 @@ router.get('/circle-counts', async (req: Request, res: Response): Promise<void> 
 // Group management endpoints
 
 // GET /groups - List all groups for a user
-router.get('/groups', async (req: Request, res: Response): Promise<void> => {
+router.get('/groups', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId } = req.query;
+    const userId = req.userId;
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
     const groupService = new GroupServiceImpl();
-    const groups = await groupService.listGroups(userId as string);
+    const groups = await groupService.listGroups(userId);
     // Add Cache-Control header for browser caching (60 seconds)
     res.set('Cache-Control', 'private, max-age=60');
     res.json(groups);
@@ -64,11 +64,12 @@ router.get('/groups', async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /groups - Create a new group
-router.post('/groups', async (req: Request, res: Response): Promise<void> => {
+router.post('/groups', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, name } = req.body;
+    const userId = req.userId;
+    const { name } = req.body;
     if (!userId || !name) {
-      res.status(400).json({ error: 'userId and name are required' });
+      res.status(400).json({ error: 'name is required' });
       return;
     }
     const groupService = new GroupServiceImpl();
@@ -81,11 +82,12 @@ router.post('/groups', async (req: Request, res: Response): Promise<void> => {
 });
 
 // PUT /groups/:id - Update a group
-router.put('/groups/:id', async (req: Request, res: Response): Promise<void> => {
+router.put('/groups/:id', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, name } = req.body;
+    const userId = req.userId;
+    const { name } = req.body;
     if (!userId || !name) {
-      res.status(400).json({ error: 'userId and name are required' });
+      res.status(400).json({ error: 'name is required' });
       return;
     }
     const groupService = new GroupServiceImpl();
@@ -104,14 +106,15 @@ router.put('/groups/:id', async (req: Request, res: Response): Promise<void> => 
 });
 
 // POST /contacts/bulk/groups - Bulk assign contacts to a group
-router.post('/bulk/groups', async (req: Request, res: Response): Promise<void> => {
+router.post('/bulk/groups', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, contactIds, groupId, action } = req.body;
+    const userId = req.userId;
+    const { contactIds, groupId, action } = req.body;
 
     if (!userId || !contactIds || !Array.isArray(contactIds) || !groupId || !action) {
       res
         .status(400)
-        .json({ error: 'userId, contactIds (array), groupId, and action are required' });
+        .json({ error: 'contactIds (array), groupId, and action are required' });
       return;
     }
 
@@ -136,11 +139,12 @@ router.post('/bulk/groups', async (req: Request, res: Response): Promise<void> =
 // Tag management endpoints
 
 // POST /tags - Add a tag to a contact
-router.post('/tags', async (req: Request, res: Response): Promise<void> => {
+router.post('/tags', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, contactId, text, source } = req.body;
+    const userId = req.userId;
+    const { contactId, text, source } = req.body;
     if (!userId || !contactId || !text || !source) {
-      res.status(400).json({ error: 'userId, contactId, text, and source are required' });
+      res.status(400).json({ error: 'contactId, text, and source are required' });
       return;
     }
     const tagService = new TagServiceImpl();
@@ -167,15 +171,16 @@ router.post('/tags', async (req: Request, res: Response): Promise<void> => {
 });
 
 // PUT /tags/:id - Update a tag
-router.put('/tags/:id', async (req: Request, res: Response): Promise<void> => {
+router.put('/tags/:id', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, text } = req.body;
+    const userId = req.userId;
+    const { text } = req.body;
     if (!text) {
       res.status(400).json({ error: 'text is required' });
       return;
     }
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
     const tagService = new TagServiceImpl();
@@ -194,17 +199,18 @@ router.put('/tags/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 // DELETE /tags/:id - Remove a tag
-router.delete('/tags/:id', async (req: Request, res: Response): Promise<void> => {
+router.delete('/tags/:id', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, contactId } = req.query;
+    const userId = req.userId;
+    const { contactId } = req.query;
 
     if (!userId || !contactId) {
-      res.status(400).json({ error: 'userId and contactId query parameters are required' });
+      res.status(400).json({ error: 'contactId query parameter is required' });
       return;
     }
 
     const tagService = new TagServiceImpl();
-    await tagService.removeTag(contactId as string, req.params.id, userId as string);
+    await tagService.removeTag(contactId as string, req.params.id, userId);
     res.status(204).send();
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -228,11 +234,12 @@ router.delete('/tags/:id', async (req: Request, res: Response): Promise<void> =>
 // Contact CRUD endpoints (parameterized routes come AFTER specific routes)
 
 // POST /contacts - Create a new contact
-router.post('/', async (req: Request, res: Response): Promise<void> => {
+router.post('/', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, ...contactData } = req.body;
+    const userId = req.userId;
+    const contactData = req.body;
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
     const contactService = new ContactServiceImpl();
@@ -314,15 +321,15 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response): 
 });
 
 // GET /contacts/:id - Get a specific contact
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+router.get('/:id', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId } = req.query;
+    const userId = req.userId;
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
     const contactService = new ContactServiceImpl();
-    const contact = await contactService.getContact(req.params.id, userId as string);
+    const contact = await contactService.getContact(req.params.id, userId);
 
     if (!contact) {
       res.status(404).json({ error: 'Contact not found' });
@@ -337,11 +344,12 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 // PUT /contacts/:id - Update a contact
-router.put('/:id', async (req: Request, res: Response): Promise<void> => {
+router.put('/:id', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, ...updateData } = req.body;
+    const userId = req.userId;
+    const updateData = req.body;
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
     const contactService = new ContactServiceImpl();
@@ -360,15 +368,15 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 // DELETE /contacts/:id - Delete a contact
-router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+router.delete('/:id', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId } = req.query;
+    const userId = req.userId;
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
     const contactService = new ContactServiceImpl();
-    await contactService.deleteContact(req.params.id, userId as string);
+    await contactService.deleteContact(req.params.id, userId);
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting contact:', error);
@@ -378,11 +386,12 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
 
 // POST /contacts/:id/circle - Assign contact to circle
 // Requirements: 3.5, 14.1, 14.2
-router.post('/:id/circle', async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/circle', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, circle } = req.body;
+    const userId = req.userId;
+    const { circle } = req.body;
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
     if (!circle) {
@@ -413,11 +422,12 @@ router.post('/:id/circle', async (req: Request, res: Response): Promise<void> =>
 
 // PUT /contacts/:id/circle - Update contact circle assignment
 // Requirements: 5.4 (CircleListView manual mode)
-router.put('/:id/circle', async (req: Request, res: Response): Promise<void> => {
+router.put('/:id/circle', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, circle } = req.body;
+    const userId = req.userId;
+    const { circle } = req.body;
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -450,11 +460,11 @@ router.put('/:id/circle', async (req: Request, res: Response): Promise<void> => 
 });
 
 // POST /contacts/:id/archive - Archive a contact
-router.post('/:id/archive', async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/archive', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId } = req.body;
+    const userId = req.userId;
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
     const contactService = new ContactServiceImpl();
@@ -468,11 +478,11 @@ router.post('/:id/archive', async (req: Request, res: Response): Promise<void> =
 
 // POST /contacts/:id/reactivate - Reactivate an archived contact
 // Requirements: 12.5
-router.post('/:id/reactivate', async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/reactivate', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId } = req.body;
+    const userId = req.userId;
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
     const contactService = new ContactServiceImpl();
@@ -489,11 +499,11 @@ router.post('/:id/reactivate', async (req: Request, res: Response): Promise<void
 
 // GET /contacts/circles/counts - Get circle counts
 // Requirements: 3.5, 14.1, 14.2
-router.get('/circles/counts', async (req: Request, res: Response): Promise<void> => {
+router.get('/circles/counts', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId } = req.query;
+    const userId = req.userId;
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -501,7 +511,7 @@ router.get('/circles/counts', async (req: Request, res: Response): Promise<void>
       '../../contacts/circle-assignment-service'
     );
     const circleService = new CircleAssignmentServiceImpl();
-    const distribution = await circleService.getCircleDistribution(userId as string);
+    const distribution = await circleService.getCircleDistribution(userId);
 
     res.json(distribution);
   } catch (error) {
@@ -512,12 +522,13 @@ router.get('/circles/counts', async (req: Request, res: Response): Promise<void>
 
 // POST /contacts/circles/bulk - Bulk assign contacts
 // Requirements: 3.5, 14.1, 14.2
-router.post('/circles/bulk', async (req: Request, res: Response): Promise<void> => {
+router.post('/circles/bulk', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, assignments } = req.body;
+    const userId = req.userId;
+    const { assignments } = req.body;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 

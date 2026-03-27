@@ -46,8 +46,7 @@
     <!-- Sync Warning Banner -->
     <link rel="stylesheet" href="/css/sync-warning-banner.css">
     
-    <!-- Group Scheduling -->
-    <link rel="stylesheet" href="/css/scheduling.css">
+
     
     <!-- Theme Initialization Script - Runs before page render to prevent FOUC -->
     <script>
@@ -3032,6 +3031,13 @@
             <div id="onboarding-indicator-container"></div>
             
             <nav class="sidebar__nav">
+                <a href="#directory" class="nav-item" data-page="directory">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span>Home</span>
+                </a>
                 <a href="#directory" class="nav-item active" data-page="directory">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
@@ -3045,23 +3051,12 @@
                     <span>Suggestions</span>
                     <span id="suggestions-badge" class="nav-badge hidden">0</span>
                 </a>
-                <a href="#scheduling" class="nav-item" data-page="scheduling">
+                <a href="#preferences" class="nav-item" data-page="preferences">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
-                        <line x1="16" x2="16" y1="2" y2="6"/>
-                        <line x1="8" x2="8" y1="2" y2="6"/>
-                        <line x1="3" x2="21" y1="10" y2="10"/>
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                        <circle cx="12" cy="12" r="3"/>
                     </svg>
-                    <span>Scheduling</span>
-                    <span id="scheduling-badge" class="nav-badge hidden">0</span>
-                </a>
-                <a href="#edits" class="nav-item" data-page="edits">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
-                        <path d="m15 5 4 4"/>
-                    </svg>
-                    <span>Edits</span>
-                    <span id="edits-badge" class="nav-badge hidden">0</span>
+                    <span>Settings</span>
                 </a>
             </nav>
             
@@ -3163,15 +3158,6 @@
                 <div id="suggestions-list"></div>
             </div>
             
-            <!-- Scheduling Page -->
-            <div id="scheduling-page" class="page hidden">
-                <!-- Content rendered by scheduling-page.js -->
-            </div>
-            
-            <!-- Edits Page - Compact UI -->
-            <div id="edits-page" class="page hidden">
-                <div id="edits-menu-container"></div>
-            </div>
             
             <!-- Preferences Page -->
             <div id="preferences-page" class="page hidden">
@@ -3184,6 +3170,13 @@
         
         <!-- Mobile Bottom Navigation (Mobile only) -->
         <nav class="mobile-nav" id="mobile-nav">
+            <a href="#directory" class="mobile-nav__item" data-page="directory" onclick="navigateToPage('directory'); return false;">
+                <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                <span class="mobile-nav__label">Home</span>
+            </a>
             <a href="#directory" class="mobile-nav__item mobile-nav__item--active" data-page="directory" onclick="navigateToPage('directory'); return false;">
                 <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
@@ -3196,14 +3189,6 @@
                 </svg>
                 <span class="mobile-nav__label">Suggestions</span>
                 <span id="mobile-suggestions-badge" class="mobile-nav__badge hidden">0</span>
-            </a>
-            <a href="#edits" class="mobile-nav__item" data-page="edits" onclick="navigateToPage('edits'); return false;">
-                <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
-                    <path d="m15 5 4 4"/>
-                </svg>
-                <span class="mobile-nav__label">Edits</span>
-                <span id="mobile-edits-badge" class="mobile-nav__badge hidden">0</span>
             </a>
             <a href="#preferences" class="mobile-nav__item" data-page="preferences" onclick="navigateToPage('preferences'); return false;">
                 <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3453,7 +3438,7 @@
         </div>
     </div>
     
-    <link rel="stylesheet" href="/css/edits.css">
+
     <script src="/js/theme-manager.js"></script>
     <script src="/js/audio-manager.js"></script>
     <script src="/js/transcript-manager.js"></script>
@@ -3467,10 +3452,6 @@
     <script src="/js/google-contacts.js"></script>
     <script src="/js/floating-chat-icon.js"></script>
     <script src="/js/chat-window.js"></script>
-
-    <!-- Compact Edits UI -->
-    <script src="/js/edits-compact-utils.js"></script>
-    <script src="/js/edits-menu-compact.js"></script>
 
     <script src="/js/google-sso.js"></script>
     <script src="/js/timezone-selector.js"></script>
@@ -3499,19 +3480,11 @@
     <script src="/js/tags-table.js"></script>
     <script src="/js/google-mappings-review.js"></script>
     
-    <!-- Group Scheduling -->
-    <script src="/js/contact-picker.js"></script>
-    <script src="/js/plan-creation-modal.js"></script>
-    <script src="/js/plan-edit-modal.js"></script>
-    <script src="/js/plan-calendar-view.js"></script>
-    <script src="/js/availability-dashboard.js?v=20260205b"></script>
-    <script src="/js/initiator-availability-modal.js?v=20260205b"></script>
-    <script src="/js/scheduling-preferences.js?v=20260205b"></script>
-    <script src="/js/scheduling-notifications.js?v=20260205b"></script>
-    <script src="/js/scheduling-privacy.js?v=20260205"></script>
-    <script src="/js/scheduling-page.js?v=20260205"></script>
     
-    <script src="/js/app.js"></script>
+    <script type="module" src="/js/app-shell.js"></script>
+    <script type="module" src="/js/directory-page.js"></script>
+    <script type="module" src="/js/suggestions-page.js"></script>
+    <script type="module" src="/js/settings-page.js"></script>
 
     <!-- Version info styles for preferences page -->
     <style>

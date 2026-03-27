@@ -151,10 +151,11 @@ describe('Google SSO Routes', () => {
         .get('/api/auth/google/callback')
         .query({ code: mockCode, state: mockState });
 
-      expect(response.status).toBe(200);
-      expect(response.body.token).toBe(mockToken);
-      expect(response.body.user.email).toBe('test@example.com');
-      expect(response.body.isNewUser).toBe(false);
+      // The callback redirects to the frontend with auth data in the URL
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toContain('auth_success=true');
+      expect(response.headers.location).toContain(`token=${encodeURIComponent(mockToken)}`);
+      expect(response.headers.location).toContain('userId=user-123');
       expect(mockStateManager.validateState).toHaveBeenCalledWith(mockState);
       expect(mockService.exchangeCodeForToken).toHaveBeenCalledWith(mockCode);
       expect(mockService.validateAndDecodeToken).toHaveBeenCalledWith(mockTokenResponse.id_token);

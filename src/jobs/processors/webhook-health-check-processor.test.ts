@@ -35,13 +35,13 @@ describe('Webhook Health Check Processor', () => {
 
     // Create test users
     await pool.query(
-      `INSERT INTO users (id, email, name, google_id, auth_method, created_at, updated_at)
+      `INSERT INTO users (id, email, name, google_id, auth_provider, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
       [TEST_USER_ID, `test-${Date.now()}@example.com`, 'Test User 1', 'google-test-1', 'google']
     );
 
     await pool.query(
-      `INSERT INTO users (id, email, name, google_id, auth_method, created_at, updated_at)
+      `INSERT INTO users (id, email, name, google_id, auth_provider, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
       [TEST_USER_ID_2, `test-${Date.now()}-2@example.com`, 'Test User 2', 'google-test-2', 'google']
     );

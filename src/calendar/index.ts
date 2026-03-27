@@ -3,8 +3,7 @@
  *
  * Responsibilities:
  * - OAuth integration with Google Calendar
- * - Availability detection and free time slot identification
- * - iCal feed generation for calendar subscription
+ * - Calendar sync and event storage for background enrichment
  * - Event analysis for friend invitation suggestions
  */
 
@@ -18,9 +17,6 @@ export {
   updateCalendarSelection,
   getFreeTimeSlots,
   refreshCalendarData,
-  getAvailabilityParams,
-  setAvailabilityParams,
-  applyAvailabilityParameters,
 } from './calendar-service';
 
 // Export calendar repository functions
@@ -32,37 +28,3 @@ export {
   setSelectedCalendars as setSelectedCalendarsInDb,
   deleteUserCalendars,
 } from './calendar-repository';
-
-// Export availability repository functions
-export {
-  getAvailabilityParams as getAvailabilityParamsFromDb,
-  upsertAvailabilityParams,
-  deleteAvailabilityParams,
-} from './availability-repository';
-
-// Export availability service functions
-export {
-  getAvailabilityParams as getAvailabilityParamsService,
-  setAvailabilityParams as setAvailabilityParamsService,
-  applyAvailabilityParameters as applyAvailabilityParametersService,
-} from './availability-service';
-
-// Export calendar feed functions
-export {
-  publishSuggestionFeed,
-  generateFeedContent,
-  updateFeedEvent,
-  verifySignedToken,
-  CalendarFeedUrl,
-} from './feed-service';
-
-// Export calendar event generator
-export {
-  CalendarEventGenerator,
-  calendarEventGenerator,
-  TimeOfDay,
-  SlotOptions,
-} from './calendar-event-generator';
-
-// Export suggestion repository functions
-export { getUserSuggestions, getSuggestionById } from './suggestion-repository';

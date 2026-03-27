@@ -12,7 +12,6 @@ import { BatchNotificationJobData, BatchNotificationResult } from '../types';
 import * as preferencesRepository from '../../notifications/preferences-repository';
 import * as suggestionRepository from '../../matching/suggestion-repository';
 import { contactService } from '../../contacts/service';
-import { smsService } from '../../notifications/sms-service';
 import { emailService } from '../../notifications/email-service';
 import { generateNotificationContent } from '../../notifications/content-service';
 import { SuggestionStatus } from '../../types';
@@ -37,7 +36,6 @@ export async function processBatchNotification(
     userId,
     notificationsSent: 0,
     deliveryStatus: {
-      sms: 'skipped',
       email: 'skipped',
     },
     errors: [],
@@ -48,7 +46,7 @@ export async function processBatchNotification(
     const preferences = await preferencesRepository.getPreferences(userId);
     const prefs = preferences || preferencesRepository.getDefaultPreferences();
 
-    console.log(`User preferences - SMS: ${prefs.smsEnabled}, Email: ${prefs.emailEnabled}`);
+    console.log(`User preferences - Email: ${prefs.emailEnabled}`);
 
     // Get pending suggestions without calendar events
     const allSuggestions = await suggestionRepository.findAll(userId, {
@@ -65,9 +63,7 @@ export async function processBatchNotification(
 
     console.log(`Found ${suggestions.length} pending suggestions for user ${userId}`);
 
-    // Track SMS and email results
-    let smsSuccessCount = 0;
-    let smsFailCount = 0;
+    // Track email results
     let emailSuccessCount = 0;
     let emailFailCount = 0;
 
@@ -85,26 +81,6 @@ export async function processBatchNotification(
 
         // Generate notification content
         const content = generateNotificationContent(suggestion, contact);
-
-        // Send SMS if enabled and contact has phone
-        if (prefs.smsEnabled && contact.phone) {
-          try {
-            const smsResult = await smsService.sendSMS(contact.phone, content.sms);
-            if (smsResult.success) {
-              smsSuccessCount++;
-            } else {
-              smsFailCount++;
-              result.errors.push(`SMS failed for suggestion ${suggestion.id}: ${smsResult.error}`);
-            }
-          } catch (error) {
-            smsFailCount++;
-            result.errors.push(
-              `SMS error for suggestion ${suggestion.id}: ${
-                error instanceof Error ? error.message : String(error)
-              }`
-            );
-          }
-        }
 
         // Send email if enabled and contact has email
         if (prefs.emailEnabled && contact.email) {
@@ -144,16 +120,13 @@ export async function processBatchNotification(
     }
 
     // Set delivery status
-    if (prefs.smsEnabled) {
-      result.deliveryStatus.sms = smsFailCount === 0 && smsSuccessCount > 0 ? 'success' : 'failed';
-    }
     if (prefs.emailEnabled) {
       result.deliveryStatus.email =
         emailFailCount === 0 && emailSuccessCount > 0 ? 'success' : 'failed';
     }
 
     console.log(
-      `Batch notification complete for user ${userId} - sent: ${result.notificationsSent}, SMS: ${smsSuccessCount}/${smsSuccessCount + smsFailCount}, Email: ${emailSuccessCount}/${emailSuccessCount + emailFailCount}`
+      `Batch notification complete for user ${userId} - sent: ${result.notificationsSent}, Email: ${emailSuccessCount}/${emailSuccessCount + emailFailCount}`
     );
 
     return result;

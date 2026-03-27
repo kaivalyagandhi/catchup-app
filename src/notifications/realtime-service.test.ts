@@ -25,6 +25,7 @@ describe('RealtimeNotificationService', () => {
     email: 'john@example.com',
     groups: [],
     tags: [],
+    sources: [],
     archived: false,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -52,11 +53,7 @@ describe('RealtimeNotificationService', () => {
   });
 
   describe('sendRealtimeNotification', () => {
-    it('should send SMS and email when both enabled', async () => {
-      const mockSMSService = {
-        sendSMS: vi.fn().mockResolvedValue({ success: true, messageId: 'SMS123', attempts: 1 }),
-      };
-
+    it('should send email when enabled', async () => {
       const mockEmailService = {
         sendEmail: vi.fn().mockResolvedValue({ success: true, messageId: 'EMAIL123', attempts: 1 }),
       };
@@ -66,25 +63,20 @@ describe('RealtimeNotificationService', () => {
 
       const preferencesRepository = await import('./preferences-repository');
       (preferencesRepository.getPreferences as any) = vi.fn().mockResolvedValue({
-        smsEnabled: true,
+        smsEnabled: false,
         emailEnabled: true,
         batchDay: 0,
         batchTime: '09:00',
         timezone: 'America/New_York',
       });
 
-      const service = new RealtimeNotificationService(mockSMSService as any, mockEmailService as any);
+      const service = new RealtimeNotificationService(mockEmailService as any);
 
       const result = await service.sendRealtimeNotification('user-1', mockSuggestion);
 
       expect(result.suggestionId).toBe('suggestion-1');
-      expect(result.smsDelivered).toBe(true);
       expect(result.emailDelivered).toBe(true);
       expect(result.publishedToFeed).toBe(true);
-      expect(mockSMSService.sendSMS).toHaveBeenCalledWith(
-        '+19876543210',
-        expect.stringContaining('John Doe')
-      );
       expect(mockEmailService.sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'john@example.com',
@@ -93,11 +85,7 @@ describe('RealtimeNotificationService', () => {
       );
     });
 
-    it('should only send SMS when email disabled', async () => {
-      const mockSMSService = {
-        sendSMS: vi.fn().mockResolvedValue({ success: true, messageId: 'SMS123', attempts: 1 }),
-      };
-
+    it('should not send email when disabled', async () => {
       const mockEmailService = {
         sendEmail: vi.fn(),
       };
@@ -107,28 +95,22 @@ describe('RealtimeNotificationService', () => {
 
       const preferencesRepository = await import('./preferences-repository');
       (preferencesRepository.getPreferences as any) = vi.fn().mockResolvedValue({
-        smsEnabled: true,
+        smsEnabled: false,
         emailEnabled: false,
         batchDay: 0,
         batchTime: '09:00',
         timezone: 'America/New_York',
       });
 
-      const service = new RealtimeNotificationService(mockSMSService as any, mockEmailService as any);
+      const service = new RealtimeNotificationService(mockEmailService as any);
 
       const result = await service.sendRealtimeNotification('user-1', mockSuggestion);
 
-      expect(result.smsDelivered).toBe(true);
       expect(result.emailDelivered).toBe(false);
-      expect(mockSMSService.sendSMS).toHaveBeenCalled();
       expect(mockEmailService.sendEmail).not.toHaveBeenCalled();
     });
 
     it('should handle contact not found error', async () => {
-      const mockSMSService = {
-        sendSMS: vi.fn(),
-      };
-
       const mockEmailService = {
         sendEmail: vi.fn(),
       };
@@ -136,22 +118,17 @@ describe('RealtimeNotificationService', () => {
       const contactRepository = await import('../contacts/repository');
       (contactRepository.findById as any) = vi.fn().mockResolvedValue(null);
 
-      const service = new RealtimeNotificationService(mockSMSService as any, mockEmailService as any);
+      const service = new RealtimeNotificationService(mockEmailService as any);
 
       const result = await service.sendRealtimeNotification('user-1', mockSuggestion);
 
       expect(result.error).toContain('Contact');
-      expect(result.smsDelivered).toBe(false);
       expect(result.emailDelivered).toBe(false);
     });
 
-    it('should handle SMS delivery failure', async () => {
-      const mockSMSService = {
-        sendSMS: vi.fn().mockResolvedValue({ success: false, error: 'Network error', attempts: 3 }),
-      };
-
+    it('should handle email delivery failure', async () => {
       const mockEmailService = {
-        sendEmail: vi.fn().mockResolvedValue({ success: true, messageId: 'EMAIL123', attempts: 1 }),
+        sendEmail: vi.fn().mockResolvedValue({ success: false, error: 'Network error', attempts: 3 }),
       };
 
       const contactRepository = await import('../contacts/repository');
@@ -159,28 +136,23 @@ describe('RealtimeNotificationService', () => {
 
       const preferencesRepository = await import('./preferences-repository');
       (preferencesRepository.getPreferences as any) = vi.fn().mockResolvedValue({
-        smsEnabled: true,
+        smsEnabled: false,
         emailEnabled: true,
         batchDay: 0,
         batchTime: '09:00',
         timezone: 'America/New_York',
       });
 
-      const service = new RealtimeNotificationService(mockSMSService as any, mockEmailService as any);
+      const service = new RealtimeNotificationService(mockEmailService as any);
 
       const result = await service.sendRealtimeNotification('user-1', mockSuggestion);
 
-      expect(result.smsDelivered).toBe(false);
-      expect(result.emailDelivered).toBe(true);
+      expect(result.emailDelivered).toBe(false);
     });
   });
 
   describe('sendBulkRealtimeNotifications', () => {
     it('should send notifications for multiple suggestions', async () => {
-      const mockSMSService = {
-        sendSMS: vi.fn().mockResolvedValue({ success: true, messageId: 'SMS123', attempts: 1 }),
-      };
-
       const mockEmailService = {
         sendEmail: vi.fn().mockResolvedValue({ success: true, messageId: 'EMAIL123', attempts: 1 }),
       };
@@ -190,14 +162,14 @@ describe('RealtimeNotificationService', () => {
 
       const preferencesRepository = await import('./preferences-repository');
       (preferencesRepository.getPreferences as any) = vi.fn().mockResolvedValue({
-        smsEnabled: true,
+        smsEnabled: false,
         emailEnabled: true,
         batchDay: 0,
         batchTime: '09:00',
         timezone: 'America/New_York',
       });
 
-      const service = new RealtimeNotificationService(mockSMSService as any, mockEmailService as any);
+      const service = new RealtimeNotificationService(mockEmailService as any);
 
       const suggestions = [mockSuggestion, { ...mockSuggestion, id: 'suggestion-2' }];
       const results = await service.sendBulkRealtimeNotifications('user-1', suggestions);
@@ -205,7 +177,6 @@ describe('RealtimeNotificationService', () => {
       expect(results).toHaveLength(2);
       expect(results[0].suggestionId).toBe('suggestion-1');
       expect(results[1].suggestionId).toBe('suggestion-2');
-      expect(mockSMSService.sendSMS).toHaveBeenCalledTimes(2);
       expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(2);
     });
   });

@@ -61,7 +61,7 @@ describe('Health Check Endpoint', () => {
       expect(response.status).toBe(503);
       expect(response.body).toHaveProperty('status', 'unhealthy');
       expect(response.body).toHaveProperty('timestamp');
-      expect(response.body).toHaveProperty('error', 'Database connection failed');
+      expect(response.body.checks.database).toBe('unhealthy');
     });
 
     it('should return timestamp as a valid date', async () => {

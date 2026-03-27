@@ -31,7 +31,6 @@ export interface BatchNotificationResult {
   userId: string;
   notificationsSent: number;
   deliveryStatus: {
-    sms: 'success' | 'failed' | 'skipped';
     email: 'success' | 'failed' | 'skipped';
   };
   errors: string[];

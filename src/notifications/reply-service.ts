@@ -17,7 +17,6 @@ import * as voiceService from '../voice/voice-service';
 import * as suggestionRepository from '../matching/suggestion-repository';
 import * as contactRepository from '../contacts/repository';
 import * as interactionRepository from '../contacts/interaction-repository';
-import { SMSService, smsService as defaultSMSService } from './sms-service';
 import { EmailService, emailService as defaultEmailService } from './email-service';
 
 export interface ReplyAction {
@@ -45,24 +44,10 @@ export interface ReplyProcessingResult {
  * Reply Processing Service
  */
 export class ReplyProcessingService {
-  private smsService: SMSService;
   private emailService: EmailService;
 
-  constructor(smsService?: SMSService, emailService?: EmailService) {
-    this.smsService = smsService || defaultSMSService;
+  constructor(emailService?: EmailService) {
     this.emailService = emailService || defaultEmailService;
-  }
-
-  /**
-   * Process incoming SMS reply
-   */
-  async processIncomingSMS(
-    from: string,
-    body: string,
-    userId: string
-  ): Promise<ReplyProcessingResult> {
-    console.log(`Processing SMS reply from ${from} for user ${userId}`);
-    return await this.processReply(body, userId, from, 'sms');
   }
 
   /**
@@ -87,7 +72,7 @@ export class ReplyProcessingService {
     text: string,
     userId: string,
     replyAddress: string,
-    channel: 'sms' | 'email'
+    channel: 'email'
   ): Promise<ReplyProcessingResult> {
     const result: ReplyProcessingResult = {
       action: { type: 'none' },
@@ -132,10 +117,7 @@ export class ReplyProcessingService {
           contact
         );
 
-        if (channel === 'sms') {
-          const smsResult = await this.smsService.sendSMS(replyAddress, confirmationText);
-          result.confirmationSent = smsResult.success;
-        } else {
+        if (channel === 'email') {
           const emailResult = await this.emailService.sendEmail({
             to: replyAddress,
             subject: 'Confirm Contact Updates',
@@ -366,9 +348,6 @@ export const replyProcessingService = {
       _replyProcessingService = new ReplyProcessingService();
     }
     return _replyProcessingService;
-  },
-  processIncomingSMS(from: string, body: string, userId: string) {
-    return this.instance.processIncomingSMS(from, body, userId);
   },
   processIncomingEmail(from: string, subject: string, body: string, userId: string) {
     return this.instance.processIncomingEmail(from, subject, body, userId);

@@ -8,7 +8,6 @@
 import pool from '../db/connection';
 import { FrequencyOption, TagSource } from '../types';
 import cityTimezones from './city-timezones.json';
-import { calendarEventGenerator, TimeOfDay } from '../calendar/calendar-event-generator';
 
 /**
  * Test Data Generator Interface
@@ -435,25 +434,8 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
       const { invalidateContactCache } = await import('../utils/cache');
       await invalidateContactCache(userId);
 
-      // Generate calendar events if requested (outside transaction)
+      // Calendar event generation removed in v1 redesign (calendar-event-generator deleted)
       let calendarEventsCreated = 0;
-      if (includeCalendarEvents) {
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() + 14); // Next 14 days
-
-        const calendarEvents = await calendarEventGenerator.generateAvailabilitySlots(
-          userId,
-          startDate,
-          endDate,
-          {
-            includeWeekends: true,
-            timesOfDay: [TimeOfDay.Morning, TimeOfDay.Afternoon, TimeOfDay.Evening],
-            slotDuration: 60,
-          }
-        );
-        calendarEventsCreated = calendarEvents.length;
-      }
 
       // Generate voice notes if requested (outside transaction)
       let voiceNotesCreated = 0;
@@ -510,20 +492,8 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + daysAhead);
 
-    const calendarEvents = await calendarEventGenerator.getCalendarEvents(
-      userId,
-      startDate,
-      endDate
-    );
-
-    // Convert calendar events to time slots
-    const availableSlots = calendarEvents
-      .filter((event) => !event.isBusy)
-      .map((event) => ({
-        start: event.startTime,
-        end: event.endTime,
-        timezone: event.timezone,
-      }));
+    // Calendar event generator removed in v1 redesign — use empty slots
+    const availableSlots: Array<{ start: Date; end: Date; timezone: string }> = [];
 
     // Note: We no longer generate fake calendar events here since users can connect
     // their real Google Calendar. If no calendar events exist, we'll use empty slots.
@@ -793,6 +763,7 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
       updatedAt: row.updated_at,
       tags: (row.tags || []).filter((t: any) => t && t.id),
       groups: row.group_ids || [],
+      sources: row.sources || [],
     }));
 
     // Find potential groups with strong shared context
@@ -1169,22 +1140,10 @@ export class TestDataGeneratorImpl implements TestDataGenerator {
         };
 
       case 'calendarEvents':
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() + 14);
-        const calendarEvents = await calendarEventGenerator.generateAvailabilitySlots(
-          userId,
-          startDate,
-          endDate,
-          {
-            includeWeekends: true,
-            timesOfDay: [TimeOfDay.Morning, TimeOfDay.Afternoon, TimeOfDay.Evening],
-            slotDuration: 60,
-          }
-        );
+        // Calendar event generation removed in v1 redesign
         return {
-          itemsCreated: calendarEvents.length,
-          message: `Generated ${calendarEvents.length} test calendar events`,
+          itemsCreated: 0,
+          message: 'Calendar event generation has been removed in v1 redesign',
         };
 
       case 'suggestions':

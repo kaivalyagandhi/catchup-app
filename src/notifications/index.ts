@@ -4,9 +4,6 @@
  * Exports all notification-related services and types.
  */
 
-// SMS Service
-export { SMSService, SMSDeliveryResult, TwilioSMSService, smsService } from './sms-service';
-
 // Email Service
 export {
   EmailService,

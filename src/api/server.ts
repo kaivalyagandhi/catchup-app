@@ -13,7 +13,6 @@ import contactGroupsRouter from './routes/contact-groups';
 import groupsTagsRouter from './routes/groups-tags';
 import suggestionsRouter from './routes/suggestions';
 import calendarRouter from './routes/calendar';
-import calendarApiRouter from './routes/calendar-api';
 import googleCalendarOAuthRouter from './routes/google-calendar-oauth';
 import googleContactsOAuthRouter from './routes/google-contacts-oauth';
 import googleContactsSyncRouter from './routes/google-contacts-sync';
@@ -33,16 +32,7 @@ import aiBatchRouter from './routes/ai-batch';
 import gamificationRouter from './routes/gamification';
 import weeklyCatchupRouter from './routes/weekly-catchup';
 import privacyRouter from './routes/privacy';
-import phoneNumberRouter from './routes/phone-number';
-import smsWebhookRouter from './routes/sms-webhook';
 import enrichmentItemsRouter from './routes/enrichment-items';
-import smsMonitoringRouter from './routes/sms-monitoring';
-import smsPerformanceRouter from './routes/sms-performance';
-import twilioTestRouter from './routes/twilio-test';
-import schedulingRouter from './routes/scheduling';
-import schedulingAvailabilityRouter from './routes/scheduling-availability';
-import schedulingPreferencesRouter from './routes/scheduling-preferences';
-import schedulingNotificationsRouter from './routes/scheduling-notifications';
 import calendarWebhooksRouter from './routes/calendar-webhooks';
 import manualSyncRouter from './routes/manual-sync';
 import syncStatusRouter from './routes/sync-status';
@@ -166,7 +156,6 @@ export function createServer(): Express {
   app.use('/api/groups-tags', groupsTagsRouter);
   app.use('/api/suggestions', suggestionsRouter);
   app.use('/api/calendar/oauth', googleCalendarOAuthRouter);
-  app.use('/api/calendar', calendarApiRouter);
   app.use('/api/calendar', calendarRouter);
   app.use('/api/contacts/oauth', googleContactsOAuthRouter);
   app.use('/api/contacts/sync', googleContactsSyncRouter);
@@ -185,18 +174,7 @@ export function createServer(): Express {
   app.use('/api/gamification', gamificationRouter);
   app.use('/api/weekly-catchup', weeklyCatchupRouter);
   app.use('/api/privacy', privacyRouter);
-  app.use('/api/user/phone-number', phoneNumberRouter);
-  app.use('/api/sms/webhook', smsWebhookRouter);
   app.use('/api/enrichment-items', enrichmentItemsRouter);
-  app.use('/api/sms/monitoring', smsMonitoringRouter);
-  app.use('/api/sms/performance', smsPerformanceRouter);
-  app.use('/api/twilio/test', twilioTestRouter);
-
-  // Scheduling routes (Group Scheduling feature)
-  app.use('/api/scheduling', schedulingRouter);
-  app.use('/api/scheduling', schedulingAvailabilityRouter);
-  app.use('/api/scheduling', schedulingPreferencesRouter);
-  app.use('/api/scheduling', schedulingNotificationsRouter);
 
   // Webhook routes (Google Calendar push notifications)
   app.use('/api/webhooks', calendarWebhooksRouter);
@@ -267,25 +245,6 @@ export function createServer(): Express {
 
   app.get('/app', serveApp);
   app.get('/app/:page', serveApp);
-
-  // Public availability page route (no auth required)
-  // Serves the lightweight availability collection page for invitees
-  app.get('/availability/:token', (req: Request, res: Response) => {
-    const availabilityPath = path.join(process.cwd(), 'public', 'availability.html');
-
-    fs.readFile(availabilityPath, 'utf8', (err, html) => {
-      if (err) {
-        // If availability.html doesn't exist yet, serve a placeholder
-        console.error('Error reading availability.html:', err);
-        res.status(404).send('Availability page not found');
-        return;
-      }
-
-      res.setHeader('Content-Type', 'text/html');
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.send(html);
-    });
-  });
 
   // Serve index.html for all other routes (SPA support)
   // Inject test mode status and version info server-side to avoid flash of unstyled content

@@ -1,54 +1,18 @@
-import { Router, Request, Response } from 'express';
-import * as availabilityService from '../../calendar/availability-service';
+import { Router, Response } from 'express';
 import * as preferencesService from '../../notifications/preferences-service';
 import { userPreferencesService } from '../../users/preferences-service';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
-// PUT /preferences/availability - Update availability parameters
-router.put('/availability', async (req: Request, res: Response) => {
-  try {
-    const { userId, availabilityParams } = req.body;
-
-    if (!userId || !availabilityParams) {
-      return res.status(400).json({ error: 'userId and availabilityParams are required' });
-    }
-
-    await availabilityService.setAvailabilityParams(userId, availabilityParams);
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error updating availability preferences:', error);
-    res.status(500).json({ error: 'Failed to update availability preferences' });
-  }
-});
-
-// GET /preferences/availability - Get availability parameters
-router.get('/availability', async (req: Request, res: Response) => {
-  try {
-    const { userId } = req.query;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
-    }
-
-    const params = await availabilityService.getAvailabilityParams(userId as string);
-    // Add Cache-Control header for browser caching (5 minutes for preferences)
-    res.set('Cache-Control', 'private, max-age=300');
-    res.json(params);
-  } catch (error) {
-    console.error('Error fetching availability preferences:', error);
-    res.status(500).json({ error: 'Failed to fetch availability preferences' });
-  }
-});
-
 // PUT /preferences/notifications - Update notification preferences
-router.put('/notifications', async (req: Request, res: Response) => {
+router.put('/notifications', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId, notificationPreferences } = req.body;
+    const userId = req.userId;
+    const { notificationPreferences } = req.body;
 
     if (!userId || !notificationPreferences) {
-      return res.status(400).json({ error: 'userId and notificationPreferences are required' });
+      return res.status(400).json({ error: 'notificationPreferences is required' });
     }
 
     await preferencesService.setNotificationPreferences(userId, notificationPreferences);
@@ -60,15 +24,15 @@ router.put('/notifications', async (req: Request, res: Response) => {
 });
 
 // GET /preferences/notifications - Get notification preferences
-router.get('/notifications', async (req: Request, res: Response) => {
+router.get('/notifications', authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.query;
+    const userId = req.userId;
 
     if (!userId) {
-      return res.status(400).json({ error: 'userId query parameter is required' });
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const prefs = await preferencesService.getNotificationPreferences(userId as string);
+    const prefs = await preferencesService.getNotificationPreferences(userId);
     // Add Cache-Control header for browser caching (5 minutes for preferences)
     res.set('Cache-Control', 'private, max-age=300');
     res.json(prefs);

@@ -15,12 +15,12 @@ const router = Router();
  * GET /api/calendar/oauth/authorize
  * Redirect user to Google OAuth consent screen
  */
-router.get('/authorize', (req: Request, res: Response) => {
+router.get('/authorize', authenticate, (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.query;
+    const userId = req.userId;
 
-    if (!userId || typeof userId !== 'string') {
-      res.status(400).json({ error: 'userId is required' });
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 

@@ -63,6 +63,7 @@ export interface ContactCreateData {
   lastContactDate?: Date;
   frequencyPreference?: FrequencyOption;
   source?: 'manual' | 'google' | 'calendar' | 'voice_note';
+  sources?: string[];
   googleResourceName?: string;
   googleEtag?: string;
   lastSyncedAt?: Date;
@@ -93,6 +94,7 @@ export interface ContactUpdateData {
   dunbarCircle?: 'inner' | 'close' | 'active' | 'casual';
   // Google metadata fields - only updated during sync operations
   source?: 'manual' | 'google' | 'calendar' | 'voice_note';
+  sources?: string[];
   googleResourceName?: string;
   googleEtag?: string;
   lastSyncedAt?: Date;
@@ -119,9 +121,9 @@ export class PostgresContactRepository implements ContactRepository {
         `INSERT INTO contacts (
           user_id, name, phone, email, linked_in, instagram, x_handle,
           other_social_media, location, timezone, custom_notes,
-          last_contact_date, frequency_preference, source,
+          last_contact_date, frequency_preference, source, sources,
           google_resource_name, google_etag, last_synced_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
         RETURNING *`,
         [
           userId,
@@ -138,6 +140,7 @@ export class PostgresContactRepository implements ContactRepository {
           data.lastContactDate || null,
           data.frequencyPreference || null,
           data.source || 'manual',
+          data.sources || [data.source || 'manual'],
           data.googleResourceName || null,
           data.googleEtag || null,
           data.lastSyncedAt || null,
@@ -226,6 +229,10 @@ export class PostgresContactRepository implements ContactRepository {
       if (data.source !== undefined) {
         updates.push(`source = $${paramCount++}`);
         values.push(data.source || 'manual');
+      }
+      if (data.sources !== undefined) {
+        updates.push(`sources = $${paramCount++}`);
+        values.push(data.sources);
       }
       if (data.googleResourceName !== undefined) {
         updates.push(`google_resource_name = $${paramCount++}`);
@@ -391,8 +398,9 @@ export class PostgresContactRepository implements ContactRepository {
     }
 
     if (filters?.source) {
-      query += ` AND c.source = $${paramCount++}`;
+      query += ` AND ($${paramCount} = ANY(c.sources) OR c.source = $${paramCount})`;
       values.push(filters.source);
+      paramCount++;
     }
 
     query += ` GROUP BY c.id ORDER BY c.name ASC`;
@@ -426,7 +434,7 @@ export class PostgresContactRepository implements ContactRepository {
       LEFT JOIN groups g ON cg.group_id = g.id
       LEFT JOIN contact_tags ct ON c.id = ct.contact_id
       LEFT JOIN tags t ON ct.tag_id = t.id
-      WHERE c.user_id = $1 AND c.source = $2
+      WHERE c.user_id = $1 AND ($2 = ANY(c.sources) OR c.source = $2)
       GROUP BY c.id
       ORDER BY c.name ASC`,
       [userId, source]
@@ -464,7 +472,7 @@ export class PostgresContactRepository implements ContactRepository {
       await client.query('BEGIN');
 
       const result = await client.query(
-        'UPDATE contacts SET archived_at = NOW() WHERE id = $1 AND user_id = $2 AND archived_at IS NULL',
+        'UPDATE contacts SET archived = true, archived_at = NOW() WHERE id = $1 AND user_id = $2 AND archived_at IS NULL',
         [id, userId]
       );
 
@@ -487,7 +495,7 @@ export class PostgresContactRepository implements ContactRepository {
       await client.query('BEGIN');
 
       const result = await client.query(
-        'UPDATE contacts SET archived_at = NULL WHERE id = $1 AND user_id = $2 AND archived_at IS NOT NULL',
+        'UPDATE contacts SET archived = false, archived_at = NULL WHERE id = $1 AND user_id = $2 AND archived_at IS NOT NULL',
         [id, userId]
       );
 
@@ -674,7 +682,7 @@ export class PostgresContactRepository implements ContactRepository {
        SET google_resource_name = NULL,
            google_etag = NULL,
            last_synced_at = NULL
-       WHERE user_id = $1 AND source = 'google'`,
+       WHERE user_id = $1 AND ('google' = ANY(sources) OR source = 'google')`,
       [userId]
     );
   }
@@ -862,6 +870,7 @@ export class PostgresContactRepository implements ContactRepository {
       archived: row.archived,
       archivedAt: row.archived_at ? new Date(row.archived_at) : undefined,
       source: row.source || undefined,
+      sources: row.sources || [],
       googleResourceName: row.google_resource_name || undefined,
       googleEtag: row.google_etag || undefined,
       lastSyncedAt: row.last_synced_at ? new Date(row.last_synced_at) : undefined,

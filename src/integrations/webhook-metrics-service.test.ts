@@ -20,14 +20,14 @@ describe('Webhook Metrics Service', () => {
   beforeEach(async () => {
     // Create test users
     await pool.query(
-      `INSERT INTO users (id, email, name, google_id, auth_method, created_at, updated_at)
+      `INSERT INTO users (id, email, name, google_id, auth_provider, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        ON CONFLICT (id) DO NOTHING`,
       [TEST_USER_ID, 'test1@example.com', 'Test User 1', 'google-test-1', 'google']
     );
 
     await pool.query(
-      `INSERT INTO users (id, email, name, google_id, auth_method, created_at, updated_at)
+      `INSERT INTO users (id, email, name, google_id, auth_provider, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        ON CONFLICT (id) DO NOTHING`,
       [TEST_USER_ID_2, 'test2@example.com', 'Test User 2', 'google-test-2', 'google']

@@ -130,6 +130,7 @@ export class ImportServiceImpl implements ImportService {
       customNotes: contactData.organization,
       location: contactData.address,
       source: 'google',
+      sources: ['google'],
       googleResourceName: contactData.googleResourceName,
       googleEtag: contactData.googleEtag,
       lastSyncedAt: contactData.lastSyncedAt,
@@ -208,6 +209,9 @@ export class ImportServiceImpl implements ImportService {
 
       // Update Google metadata
       source: 'google',
+      sources: existingContact.sources.includes('google')
+        ? existingContact.sources
+        : [...existingContact.sources, 'google'],
       googleResourceName: data.googleResourceName,
       googleEtag: data.googleEtag,
       lastSyncedAt: data.lastSyncedAt,

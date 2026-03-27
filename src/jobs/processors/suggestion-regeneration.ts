@@ -8,7 +8,6 @@
 import { Job } from '../job-types';
 import * as suggestionService from '../../matching/suggestion-service';
 import * as suggestionRepository from '../../matching/suggestion-repository';
-import * as availabilityService from '../../calendar/availability-service';
 import { SuggestionStatus } from '../../types';
 
 export interface SuggestionRegenerationJobData {
@@ -76,29 +75,9 @@ export async function processSuggestionRegeneration(
       }
     }
 
-    // Generate new suggestions for available slots
-    const dateRange = {
-      start: now,
-      end: thirtyDaysFromNow,
-    };
-
-    // Get availability parameters
-    const availabilityParams = await availabilityService.getAvailabilityParams(userId);
-
-    // Get truly available slots (filtered by calendar events and user preferences)
-    const availableSlots = await availabilityService.getAvailableSlots(
-      userId,
-      dateRange,
-      availabilityParams || undefined
-    );
-
-    // Generate new suggestions (limit to top 10 slots to avoid overwhelming the user)
-    const topSlots = availableSlots.slice(0, 10);
-    const newSuggestions = await suggestionService.generateSuggestions(userId, topSlots, now);
-
     return {
       dismissed: dismissedCount,
-      created: newSuggestions.length,
+      created: 0,
     };
   } catch (error) {
     console.error('Error regenerating suggestions:', error);

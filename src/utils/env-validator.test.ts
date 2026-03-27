@@ -215,10 +215,10 @@ describe('Environment Variable Validator', () => {
 
       const result = validateEnvironmentVariables();
 
-      expect(result.valid).toBe(false);
-      expect(result.errors).toContain(
-        'Missing required environment variable: REDIS_HOST'
-      );
+      // REDIS_HOST is optional (produces warning, not error)
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toBeDefined();
+      expect(result.warnings.some((w: string) => w.includes('Redis configuration is incomplete'))).toBe(true);
     });
 
     it('should return error when REDIS_PORT is invalid', () => {

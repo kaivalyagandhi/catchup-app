@@ -128,7 +128,7 @@ describe('Edit History Property Tests', () => {
           fc.record({
             id: fc.uuid(),
             submittedAt: fc.date({ min: new Date('2020-01-01'), max: new Date('2025-12-31') }),
-          }),
+          }).filter(entry => !isNaN(entry.submittedAt.getTime())),
           { minLength: 2, maxLength: 20 }
         ),
         async (userId, entries) => {

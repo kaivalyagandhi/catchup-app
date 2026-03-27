@@ -145,7 +145,7 @@ describe('Google SSO Integration Tests', () => {
 
       mockedAxios.get.mockResolvedValueOnce({ data: mockPublicKeys });
 
-      // Step 3: Handle OAuth callback
+      // Step 3: Handle OAuth callback (redirects to frontend)
       const callbackResponse = await request(app)
         .get('/api/auth/google/callback')
         .query({
@@ -153,16 +153,10 @@ describe('Google SSO Integration Tests', () => {
           state: state,
         });
 
-      expect(callbackResponse.status).toBe(200);
-      expect(callbackResponse.body.message).toBe('Account created successfully');
-      expect(callbackResponse.body.isNewUser).toBe(true);
-      expect(callbackResponse.body.token).toBeTruthy();
-      expect(callbackResponse.body.user).toMatchObject({
-        email: 'newuser@test-integration.com',
-        name: 'New Test User',
-        profilePictureUrl: 'https://example.com/photo.jpg',
-        authProvider: 'google',
-      });
+      expect(callbackResponse.status).toBe(302);
+      expect(callbackResponse.headers.location).toContain('auth_success=true');
+      expect(callbackResponse.headers.location).toContain('token=');
+      expect(callbackResponse.headers.location).toContain('isNewUser=true');
 
       // Verify user was created in database
       const userResult = await pool.query(
@@ -175,8 +169,12 @@ describe('Google SSO Integration Tests', () => {
       expect(userResult.rows[0].auth_provider).toBe('google');
       expect(userResult.rows[0].name).toBe('New Test User');
 
-      // Verify JWT token is valid
-      const decoded = jwt.verify(callbackResponse.body.token, process.env.JWT_SECRET!) as any;
+      // Extract token from redirect URL and verify it
+      const location = callbackResponse.headers.location;
+      const tokenMatch = location.match(/token=([^&]+)/);
+      expect(tokenMatch).toBeTruthy();
+      const token = decodeURIComponent(tokenMatch![1]);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
       expect(decoded.userId).toBe(userResult.rows[0].id);
       expect(decoded.role).toBe(UserRole.USER);
     });
@@ -241,11 +239,9 @@ describe('Google SSO Integration Tests', () => {
           state: state,
         });
 
-      expect(callbackResponse.status).toBe(200);
-      expect(callbackResponse.body.message).toBe('Logged in successfully');
-      expect(callbackResponse.body.isNewUser).toBe(false);
-      expect(callbackResponse.body.token).toBeTruthy();
-      expect(callbackResponse.body.user.email).toBe('existing@test-integration.com');
+      expect(callbackResponse.status).toBe(302);
+      expect(callbackResponse.headers.location).toContain('auth_success=true');
+      expect(callbackResponse.headers.location).toContain('isNewUser=false');
 
       // Verify no duplicate user was created
       const userCount = await pool.query(
@@ -255,8 +251,12 @@ describe('Google SSO Integration Tests', () => {
 
       expect(parseInt(userCount.rows[0].count)).toBe(1);
 
-      // Verify JWT token contains correct user ID
-      const decoded = jwt.verify(callbackResponse.body.token, process.env.JWT_SECRET!) as any;
+      // Extract token from redirect URL and verify it
+      const location = callbackResponse.headers.location;
+      const tokenMatch = location.match(/token=([^&]+)/);
+      expect(tokenMatch).toBeTruthy();
+      const token = decodeURIComponent(tokenMatch![1]);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
       expect(decoded.userId).toBe(existingUserId);
     });
 
@@ -315,9 +315,9 @@ describe('Google SSO Integration Tests', () => {
           state: state,
         });
 
-      expect(callbackResponse.status).toBe(200);
-      expect(callbackResponse.body.isNewUser).toBe(false);
-      expect(callbackResponse.body.user.email).toBe('emailuser@test-integration.com');
+      expect(callbackResponse.status).toBe(302);
+      expect(callbackResponse.headers.location).toContain('auth_success=true');
+      expect(callbackResponse.headers.location).toContain('isNewUser=false');
 
       // Verify account was linked
       const updatedUser = await pool.query(
@@ -684,7 +684,7 @@ describe('Google SSO Integration Tests', () => {
         },
       });
 
-      // First use should succeed
+      // First use should succeed (redirect)
       const firstResponse = await request(app)
         .get('/api/auth/google/callback')
         .query({
@@ -692,7 +692,7 @@ describe('Google SSO Integration Tests', () => {
           state: state,
         });
 
-      expect(firstResponse.status).toBe(200);
+      expect(firstResponse.status).toBe(302);
 
       // Second use of same state should fail
       const secondResponse = await request(app)

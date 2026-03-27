@@ -29,7 +29,7 @@ router.post(
     // Validate input
     const validation = validateCircleAssignment({ contactId, circle });
     if (!validation.valid) {
-      res.status(400).json({ errors: validation.errors });
+      res.status(400).json({ error: Object.values(validation.errors).join(', ') });
       return;
     }
 
@@ -53,6 +53,23 @@ router.post(
     if (!assignments || !Array.isArray(assignments)) {
       res.status(400).json({ error: 'assignments array is required' });
       return;
+    }
+
+    if (assignments.length === 0) {
+      res.status(400).json({ error: 'assignments cannot be empty' });
+      return;
+    }
+
+    // Validate each assignment
+    for (const assignment of assignments) {
+      if (!assignment.circle) {
+        res.status(400).json({ error: 'Each assignment must have a circle' });
+        return;
+      }
+      if (!VALID_CIRCLES.includes(assignment.circle)) {
+        res.status(400).json({ error: `Invalid circle: ${assignment.circle}` });
+        return;
+      }
     }
 
     const circleService = new CircleAssignmentServiceImpl();

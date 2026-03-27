@@ -1,5 +1,6 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import pool from '../../db/connection';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -7,12 +8,13 @@ const router = Router();
  * GET /api/enrichment-items - List enrichment items with filters
  * Requirements: 6.2
  */
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, source, status, contactId } = req.query;
+    const userId = req.userId;
+    const { source, status, contactId } = req.query;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -96,13 +98,14 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
  * PATCH /api/enrichment-items/:id - Update enrichment item status
  * Requirements: 6.3, 6.4, 6.5
  */
-router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
+router.patch('/:id', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { userId, accepted, value } = req.body;
+    const userId = req.userId;
+    const { accepted, value } = req.body;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -170,12 +173,13 @@ router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
  * POST /api/enrichment-items/apply - Apply accepted enrichment items
  * Requirements: 6.3
  */
-router.post('/apply', async (req: Request, res: Response): Promise<void> => {
+router.post('/apply', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, enrichmentIds } = req.body;
+    const userId = req.userId;
+    const { enrichmentIds } = req.body;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 

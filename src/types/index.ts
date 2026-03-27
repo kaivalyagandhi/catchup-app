@@ -5,9 +5,6 @@
  * used across the CatchUp application.
  */
 
-// Re-export scheduling types
-export * from './scheduling';
-
 // Enums
 export enum FrequencyOption {
   DAILY = 'daily',
@@ -66,7 +63,9 @@ export interface Contact {
   tags: Tag[];
   archived: boolean;
   archivedAt?: Date;
+  /** @deprecated Use `sources` array instead. Kept for backward compatibility. */
   source?: 'manual' | 'google' | 'calendar' | 'voice_note';
+  sources: string[];
   googleResourceName?: string;
   googleEtag?: string;
   lastSyncedAt?: Date;

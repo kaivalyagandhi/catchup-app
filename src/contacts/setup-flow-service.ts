@@ -14,7 +14,6 @@ import {
 } from './calendar-friend-service';
 import { AvailabilityParams, NotificationPreferences, DateRange } from '../types';
 import * as calendarService from '../calendar/calendar-service';
-import * as availabilityService from '../calendar/availability-service';
 import * as notificationPreferencesService from '../notifications/preferences-service';
 
 export interface SetupFlowStep {
@@ -191,7 +190,8 @@ export class SetupFlowServiceImpl implements SetupFlowService {
    * Requirements: 18.7, 20.1, 20.2, 20.3, 20.4
    */
   async configureAvailability(userId: string, params: AvailabilityParams): Promise<void> {
-    await availabilityService.setAvailabilityParams(userId, params);
+    // Availability configuration removed in v1 redesign
+    console.log(`Availability configuration skipped for user ${userId} (deprecated)`);
   }
 
   /**

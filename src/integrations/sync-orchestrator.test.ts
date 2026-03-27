@@ -24,9 +24,9 @@ describe('Sync Orchestrator', () => {
   beforeEach(async () => {
     // Create test user with google_id to satisfy check_auth_method constraint
     await pool.query(
-      `INSERT INTO users (id, email, name, google_id, auth_method, created_at, updated_at)
+      `INSERT INTO users (id, email, name, google_id, auth_provider, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, google_id = EXCLUDED.google_id, auth_method = EXCLUDED.auth_method`,
+       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, google_id = EXCLUDED.google_id, auth_provider = EXCLUDED.auth_provider`,
       [TEST_USER_ID, `test-${Date.now()}@example.com`, 'Test User', `google-${Date.now()}`, 'google']
     );
 

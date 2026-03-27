@@ -6,6 +6,7 @@ import { VoiceNoteRepository } from '../../voice/voice-repository';
 import { EnrichmentService } from '../../voice/enrichment-service';
 import { contactService } from '../../contacts/service';
 import { VoiceNoteFilters } from '../../types';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 const voiceNoteService = VoiceNoteService.getInstance();
@@ -30,12 +31,13 @@ const upload = multer({
 
 // POST /api/voice-notes/sessions - Create recording session
 // Requirements: 1.1, 1.2, 1.3
-router.post('/sessions', async (req: Request, res: Response): Promise<void> => {
+router.post('/sessions', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, languageCode } = req.body;
+    const userId = req.userId;
+    const { languageCode } = req.body;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -59,13 +61,13 @@ router.post('/sessions', async (req: Request, res: Response): Promise<void> => {
 
 // POST /api/voice-notes/:sessionId/finalize - Finalize voice note
 // Requirements: 1.7, 2.1-2.6, 3.1-3.6
-router.post('/:sessionId/finalize', async (req: Request, res: Response): Promise<void> => {
+router.post('/:sessionId/finalize', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { sessionId } = req.params;
-    const { userId } = req.body;
+    const userId = req.userId;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -90,17 +92,17 @@ router.post('/:sessionId/finalize', async (req: Request, res: Response): Promise
 
 // GET /api/voice-notes/:id - Get voice note by ID
 // Requirements: 13.4
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+router.get('/:id', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { userId } = req.query;
+    const userId = req.userId;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
-    const voiceNote = await voiceNoteRepository.getById(id, userId as string);
+    const voiceNote = await voiceNoteRepository.getById(id, userId);
 
     if (!voiceNote) {
       res.status(404).json({ error: 'Voice note not found' });
@@ -116,12 +118,13 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 
 // GET /api/voice-notes - List voice notes with filters
 // Requirements: 6.1-6.8, 13.4, 13.6, 13.7, 13.8
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, contactIds, status, dateFrom, dateTo, searchText } = req.query;
+    const userId = req.userId;
+    const { contactIds, status, dateFrom, dateTo, searchText } = req.query;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -150,7 +153,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       filters.searchText = searchText as string;
     }
 
-    const voiceNotes = await voiceNoteRepository.listByUserId(userId as string, filters);
+    const voiceNotes = await voiceNoteRepository.listByUserId(userId, filters);
 
     res.json(voiceNotes);
   } catch (error) {
@@ -161,17 +164,17 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
 // DELETE /api/voice-notes/:id - Delete voice note
 // Requirements: 13.7
-router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+router.delete('/:id', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { userId } = req.query;
+    const userId = req.userId;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId query parameter is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
-    await voiceNoteRepository.delete(id, userId as string);
+    await voiceNoteRepository.delete(id, userId);
 
     res.status(204).send();
   } catch (error) {
@@ -185,16 +188,16 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /voice-notes - Upload and process a voice note (Google Speech-to-Text)
-router.post('/', upload.single('audio'), async (req: Request, res: Response) => {
+router.post('/', upload.single('audio'), authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Audio file is required' });
     }
 
-    const { userId } = req.body;
+    const userId = req.userId;
 
     if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
     console.log(
@@ -283,13 +286,14 @@ router.post('/', upload.single('audio'), async (req: Request, res: Response) => 
 
 // POST /api/voice-notes/:id/enrichment/apply - Apply enrichment
 // Requirements: 4.8, 4.9, 4.10, 4.11
-router.post('/:id/enrichment/apply', async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/enrichment/apply', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { userId, enrichmentProposal } = req.body;
+    const userId = req.userId;
+    const { enrichmentProposal } = req.body;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -390,13 +394,14 @@ router.post('/:id/enrichment/apply', async (req: Request, res: Response): Promis
 
 // PATCH /api/voice-notes/:id/contacts - Update contact associations
 // Requirements: 2.2, 2.6
-router.patch('/:id/contacts', async (req: Request, res: Response): Promise<void> => {
+router.patch('/:id/contacts', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { userId, contactIds, action } = req.body;
+    const userId = req.userId;
+    const { contactIds, action } = req.body;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -454,12 +459,13 @@ router.patch('/:id/contacts', async (req: Request, res: Response): Promise<void>
 
 // POST /api/voice-notes/text - Process a text message for enrichment (no audio)
 // This allows users to type messages like "Carol is moving to SF" and get enrichment proposals
-router.post('/text', async (req: Request, res: Response): Promise<void> => {
+router.post('/text', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, text } = req.body;
+    const userId = req.userId;
+    const { text } = req.body;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -641,12 +647,13 @@ router.post('/text', async (req: Request, res: Response): Promise<void> => {
 });
 
 // Legacy endpoint - POST /voice-notes/:id/enrichment - Apply enrichment from voice note
-router.post('/:id/enrichment', async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/enrichment', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId, enrichmentProposal } = req.body;
+    const userId = req.userId;
+    const { enrichmentProposal } = req.body;
 
     if (!userId || !enrichmentProposal) {
-      res.status(400).json({ error: 'userId and enrichmentProposal are required' });
+      res.status(400).json({ error: 'enrichmentProposal is required' });
       return;
     }
 

@@ -25,6 +25,17 @@ vi.mock('googleapis', () => {
   };
 });
 
+// Mock database connection for updateContactMemberships
+vi.mock('../db/connection', () => ({
+  default: {
+    query: vi.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+    connect: vi.fn().mockResolvedValue({
+      query: vi.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+      release: vi.fn(),
+    }),
+  },
+}));
+
 describe('ImportService', () => {
   let service: ImportServiceImpl;
   let mockRepository: ContactRepository;
@@ -64,6 +75,7 @@ describe('ImportService', () => {
         customNotes: 'Met at conference 2024',
         lastContactDate: new Date('2024-01-15'),
         source: 'google',
+        sources: ['google'],
         googleResourceName: 'people/c123',
         googleEtag: 'etag123',
         groups: [],
@@ -112,6 +124,7 @@ describe('ImportService', () => {
         phone: '+9876543210',
         location: 'San Francisco',
         source: 'google',
+        sources: ['google'],
         googleResourceName: 'people/c123',
         googleEtag: 'etag456',
         // CatchUp-specific fields should NOT be in the update
@@ -140,6 +153,7 @@ describe('ImportService', () => {
         email: 'jane@example.com',
         customNotes: 'Met at conference 2024. Interested in AI.',
         source: 'google',
+        sources: ['google'],
         googleResourceName: 'people/c456',
         groups: [],
         tags: [],
@@ -182,6 +196,7 @@ describe('ImportService', () => {
         email: 'bob@example.com',
         customNotes: 'Engineer at Old Corp',
         source: 'google',
+        sources: ['google'],
         googleResourceName: 'people/c789',
         groups: [],
         tags: [],
@@ -224,6 +239,7 @@ describe('ImportService', () => {
         email: 'alice@example.com',
         customNotes: 'Friend from college. Loves hiking.',
         source: 'google',
+        sources: ['google'],
         googleResourceName: 'people/c999',
         groups: [],
         tags: [],
@@ -295,6 +311,7 @@ describe('ImportService', () => {
         email: 'john@example.com',
         phone: '+1234567890',
         source: 'google',
+        sources: ['google'],
         googleResourceName: 'people/c123',
         googleEtag: 'etag123',
         groups: [],
@@ -327,6 +344,7 @@ describe('ImportService', () => {
         email: 'john@example.com',
         groups: [],
         tags: [],
+        sources: [],
         archived: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -343,6 +361,7 @@ describe('ImportService', () => {
         name: 'John Doe',
         phone: '+1234567890',
         source: 'google',
+        sources: ['google'],
         googleResourceName: 'people/c123',
         googleEtag: 'etag123',
       });
@@ -393,6 +412,7 @@ describe('ImportService', () => {
         phone: '+1234567890',
         groups: [],
         tags: [],
+        sources: [],
         archived: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -410,6 +430,7 @@ describe('ImportService', () => {
         email: 'different@example.com',
         phone: '(123) 456-7890',
         source: 'google',
+        sources: ['google'],
         googleResourceName: 'people/c123',
         googleEtag: 'etag123',
       });
@@ -519,6 +540,7 @@ describe('ImportService', () => {
         email: 'john@example.com',
         linkedIn: 'https://www.linkedin.com/in/johndoe',
         source: 'google',
+        sources: ['google'],
         googleResourceName: 'people/c123',
         googleEtag: 'etag123',
         groups: [],
@@ -538,6 +560,7 @@ describe('ImportService', () => {
         linkedIn: 'https://www.linkedin.com/in/johndoe',
         customNotes: undefined,
         source: 'google',
+        sources: ['google'],
         googleResourceName: 'people/c123',
         googleEtag: 'etag123',
       }));
