@@ -1789,3 +1789,114 @@
   color: #9ca3af;
   border-color: #4b5563;
 }
+
+
+/* ==========================================================================
+   Enrichment Columns — Health dot, Sources, Last Interaction
+   ========================================================================== */
+
+.health-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.contact-last-interaction {
+  font-size: 13px;
+  color: var(--text-secondary, #78716c);
+  white-space: nowrap;
+}
+
+.contact-health {
+  text-align: center;
+  width: 60px;
+}
+
+.contact-sources {
+  white-space: nowrap;
+}
+
+/* Clickable rows */
+tr.contact-row-clickable {
+  cursor: pointer;
+}
+
+tr.contact-row-clickable:hover td {
+  background: var(--bg-hover, #e7e5e4);
+}
+
+
+/* Column width hints for enrichment columns */
+.contacts-table th[data-column="name"] { min-width: 160px; }
+.contacts-table th[data-column="lastContactDate"] { min-width: 110px; white-space: nowrap; }
+.contacts-table th[data-column="health"] { width: 60px; text-align: center; }
+.contacts-table th[data-column="sources"] { width: 70px; }
+.contacts-table th[data-column="phone"] { min-width: 130px; }
+.contacts-table th[data-column="email"] { min-width: 140px; }
+.contacts-table th[data-column="dunbarCircle"] { min-width: 110px; }
+.contacts-table th[data-column="groups"] { min-width: 100px; }
+.contacts-table th[data-column="actions"] { width: 70px; }
+
+/* Source pills */
+.source-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  letter-spacing: 0.3px;
+  line-height: 16px;
+}
+
+/* Health indicator with label */
+.health-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.health-indicator__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.health-indicator__label {
+  color: var(--text-secondary, #78716c);
+  font-weight: 500;
+}
+
+/* Icon buttons for actions */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary, #78716c);
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.btn-icon:hover {
+  background: var(--bg-hover, #e7e5e4);
+  color: var(--text-primary, #1c1917);
+}
+
+.btn-icon.btn-delete:hover {
+  color: var(--status-error, #ef4444);
+}
+
+.btn-icon.btn-restore:hover {
+  color: var(--status-success, #10b981);
+}

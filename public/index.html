@@ -38,6 +38,9 @@
     <link rel="stylesheet" href="/css/google-mappings-review.css">
     <link rel="stylesheet" href="/css/timezone-selector.css">
     <link rel="stylesheet" href="/css/archived-contacts.css">
+    <link rel="stylesheet" href="/css/notification-center.css">
+    <link rel="stylesheet" href="/css/settings-page.css">
+    <link rel="stylesheet" href="/css/contact-detail-panel.css">
     <!-- Tier 1 Foundation: AI-powered circle assignment -->
     <link rel="stylesheet" href="/css/batch-suggestion-card.css">
     <link rel="stylesheet" href="/css/quick-refine-card.css">
@@ -434,6 +437,100 @@
             color: var(--text-primary);
             text-align: center;
             line-height: var(--leading-tight);
+        }
+
+        /* Auth Screen — revamped with landing page elements */
+        .auth-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .auth-screen__hero {
+            text-align: center;
+            max-width: 720px;
+            margin-bottom: 40px;
+        }
+
+        .auth-screen__title {
+            font-family: var(--font-heading, 'Cabin Sketch', cursive);
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin: 0 0 12px 0;
+            letter-spacing: 1px;
+        }
+
+        .auth-screen__tagline {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin: 0 0 32px 0;
+            line-height: 1.5;
+        }
+
+        .auth-screen__features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 40px;
+            text-align: left;
+        }
+
+        .auth-screen__feature {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .auth-screen__feature svg {
+            flex-shrink: 0;
+            color: var(--accent-primary);
+            stroke: var(--accent-primary);
+        }
+
+        .auth-screen__card {
+            max-width: 400px;
+            width: 100%;
+            background: var(--bg-surface);
+            padding: 32px;
+            border-radius: 16px;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .auth-screen__card h2 {
+            font-family: var(--font-heading);
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            color: var(--text-primary);
+        }
+
+        .auth-screen__card-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0 0 24px 0;
+        }
+
+        .auth-screen__privacy {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin: 20px 0 0 0;
+        }
+
+        @media (max-width: 600px) {
+            .auth-screen__features {
+                grid-template-columns: 1fr;
+            }
+            .auth-screen__title {
+                font-size: 36px;
+            }
         }
         
         .auth-toggle {
@@ -2932,20 +3029,16 @@
 <body>
     <!-- Theme Toggle Button -->
     <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
-        <svg class="theme-icon-latte" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="5"/>
-            <line x1="12" y1="1" x2="12" y2="3"/>
-            <line x1="12" y1="21" x2="12" y2="23"/>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-            <line x1="1" y1="12" x2="3" y2="12"/>
-            <line x1="21" y1="12" x2="23" y2="12"/>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-        </svg>
-        <svg class="theme-icon-espresso" viewBox="0 0 24 24" style="display: none;">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
+        <span class="theme-icon-latte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5" fill="currentColor"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>
+        <span class="theme-icon-espresso" style="display: none;"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+    </button>
+
+    <!-- Notification Bell (top-right, next to theme toggle) -->
+    <button class="top-action-btn" id="notification-bell-fixed" aria-label="Notifications">
+      <span style="font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor"/></svg>
+      </span>
+      <span class="top-action-btn__badge" id="notification-badge-fixed" style="display:none;">0</span>
     </button>
 
     <!-- Loading Screen -->
@@ -2958,54 +3051,91 @@
     </div>
     
     <!-- Auth Screen -->
-    <div id="auth-screen" class="auth-container hidden">
-        <h2 id="auth-title">Welcome to CatchUp</h2>
-        
-        <!-- Google SSO Messages -->
-        <div id="google-sso-error" class="error hidden"></div>
-        <div id="google-sso-success" class="success hidden"></div>
-        <div id="google-sso-loading" class="info-message hidden"></div>
-        
-        <!-- Google SSO Button (Always Visible) -->
-        <button id="google-sso-btn" class="google-sso-button" type="button">
-            <svg class="google-logo" width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-                <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.44 15.983 5.485 18 9.003 18z" fill="#34A853"/>
-                <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-                <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.485 0 2.44 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
-            </svg>
-            <span>Sign in with Google</span>
-        </button>
-        
-        <!-- Email/Password Form (Only in Test Mode) -->
-        <div id="email-auth-form" style="display: none;">
-            <div class="auth-divider">
-                <span>OR</span>
+    <div id="auth-screen" class="auth-screen hidden">
+        <div class="auth-screen__hero">
+            <h1 class="auth-screen__title">CatchUp</h1>
+            <p class="auth-screen__tagline">Relationship intelligence from your real conversations</p>
+            
+            <div class="auth-screen__features">
+                <div class="auth-screen__feature">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>Import your chat history</span>
+                </div>
+                <div class="auth-screen__feature">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                    <span>See who you talk to most</span>
+                </div>
+                <div class="auth-screen__feature">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+                    <span>Get AI-powered catchup suggestions</span>
+                </div>
+                <div class="auth-screen__feature">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                    <span>Organize contacts into circles</span>
+                </div>
+                <div class="auth-screen__feature">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                    <span>Sync across Google and Apple</span>
+                </div>
+                <div class="auth-screen__feature">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                    <span>Your data stays private</span>
+                </div>
             </div>
+        </div>
+
+        <div class="auth-screen__card">
+            <h2 id="auth-title">Get Started</h2>
+            <p class="auth-screen__card-subtitle">Sign in to see your relationship insights</p>
             
-            <div id="auth-error" class="error hidden"></div>
-            <div id="auth-success" class="success hidden"></div>
+            <!-- Google SSO Messages -->
+            <div id="google-sso-error" class="error hidden"></div>
+            <div id="google-sso-success" class="success hidden"></div>
+            <div id="google-sso-loading" class="info-message hidden"></div>
             
-            <form id="auth-form" onsubmit="handleAuth(event)">
-                <div class="form-group">
-                    <label for="auth-email">Email</label>
-                    <input type="email" id="auth-email" required>
+            <!-- Google SSO Button -->
+            <button id="google-sso-btn" class="google-sso-button" type="button">
+                <svg class="google-logo" width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                    <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.44 15.983 5.485 18 9.003 18z" fill="#34A853"/>
+                    <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                    <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.485 0 2.44 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
+                </svg>
+                <span>Sign in with Google</span>
+            </button>
+            
+            <!-- Email/Password Form (Only in Test Mode) -->
+            <div id="email-auth-form" style="display: none;">
+                <div class="auth-divider">
+                    <span>OR</span>
                 </div>
                 
-                <div class="form-group">
-                    <label for="auth-password">Password</label>
-                    <input type="password" id="auth-password" required minlength="6">
+                <div id="auth-error" class="error hidden"></div>
+                <div id="auth-success" class="success hidden"></div>
+                
+                <form id="auth-form" onsubmit="handleAuth(event)">
+                    <div class="form-group">
+                        <label for="auth-email">Email</label>
+                        <input type="email" id="auth-email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="auth-password">Password</label>
+                        <input type="password" id="auth-password" required minlength="6">
+                    </div>
+                    
+                    <button type="submit" id="auth-submit-btn">Login</button>
+                </form>
+                
+                <div class="auth-toggle">
+                    <span id="auth-toggle-text">Don't have an account?</span>
+                    <a id="auth-toggle-link" onclick="toggleAuthMode()">Sign up</a>
                 </div>
                 
-                <button type="submit" id="auth-submit-btn">Login</button>
-            </form>
-            
-            <div class="auth-toggle">
-                <span id="auth-toggle-text">Don't have an account?</span>
-                <a id="auth-toggle-link" onclick="toggleAuthMode()">Sign up</a>
+                <p class="test-mode-notice">🧪 Test Mode Enabled</p>
             </div>
-            
-            <p class="test-mode-notice">🧪 Test Mode Enabled</p>
+
+            <p class="auth-screen__privacy">Your data stays private. We never share your contacts or conversations.</p>
         </div>
     </div>
     
@@ -3031,14 +3161,14 @@
             <div id="onboarding-indicator-container"></div>
             
             <nav class="sidebar__nav">
-                <a href="#directory" class="nav-item" data-page="directory">
+                <a href="#dashboard" class="nav-item active" data-page="dashboard">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                         <polyline points="9 22 9 12 15 12 15 22"/>
                     </svg>
                     <span>Home</span>
                 </a>
-                <a href="#directory" class="nav-item active" data-page="directory">
+                <a href="#directory" class="nav-item" data-page="directory">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
                     </svg>
@@ -3071,8 +3201,16 @@
         <!-- Main Content Area -->
         <main class="main-content">
             <div class="main-content__inner">
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page hidden">
+                <div class="page-header">
+                    <h1 class="page-header-title">Home</h1>
+                </div>
+                <div id="dashboard-content"></div>
+            </div>
+
             <!-- Directory Page -->
-            <div id="directory-page" class="page">
+            <div id="directory-page" class="page hidden">
                 <div class="page-header">
                     <h1 class="page-header-title">Directory</h1>
                     <div class="page-header-actions">
@@ -3170,14 +3308,14 @@
         
         <!-- Mobile Bottom Navigation (Mobile only) -->
         <nav class="mobile-nav" id="mobile-nav">
-            <a href="#directory" class="mobile-nav__item" data-page="directory" onclick="navigateToPage('directory'); return false;">
+            <a href="#dashboard" class="mobile-nav__item mobile-nav__item--active" data-page="dashboard" onclick="navigateToPage('dashboard'); return false;">
                 <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                     <polyline points="9 22 9 12 15 12 15 22"/>
                 </svg>
                 <span class="mobile-nav__label">Home</span>
             </a>
-            <a href="#directory" class="mobile-nav__item mobile-nav__item--active" data-page="directory" onclick="navigateToPage('directory'); return false;">
+            <a href="#directory" class="mobile-nav__item" data-page="directory" onclick="navigateToPage('directory'); return false;">
                 <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
                 </svg>
@@ -3482,12 +3620,148 @@
     
     
     <script type="module" src="/js/app-shell.js"></script>
+    <script type="module" src="/js/home-dashboard.js"></script>
     <script type="module" src="/js/directory-page.js"></script>
     <script type="module" src="/js/suggestions-page.js"></script>
     <script type="module" src="/js/settings-page.js"></script>
+    <script type="module" src="/js/import-wizard.js"></script>
+    <script type="module" src="/js/contact-detail-panel.js"></script>
+    <script type="module" src="/js/notification-center.js"></script>
 
     <!-- Version info styles for preferences page -->
     <style>
+        /* ============================================
+           DASHBOARD STYLES
+           ============================================ */
+        .dashboard-section { margin-bottom: 24px; }
+        .dashboard-section__title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; }
+        .dashboard-subsection__title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
+        .dashboard-grid { display: grid; gap: 12px; }
+        .dashboard-grid--actions { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+        .dashboard-grid--stats { grid-template-columns: repeat(3, 1fr); }
+        .dashboard-card { padding: 16px; border: 1px solid var(--border-primary); border-radius: 12px; background: var(--card-bg); cursor: pointer; transition: box-shadow 0.2s, transform 0.1s; text-align: center; }
+        .dashboard-card:hover { box-shadow: 0 4px 12px var(--card-shadow); transform: translateY(-1px); }
+        .dashboard-card__icon { font-size: 28px; margin-bottom: 8px; }
+        .dashboard-card__count { font-size: 28px; font-weight: 700; color: var(--color-primary); }
+        .dashboard-card__label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+        .dashboard-card__desc { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+        .dashboard-stat { padding: 16px; border: 1px solid var(--border-primary); border-radius: 12px; background: var(--card-bg); text-align: center; }
+        .dashboard-stat__value { font-size: 32px; font-weight: 700; color: var(--text-primary); }
+        .dashboard-stat__label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+        .dashboard-nudge { padding: 16px; border: 1px solid var(--color-warning); border-radius: 12px; background: var(--card-bg); margin-bottom: 12px; }
+        .dashboard-nudge__content { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+        .dashboard-nudge__icon { font-size: 24px; flex-shrink: 0; }
+        .dashboard-nudge__title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+        .dashboard-nudge__desc { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+        .dashboard-nudge__actions { display: flex; gap: 8px; }
+        .dashboard-catchup-list { margin-top: 16px; }
+        .dashboard-catchup-item { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
+        .dashboard-catchup-item:hover { background: var(--bg-secondary); }
+        .dashboard-catchup-item__avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--color-primary); color: var(--text-inverse); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; flex-shrink: 0; }
+        .dashboard-catchup-item__name { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+        .dashboard-catchup-item__reason { font-size: 12px; color: var(--text-secondary); }
+        .dashboard-zero-state { text-align: center; padding: 40px 20px; }
+        .dashboard-zero-state__icon { font-size: 48px; margin-bottom: 16px; }
+        .dashboard-zero-state h2 { font-size: 22px; color: var(--text-primary); margin-bottom: 8px; }
+        .dashboard-zero-state p { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; }
+        .dashboard-zero-state__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        @media (max-width: 768px) {
+          .dashboard-grid--actions, .dashboard-grid--stats, .dashboard-zero-state__cards { grid-template-columns: 1fr; }
+        }
+
+        /* ============================================
+           CONTACT DETAIL PANEL STYLES
+           ============================================ */
+        .contact-detail-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); z-index: 900; opacity: 0; transition: opacity 0.2s; }
+        .contact-detail-overlay.show { opacity: 1; }
+        .contact-detail-panel { position: fixed; top: 0; right: -480px; width: 480px; max-width: 100vw; height: 100vh; background: var(--bg-primary); border-left: 1px solid var(--border-primary); z-index: 901; overflow-y: auto; transition: right 0.3s ease; box-shadow: -4px 0 20px var(--card-shadow); }
+        .contact-detail-panel.open { right: 0; }
+        .contact-detail-panel__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-primary); position: sticky; top: 0; background: var(--bg-primary); z-index: 1; }
+        .contact-detail-panel__close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-secondary); padding: 4px 8px; border-radius: 4px; }
+        .contact-detail-panel__close:hover { background: var(--bg-secondary); color: var(--text-primary); }
+        .contact-detail-panel__body { padding: 20px; }
+        .contact-detail-section { margin-bottom: 24px; }
+        .contact-detail-section__title { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+        .contact-detail-field { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-primary); }
+        .contact-detail-field__label { font-size: 13px; color: var(--text-secondary); }
+        .contact-detail-field__value { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+        .contact-detail-field__value input { border: 1px solid var(--border-primary); border-radius: 4px; padding: 4px 8px; font-size: 13px; background: var(--input-bg); color: var(--text-primary); margin-bottom: 0; width: auto; }
+        .enrichment-source-card { padding: 12px; border: 1px solid var(--border-primary); border-radius: 8px; margin-bottom: 8px; background: var(--card-bg); }
+        .enrichment-source-card__header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .enrichment-source-card__platform { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+        .enrichment-source-card__stats { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); }
+        .source-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; background: var(--tag-bg); color: var(--tag-text); border: 1px solid var(--tag-border); }
+        .sync-status { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+        .sync-status__dot { width: 8px; height: 8px; border-radius: 50%; }
+        .sync-status__dot--synced { background: var(--color-success); }
+        .sync-status__dot--pending { background: var(--color-warning); }
+        .sync-status__dot--conflict { background: var(--color-danger); }
+        @media (max-width: 768px) {
+          .contact-detail-panel { width: 100vw; right: -100vw; }
+          .contact-detail-overlay { display: none; }
+        }
+
+        /* ============================================
+           IMPORT WIZARD STYLES
+           ============================================ */
+        .import-wizard-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--modal-overlay); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .import-wizard { background: var(--bg-primary); border-radius: 16px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .import-wizard__header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border-primary); }
+        .import-wizard__title { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+        .import-wizard__close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-secondary); padding: 4px 8px; }
+        .import-wizard__body { padding: 24px; }
+        .platform-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .platform-card { padding: 16px; border: 2px solid var(--border-primary); border-radius: 12px; cursor: pointer; text-align: center; transition: border-color 0.2s, box-shadow 0.2s; background: var(--card-bg); }
+        .platform-card:hover { border-color: var(--color-primary); box-shadow: 0 2px 8px var(--card-shadow); }
+        .platform-card--highlighted { border-color: var(--color-success); position: relative; }
+        .platform-card__icon { font-size: 32px; margin-bottom: 8px; }
+        .platform-card__name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+        .platform-card__badge { font-size: 11px; color: var(--color-success); font-weight: 500; margin-top: 4px; }
+        .import-instructions { padding: 16px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 16px; }
+        .import-instructions ol { padding-left: 20px; margin: 8px 0; }
+        .import-instructions li { font-size: 13px; color: var(--text-primary); margin-bottom: 6px; line-height: 1.5; }
+        .file-drop-zone { border: 2px dashed var(--border-secondary); border-radius: 12px; padding: 40px 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+        .file-drop-zone:hover, .file-drop-zone.dragover { border-color: var(--color-primary); background: var(--bg-secondary); }
+        .file-drop-zone__icon { font-size: 40px; margin-bottom: 12px; }
+        .file-drop-zone__text { font-size: 14px; color: var(--text-secondary); }
+        .import-progress { text-align: center; padding: 20px; }
+        .import-progress__bar { width: 100%; height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; margin: 16px 0; }
+        .import-progress__fill { height: 100%; background: var(--color-primary); border-radius: 4px; transition: width 0.3s; }
+        .import-progress__phase { font-size: 13px; color: var(--text-secondary); }
+        .import-summary { padding: 16px; }
+        .import-summary__stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-primary); font-size: 14px; }
+        .import-summary__stat-label { color: var(--text-secondary); }
+        .import-summary__stat-value { font-weight: 600; color: var(--text-primary); }
+        @media (max-width: 768px) { .platform-grid { grid-template-columns: 1fr; } }
+
+        /* ============================================
+           NOTIFICATION CENTER STYLES
+           ============================================ */
+        .notification-bell { position: relative; cursor: pointer; padding: 8px; border-radius: 8px; background: none; border: none; color: var(--text-secondary); font-size: 20px; }
+        .notification-bell:hover { background: var(--bg-secondary); color: var(--text-primary); }
+        .notification-bell__badge { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--color-danger); color: white; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+        .notification-dropdown { position: absolute; top: 100%; right: 0; width: 360px; max-height: 400px; overflow-y: auto; background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: 12px; box-shadow: 0 8px 30px var(--card-shadow); z-index: 1000; display: none; }
+        .notification-dropdown.open { display: block; }
+        .notification-dropdown__header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border-primary); }
+        .notification-dropdown__title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+        .notification-item { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border-primary); cursor: pointer; transition: background 0.15s; }
+        .notification-item:hover { background: var(--bg-secondary); }
+        .notification-item--unread { background: var(--status-info-bg); }
+        .notification-item__icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+        .notification-item__title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+        .notification-item__desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .notification-item__time { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+        @media (max-width: 768px) { .notification-dropdown { width: calc(100vw - 32px); right: -8px; } }
+
+        /* ============================================
+           SYNC REVIEW STYLES
+           ============================================ */
+        .sync-diff { padding: 12px; border: 1px solid var(--border-primary); border-radius: 8px; margin-bottom: 8px; background: var(--card-bg); }
+        .sync-diff__field { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px; }
+        .sync-diff__values { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .sync-diff__old { padding: 8px; background: var(--status-error-bg); border-radius: 4px; font-size: 13px; }
+        .sync-diff__new { padding: 8px; background: var(--status-success-bg); border-radius: 4px; font-size: 13px; }
+
         /* ============================================
            VERSION INFO STYLES (Preferences Page)
            ============================================ */

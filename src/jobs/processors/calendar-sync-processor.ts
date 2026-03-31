@@ -93,6 +93,20 @@ export async function processCalendarSync(
     // Get events processed from orchestrator
     result.eventsProcessed = orchestratorResult.itemsProcessed || 0;
 
+    // Extract attendee enrichment — update contact lastContactDate from calendar co-attendance
+    // Requirements: 23.2, 23.9
+    try {
+      const enrichmentResult = await calendarService.extractAttendeeEnrichment(userId);
+      console.log(
+        `Calendar attendee enrichment for user ${userId}: ` +
+          `${enrichmentResult.contactsUpdated} contacts updated, ` +
+          `${enrichmentResult.meetingsProcessed} meetings processed`
+      );
+    } catch (enrichmentError) {
+      console.error(`Calendar attendee enrichment failed for user ${userId}:`, enrichmentError);
+      // Non-fatal — calendar sync itself succeeded
+    }
+
     console.log(
       `Calendar sync complete for user ${userId} - ` +
         `refreshed ${result.calendarsRefreshed} calendars, ` +

@@ -132,6 +132,52 @@ function filterSuggestions(status) {
 }
 
 // ---------------------------------------------------------------------------
+// Enrichment context for suggestion cards (Task 32.1)
+// ---------------------------------------------------------------------------
+
+function renderEnrichmentContext(suggestion, contacts) {
+  const enrichmentContext = suggestion.enrichmentContext || suggestion.enrichment_context;
+  if (!enrichmentContext) return '';
+
+  const parts = [];
+
+  if (enrichmentContext.totalMessages && enrichmentContext.platform && contacts.length > 0) {
+    const contactName = contacts[0].name || 'them';
+    const platform = enrichmentContext.platform;
+    const msgs = enrichmentContext.totalMessages;
+    const period = enrichmentContext.period || 'recently';
+    const lastContact = enrichmentContext.daysSinceLastContact;
+
+    let text = `You exchanged ${msgs} ${escapeHtml(platform)} messages with ${escapeHtml(contactName)}`;
+    if (period) text += ` ${escapeHtml(period)}`;
+    if (lastContact) text += `, but haven't talked in ${lastContact} days`;
+
+    parts.push(text);
+  }
+
+  if (enrichmentContext.frequencyTrend === 'declining') {
+    parts.push('Communication frequency is declining');
+  }
+
+  if (enrichmentContext.sentiment === 'negative') {
+    parts.push('Recent sentiment trend is negative');
+  }
+
+  if (enrichmentContext.topTopics && enrichmentContext.topTopics.length > 0) {
+    parts.push(`Common topics: ${enrichmentContext.topTopics.slice(0, 3).map(t => escapeHtml(t)).join(', ')}`);
+  }
+
+  if (parts.length === 0) return '';
+
+  return `
+    <div style="margin-top:8px;padding:10px;background:var(--status-info-bg);border-radius:8px;border-left:3px solid var(--color-primary);">
+      <div style="font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">📊 Enrichment Insights</div>
+      ${parts.map(p => `<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${p}</div>`).join('')}
+    </div>
+  `;
+}
+
+// ---------------------------------------------------------------------------
 // Render suggestions
 // ---------------------------------------------------------------------------
 
@@ -299,28 +345,24 @@ function renderSuggestions(suggestionsList) {
 
       // Actions based on status
       let actions = '';
-      const viewScheduleBtn = `<button class="btn-secondary" onclick="openSchedulePreview('${suggestion.id}')" title="View your calendar for this day">📅 View Schedule</button>`;
 
       if (suggestion.status === 'pending') {
         if (isGroup) {
           actions = `
             <button class="btn-primary" onclick="acceptSuggestion('${suggestion.id}')">Accept Group Catchup</button>
-            ${viewScheduleBtn}
             <button class="btn-secondary" onclick="showGroupModifyMenu('${suggestion.id}', event)">Modify Group ▼</button>
             <button class="btn-secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
           `;
         } else {
           actions = `
             <button class="btn-primary" onclick="acceptSuggestion('${suggestion.id}')">Accept</button>
-            ${viewScheduleBtn}
             <button class="btn-secondary" onclick="dismissSuggestion('${suggestion.id}')">Dismiss</button>
             <button class="btn-secondary" onclick="snoozeSuggestion('${suggestion.id}')">Snooze</button>
           `;
         }
       } else {
         actions = `
-          ${viewScheduleBtn}
-          <span style="color: var(--text-secondary); font-size: 14px; margin-left: 10px;">No other actions available</span>
+          <span style="color: var(--text-secondary); font-size: 13px;">No actions available</span>
         `;
       }
 
@@ -392,7 +434,7 @@ function renderSuggestions(suggestionsList) {
               ${avatarsHtml}
               <div style="flex: 1;">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                  <h3 style="margin: 0; color: var(--text-primary);">Connect with ${contactNamesHtml}</h3>
+                  <h3 style="margin: 0; color: var(--text-primary);">Catch up with ${contactNamesHtml}</h3>
                   ${typeBadge}
                 </div>
                 ${sharedContextBadge}
@@ -402,8 +444,8 @@ function renderSuggestions(suggestionsList) {
               ${suggestion.status}
             </span>
           </div>
-          <p style="color: var(--text-primary);"><strong>Time:</strong> ${formatDateTime(suggestion.proposedTimeslot.start)} <span id="calendar-count-${suggestion.id}" class="calendar-day-count"></span></p>
-          <p style="color: var(--text-primary);"><strong>Reason:</strong> ${escapeHtml(suggestion.reasoning)}</p>
+          <p style="color: var(--text-primary);"><strong>Why:</strong> ${escapeHtml(suggestion.reasoning)}</p>
+          ${renderEnrichmentContext(suggestion, suggestionContacts)}
           ${commonInfoHtml}
           ${suggestion.snoozedUntil ? `<p style="color: var(--text-primary);"><strong>Snoozed until:</strong> ${formatDateTime(suggestion.snoozedUntil)}</p>` : ''}
           ${suggestion.dismissalReason ? `<p style="color: var(--text-primary);"><strong>Dismissal reason:</strong> ${escapeHtml(suggestion.dismissalReason)}</p>` : ''}

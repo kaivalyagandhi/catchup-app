@@ -1,0 +1,133 @@
+/* ==========================================================================
+   Notification Center — Slide-out panel from right
+   ========================================================================== */
+
+/* Overlay */
+.notification-panel-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+}
+
+.notification-panel-overlay.show {
+  display: block;
+}
+
+/* Panel */
+.notification-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 380px;
+  max-width: 100vw;
+  height: 100vh;
+  background: var(--bg-surface, #fff);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+  z-index: 10001;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: inherit;
+}
+
+.notification-panel.open {
+  transform: translateX(0);
+}
+
+.notification-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle, #e7e5e4);
+  flex-shrink: 0;
+}
+
+.notification-panel__close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text-secondary, #78716c);
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.notification-panel__close:hover {
+  background: var(--bg-hover, #e7e5e4);
+  color: var(--text-primary);
+}
+
+.notification-panel__body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Notification items */
+.notification-panel-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px 24px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--stone-3, #e7e5e4);
+  transition: background 0.15s;
+}
+
+.notification-panel-item:last-child {
+  border-bottom: none;
+}
+
+.notification-panel-item:hover {
+  background: var(--bg-hover, #f5f5f4);
+}
+
+.notification-panel-item--unread {
+  background: var(--amber-1, #fefdfb);
+}
+
+.notification-panel-item--unread:hover {
+  background: var(--amber-2, #fef3c7);
+}
+
+.notification-panel-item__icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.notification-panel-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-panel-item__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1c1917);
+  line-height: 1.3;
+}
+
+.notification-panel-item__desc {
+  font-size: 13px;
+  color: var(--text-secondary, #78716c);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.notification-panel-item__time {
+  font-size: 12px;
+  color: var(--text-tertiary, #a8a29e);
+  margin-top: 4px;
+}
+
+/* Responsive — full screen on mobile */
+@media (max-width: 768px) {
+  .notification-panel {
+    width: 100vw;
+  }
+}

@@ -174,6 +174,26 @@ async function executeJob(jobName: string, data: any): Promise<any> {
       const { processTokenHealthReminder } = await import('../jobs/processors/token-health-reminder-processor');
       return await processTokenHealthReminder(mockJob as any);
       
+    case 'import-parse':
+      const { processImportParse } = await import('../jobs/processors/import-parse-processor');
+      return await processImportParse(mockJob as any);
+      
+    case 'ai-enrichment':
+      const { processAiEnrichment } = await import('../jobs/processors/ai-enrichment-processor');
+      return await processAiEnrichment(mockJob as any);
+
+    case 'notification-cleanup':
+      const { processNotificationCleanup } = await import('../jobs/processors/notification-cleanup-processor');
+      return await processNotificationCleanup(mockJob as any);
+
+    case 'export-reminder':
+      const { processExportReminder } = await import('../jobs/processors/export-reminder-processor');
+      return await processExportReminder(mockJob as any);
+
+    case 'pending-enrichments-reminder':
+      const { processPendingEnrichmentsReminder } = await import('../jobs/processors/pending-enrichments-reminder-processor');
+      return await processPendingEnrichmentsReminder(mockJob as any);
+      
     default:
       throw new Error(`Unknown job type: ${jobName}`);
   }

@@ -209,33 +209,111 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  background: var(--edits-primary);
-  border: none;
+  width: 44px;
+  height: 44px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-subtle, #a8a29e);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  color: var(--text-primary, #1c1917);
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
 }
 
 .theme-toggle:hover {
-  background: var(--edits-primary-hover);
+  background: var(--bg-hover, #e7e5e4);
   transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-}
-
-.theme-toggle svg {
-  width: 28px;
-  height: 28px;
-  stroke: white;
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .theme-icon-latte,
 .theme-icon-espresso {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.theme-icon-latte svg,
+.theme-icon-espresso svg {
+  width: 20px;
+  height: 20px;
+  color: var(--text-primary, #1c1917);
+}
+
+.top-action-btn svg {
+  color: var(--text-primary, #1c1917);
+}
+
+
+/* Top Action Buttons (notification bell, etc.) — matches theme toggle style */
+.top-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-subtle, #a8a29e);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 18px;
+  line-height: 1;
+  position: relative;
+  color: var(--text-primary, #1c1917);
+}
+
+#notification-bell-fixed {
+  position: fixed;
+  top: 20px;
+  right: 74px;
+  z-index: 200;
+}
+
+.top-action-btn:hover {
+  background: var(--bg-hover, #e7e5e4);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.top-action-btn svg {
   display: block;
+}
+
+.top-action-btn__badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: var(--status-error, #ef4444);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+
+/* Push top-right buttons down when sync warning banner is visible */
+body.sync-warning-visible .theme-toggle {
+  top: 72px !important;
+}
+body.sync-warning-visible #notification-bell-fixed {
+  top: 72px !important;
+}
+
+/* Ensure buttons are above the sync warning banner */
+.theme-toggle,
+#notification-bell-fixed {
+  z-index: 10000 !important;
 }

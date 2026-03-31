@@ -381,6 +381,9 @@ function renderContacts(contactsList) {
   const container = document.getElementById('contacts-list');
   if (!container) return;
 
+  // Expose for contact detail panel click handler
+  window._directoryContacts = contactsList;
+
   if (contactsList.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
@@ -429,8 +432,9 @@ function renderContacts(contactsList) {
           </div>`;
       }
 
+      const idx = contactsList.indexOf(contact);
       return `
-        <div class="card">
+        <div class="card" style="cursor:pointer;" onclick="if(event.target.tagName!=='BUTTON')window.openContactDetail&&window.openContactDetail(window._directoryContacts[${idx}],window._directoryContacts,${idx})">
           ${sourceBadge}
           <h3>${escapeHtml(contact.name)}</h3>
           <p><span style="font-size:16px;margin-right:8px;">📞</span><strong>Phone:</strong> ${contact.phone || 'N/A'}</p>
@@ -852,9 +856,14 @@ async function loadGroupsTagsManagement() {
   await loadGroupMappingsSection();
 }
 
+let _groupsBannerRendering = false;
+
 async function renderGroupsBanner() {
-  const existingBanner = document.getElementById('groups-organize-banner');
-  if (existingBanner) existingBanner.remove();
+  if (_groupsBannerRendering) return;
+  _groupsBannerRendering = true;
+
+  // Remove ALL existing banners (not just by ID — catch duplicates)
+  document.querySelectorAll('#groups-organize-banner').forEach(el => el.remove());
 
   const authToken = _authToken();
   const userId = _userId();
@@ -900,6 +909,8 @@ async function renderGroupsBanner() {
     }
   } catch (error) {
     console.error('[Groups] Error rendering groups banner:', error);
+  } finally {
+    _groupsBannerRendering = false;
   }
 }
 
@@ -1437,6 +1448,361 @@ function updateUncategorizedCount(count) {
 // Register page with app-shell
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Enrichment columns — health indicator, last interaction, source icons
+// ---------------------------------------------------------------------------
+
+/** Compute health indicator color based on frequency preference and last interaction. */
+function getHealthIndicator(contact) {
+  if (!contact.frequencyPreference || !contact.lastContactDate) return { color: '#9ca3af', label: 'No data' };
+
+  const freqDays = { daily: 1, weekly: 7, biweekly: 14, monthly: 30, quarterly: 90 };
+  const windowDays = freqDays[contact.frequencyPreference] || 30;
+  const daysSince = Math.floor((Date.now() - new Date(contact.lastContactDate).getTime()) / 86400000);
+
+  if (daysSince <= windowDays) return { color: '#10b981', label: 'On track' };
+  if (daysSince <= windowDays * 1.5) return { color: '#f59e0b', label: 'Attention' };
+  return { color: '#ef4444', label: 'Overdue' };
+}
+
+/** Render platform source icons for a contact. */
+function renderSourceIcons(contact) {
+  const sources = contact.sources || (contact.source ? [contact.source] : []);
+  const labels = { google: 'G', apple: 'A', whatsapp: 'WA', instagram: 'IG', facebook: 'FB', twitter: 'X', google_messages: 'SMS', chat_import: 'Chat', voice_note: 'Voice', calendar: 'Cal' };
+  const colors = { google: '#4285f4', apple: '#555', whatsapp: '#25d366', instagram: '#e1306c', facebook: '#1877f2', twitter: '#1da1f2', google_messages: '#1a73e8', chat_import: '#f59e0b', voice_note: '#10b981', calendar: '#ea4335' };
+  return sources.map(s => `<span class="source-pill" style="background:${colors[s] || '#78716c'};" title="${escapeHtml(s)}">${labels[s] || s.charAt(0).toUpperCase()}</span>`).join(' ');
+}
+
+// ---------------------------------------------------------------------------
+// Multi-select and bulk operations
+// ---------------------------------------------------------------------------
+
+let selectedContactIds = new Set();
+let multiSelectMode = false;
+
+function toggleMultiSelect() {
+  multiSelectMode = !multiSelectMode;
+  selectedContactIds.clear();
+  renderBulkToolbar();
+  // Re-render contacts to show/hide checkboxes
+  if (typeof renderContactsTable === 'function') {
+    renderContactsTable(contacts);
+  } else {
+    renderContacts(contacts);
+  }
+}
+
+function toggleContactSelection(contactId) {
+  if (selectedContactIds.has(contactId)) {
+    selectedContactIds.delete(contactId);
+  } else {
+    selectedContactIds.add(contactId);
+  }
+  renderBulkToolbar();
+}
+
+function renderBulkToolbar() {
+  let toolbar = document.getElementById('bulk-action-toolbar');
+  if (!multiSelectMode || selectedContactIds.size === 0) {
+    if (toolbar) toolbar.remove();
+    return;
+  }
+
+  if (!toolbar) {
+    toolbar = document.createElement('div');
+    toolbar.id = 'bulk-action-toolbar';
+    toolbar.style.cssText = 'position:sticky;top:0;z-index:50;background:var(--bg-primary);border:1px solid var(--border-primary);border-radius:8px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+    const contactsList = document.getElementById('contacts-list');
+    if (contactsList) contactsList.parentNode.insertBefore(toolbar, contactsList);
+  }
+
+  toolbar.innerHTML = `
+    <span style="font-size:13px;font-weight:600;color:var(--text-primary);">${selectedContactIds.size} selected</span>
+    <button class="btn-secondary" style="font-size:12px;padding:6px 12px;" onclick="window.bulkAction('archive')">Archive</button>
+    <button class="btn-secondary" style="font-size:12px;padding:6px 12px;" onclick="window.bulkAction('add_tag')">Add Tag</button>
+    <button class="btn-secondary" style="font-size:12px;padding:6px 12px;" onclick="window.bulkAction('assign_group')">Assign Group</button>
+    <button class="btn-secondary" style="font-size:12px;padding:6px 12px;" onclick="window.bulkAction('assign_circle')">Assign Circle</button>
+    <button class="btn-secondary" style="font-size:12px;padding:6px 12px;" onclick="window.toggleMultiSelect()">Cancel</button>
+  `;
+}
+
+async function bulkAction(operation) {
+  if (selectedContactIds.size === 0) return;
+
+  const contactIds = Array.from(selectedContactIds);
+  let params = {};
+
+  if (operation === 'add_tag') {
+    const tag = prompt('Enter tag name:');
+    if (!tag) return;
+    params = { tag };
+  } else if (operation === 'assign_group') {
+    const groupName = prompt('Enter group name:');
+    if (!groupName) return;
+    params = { groupName };
+  } else if (operation === 'assign_circle') {
+    const circle = prompt('Enter circle (inner, close, active, casual):');
+    if (!circle) return;
+    params = { circle };
+  }
+
+  try {
+    const response = await fetchWithAuth(`${API_BASE}/contacts/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contactIds, operation, params }),
+    });
+
+    if (response.ok) {
+      showToast(`Bulk ${operation} applied to ${contactIds.length} contacts`, 'success');
+      selectedContactIds.clear();
+      multiSelectMode = false;
+      renderBulkToolbar();
+      loadContacts();
+    } else {
+      const err = await response.json().catch(() => ({}));
+      showToast(err.error || 'Bulk operation failed', 'error');
+    }
+  } catch (e) {
+    showToast('Bulk operation failed', 'error');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Source filter
+// ---------------------------------------------------------------------------
+
+function filterBySource(source) {
+  currentContactFilter = source;
+  searchContacts();
+}
+
+// ---------------------------------------------------------------------------
+// Pending enrichments badge
+// ---------------------------------------------------------------------------
+
+async function loadPendingEnrichmentsCount() {
+  try {
+    const response = await fetchWithAuth(`${API_BASE}/enrichments/pending`);
+    if (response.ok) {
+      const data = await response.json();
+      const items = Array.isArray(data) ? data : (data.items || []);
+      const count = items.filter(i => i.status === 'pending').length;
+      const badge = document.getElementById('pending-enrichments-badge');
+      if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline-block' : 'none';
+      }
+    }
+  } catch (e) { /* silent */ }
+}
+
+// ---------------------------------------------------------------------------
+// Pending enrichment review UI (Task 30.2)
+// ---------------------------------------------------------------------------
+
+let pendingEnrichments = [];
+
+async function loadPendingEnrichments() {
+  const container = document.getElementById('contacts-list');
+  if (!container) return;
+
+  container.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading pending enrichments...</p></div>`;
+
+  try {
+    const response = await fetchWithAuth(`${API_BASE}/enrichments/pending`);
+    if (!response.ok) throw new Error('Failed to load');
+    const data = await response.json();
+    pendingEnrichments = Array.isArray(data) ? data : (data.items || []);
+    renderPendingEnrichments(pendingEnrichments.filter(e => e.status === 'pending'));
+  } catch (error) {
+    showError('contacts-list', 'Failed to load pending enrichments');
+  }
+}
+
+function renderPendingEnrichments(items) {
+  const container = document.getElementById('contacts-list');
+  if (!container) return;
+
+  if (items.length === 0) {
+    container.innerHTML = `<div class="empty-state"><h3>No pending enrichments</h3><p>All enrichments have been resolved</p></div>`;
+    return;
+  }
+
+  // Group by import
+  const grouped = {};
+  items.forEach(item => {
+    const key = item.importRecordId || item.import_record_id || 'unknown';
+    if (!grouped[key]) grouped[key] = { platform: item.platform, items: [] };
+    grouped[key].items.push(item);
+  });
+
+  let html = `<div style="margin-bottom:12px;"><button class="btn-secondary" onclick="window.loadContacts()" style="font-size:12px;">← Back to Contacts</button></div>`;
+
+  Object.entries(grouped).forEach(([importId, group]) => {
+    html += `
+      <div style="margin-bottom:20px;">
+        <h3 style="font-size:14px;color:var(--text-secondary);margin-bottom:8px;">${escapeHtml(group.platform || 'Unknown')} Import</h3>
+        ${group.items.map(item => {
+          const name = item.participantDisplayName || item.participant_display_name || item.participantIdentifier || item.participant_identifier || 'Unknown';
+          const msgCount = item.messageCount || item.message_count || 0;
+          const topics = item.topics || [];
+          const sentiment = item.sentiment;
+
+          return `
+            <div class="card" style="margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px;">
+                <div style="flex:1;min-width:200px;">
+                  <h4 style="margin:0 0 4px 0;color:var(--text-primary);">${escapeHtml(name)}</h4>
+                  <div style="font-size:12px;color:var(--text-secondary);">
+                    ${msgCount} messages · ${escapeHtml(item.platform || '')}
+                    ${item.firstMessageDate || item.first_message_date ? ` · ${new Date(item.firstMessageDate || item.first_message_date).toLocaleDateString()} — ${new Date(item.lastMessageDate || item.last_message_date).toLocaleDateString()}` : ''}
+                  </div>
+                  ${topics.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">${topics.slice(0, 3).map(t => `<span class="tag-badge">${escapeHtml(typeof t === 'string' ? t : '')}</span>`).join('')}</div>` : ''}
+                  ${sentiment ? `<div style="margin-top:4px;font-size:12px;">Sentiment: ${sentiment === 'positive' ? '😊' : sentiment === 'negative' ? '😟' : '😐'} ${escapeHtml(sentiment)}</div>` : ''}
+                </div>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                  <button class="btn-primary" style="font-size:11px;padding:4px 10px;" onclick="window.linkPendingEnrichment('${item.id}')">Link to Contact</button>
+                  <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="window.createFromPending('${item.id}')">Create Contact</button>
+                  <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="window.dismissPendingEnrichment('${item.id}')">Dismiss</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+async function linkPendingEnrichment(enrichmentId) {
+  const contactName = prompt('Search for contact (enter name):');
+  if (!contactName) return;
+
+  const match = contacts.find(c => c.name.toLowerCase().includes(contactName.toLowerCase()));
+  if (!match) { showToast('No matching contact found', 'error'); return; }
+
+  try {
+    const response = await fetchWithAuth(`${API_BASE}/enrichments/pending/${enrichmentId}/link`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contactId: match.id }),
+    });
+    if (response.ok) { showToast(`Linked to ${match.name}`, 'success'); loadPendingEnrichments(); }
+    else { showToast('Failed to link', 'error'); }
+  } catch (e) { showToast('Failed to link', 'error'); }
+}
+
+async function createFromPending(enrichmentId) {
+  try {
+    const response = await fetchWithAuth(`${API_BASE}/enrichments/pending/${enrichmentId}/create-contact`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+    });
+    if (response.ok) { showToast('Contact created', 'success'); loadPendingEnrichments(); }
+    else { showToast('Failed to create contact', 'error'); }
+  } catch (e) { showToast('Failed to create contact', 'error'); }
+}
+
+async function dismissPendingEnrichment(enrichmentId) {
+  try {
+    const response = await fetchWithAuth(`${API_BASE}/enrichments/pending/${enrichmentId}/dismiss`, { method: 'POST' });
+    if (response.ok) { showToast('Dismissed', 'success'); loadPendingEnrichments(); }
+    else { showToast('Failed to dismiss', 'error'); }
+  } catch (e) { showToast('Failed to dismiss', 'error'); }
+}
+
+// ---------------------------------------------------------------------------
+// Match review UI (Task 30.3)
+// ---------------------------------------------------------------------------
+
+async function loadMatchReview(importId) {
+  const container = document.getElementById('contacts-list');
+  if (!container) return;
+
+  container.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading matches...</p></div>`;
+
+  try {
+    const response = await fetchWithAuth(`${API_BASE}/imports/${importId}/matches`);
+    if (!response.ok) throw new Error('Failed to load');
+    const data = await response.json();
+    const matches = Array.isArray(data) ? data : (data.matches || []);
+    renderMatchReview(matches);
+  } catch (error) {
+    showError('contacts-list', 'Failed to load matches');
+  }
+}
+
+function renderMatchReview(matches) {
+  const container = document.getElementById('contacts-list');
+  if (!container) return;
+
+  if (matches.length === 0) {
+    container.innerHTML = `<div class="empty-state"><h3>No matches to review</h3><p>All matches have been resolved</p></div>`;
+    return;
+  }
+
+  let html = `<div style="margin-bottom:12px;"><button class="btn-secondary" onclick="window.loadContacts()" style="font-size:12px;">← Back to Contacts</button></div>`;
+
+  html += matches.map(match => {
+    const participantName = match.participantDisplayName || match.participant_display_name || match.participantIdentifier || 'Unknown';
+    const suggestedName = match.suggestedContactName || match.contactName || 'Unknown';
+    const confidence = match.confidence ? Math.round(match.confidence * 100) : 0;
+    const reason = match.matchReason || match.match_reason || '';
+    const msgCount = match.messageCount || match.message_count || 0;
+    const isHighFreq = match.smartSuggestion || false;
+
+    return `
+      <div class="card" style="margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div style="flex:1;min-width:200px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <strong style="color:var(--text-primary);">${escapeHtml(participantName)}</strong>
+              <span style="color:var(--text-tertiary);">→</span>
+              <strong style="color:var(--color-primary);">${escapeHtml(suggestedName)}</strong>
+              <span style="font-size:11px;color:var(--text-secondary);background:var(--bg-secondary);padding:2px 6px;border-radius:4px;">${confidence}%</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-secondary);">${escapeHtml(reason)}</div>
+            ${isHighFreq ? `<div style="font-size:12px;color:var(--color-warning);margin-top:4px;">⚡ ${escapeHtml(participantName)} sent you ${msgCount} messages — create a contact or link to someone?</div>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn-primary" style="font-size:11px;padding:4px 10px;" onclick="window.confirmMatch('${match.id}')">Confirm</button>
+            <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="window.rejectMatch('${match.id}')">Reject</button>
+            <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="window.skipMatch('${match.id}')">Skip</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = html;
+}
+
+async function confirmMatch(matchId) {
+  try {
+    const response = await fetchWithAuth(`${API_BASE}/imports/matches/${matchId}/confirm`, { method: 'POST' });
+    if (response.ok) { showToast('Match confirmed', 'success'); }
+    else { showToast('Failed', 'error'); }
+  } catch (e) { showToast('Failed', 'error'); }
+}
+
+async function rejectMatch(matchId) {
+  try {
+    const response = await fetchWithAuth(`${API_BASE}/imports/matches/${matchId}/reject`, { method: 'POST' });
+    if (response.ok) { showToast('Match rejected', 'success'); }
+    else { showToast('Failed', 'error'); }
+  } catch (e) { showToast('Failed', 'error'); }
+}
+
+async function skipMatch(matchId) {
+  try {
+    const response = await fetchWithAuth(`${API_BASE}/imports/matches/${matchId}/skip`, { method: 'POST' });
+    if (response.ok) { showToast('Match skipped', 'success'); }
+    else { showToast('Failed', 'error'); }
+  } catch (e) { showToast('Failed', 'error'); }
+}
+
 registerPage('directory', { load: loadDirectory });
 
 // ---------------------------------------------------------------------------
@@ -1536,3 +1902,24 @@ window.updateUncategorizedCount = updateUncategorizedCount;
 // Fetch helpers (used by groups/tags management modals in app.js)
 window.fetchWithRetry = fetchWithRetry;
 window.executeWithConcurrencyControl = executeWithConcurrencyControl;
+
+// Enrichment columns
+window.getHealthIndicator = getHealthIndicator;
+window.renderSourceIcons = renderSourceIcons;
+window.toggleMultiSelect = toggleMultiSelect;
+window.toggleContactSelection = toggleContactSelection;
+window.bulkAction = bulkAction;
+window.filterBySource = filterBySource;
+window.loadPendingEnrichmentsCount = loadPendingEnrichmentsCount;
+
+// Pending enrichment review
+window.loadPendingEnrichments = loadPendingEnrichments;
+window.linkPendingEnrichment = linkPendingEnrichment;
+window.createFromPending = createFromPending;
+window.dismissPendingEnrichment = dismissPendingEnrichment;
+
+// Match review
+window.loadMatchReview = loadMatchReview;
+window.confirmMatch = confirmMatch;
+window.rejectMatch = rejectMatch;
+window.skipMatch = skipMatch;

@@ -33,6 +33,18 @@ import gamificationRouter from './routes/gamification';
 import weeklyCatchupRouter from './routes/weekly-catchup';
 import privacyRouter from './routes/privacy';
 import enrichmentItemsRouter from './routes/enrichment-items';
+import importsRouter from './routes/imports';
+import enrichmentsRouter from './routes/enrichments';
+import contactEnrichmentsRouter from './routes/contact-enrichments';
+import syncBackRouter from './routes/sync-back';
+import vcardRouter from './routes/vcard';
+import contactsBulkRouter from './routes/contacts-bulk';
+import notificationsRouter from './routes/notifications';
+import suggestionWeightsRouter from './routes/suggestion-weights';
+import nudgesRouter from './routes/nudges';
+import dashboardRouter from './routes/dashboard';
+import contactsEnrichmentColumnsRouter from './routes/contacts-enrichment-columns';
+import settingsRouter from './routes/settings';
 import calendarWebhooksRouter from './routes/calendar-webhooks';
 import manualSyncRouter from './routes/manual-sync';
 import syncStatusRouter from './routes/sync-status';
@@ -151,7 +163,10 @@ export function createServer(): Express {
   app.use('/api/audit', auditRouter);
   // Specific contacts sub-routes must come before general contacts routes to avoid /:id matching
   app.use('/api/contacts', contactsArchiveRouter);
+  app.use('/api/contacts', contactsBulkRouter);
   app.use('/api/contacts', contactGroupsRouter);
+  app.use('/api/contacts', vcardRouter);
+  app.use('/api/contacts', contactsEnrichmentColumnsRouter);
   app.use('/api/contacts', contactsRouter);
   app.use('/api/groups-tags', groupsTagsRouter);
   app.use('/api/suggestions', suggestionsRouter);
@@ -175,6 +190,25 @@ export function createServer(): Express {
   app.use('/api/weekly-catchup', weeklyCatchupRouter);
   app.use('/api/privacy', privacyRouter);
   app.use('/api/enrichment-items', enrichmentItemsRouter);
+  app.use('/api/imports', importsRouter);
+  app.use('/api/enrichments', enrichmentsRouter);
+  app.use('/api/contacts', contactEnrichmentsRouter);
+  app.use('/api/sync-back', syncBackRouter);
+
+  // Notification routes
+  app.use('/api/notifications', notificationsRouter);
+
+  // Suggestion weights routes
+  app.use('/api/suggestion-weights', suggestionWeightsRouter);
+
+  // Nudge routes
+  app.use('/api/nudges', nudgesRouter);
+
+  // Dashboard routes
+  app.use('/api/dashboard', dashboardRouter);
+
+  // Settings routes
+  app.use('/api/settings', settingsRouter);
 
   // Webhook routes (Google Calendar push notifications)
   app.use('/api/webhooks', calendarWebhooksRouter);

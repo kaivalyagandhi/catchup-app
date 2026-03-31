@@ -105,7 +105,7 @@ export interface ContactFilters {
   includeArchived?: boolean;
   groupId?: string;
   search?: string;
-  source?: 'manual' | 'google' | 'calendar' | 'voice_note';
+  source?: string;
 }
 
 /**

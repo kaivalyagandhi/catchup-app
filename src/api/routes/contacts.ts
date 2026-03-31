@@ -255,7 +255,7 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res: Response):
 router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
-    const { groupId, archived, search, includeSyncStatus } = req.query;
+    const { groupId, archived, search, includeSyncStatus, source } = req.query;
 
     if (!userId) {
       res.status(401).json({ error: 'Not authenticated' });
@@ -267,6 +267,7 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response): 
     if (groupId) filters.groupId = groupId as string;
     if (archived !== undefined) filters.archived = archived === 'true';
     if (search) filters.search = search as string;
+    if (source) filters.source = source as string;
 
     const contacts = await contactService.listContacts(userId as string, filters);
 

@@ -148,10 +148,10 @@ function showMainApp() {
   const pageFromUrl = getPageFromPath(path);
   const savedPage = localStorage.getItem('currentPage');
 
-  let initialPage = 'directory';
+  let initialPage = 'dashboard';
   if (pageFromUrl && pageFromUrl !== 'directory') {
     initialPage = pageFromUrl;
-  } else if (savedPage && ['directory', 'suggestions', 'preferences'].includes(savedPage)) {
+  } else if (savedPage && ['dashboard', 'directory', 'suggestions', 'preferences'].includes(savedPage)) {
     initialPage = savedPage;
   }
 
@@ -380,9 +380,9 @@ function setupNavigation() {
  */
 function getPageFromPath(path) {
   const cleanPath = path.replace(/^\/app\/?/, '').replace(/\/$/, '');
-  const validPages = ['directory', 'suggestions', 'preferences'];
+  const validPages = ['dashboard', 'directory', 'suggestions', 'preferences'];
 
-  if (!cleanPath || cleanPath === '') return 'directory';
+  if (!cleanPath || cleanPath === '') return 'dashboard';
   if (validPages.includes(cleanPath)) return cleanPath;
   return 'directory';
 }
@@ -464,7 +464,7 @@ export function navigateTo(page, updateHistory = true) {
 
   // Update URL without page reload
   if (updateHistory) {
-    const url = page === 'directory' ? '/app' : `/app/${page}`;
+    const url = page === 'dashboard' ? '/app' : `/app/${page}`;
     window.history.pushState({ page }, '', url);
   }
 

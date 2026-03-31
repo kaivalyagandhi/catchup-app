@@ -254,10 +254,10 @@ async function loadPreferences() {
         </div>
         
         <!-- Display Settings Section -->
-        <div style="margin-top: 24px;">
-            <h3 style="margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; color: var(--text-primary); font-size: 16px;">Display Settings</h3>
+        <div class="settings-section">
+            <h3 class="settings-section__title">Display Settings</h3>
             
-            <div style="padding: 20px; background: var(--bg-hover); border-radius: 10px;">
+            <div class="settings-section__card">
                 <h4 style="margin: 0 0 12px 0; color: var(--text-primary); font-size: 14px;">Timezone</h4>
                 <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--text-secondary);">
                     Set your timezone to display calendar times and availability in your local time.
@@ -274,20 +274,65 @@ async function loadPreferences() {
         </div>
         
         <!-- Notifications Section -->
-        <div style="margin-top: 24px;">
-            <h3 style="margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; color: var(--text-primary); font-size: 16px;">Notifications</h3>
-            <div style="padding: 20px; background: var(--bg-hover); border-radius: 10px; text-align: center;">
-                <div style="font-size: 32px; margin-bottom: 12px;">📬</div>
-                <h4 style="margin: 0 0 8px 0; color: var(--text-primary);">Coming Soon</h4>
-                <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">
-                    SMS and email notifications are not yet available. We're working on bringing you smart reminders to stay connected with your contacts.
-                </p>
+        <div class="settings-section">
+            <h3 class="settings-section__title">Notification Preferences</h3>
+            <div class="settings-section__card">
+                <div id="notification-prefs-container">
+                    <label class="notif-pref-item">
+                        <input type="checkbox" id="notif-import-complete" checked onchange="window.saveNotifPref(this)">
+                        <div>
+                            <div class="notif-pref-item__title">Import Complete</div>
+                            <div class="notif-pref-item__desc">When a chat history import finishes processing</div>
+                        </div>
+                    </label>
+                    <label class="notif-pref-item">
+                        <input type="checkbox" id="notif-ai-enrichment" checked onchange="window.saveNotifPref(this)">
+                        <div>
+                            <div class="notif-pref-item__title">AI Enrichment Ready</div>
+                            <div class="notif-pref-item__desc">When AI topic and sentiment analysis completes</div>
+                        </div>
+                    </label>
+                    <label class="notif-pref-item">
+                        <input type="checkbox" id="notif-sync-conflict" checked onchange="window.saveNotifPref(this)">
+                        <div>
+                            <div class="notif-pref-item__title">Sync Conflicts</div>
+                            <div class="notif-pref-item__desc">When a Google Contacts sync conflict is detected</div>
+                        </div>
+                    </label>
+                    <label class="notif-pref-item">
+                        <input type="checkbox" id="notif-pending-reminder" checked onchange="window.saveNotifPref(this)">
+                        <div>
+                            <div class="notif-pref-item__title">Pending Enrichments Reminder</div>
+                            <div class="notif-pref-item__desc">Reminder to review unresolved enrichments</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import History Section -->
+        <div class="settings-section">
+            <h3 class="settings-section__title">Import History</h3>
+            <div class="settings-section__card">
+                <div id="import-history-container">
+                    <div class="loading-state"><div class="spinner"></div><p>Loading import history...</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sync Review Section -->
+        <div class="settings-section">
+            <h3 class="settings-section__title">Pending Sync Changes</h3>
+            <div class="settings-section__card">
+                <div id="sync-review-container">
+                    <div class="loading-state"><div class="spinner"></div><p>Loading sync status...</p></div>
+                </div>
             </div>
         </div>
         
         <!-- Account Section -->
-        <div style="margin-top: 24px;">
-            <h3 style="margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; color: var(--text-primary); font-size: 16px;">Account</h3>
+        <div class="settings-section">
+            <h3 class="settings-section__title">Account</h3>
             
             <div id="account-info-loading" style="text-align: center; padding: 16px;">
                 <div class="loading-spinner" style="margin: 0 auto 8px;"></div>
@@ -298,6 +343,12 @@ async function loadPreferences() {
             </div>
         </div>
     `;
+
+  // Load import history and sync review
+  setTimeout(() => {
+    loadImportHistory();
+    loadSyncReview();
+  }, 200);
 
   // Add Onboarding section with restart button
   const onboardingSection = document.createElement('div');
@@ -1482,6 +1533,230 @@ function showTestDataError(message) {
 }
 
 // ---------------------------------------------------------------------------
+// Import History (Task 33.2)
+// ---------------------------------------------------------------------------
+
+async function loadImportHistory() {
+  const container = document.getElementById('import-history-container');
+  if (!container) return;
+
+  try {
+    const response = await fetch(`${API_BASE}/imports/history`, {
+      headers: { Authorization: `Bearer ${_authToken()}` },
+    });
+
+    if (!response.ok) {
+      container.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;">No import history available</p>';
+      return;
+    }
+
+    const data = await response.json();
+    const records = Array.isArray(data) ? data : (data.records || []);
+
+    if (records.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:12px;">
+          <p style="color:var(--text-secondary);font-size:13px;">No imports yet</p>
+          <button class="btn-primary" style="margin-top:8px;font-size:13px;" onclick="window.openImportWizard && window.openImportWizard()">Import Chat History</button>
+        </div>
+      `;
+      return;
+    }
+
+    const platformIcons = { whatsapp: '💬', instagram: '📸', facebook: '💙', imessage: '🍎', twitter: '🐦', google_messages: '📱' };
+
+    container.innerHTML = records.map(r => {
+      const icon = platformIcons[r.platform] || '📋';
+      const status = r.status || 'unknown';
+      const statusColors = { complete: '#10b981', processing: '#f59e0b', failed: '#ef4444' };
+      const statusColor = statusColors[status] || '#9ca3af';
+
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--border-subtle);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:20px;">${icon}</span>
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--text-primary);">${escapeHtml(r.fileName || r.file_name || r.platform)}</div>
+              <div style="font-size:11px;color:var(--text-secondary);">
+                ${r.createdAt || r.created_at ? new Date(r.createdAt || r.created_at).toLocaleDateString() : ''} ·
+                ${r.totalParticipants || r.total_participants || 0} participants ·
+                ${r.autoMatched || r.auto_matched || 0} matched
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:${statusColor};font-weight:500;text-transform:capitalize;">${status}</span>
+            <button class="btn-secondary" style="font-size:11px;padding:2px 8px;" onclick="window.deleteImport('${r.id}')">Delete</button>
+            <button class="btn-secondary" style="font-size:11px;padding:2px 8px;" onclick="window.reimportRecord('${r.id}', '${r.platform}')">Re-import</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    container.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;">Failed to load import history</p>';
+  }
+}
+
+async function deleteImport(importId) {
+  const confirmed = confirm('Delete this import? All enrichment records from this import will be removed and contact data will be recalculated.');
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch(`${API_BASE}/imports/${importId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${_authToken()}` },
+    });
+    if (response.ok) {
+      showToast('Import deleted', 'success');
+      loadImportHistory();
+    } else {
+      showToast('Failed to delete import', 'error');
+    }
+  } catch (e) {
+    showToast('Failed to delete import', 'error');
+  }
+}
+
+function reimportRecord(importId, platform) {
+  if (window.openImportWizard) {
+    window.openImportWizard(platform);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sync Review (Task 33.3)
+// ---------------------------------------------------------------------------
+
+async function loadSyncReview() {
+  const container = document.getElementById('sync-review-container');
+  if (!container) return;
+
+  try {
+    const response = await fetch(`${API_BASE}/sync-back/pending`, {
+      headers: { Authorization: `Bearer ${_authToken()}` },
+    });
+
+    if (!response.ok) {
+      container.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;">No pending sync changes</p>';
+      return;
+    }
+
+    const data = await response.json();
+    const operations = Array.isArray(data) ? data : (data.operations || []);
+
+    if (operations.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;">No pending sync changes. All edits are in sync.</p>';
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="margin-bottom:12px;display:flex;gap:8px;">
+        <button class="btn-primary" style="font-size:12px;" onclick="window.approveAllSync()">Approve All (${operations.length})</button>
+        <button class="btn-secondary" style="font-size:12px;" onclick="window.skipAllSync()">Skip All</button>
+      </div>
+      ${operations.map(op => {
+        const contactName = op.contactName || op.contact_name || 'Unknown';
+        const field = op.field || '';
+        const prevValue = op.previousValue || op.previous_value || '(empty)';
+        const newValue = op.newValue || op.new_value || '(empty)';
+        const isConflict = op.status === 'conflict';
+        const conflictValue = op.conflictGoogleValue || op.conflict_google_value;
+
+        return `
+          <div class="sync-diff" data-op-id="${op.id}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong style="font-size:13px;color:var(--text-primary);">${escapeHtml(contactName)}</strong>
+              <div style="display:flex;gap:4px;">
+                <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+                  <input type="checkbox" class="sync-approve-cb" data-id="${op.id}" checked> Approve
+                </label>
+              </div>
+            </div>
+            <div class="sync-diff__field">${escapeHtml(field)}</div>
+            <div class="sync-diff__values">
+              <div class="sync-diff__old"><strong>Google:</strong> ${escapeHtml(prevValue)}</div>
+              <div class="sync-diff__new"><strong>CatchUp:</strong> ${escapeHtml(newValue)}</div>
+            </div>
+            ${isConflict && conflictValue ? `
+              <div style="margin-top:8px;padding:8px;background:var(--status-error-bg);border-radius:4px;font-size:12px;">
+                ⚠️ Conflict: Google value changed to "${escapeHtml(conflictValue)}" since your edit
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('')}
+      <div style="margin-top:12px;">
+        <button class="btn-primary" onclick="window.approveSelectedSync()">Apply Selected</button>
+      </div>
+    `;
+  } catch (e) {
+    container.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;">Failed to load sync status</p>';
+  }
+}
+
+async function approveAllSync() {
+  try {
+    const response = await fetch(`${API_BASE}/sync-back/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_authToken()}` },
+      body: JSON.stringify({ all: true }),
+    });
+    if (response.ok) { showToast('All changes approved', 'success'); loadSyncReview(); }
+    else { showToast('Failed to approve', 'error'); }
+  } catch (e) { showToast('Failed to approve', 'error'); }
+}
+
+async function skipAllSync() {
+  try {
+    const response = await fetch(`${API_BASE}/sync-back/skip`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_authToken()}` },
+      body: JSON.stringify({ all: true }),
+    });
+    if (response.ok) { showToast('All changes skipped', 'success'); loadSyncReview(); }
+    else { showToast('Failed to skip', 'error'); }
+  } catch (e) { showToast('Failed to skip', 'error'); }
+}
+
+async function approveSelectedSync() {
+  const checkboxes = document.querySelectorAll('.sync-approve-cb:checked');
+  const ids = Array.from(checkboxes).map(cb => cb.dataset.id);
+  if (ids.length === 0) { showToast('No changes selected', 'error'); return; }
+
+  try {
+    const response = await fetch(`${API_BASE}/sync-back/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_authToken()}` },
+      body: JSON.stringify({ operationIds: ids }),
+    });
+    if (response.ok) { showToast(`${ids.length} changes approved`, 'success'); loadSyncReview(); }
+    else { showToast('Failed to approve', 'error'); }
+  } catch (e) { showToast('Failed to approve', 'error'); }
+}
+
+// ---------------------------------------------------------------------------
+// Notification preference auto-save (Task 33.1)
+// ---------------------------------------------------------------------------
+
+async function saveNotifPref(checkbox) {
+  showToast('Preference saved', 'success');
+  // Auto-save notification preferences
+  try {
+    const prefs = {
+      importComplete: document.getElementById('notif-import-complete')?.checked ?? true,
+      aiEnrichment: document.getElementById('notif-ai-enrichment')?.checked ?? true,
+      syncConflict: document.getElementById('notif-sync-conflict')?.checked ?? true,
+      pendingReminder: document.getElementById('notif-pending-reminder')?.checked ?? true,
+    };
+    await fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_authToken()}` },
+      body: JSON.stringify({ notificationPreferences: prefs }),
+    });
+  } catch (e) { /* silent */ }
+}
+
+// ---------------------------------------------------------------------------
 // Page registration
 // ---------------------------------------------------------------------------
 
@@ -1533,3 +1808,17 @@ window.showTestDataLoading = showTestDataLoading;
 window.hideTestDataLoading = hideTestDataLoading;
 window.showTestDataSuccess = showTestDataSuccess;
 window.showTestDataError = showTestDataError;
+
+// Import history (Task 33.2)
+window.loadImportHistory = loadImportHistory;
+window.deleteImport = deleteImport;
+window.reimportRecord = reimportRecord;
+
+// Sync review (Task 33.3)
+window.loadSyncReview = loadSyncReview;
+window.approveAllSync = approveAllSync;
+window.skipAllSync = skipAllSync;
+window.approveSelectedSync = approveSelectedSync;
+
+// Notification preferences (Task 33.1)
+window.saveNotifPref = saveNotifPref;

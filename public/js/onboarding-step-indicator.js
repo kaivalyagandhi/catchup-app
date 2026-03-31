@@ -502,6 +502,10 @@ class OnboardingStepIndicator {
       this.mount(this.element.parentElement);
     }
     
+    // Clean up any leftover overlays that might block interaction
+    document.querySelectorAll('.modal-overlay, .confirm-dialog-overlay').forEach(el => el.remove());
+    document.body.style.overflow = '';
+    
     // Emit event
     window.dispatchEvent(new CustomEvent('onboarding-dismissed', {
       detail: { state: this.state }

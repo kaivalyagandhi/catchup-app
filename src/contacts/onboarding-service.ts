@@ -548,6 +548,87 @@ export class PostgresOnboardingService implements OnboardingService {
       progressData: mergedProgressData,
     });
   }
+
+  /**
+   * Initialize progressive onboarding flow.
+   * After Google SSO, triggers contacts sync in background and redirects to dashboard.
+   * Makes 'welcome' and 'circle_assignment' steps optional post-onboarding activities.
+   *
+   * Requirements: 2.1, 2.2, 2.3, 2.6
+   */
+  async initializeProgressiveOnboarding(
+    userId: string,
+    trigger: OnboardingTrigger,
+  ): Promise<OnboardingStateRecord> {
+    const existing = await this.onboardingRepo.findByUserId(userId);
+    if (existing && !existing.completedAt) {
+      return existing;
+    }
+
+    const allContacts = await this.contactRepo.findAll(userId, { archived: false });
+    const uncategorized = await this.contactRepo.findUncategorized(userId);
+
+    // In progressive flow, skip directly to import_contacts step
+    // 'welcome' and 'circle_assignment' are optional post-onboarding activities
+    const currentStep: OnboardingStep = 'import_contacts';
+
+    const state = await this.onboardingRepo.create({
+      userId,
+      triggerType: trigger.type,
+      currentStep,
+      progressData: {
+        categorizedCount: allContacts.length - uncategorized.length,
+        totalCount: allContacts.length,
+        milestonesReached: ['Getting Started'],
+        timeSpent: 0,
+        progressiveFlow: true,
+        optionalSteps: ['welcome', 'circle_assignment'],
+      },
+    });
+
+    // Mark welcome as complete since we skip it in progressive flow
+    await this.onboardingRepo.markStepComplete(userId, 'welcome');
+
+    return state;
+  }
+
+  /**
+   * Complete progressive onboarding — redirect to Home Dashboard.
+   * Does not require circle assignment.
+   *
+   * Requirements: 2.2, 2.3, 2.6
+   */
+  async completeProgressiveOnboarding(userId: string): Promise<void> {
+    const state = await this.onboardingRepo.findByUserId(userId);
+    if (!state) {
+      throw new Error('Onboarding state not found');
+    }
+
+    // In progressive flow, only mark essential steps as complete
+    const essentialSteps: OnboardingStep[] = ['welcome', 'import_contacts', 'completion'];
+
+    await this.onboardingRepo.update(userId, {
+      currentStep: 'completion',
+      completedSteps: essentialSteps,
+      completedAt: new Date(),
+      progressData: {
+        ...state.progressData,
+        progressiveFlow: true,
+        redirectTo: 'dashboard',
+        milestonesReached: [...(state.progressData.milestonesReached || []), 'Complete'],
+      },
+    });
+
+    await this.onboardingRepo.markComplete(userId);
+  }
+
+  /**
+   * Check if a step is optional in progressive flow.
+   * Requirements: 2.6
+   */
+  isOptionalStep(step: string): boolean {
+    return step === 'welcome' || step === 'circle_assignment';
+  }
 }
 
 // Default instance for backward compatibility
@@ -573,3 +654,9 @@ export const flagNewContactForCategorization = (userId: string, contactId: strin
   defaultService.flagNewContactForCategorization(userId, contactId);
 export const shouldTriggerOnboarding = (userId: string) =>
   defaultService.shouldTriggerOnboarding(userId);
+export const initializeProgressiveOnboarding = (userId: string, trigger: OnboardingTrigger) =>
+  defaultService.initializeProgressiveOnboarding(userId, trigger);
+export const completeProgressiveOnboarding = (userId: string) =>
+  defaultService.completeProgressiveOnboarding(userId);
+export const isOptionalStep = (step: string) =>
+  defaultService.isOptionalStep(step);

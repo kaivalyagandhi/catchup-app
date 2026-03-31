@@ -64,15 +64,13 @@ class ContactsTable {
             <thead>
               <tr>
                 <th class="sortable" data-column="name">Name <span class="sort-indicator"></span></th>
+                <th class="sortable" data-column="lastContactDate">Last Interaction <span class="sort-indicator"></span></th>
+                <th data-column="health">Health</th>
+                <th data-column="sources">Sources</th>
                 <th data-column="phone">Phone</th>
                 <th data-column="email">Email</th>
-                <th class="sortable" data-column="location">Location <span class="sort-indicator"></span></th>
-                <th class="sortable" data-column="timezone">Timezone <span class="sort-indicator"></span></th>
-                <th class="sortable" data-column="frequencyPreference">Frequency <span class="sort-indicator"></span></th>
                 <th class="sortable" data-column="dunbarCircle">Circle <span class="sort-indicator"></span></th>
-                <th data-column="tags">Tags</th>
                 <th data-column="groups">Groups</th>
-                <th data-column="source">Source</th>
                 <th data-column="actions">Actions</th>
               </tr>
             </thead>
@@ -136,7 +134,7 @@ class ContactsTable {
     if (this.filteredData.length === 0) {
       return `
         <tr class="empty-state">
-          <td colspan="11" style="text-align: center; padding: 40px; color: #6b7280;">
+          <td colspan="9" style="text-align: center; padding: 40px; color: #6b7280;">
             No contacts found
           </td>
         </tr>
@@ -154,33 +152,34 @@ class ContactsTable {
     try {
       // Render badges for circle, tags, groups, and source
       const circleBadge = this.renderCircleBadge(contact);
-      const tagsBadges = this.renderTagsBadges(contact);
       const groupsBadges = this.renderGroupsBadges(contact);
-      const sourceBadge = this.renderSourceBadge(contact);
+      
+      // Enrichment columns
+      const healthInfo = this.getHealthIndicator(contact);
+      const healthDot = `<span class="health-indicator health-indicator--${healthInfo.label.toLowerCase().replace(' ', '-')}" title="${healthInfo.label}"><span class="health-indicator__dot" style="background:${healthInfo.color};"></span><span class="health-indicator__label">${healthInfo.label}</span></span>`;
+      const sourceIcons = this.renderSourceIcons(contact);
+      const lastInteraction = contact.lastContactDate
+        ? this.formatRelativeTime(new Date(contact.lastContactDate))
+        : '<span class="empty-cell">—</span>';
       
       // Ensure all text values are properly escaped strings
       const name = this.escapeHtml(contact.name || '');
       const phone = this.escapeHtml(contact.phone || '');
       const email = this.escapeHtml(contact.email || '');
-      const location = this.escapeHtml(contact.location || '');
-      const timezone = this.escapeHtml(contact.timezone || '');
-      const frequency = this.escapeHtml(contact.frequencyPreference || '');
       
       return `
-        <tr data-contact-id="${contact.id}">
+        <tr data-contact-id="${contact.id}" class="contact-row-clickable">
           <td class="contact-name editable" data-field="name" data-type="text" data-label="Name">${name || '<span class="empty-cell">—</span>'}</td>
+          <td class="contact-last-interaction" data-label="Last Interaction">${lastInteraction}</td>
+          <td class="contact-health" data-label="Health">${healthDot}</td>
+          <td class="contact-sources" data-label="Sources">${sourceIcons}</td>
           <td class="contact-phone editable" data-field="phone" data-type="phone" data-label="Phone">${phone || '<span class="empty-cell">—</span>'}</td>
           <td class="contact-email editable" data-field="email" data-type="email" data-label="Email">${email || '<span class="empty-cell">—</span>'}</td>
-          <td class="contact-location editable" data-field="location" data-type="text" data-label="Location">${location || '<span class="empty-cell">—</span>'}</td>
-          <td class="contact-timezone editable" data-field="timezone" data-type="dropdown" data-label="Timezone">${timezone || '<span class="empty-cell">—</span>'}</td>
-          <td class="contact-frequency editable" data-field="frequencyPreference" data-type="dropdown" data-label="Frequency">${frequency || '<span class="empty-cell">—</span>'}</td>
           <td class="contact-circle" data-label="Circle">${circleBadge}</td>
-          <td class="contact-tags editable" data-field="tags" data-type="multiselect" data-label="Tags">${tagsBadges}</td>
           <td class="contact-groups editable" data-field="groups" data-type="multiselect" data-label="Groups">${groupsBadges}</td>
-          <td class="contact-source" data-label="Source">${sourceBadge}</td>
           <td class="contact-actions" data-label="Actions">
-            <button class="btn-archive" data-contact-id="${contact.id}" title="Archive contact">📦</button>
-            <button class="btn-delete" data-contact-id="${contact.id}" title="Delete contact">×</button>
+            <button class="btn-icon btn-archive" data-contact-id="${contact.id}" title="Archive contact"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></button>
+            <button class="btn-icon btn-delete" data-contact-id="${contact.id}" title="Delete contact"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
           </td>
         </tr>
       `;
@@ -285,6 +284,48 @@ class ContactsTable {
   }
 
   /**
+   * Compute health indicator for a contact based on frequency preference and last interaction.
+   */
+  getHealthIndicator(contact) {
+    if (!contact.frequencyPreference || !contact.lastContactDate) return { color: '#9ca3af', label: 'No data' };
+    const freqDays = { daily: 1, weekly: 7, biweekly: 14, monthly: 30, quarterly: 90 };
+    const windowDays = freqDays[contact.frequencyPreference] || 30;
+    const daysSince = Math.floor((Date.now() - new Date(contact.lastContactDate).getTime()) / 86400000);
+    if (daysSince <= windowDays) return { color: '#10b981', label: 'On track' };
+    if (daysSince <= windowDays * 1.5) return { color: '#f59e0b', label: 'Attention' };
+    return { color: '#ef4444', label: 'Overdue' };
+  }
+
+  /**
+   * Render platform source icons for a contact.
+   */
+  renderSourceIcons(contact) {
+    const sources = contact.sources || (contact.source ? [contact.source] : []);
+    if (sources.length === 0) return '<span class="empty-cell">—</span>';
+    const labels = { google: 'G', apple: 'A', whatsapp: 'WA', instagram: 'IG', facebook: 'FB', twitter: 'X', google_messages: 'SMS', chat_import: 'Chat', voice_note: 'Voice', calendar: 'Cal' };
+    const colors = { google: '#4285f4', apple: '#555', whatsapp: '#25d366', instagram: '#e1306c', facebook: '#1877f2', twitter: '#1da1f2', google_messages: '#1a73e8', chat_import: '#f59e0b', voice_note: '#10b981', calendar: '#ea4335' };
+    return sources.map(s => `<span class="source-pill" style="background:${colors[s] || '#78716c'};" title="${this.escapeHtml(s)}">${labels[s] || s.charAt(0).toUpperCase()}</span>`).join(' ');
+  }
+
+  /**
+   * Format a date as relative time (e.g., "3 days ago").
+   */
+  formatRelativeTime(date) {
+    if (!date || isNaN(date.getTime())) return '—';
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+    return `${Math.floor(days / 365)}y ago`;
+  }
+
+  /**
    * Sort the table by a column
    * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5
    */
@@ -322,8 +363,8 @@ class ContactsTable {
         }
       }
 
-      // Handle date sorting for Recently Added and Recently Met (Requirements 6.2, 6.3)
-      if (column === 'createdAt' || column === 'lastInteractionAt') {
+      // Handle date sorting for Recently Added, Recently Met, and Last Interaction
+      if (column === 'createdAt' || column === 'lastInteractionAt' || column === 'lastContactDate') {
         // Convert to timestamps for comparison
         const aTime = aVal ? new Date(aVal).getTime() : 0;
         const bTime = bVal ? new Date(bVal).getTime() : 0;
@@ -1247,6 +1288,20 @@ class ContactsTable {
    * (Extracted from attachEventListeners for reuse)
    */
   attachRowEventListeners() {
+    // Row click handler — open contact detail panel
+    this.container.querySelectorAll('tr.contact-row-clickable').forEach(row => {
+      row.addEventListener('click', (e) => {
+        // Don't open panel if clicking buttons, editable cells being edited, or badges
+        if (e.target.closest('.btn-archive') || e.target.closest('.btn-delete') || e.target.closest('.contact-actions') || this.editingCell) return;
+        const contactId = row.dataset.contactId;
+        const contact = this.data.find(c => c.id === contactId);
+        if (contact && typeof window.openContactDetail === 'function') {
+          const idx = this.filteredData.indexOf(contact);
+          window.openContactDetail(contact, this.filteredData, idx >= 0 ? idx : 0);
+        }
+      });
+    });
+
     // Archive button handlers
     this.container.querySelectorAll('.btn-archive').forEach(btn => {
       btn.addEventListener('click', async (e) => {

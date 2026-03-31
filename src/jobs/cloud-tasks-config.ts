@@ -130,6 +130,59 @@ export const QUEUE_CONFIGS: Record<string, QueueConfig> = {
       maxBackoff: '1800s',
       maxDoublings: 2
     }
+  },
+  'import-parse': {
+    name: 'import-parse-queue',
+    retryConfig: {
+      maxAttempts: 3,
+      minBackoff: '30s',
+      maxBackoff: '1800s',
+      maxDoublings: 3
+    },
+    rateLimits: {
+      maxDispatchesPerSecond: 5,
+      maxConcurrentDispatches: 10
+    }
+  },
+  'ai-enrichment': {
+    name: 'ai-enrichment-queue',
+    retryConfig: {
+      maxAttempts: 3,
+      minBackoff: '60s',
+      maxBackoff: '3600s',
+      maxDoublings: 2
+    },
+    rateLimits: {
+      maxDispatchesPerSecond: 5,
+      maxConcurrentDispatches: 5
+    }
+  },
+  'notification-cleanup': {
+    name: 'notification-cleanup-queue',
+    retryConfig: {
+      maxAttempts: 3,
+      minBackoff: '60s',
+      maxBackoff: '3600s',
+      maxDoublings: 2
+    }
+  },
+  'export-reminder': {
+    name: 'export-reminder-queue',
+    retryConfig: {
+      maxAttempts: 3,
+      minBackoff: '60s',
+      maxBackoff: '1800s',
+      maxDoublings: 2
+    }
+  },
+  'pending-enrichments-reminder': {
+    name: 'pending-enrichments-reminder-queue',
+    retryConfig: {
+      maxAttempts: 3,
+      minBackoff: '60s',
+      maxBackoff: '1800s',
+      maxDoublings: 2
+    }
   }
 };
 

@@ -3,6 +3,10 @@
  *
  * Business logic layer for suggestion generation and management.
  * Implements priority calculation, matching logic, and lifecycle management.
+ * Incorporates enrichment data signals (communication frequency, recency, sentiment)
+ * with configurable signal weights.
+ *
+ * Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6
  */
 
 import {
@@ -21,6 +25,336 @@ import { interactionService } from '../contacts/interaction-service';
 // import { frequencyService } from '../contacts/frequency-service';
 import { getOrSetCache, CacheKeys, CacheTTL, invalidateSuggestionCache } from '../utils/cache';
 import pool from '../db/connection';
+
+// ============================================
+// Enrichment Signal Types & Weights
+// Requirements: 17.1, 17.4
+// ============================================
+
+/**
+ * Configurable signal weights for suggestion scoring.
+ * Stored in `suggestion_signal_weights` table.
+ */
+export interface SuggestionSignalWeights {
+  enrichmentData: number;   // default 0.25
+  interactionLogs: number;  // default 0.35
+  calendarData: number;     // default 0.25
+  contactMetadata: number;  // default 0.15
+}
+
+export const DEFAULT_SIGNAL_WEIGHTS: SuggestionSignalWeights = {
+  enrichmentData: 0.25,
+  interactionLogs: 0.35,
+  calendarData: 0.25,
+  contactMetadata: 0.15,
+};
+
+/**
+ * Enrichment signal data for a contact, derived from enrichment_records.
+ */
+export interface EnrichmentSignal {
+  contactId: string;
+  avgMessagesPerMonth: number;
+  lastMessageDate: Date | null;
+  sentimentTrend: 'positive' | 'neutral' | 'negative' | null;
+  frequencyTrend: 'increasing' | 'stable' | 'declining';
+  topPlatform: string | null;
+  totalMessageCount: number;
+}
+
+/**
+ * Breakdown of how each signal contributed to a suggestion score.
+ */
+export interface SignalContribution {
+  enrichmentScore: number;
+  interactionLogScore: number;
+  calendarScore: number;
+  metadataScore: number;
+  weights: SuggestionSignalWeights;
+  hasEnrichmentData: boolean;
+  decliningFrequency: boolean;
+  negativeSentiment: boolean;
+}
+
+/**
+ * Fetch signal weights for a user (or global defaults).
+ * Requirements: 17.4
+ */
+export async function getSignalWeights(userId?: string): Promise<SuggestionSignalWeights> {
+  try {
+    // Try user-specific weights first
+    if (userId) {
+      const { rows } = await pool.query(
+        `SELECT enrichment_data, interaction_logs, calendar_data, contact_metadata
+         FROM suggestion_signal_weights WHERE user_id = $1 LIMIT 1`,
+        [userId],
+      );
+      if (rows.length > 0) {
+        return {
+          enrichmentData: parseFloat(rows[0].enrichment_data),
+          interactionLogs: parseFloat(rows[0].interaction_logs),
+          calendarData: parseFloat(rows[0].calendar_data),
+          contactMetadata: parseFloat(rows[0].contact_metadata),
+        };
+      }
+    }
+
+    // Fall back to global defaults from DB
+    const { rows } = await pool.query(
+      `SELECT enrichment_data, interaction_logs, calendar_data, contact_metadata
+       FROM suggestion_signal_weights WHERE user_id IS NULL LIMIT 1`,
+    );
+    if (rows.length > 0) {
+      return {
+        enrichmentData: parseFloat(rows[0].enrichment_data),
+        interactionLogs: parseFloat(rows[0].interaction_logs),
+        calendarData: parseFloat(rows[0].calendar_data),
+        contactMetadata: parseFloat(rows[0].contact_metadata),
+      };
+    }
+  } catch {
+    // DB not available, use hardcoded defaults
+  }
+  return { ...DEFAULT_SIGNAL_WEIGHTS };
+}
+
+/**
+ * Fetch enrichment signal data for a contact from enrichment_records.
+ * Requirements: 17.1
+ */
+export async function getEnrichmentSignal(contactId: string, userId: string): Promise<EnrichmentSignal | null> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT platform, message_count, avg_messages_per_month,
+              first_message_date, last_message_date, sentiment
+       FROM enrichment_records
+       WHERE contact_id = $1 AND user_id = $2
+       ORDER BY last_message_date DESC NULLS LAST`,
+      [contactId, userId],
+    );
+
+    if (rows.length === 0) return null;
+
+    let totalMessageCount = 0;
+    let totalAvgPerMonth = 0;
+    let lastMessageDate: Date | null = null;
+    let sentimentCounts = { positive: 0, neutral: 0, negative: 0 };
+    let topPlatform: string | null = null;
+    let topPlatformCount = 0;
+
+    for (const r of rows) {
+      const mc = r.message_count || 0;
+      totalMessageCount += mc;
+      totalAvgPerMonth += parseFloat(r.avg_messages_per_month || '0');
+
+      if (r.last_message_date) {
+        const d = new Date(r.last_message_date);
+        if (!lastMessageDate || d > lastMessageDate) lastMessageDate = d;
+      }
+
+      if (r.sentiment) {
+        sentimentCounts[r.sentiment as keyof typeof sentimentCounts]++;
+      }
+
+      if (mc > topPlatformCount) {
+        topPlatformCount = mc;
+        topPlatform = r.platform;
+      }
+    }
+
+    // Determine sentiment trend (majority vote)
+    let sentimentTrend: 'positive' | 'neutral' | 'negative' | null = null;
+    const maxSentiment = Math.max(sentimentCounts.positive, sentimentCounts.neutral, sentimentCounts.negative);
+    if (maxSentiment > 0) {
+      if (sentimentCounts.negative === maxSentiment) sentimentTrend = 'negative';
+      else if (sentimentCounts.positive === maxSentiment) sentimentTrend = 'positive';
+      else sentimentTrend = 'neutral';
+    }
+
+    // Determine frequency trend: compare recent avg to 6-month avg
+    const frequencyTrend = detectFrequencyTrend(totalAvgPerMonth / rows.length, rows);
+
+    return {
+      contactId,
+      avgMessagesPerMonth: totalAvgPerMonth / rows.length,
+      lastMessageDate,
+      sentimentTrend,
+      frequencyTrend,
+      topPlatform,
+      totalMessageCount,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Detect frequency trend by comparing recent activity to historical average.
+ * Declining = current month avg < 50% of 6-month avg.
+ * Requirements: 17.2
+ */
+export function detectFrequencyTrend(
+  overallAvg: number,
+  records: Array<{ avg_messages_per_month?: string; last_message_date?: string | Date }>
+): 'increasing' | 'stable' | 'declining' {
+  if (records.length === 0 || overallAvg === 0) return 'stable';
+
+  const now = new Date();
+  const oneMonthAgo = new Date(now);
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+  // Calculate recent average (records with last_message_date in last month)
+  let recentTotal = 0;
+  let recentCount = 0;
+  for (const r of records) {
+    if (r.last_message_date) {
+      const d = new Date(r.last_message_date);
+      if (d >= oneMonthAgo) {
+        recentTotal += parseFloat(r.avg_messages_per_month || '0');
+        recentCount++;
+      }
+    }
+  }
+
+  if (recentCount === 0) {
+    // No recent activity — declining
+    return 'declining';
+  }
+
+  const recentAvg = recentTotal / recentCount;
+  const ratio = recentAvg / overallAvg;
+
+  if (ratio < 0.5) return 'declining';
+  if (ratio > 1.5) return 'increasing';
+  return 'stable';
+}
+
+/**
+ * Compute a weighted suggestion score using all signal sources.
+ * Returns a score between 0 and 100.
+ *
+ * Requirements: 17.1, 17.2, 17.3, 17.5, 17.6
+ */
+export function computeWeightedScore(
+  contact: Contact,
+  enrichment: EnrichmentSignal | null,
+  weights: SuggestionSignalWeights,
+  currentDate: Date = new Date(),
+): { score: number; reasoning: string; contribution: SignalContribution } {
+  const hasEnrichment = enrichment !== null;
+
+  // Re-weight if no enrichment data (Req 17.5)
+  let effectiveWeights = { ...weights };
+  if (!hasEnrichment) {
+    const remaining = weights.interactionLogs + weights.calendarData + weights.contactMetadata;
+    if (remaining > 0) {
+      const scale = 1.0 / remaining;
+      effectiveWeights = {
+        enrichmentData: 0,
+        interactionLogs: weights.interactionLogs * scale,
+        calendarData: weights.calendarData * scale,
+        contactMetadata: weights.contactMetadata * scale,
+      };
+    }
+  }
+
+  // --- Enrichment signal (0-100 raw) ---
+  let enrichmentRaw = 0;
+  if (hasEnrichment && enrichment) {
+    // Recency component (0-50): more recent = higher
+    const lastMsg = enrichment.lastMessageDate;
+    if (lastMsg) {
+      const daysSince = Math.floor((currentDate.getTime() - lastMsg.getTime()) / (1000 * 60 * 60 * 24));
+      enrichmentRaw += Math.max(0, 50 - daysSince * 0.5);
+    }
+    // Frequency component (0-30): higher avg = higher
+    enrichmentRaw += Math.min(30, enrichment.avgMessagesPerMonth * 2);
+    // Volume component (0-20): more messages = higher
+    enrichmentRaw += Math.min(20, enrichment.totalMessageCount * 0.02);
+  }
+
+  // --- Interaction log signal (0-100 raw) ---
+  // Based on recency decay from existing priority calculation
+  const lastContactDate = contact.lastContactDate ? new Date(contact.lastContactDate) : null;
+  const basePriority = calculatePriority(contact, lastContactDate, currentDate);
+  // Normalize to 0-100 range (base is 100, typical max ~400)
+  const interactionLogRaw = Math.min(100, Math.max(0, (basePriority - 100) / 3 * 100 / 100));
+
+  // --- Calendar signal (0-100 raw) ---
+  // Placeholder: use lastContactDate proximity as proxy
+  let calendarRaw = 0;
+  if (lastContactDate) {
+    const daysSince = Math.floor((currentDate.getTime() - lastContactDate.getTime()) / (1000 * 60 * 60 * 24));
+    calendarRaw = Math.max(0, Math.min(100, daysSince * 1.0));
+  } else {
+    calendarRaw = 50; // No data, neutral
+  }
+
+  // --- Metadata signal (0-100 raw) ---
+  let metadataRaw = 0;
+  if (contact.frequencyPreference && contact.frequencyPreference !== FrequencyOption.NA) metadataRaw += 30;
+  if (contact.groups.length > 0) metadataRaw += 20;
+  if (contact.tags.length > 0) metadataRaw += 20;
+  if (contact.dunbarCircle) metadataRaw += 30;
+
+  // Weighted combination
+  let score =
+    enrichmentRaw * effectiveWeights.enrichmentData +
+    interactionLogRaw * effectiveWeights.interactionLogs +
+    calendarRaw * effectiveWeights.calendarData +
+    metadataRaw * effectiveWeights.contactMetadata;
+
+  // Clamp to 0-100
+  score = Math.max(0, Math.min(100, score));
+
+  // Boost for declining frequency (Req 17.2)
+  const decliningFrequency = hasEnrichment && enrichment!.frequencyTrend === 'declining';
+  if (decliningFrequency) {
+    score = Math.min(100, score * 1.25);
+  }
+
+  // Build reasoning
+  const reasonParts: string[] = [];
+  reasonParts.push(`It's been a while since you connected`);
+  if (contact.frequencyPreference) {
+    reasonParts.push(`(${contact.frequencyPreference} preference)`);
+  }
+
+  // Include sentiment context in reasoning (Req 17.3)
+  const negativeSentiment = hasEnrichment && enrichment!.sentimentTrend === 'negative';
+  if (negativeSentiment) {
+    reasonParts.push(`— recent conversations had a negative tone, might be worth checking in`);
+  }
+
+  if (decliningFrequency && hasEnrichment) {
+    reasonParts.push(`— communication frequency has been declining`);
+  }
+
+  if (hasEnrichment && enrichment!.topPlatform) {
+    reasonParts.push(`(${enrichment!.totalMessageCount} messages via ${enrichment!.topPlatform})`);
+  }
+
+  const contribution: SignalContribution = {
+    enrichmentScore: enrichmentRaw * effectiveWeights.enrichmentData,
+    interactionLogScore: interactionLogRaw * effectiveWeights.interactionLogs,
+    calendarScore: calendarRaw * effectiveWeights.calendarData,
+    metadataScore: metadataRaw * effectiveWeights.contactMetadata,
+    weights: effectiveWeights,
+    hasEnrichmentData: hasEnrichment,
+    decliningFrequency,
+    negativeSentiment,
+  };
+
+  // Log signal contributions (Req 17.6)
+  console.log(`[SuggestionEngine] Contact ${contact.id} score=${score.toFixed(2)}, ` +
+    `enrichment=${contribution.enrichmentScore.toFixed(2)}, ` +
+    `interaction=${contribution.interactionLogScore.toFixed(2)}, ` +
+    `calendar=${contribution.calendarScore.toFixed(2)}, ` +
+    `metadata=${contribution.metadataScore.toFixed(2)}, ` +
+    `hasEnrichment=${hasEnrichment}, declining=${decliningFrequency}, negSentiment=${negativeSentiment}`);
+
+  return { score, reasoning: reasonParts.join(' '), contribution };
+}
 
 /**
  * Helper function to fetch group names for a user

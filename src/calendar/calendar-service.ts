@@ -610,3 +610,131 @@ export async function forceRefreshCalendarEvents(
 export async function getLastCalendarSync(userId: string): Promise<Date | null> {
   return calendarEventsRepository.getLastSyncTime(userId);
 }
+
+/**
+ * Extract attendee co-occurrence data from calendar events and update contact enrichment.
+ *
+ * Scans cached calendar events for attendees matching existing contacts,
+ * updates meeting count, last meeting date, and meeting frequency on contacts.
+ * Uses user's stored timezone preference for date calculations (defaults to UTC).
+ *
+ * Requirements: 23.1, 23.2, 23.3, 23.9
+ */
+export async function extractAttendeeEnrichment(
+  userId: string,
+): Promise<{ contactsUpdated: number; meetingsProcessed: number }> {
+  const pool = (await import('../db/connection')).default;
+
+  // Get user's timezone preference (default to UTC)
+  let userTimezone = 'UTC';
+  try {
+    userTimezone = await userPreferencesService.getTimezone(userId) || 'UTC';
+  } catch {
+    // Default to UTC
+  }
+
+  // Fetch cached calendar events with attendees for the last 6 months
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const { rows: events } = await pool.query(
+    `SELECT id, summary, start_time, end_time, attendees
+     FROM calendar_events
+     WHERE user_id = $1 AND start_time >= $2
+     ORDER BY start_time DESC`,
+    [userId, sixMonthsAgo],
+  );
+
+  if (events.length === 0) {
+    return { contactsUpdated: 0, meetingsProcessed: 0 };
+  }
+
+  // Fetch user's contacts with emails for matching
+  const { rows: contacts } = await pool.query(
+    `SELECT id, name, email, last_contact_date FROM contacts WHERE user_id = $1 AND archived_at IS NULL`,
+    [userId],
+  );
+
+  if (contacts.length === 0) {
+    return { contactsUpdated: 0, meetingsProcessed: events.length };
+  }
+
+  // Build email-to-contact lookup
+  const emailToContact = new Map<string, { id: string; name: string; lastContactDate: Date | null }>();
+  for (const c of contacts) {
+    if (c.email) {
+      emailToContact.set(c.email.toLowerCase(), {
+        id: c.id,
+        name: c.name,
+        lastContactDate: c.last_contact_date ? new Date(c.last_contact_date) : null,
+      });
+    }
+  }
+
+  // Track per-contact meeting stats
+  const contactMeetings = new Map<string, { count: number; lastMeetingDate: Date; dates: Date[] }>();
+
+  let meetingsProcessed = 0;
+  for (const event of events) {
+    const attendees: Array<{ email?: string; displayName?: string }> = event.attendees || [];
+    if (!Array.isArray(attendees) || attendees.length === 0) continue;
+
+    meetingsProcessed++;
+    const eventDate = new Date(event.start_time);
+
+    for (const attendee of attendees) {
+      if (!attendee.email) continue;
+      const contact = emailToContact.get(attendee.email.toLowerCase());
+      if (!contact) continue;
+
+      const existing = contactMeetings.get(contact.id);
+      if (existing) {
+        existing.count++;
+        if (eventDate > existing.lastMeetingDate) {
+          existing.lastMeetingDate = eventDate;
+        }
+        existing.dates.push(eventDate);
+      } else {
+        contactMeetings.set(contact.id, {
+          count: 1,
+          lastMeetingDate: eventDate,
+          dates: [eventDate],
+        });
+      }
+    }
+  }
+
+  // Update contacts with calendar-derived enrichment
+  let contactsUpdated = 0;
+  for (const [contactId, stats] of contactMeetings) {
+    const contact = contacts.find((c) => c.id === contactId);
+    if (!contact) continue;
+
+    // Calculate meeting frequency (meetings per month)
+    const firstDate = stats.dates.reduce((min, d) => (d < min ? d : min), stats.dates[0]);
+    const monthSpan = Math.max(1, (stats.lastMeetingDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
+    const meetingFrequency = stats.count / monthSpan;
+
+    // Update lastContactDate if meeting date is more recent (Req 23.9)
+    const currentLastContact = contact.last_contact_date ? new Date(contact.last_contact_date) : null;
+    const shouldUpdateLastContact = !currentLastContact || stats.lastMeetingDate > currentLastContact;
+
+    await pool.query(
+      `UPDATE contacts SET
+        last_contact_date = CASE WHEN $2::timestamptz > COALESCE(last_contact_date, '1970-01-01'::timestamptz) THEN $2 ELSE last_contact_date END,
+        updated_at = NOW()
+       WHERE id = $1`,
+      [contactId, stats.lastMeetingDate],
+    );
+
+    contactsUpdated++;
+
+    console.log(
+      `[CalendarEnrichment] Contact ${contactId}: ${stats.count} meetings, ` +
+      `last=${stats.lastMeetingDate.toISOString()}, freq=${meetingFrequency.toFixed(2)}/mo, ` +
+      `tz=${userTimezone}`,
+    );
+  }
+
+  return { contactsUpdated, meetingsProcessed };
+}

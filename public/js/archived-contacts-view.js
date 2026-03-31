@@ -136,9 +136,7 @@ class ArchivedContactsView {
         <td>${contact.phone ? this.escapeHtml(contact.phone) : '-'}</td>
         <td>${archivedDate}</td>
         <td>
-          <button class="btn-restore" data-contact-id="${contact.id}" title="Restore contact">
-            ↩️ Restore
-          </button>
+          <button class="btn-icon btn-restore" data-contact-id="${contact.id}" title="Restore contact"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
         </td>
       </tr>
     `;

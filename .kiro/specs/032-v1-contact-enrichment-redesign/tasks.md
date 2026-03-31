@@ -157,8 +157,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
   - Ensure no console errors in browser
   - Ask the user if questions arise
 
-- [ ] 8. Chat history parsers — platform-specific implementations
-  - [ ] 8.1 Create parser infrastructure and common interfaces
+- [x] 8. Chat history parsers — platform-specific implementations
+  - [x] 8.1 Create parser infrastructure and common interfaces
     - Create `src/chat-import/` directory
     - Implement `src/chat-import/parser.ts` with `ChatParser` interface, `ParseResult`, `Participant`, `ParsedMessage`, `ParseError` types from design
     - Implement `detectPlatform(fileName, headerBytes)` function using file extension and content signatures
@@ -171,7 +171,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 9: Participant identifier normalization**
     - **Validates: Requirements 6.4**
 
-  - [ ] 8.3 Implement WhatsApp parser
+  - [x] 8.3 Implement WhatsApp parser
     - Create `src/chat-import/whatsapp-parser.ts`
     - Handle native text export format with locale-dependent date patterns (`[MM/DD/YY, HH:MM:SS]`, `[DD/MM/YY, HH:MM:SS]`, `[DD.MM.YY, HH:MM:SS]`)
     - Attempt multiple known date format patterns, select the one producing valid dates for the majority of lines
@@ -179,34 +179,34 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Return `ParseResult` with participants, messages, and errors
     - _Requirements: 24.1, 24.7, 24.8_
 
-  - [ ] 8.4 Implement Instagram parser
+  - [x] 8.4 Implement Instagram parser
     - Create `src/chat-import/instagram-parser.ts`
     - Handle JSON export format from Instagram's "Download Your Information" feature
     - Extract messages from the `messages` array within each conversation
     - Return `ParseResult` with participants, messages, and errors
     - _Requirements: 24.2, 24.7, 24.8_
 
-  - [ ] 8.5 Implement iMessage parser
+  - [x] 8.5 Implement iMessage parser
     - Create `src/chat-import/imessage-parser.ts`
     - Handle CSV exports (from tools like iMazing) with columns for date, sender, message text, attachment indicators
     - Return `ParseResult` with participants, messages, and errors
     - _Requirements: 24.3, 24.7, 24.8_
 
-  - [ ] 8.6 Implement Facebook Messenger parser
+  - [x] 8.6 Implement Facebook Messenger parser
     - Create `src/chat-import/facebook-parser.ts`
     - Handle JSON export format from Facebook's "Download Your Information" feature
     - Extract messages from the `messages` array
     - Return `ParseResult` with participants, messages, and errors
     - _Requirements: 24.4, 24.7, 24.8_
 
-  - [ ] 8.7 Implement X/Twitter DM parser
+  - [x] 8.7 Implement X/Twitter DM parser
     - Create `src/chat-import/twitter-parser.ts`
     - Handle JSON export format from Twitter's data download
     - Extract messages from `dmConversation` objects
     - Return `ParseResult` with participants, messages, and errors
     - _Requirements: 24.5, 24.7, 24.8_
 
-  - [ ] 8.8 Implement Google Messages/SMS parser
+  - [x] 8.8 Implement Google Messages/SMS parser
     - Create `src/chat-import/google-messages-parser.ts`
     - Handle XML files from "SMS Backup & Restore" Android app using SAX-style streaming
     - Extract messages from `<sms>` elements with attributes: `address`, `body`, `date`, `type`, `contact_name`
@@ -223,7 +223,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 43: ParseResult JSON round-trip**
     - **Validates: Requirements 24.10**
 
-  - [ ] 8.10 Implement InteractionSummary generation from ParseResult
+  - [x] 8.10 Implement InteractionSummary generation from ParseResult
     - Create `src/chat-import/interaction-summary-generator.ts`
     - Generate one InteractionSummary per unique participant from ParseResult
     - Compute message_count, first_message_date, last_message_date, avg_messages_per_month
@@ -235,8 +235,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 10: InteractionSummary JSON round-trip**
     - **Validates: Requirements 6.5**
 
-- [ ] 9. Contact matching engine
-  - [ ] 9.1 Implement tiered contact matching
+- [x] 9. Contact matching engine
+  - [x] 9.1 Implement tiered contact matching
     - Create `src/chat-import/matching.ts` with `MatchingEngine` interface from design
     - Implement `matchParticipants(userId, participants)` returning `ContactMatch[]`
     - Auto-match (≥0.7): phone exact match (E.164), email exact match (case-insensitive), social handle exact match
@@ -255,7 +255,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 14: Confirmed match creates enrichment record**
     - **Validates: Requirements 7.6**
 
-  - [ ] 9.3 Implement match result persistence
+  - [x] 9.3 Implement match result persistence
     - Auto-matches: create `enrichment_records` linking interaction_summary to matched contact
     - Likely matches: create `pending_enrichments` with match_tier='likely', suggested_contact_id, confidence, match_reason
     - Unmatched: create `pending_enrichments` with match_tier='unmatched', sorted by message_count descending
@@ -263,8 +263,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Update import_record statistics (auto_matched, likely_matched, unmatched counts)
     - _Requirements: 7.1, 7.3, 7.4, 7.6_
 
-- [ ] 10. Chat import pipeline — upload, job processing, and AI enrichment
-  - [ ] 10.1 Implement import upload API endpoint
+- [x] 10. Chat import pipeline — upload, job processing, and AI enrichment
+  - [x] 10.1 Implement import upload API endpoint
     - Create `src/api/routes/imports.ts` with `POST /api/imports/upload`
     - Accept multipart file upload (max 200MB via streaming middleware)
     - Auto-detect platform using `detectPlatform`
@@ -282,7 +282,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 23: Maximum 3 concurrent imports per user**
     - **Validates: Requirements 11.6**
 
-  - [ ] 10.3 Implement import job handler
+  - [x] 10.3 Implement import job handler
     - Add import parse job type to `src/api/jobs-handler.ts`
     - Stream-parse the uploaded file using the platform-specific parser
     - Store interaction_summaries in the database
@@ -292,7 +292,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Create "import complete" in-app notification
     - _Requirements: 6.1, 6.2, 7.1, 11.3_
 
-  - [ ] 10.4 Implement AI enrichment job handler
+  - [x] 10.4 Implement AI enrichment job handler
     - Add AI enrichment job type to `src/api/jobs-handler.ts`
     - Batch messages (up to 100 per batch) and call Google Gemini API for topic extraction and sentiment analysis
     - Update interaction_summaries with topics and sentiment
@@ -300,7 +300,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Create "AI enrichment ready" in-app notification
     - _Requirements: 6.2, 6.3_
 
-  - [ ] 10.5 Implement import status polling and history endpoints
+  - [x] 10.5 Implement import status polling and history endpoints
     - Add `GET /api/imports/:jobId/status` — return current phase, percentage, matched count
     - Add `GET /api/imports/history` — list import_records sorted by date descending
     - Add `DELETE /api/imports/:importId` — delete import and cascade to enrichment_records, pending_enrichments; recalculate affected contacts' lastContactDate
@@ -318,7 +318,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 26: Raw message content not persisted**
     - **Validates: Requirements 12.6**
 
-  - [ ] 10.7 Implement match review endpoints
+  - [x] 10.7 Implement match review endpoints
     - Add `GET /api/imports/:importId/matches` — get likely matches for review with participant name, suggested contact, confidence, match reason
     - Add `POST /api/imports/matches/:matchId/confirm` — confirm a likely match, create enrichment_record
     - Add `POST /api/imports/matches/:matchId/reject` — reject a match
@@ -326,8 +326,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - All endpoints require JWT auth
     - _Requirements: 7.2, 7.5, 7.6, 7.7_
 
-- [ ] 11. Pending enrichment review queue
-  - [ ] 11.1 Implement pending enrichment API endpoints
+- [x] 11. Pending enrichment review queue
+  - [x] 11.1 Implement pending enrichment API endpoints
     - Add `GET /api/enrichments/pending` — get pending enrichments grouped by import (platform and date), sorted by message_count descending for unmatched
     - Add `POST /api/enrichments/pending/:id/link` — link pending enrichment to existing contact via searchable contact picker; create enrichment_record
     - Add `POST /api/enrichments/pending/:id/create-contact` — create new contact pre-populated with participant identifiers; link as enrichment_record
@@ -345,14 +345,14 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 19: Pending enrichment badge count accuracy**
     - **Validates: Requirements 8.6**
 
-- [ ] 12. Checkpoint — Verify chat import pipeline
+- [x] 12. Checkpoint — Verify chat import pipeline
   - Ensure all parser tests pass
   - Ensure matching engine tests pass
   - Ensure import lifecycle tests pass
   - Ask the user if questions arise
 
-- [ ] 13. Contact enrichment display and data management
-  - [ ] 13.1 Implement enrichment record API endpoints
+- [x] 13. Contact enrichment display and data management
+  - [x] 13.1 Implement enrichment record API endpoints
     - Add `GET /api/contacts/:id/enrichments` — get all enrichment records for a contact with per-platform breakdown
     - Add `DELETE /api/contacts/:id/enrichments/:enrichmentId` — delete an enrichment record, revert contact's lastContactDate to next most recent value
     - Implement aggregation logic: sum message counts, use most recent lastMessageDate, produce per-platform breakdown
@@ -366,7 +366,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 21: lastContactDate reflects most recent interaction across all sources**
     - **Validates: Requirements 10.3, 10.5, 23.9**
 
-  - [ ] 13.3 Add source tracking to contact operations
+  - [x] 13.3 Add source tracking to contact operations
     - Update contact creation/enrichment flows to add 'chat_import' to sources array on chat import
     - Update contact creation to add 'apple' to sources array on vCard import
     - Ensure sources array never contains duplicates
@@ -381,8 +381,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 40: Contact filtering by source**
     - **Validates: Requirements 18.5**
 
-- [ ] 14. Google sync-back service
-  - [ ] 14.1 Implement Google sync-back service
+- [x] 14. Google sync-back service
+  - [x] 14.1 Implement Google sync-back service
     - Create `src/integrations/google-sync-back-service.ts` with `GoogleSyncBackService` interface from design
     - Implement `createSyncBackOperation` — create pending_review operation when user edits name/phone/email/customNotes on a Google-synced contact
     - Implement `getPendingOperations` — get all pending_review operations for a user
@@ -393,7 +393,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Use googleEtag for optimistic concurrency control
     - _Requirements: 13.1, 13.4, 13.5, 13.6, 13.7, 13.8_
 
-  - [ ] 14.2 Implement sync-back API routes
+  - [x] 14.2 Implement sync-back API routes
     - Add `GET /api/sync-back/pending` — get pending sync-back operations with diff view data
     - Add `POST /api/sync-back/approve` — approve selected operations (bulk approve supported)
     - Add `POST /api/sync-back/skip` — skip selected operations
@@ -401,7 +401,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Register routes in `src/api/server.ts` with JWT auth
     - _Requirements: 13.2, 13.3, 13.8_
 
-  - [ ] 14.3 Implement incremental OAuth scope upgrade
+  - [x] 14.3 Implement incremental OAuth scope upgrade
     - When user first attempts to approve a sync-back, check if current OAuth scope is read-only
     - If read-only, trigger incremental authorization prompt for `https://www.googleapis.com/auth/contacts` (read-write)
     - _Requirements: 13.9_
@@ -416,15 +416,15 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 30: Sync-back undo restores previous value**
     - **Validates: Requirements 13.8**
 
-- [ ] 15. Apple Contacts import/export via vCard
-  - [ ] 15.1 Implement vCard parser and printer
+- [x] 15. Apple Contacts import/export via vCard
+  - [x] 15.1 Implement vCard parser and printer
     - Create `src/contacts/apple-contacts-service.ts` with `AppleContactsService` interface from design
     - Implement `parseVCard(fileContent)` — parse vCard 3.0 and 4.0 formats, extract FN/N, TEL, EMAIL, ORG, ADR, X-SOCIALPROFILE/IMPP, NOTE
     - Skip malformed entries gracefully, log errors, continue parsing
     - Implement `printVCard(contacts)` — serialize contacts to valid vCard 4.0 format
     - _Requirements: 14.1, 14.2, 14.3, 14.6_
 
-  - [ ] 15.2 Implement vCard import and export endpoints
+  - [x] 15.2 Implement vCard import and export endpoints
     - Implement `importVCard(userId, fileContent)` — match imported contacts against existing using matching logic from Req 7, merge for matches, create for new
     - Add 'apple' to sources array for imported contacts
     - Implement `exportToVCard(userId, contactIds?)` — serialize selected or all contacts to vCard 4.0
@@ -436,8 +436,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 31: vCard round-trip**
     - **Validates: Requirements 14.7**
 
-- [ ] 16. Contact archival and bulk operations
-  - [ ] 16.1 Implement contact archival
+- [x] 16. Contact archival and bulk operations
+  - [x] 16.1 Implement contact archival
     - Add `previewArchival` endpoint returning contacts that would be archived with name, email, phone, groups, circle
     - Implement archive: set `archived_at` timestamp, exclude from default list, suggestions, circle/group views
     - Implement restore: clear `archived_at`, restore to default list with all previous assignments intact
@@ -451,7 +451,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 33: Archived contacts excluded from default views**
     - **Validates: Requirements 15.2, 15.3**
 
-  - [ ] 16.3 Implement bulk contact operations
+  - [x] 16.3 Implement bulk contact operations
     - Add `POST /api/contacts/bulk` endpoint accepting `{ contactIds: string[], operation: string, params: object }`
     - Implement bulk archive, add tag, assign group, assign circle — all in single database transactions
     - Enforce 200-contact limit per request
@@ -463,14 +463,14 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 34: Bulk operations apply atomically**
     - **Validates: Requirements 16.3, 16.4, 16.5, 16.6, 16.7**
 
-- [ ] 17. In-app notification system
-  - [ ] 17.1 Implement notification service
+- [x] 17. In-app notification system
+  - [x] 17.1 Implement notification service
     - Create `src/notifications/in-app-notification-service.ts` with `InAppNotificationService` interface from design
     - Implement `create`, `getUnread`, `getAll` (paginated), `markAsRead`, `markAllAsRead`, `getUnreadCount`, `deleteOlderThan`
     - Implement `NotificationChannel` abstraction interface with in-app channel as first implementation
     - _Requirements: 26.1, 26.4, 26.8_
 
-  - [ ] 17.2 Implement notification API routes
+  - [x] 17.2 Implement notification API routes
     - Add `GET /api/notifications` — paginated notification list sorted by timestamp descending
     - Add `GET /api/notifications/unread-count` — unread count for badge
     - Add `POST /api/notifications/:id/read` — mark single notification as read
@@ -478,7 +478,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Register routes in `src/api/server.ts` with JWT auth
     - _Requirements: 26.1, 26.2, 26.5, 26.6_
 
-  - [ ] 17.3 Implement notification event triggers
+  - [x] 17.3 Implement notification event triggers
     - Wire notification creation into: import complete, import failed, AI enrichment ready, sync conflict, pending enrichments reminder (48h after import)
     - Implement export reminder notification (24h after "My export isn't ready yet" from import wizard)
     - Implement auto-delete of notifications older than 30 days via scheduled cleanup
@@ -494,8 +494,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 48: Auto-delete notifications older than 30 days**
     - **Validates: Requirements 26.7**
 
-- [ ] 18. AI suggestion engine — enrichment signals
-  - [ ] 18.1 Update AI suggestion engine with enrichment data signals
+- [x] 18. AI suggestion engine — enrichment signals
+  - [x] 18.1 Update AI suggestion engine with enrichment data signals
     - Update `src/matching/suggestion-service.ts` to incorporate enrichment record data (communication frequency, recency, sentiment) as signal factors
     - Implement configurable signal weights from `suggestion_signal_weights` table (defaults: enrichment 0.25, interaction logs 0.35, calendar 0.25, metadata 0.15)
     - When enrichment data exists, use enrichment signal proportional to its weight
@@ -505,7 +505,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Log which signal weights contributed to each suggestion
     - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6_
 
-  - [ ] 18.2 Implement suggestion weights API
+  - [x] 18.2 Implement suggestion weights API
     - Add `GET /api/suggestion-weights` — get current signal weights
     - Add `PUT /api/suggestion-weights` — update signal weights (validate sum ≈ 1.0)
     - Register routes in `src/api/server.ts` with JWT auth
@@ -521,27 +521,27 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 38: Signal weights sum to 1.0**
     - **Validates: Requirements 17.4**
 
-- [ ] 19. Calendar enrichment streamlining
-  - [ ] 19.1 Update calendar sync to feed contact enrichment
+- [x] 19. Calendar enrichment streamlining
+  - [x] 19.1 Update calendar sync to feed contact enrichment
     - Update `src/calendar/calendar-service.ts` to extract attendee co-occurrence data (who user meets with, frequency, most recent meeting date)
     - Store calendar-derived enrichment on Contact records: meeting count, last meeting date, meeting frequency
     - Use user's stored timezone preference for date calculations (default to UTC if not set)
     - When calendar sync detects a meeting attendee matching an existing contact, update lastContactDate if meeting date is more recent
     - _Requirements: 23.1, 23.2, 23.3, 23.9_
 
-- [ ] 20. Checkpoint — Verify backend services
+- [x] 20. Checkpoint — Verify backend services
   - Ensure all backend service tests pass
   - Ensure `npm run typecheck` passes
   - Ask the user if questions arise
 
-- [ ] 21. Progressive onboarding updates
-  - [ ] 21.1 Update onboarding service for progressive flow
+- [x] 21. Progressive onboarding updates
+  - [x] 21.1 Update onboarding service for progressive flow
     - Update `src/contacts/onboarding-service.ts` to make 'welcome' and 'circle_assignment' steps optional post-onboarding activities
     - After Google SSO, trigger Google Contacts sync in background, show loading state
     - On sync complete, redirect to Home Dashboard instead of requiring circle assignment
     - _Requirements: 2.1, 2.2, 2.3, 2.6_
 
-  - [ ] 21.2 Implement nudge dismissal logic
+  - [x] 21.2 Implement nudge dismissal logic
     - Implement nudge visibility logic: "Get deeper insights" (after dashboard view), "Organize your circles" (uncategorized > 10), "Set catchup frequency" (after first circle assignment), "Import more platforms" (after first chat import)
     - Store dismissals in `nudge_dismissals` table with 7-day cooldown
     - Add API endpoint to dismiss a nudge and query visible nudges
@@ -551,8 +551,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 1: Nudge dismissal respects 7-day cooldown**
     - **Validates: Requirements 2.5**
 
-- [ ] 22. Dashboard API
-  - [ ] 22.1 Implement home dashboard API endpoint
+- [x] 22. Dashboard API
+  - [x] 22.1 Implement home dashboard API endpoint
     - Add `GET /api/dashboard` returning:
       - Action items: pending enrichments count, pending sync changes count, active import jobs count, pending likely matches count
       - Relationship insights: total contacts, contacts with enrichment data, top 5 "catch up soon" suggestions, stale relationships count (no interaction in 3+ months)
@@ -567,8 +567,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 2: Dashboard action item counts are accurate**
     - **Validates: Requirements 3.2**
 
-- [ ] 23. Contacts table enrichment columns
-  - [ ] 23.1 Add enrichment columns to contacts table API
+- [x] 23. Contacts table enrichment columns
+  - [x] 23.1 Add enrichment columns to contacts table API
     - Update contacts list API to include: last interaction date (most recent across all sources, formatted as relative time), relationship health indicator (green/yellow/red/gray), platform source icons, top topic tag
     - Implement health indicator computation: green (within frequency window), yellow (within 1.5×), red (beyond 1.5×), gray (no data)
     - Add sorting by "Last Interaction" column (ascending/descending)
@@ -584,8 +584,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 6: Contacts table sorting by last interaction**
     - **Validates: Requirements 4.6**
 
-- [ ] 24. Unified settings page API
-  - [ ] 24.1 Implement settings API endpoints
+- [x] 24. Unified settings page API
+  - [x] 24.1 Implement settings API endpoints
     - Add `GET /api/settings` — return all user settings: profile (name, email, timezone), notification preferences, connected accounts (Google sync status, scope level, calendar status, pending sync count), display preferences (theme, keyboard shortcuts)
     - Add `PUT /api/settings` — update settings with auto-save behavior
     - Implement timezone search by city name or timezone identifier
@@ -596,14 +596,14 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - **Property 44: Timezone search returns matching results**
     - **Validates: Requirements 25.4**
 
-- [ ] 25. Checkpoint — Verify all backend APIs
+- [x] 25. Checkpoint — Verify all backend APIs
   - Ensure all API endpoints return correct responses
   - Ensure all property tests pass
   - Ensure `npm run typecheck` passes
   - Ask the user if questions arise
 
-- [ ] 26. Landing page redesign
-  - [ ] 26.1 Update landing page content and layout
+- [x] 26. Landing page redesign
+  - [x] 26.1 Update landing page content and layout
     - Update hero section headline and subtitle to reflect v1 value proposition (relationship intelligence from real conversation data)
     - Remove messaging about scheduling and SMS reminders
     - Update features section to highlight: import chat history, see who you talk to most, AI-powered catchup suggestions, organize contacts into circles/groups, sync across Google and Apple contacts
@@ -613,8 +613,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Display "Get Started with Google" primary CTA and "Learn More" secondary CTA
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
-- [ ] 27. Home dashboard frontend
-  - [ ] 27.1 Create `public/js/home-dashboard.js` module
+- [x] 27. Home dashboard frontend
+  - [x] 27.1 Create `public/js/home-dashboard.js` module
     - Implement dashboard page rendering consuming `GET /api/dashboard`
     - Render "Action Items" section: pending enrichments, pending sync changes, active imports, pending likely matches — each as a clickable card linking to the relevant view
     - Render "Relationship Insights" section: total contacts, enriched contacts, top 5 "catch up soon" suggestions, stale relationships count
@@ -625,13 +625,13 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Responsive single-column layout on mobile
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.9_
 
-  - [ ] 27.2 Wire dashboard as default authenticated page
+  - [x] 27.2 Wire dashboard as default authenticated page
     - Update `app-shell.js` routing to make Home Dashboard the default page
     - Move Edits functionality access to dashboard action items and contact detail panel (remove from nav)
     - _Requirements: 3.1, 3.8_
 
-- [ ] 28. Import wizard frontend
-  - [ ] 28.1 Create `public/js/import-wizard.js` module
+- [x] 28. Import wizard frontend
+  - [x] 28.1 Create `public/js/import-wizard.js` module
     - Implement platform selection screen with icons for WhatsApp, Instagram, Facebook Messenger, iMessage, X/Twitter DMs, Google Messages/SMS
     - Highlight WhatsApp with "Fastest — export in under a minute" label
     - Implement platform-specific step-by-step export instructions screen
@@ -644,8 +644,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Entry points: Home Dashboard quick actions, Directory page, onboarding nudge card
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 11.2, 11.3, 11.4, 11.5_
 
-- [ ] 29. Contact detail panel frontend
-  - [ ] 29.1 Create `public/js/contact-detail-panel.js` module
+- [x] 29. Contact detail panel frontend
+  - [x] 29.1 Create `public/js/contact-detail-panel.js` module
     - Implement slide-out panel from right side when clicking a contact in the table
     - Display core fields (name, phone, email, social handles, location, timezone, notes) with inline edit capability
     - Display "Relationship Summary" section: last interaction date, total message count, frequency trend, overall sentiment
@@ -659,8 +659,8 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Responsive: full-screen view on mobile
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.9, 9.10, 10.1, 10.2, 13.10, 23.7_
 
-- [ ] 30. Directory page enrichment updates
-  - [ ] 30.1 Update `public/js/directory-page.js` with enrichment columns
+- [x] 30. Directory page enrichment updates
+  - [x] 30.1 Update `public/js/directory-page.js` with enrichment columns
     - Add "Last Interaction" column with relative time formatting
     - Add Relationship Health Indicator column (green/yellow/red/gray dots)
     - Add platform source icons next to contact names
@@ -674,7 +674,7 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Add source filter dropdown for filtering contacts by source
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 8.6, 15.5, 16.1, 16.2, 18.5_
 
-  - [ ] 30.2 Implement pending enrichment review UI
+  - [x] 30.2 Implement pending enrichment review UI
     - Add "Pending Enrichments" view showing pending enrichments grouped by import
     - Each entry: participant name/identifier, platform, message count, date range, actions (Link to Contact / Create Contact / Dismiss)
     - "Link to Contact" opens searchable contact picker
@@ -683,14 +683,14 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Show enriched data (topics, sentiment) when AI enrichment completes
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.7_
 
-  - [ ] 30.3 Implement match review UI
+  - [x] 30.3 Implement match review UI
     - Add likely match review list showing chat participant alongside suggested contact with match reason and confidence
     - One-tap Confirm / Reject / Skip actions
     - Smart suggestion for high-frequency unmatched: "[Participant] sent you [N] messages — create a contact or link to someone?"
     - _Requirements: 7.2, 7.4, 7.5_
 
-- [ ] 31. Notification center frontend
-  - [ ] 31.1 Create `public/js/notification-center.js` module
+- [x] 31. Notification center frontend
+  - [x] 31.1 Create `public/js/notification-center.js` module
     - Implement bell icon in app header/sidebar with unread badge count (polling `GET /api/notifications/unread-count`)
     - Implement scrollable notification list sorted by timestamp descending
     - Each notification: icon (based on event type), title, description, relative timestamp, read/unread state, optional action link
@@ -698,14 +698,14 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - "Mark all as read" action
     - _Requirements: 26.1, 26.2, 26.5, 26.6_
 
-- [ ] 32. Suggestions page enrichment context
-  - [ ] 32.1 Update `public/js/suggestions-page.js` with enrichment context
+- [x] 32. Suggestions page enrichment context
+  - [x] 32.1 Update `public/js/suggestions-page.js` with enrichment context
     - Display enrichment context in suggestion card reasoning section
     - Show specific data points from enrichment records (e.g., "You exchanged 847 WhatsApp messages with Sarah in the last 6 months, but haven't talked in 3 weeks")
     - _Requirements: 17.7_
 
-- [ ] 33. Settings page frontend
-  - [ ] 33.1 Update `public/js/settings-page.js` with unified settings
+- [x] 33. Settings page frontend
+  - [x] 33.1 Update `public/js/settings-page.js` with unified settings
     - Implement Profile section: name, email, timezone selection (searchable by city name or timezone identifier)
     - Implement Notification Preferences section: in-app notification types enable/disable
     - Implement Connected Accounts section: Google Contacts sync status with scope level, Google Calendar connection with connect/disconnect, pending sync count
@@ -715,34 +715,34 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Auto-save on change with confirmation toast
     - _Requirements: 25.1, 25.2, 25.3, 25.4, 25.5_
 
-  - [ ] 33.2 Implement import history view
+  - [x] 33.2 Implement import history view
     - Display import records sorted by date descending
     - Each record: platform icon, file name, import date, participants, matched, pending, status
     - "Delete Import" with confirmation dialog explaining cascade
     - "Re-import" action opening import wizard pre-configured for same platform
     - _Requirements: 12.1, 12.2, 12.3, 12.5_
 
-  - [ ] 33.3 Implement sync review UI
+  - [x] 33.3 Implement sync review UI
     - Display diff view for pending sync-back operations: contact name, field changed, CatchUp value, Google value
     - Per-change Approve / Skip checkboxes
     - Bulk "Approve All" / "Skip All" options
     - Handle conflict display when Google value changed (409 scenario)
     - _Requirements: 13.2, 13.3, 13.6_
 
-- [ ] 34. Checkpoint — Verify all frontend modules
+- [x] 34. Checkpoint — Verify all frontend modules
   - Ensure all frontend modules load without console errors
   - Ensure page routing works for all pages (Home, Directory, Suggestions, Settings)
   - Ensure contact detail panel opens and displays data correctly
   - Ask the user if questions arise
 
-- [ ] 35. Integration wiring and final assembly
-  - [ ] 35.1 Wire all API routes into server.ts
+- [x] 35. Integration wiring and final assembly
+  - [x] 35.1 Wire all API routes into server.ts
     - Verify all new routes are registered in `src/api/server.ts`: imports, enrichments, sync-back, notifications, settings, dashboard, suggestion-weights, contacts/bulk, contacts/import-vcard, contacts/export-vcard
     - Verify all removed routes (scheduling, SMS, calendar browsing) are no longer registered
     - Verify JWT auth middleware is applied to all new routes
     - _Requirements: 7.7, 22.5_
 
-  - [ ] 35.2 Wire notification triggers into async job handlers
+  - [x] 35.2 Wire notification triggers into async job handlers
     - Ensure import complete/failed notifications fire from import job handler
     - Ensure AI enrichment ready notification fires from AI enrichment job handler
     - Ensure sync conflict notification fires from sync-back job handler
@@ -750,13 +750,13 @@ Incremental implementation of the CatchUp v1 redesign across 7 workstreams. The 
     - Ensure pending enrichments reminder fires 48h after import with unresolved items
     - _Requirements: 26.3_
 
-  - [ ] 35.3 Wire calendar enrichment into contact profiles
+  - [x] 35.3 Wire calendar enrichment into contact profiles
     - Ensure calendar sync updates contact lastContactDate when meeting attendee matches
     - Ensure calendar data appears in Contact Detail Panel enrichment sources
     - Ensure calendar co-attendance feeds into AI suggestion engine
     - _Requirements: 23.2, 23.7, 23.8, 23.9_
 
-- [ ] 36. Final checkpoint — Ensure all tests pass
+- [x] 36. Final checkpoint — Ensure all tests pass
   - Run `npm run typecheck` — no TypeScript errors
   - Run `npm test` — all unit and property tests pass
   - Verify all 27 requirements have implementing tasks

@@ -42,6 +42,9 @@ export interface OnboardingStateRecord {
     totalCount: number;
     milestonesReached: string[];
     timeSpent: number;
+    progressiveFlow?: boolean;
+    optionalSteps?: string[];
+    redirectTo?: string;
   };
 }
 
