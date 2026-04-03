@@ -10,8 +10,8 @@ import * as fc from 'fast-check';
 import { circuitBreakerManager, CircuitBreakerManager } from './circuit-breaker-manager';
 import pool from '../db/connection';
 
-const TEST_USER_ID = '00000000-0000-0000-0000-000000000001';
-const TEST_USER_ID_2 = '00000000-0000-0000-0000-000000000002';
+const TEST_USER_ID = '00000000-0000-0000-0000-0000000c0001';
+const TEST_USER_ID_2 = '00000000-0000-0000-0000-0000000c0002';
 
 describe('Circuit Breaker Manager - Property-Based Tests', () => {
   beforeEach(async () => {
@@ -20,13 +20,13 @@ describe('Circuit Breaker Manager - Property-Based Tests', () => {
       `INSERT INTO users (id, email, name, google_id, auth_provider, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, google_id = EXCLUDED.google_id, auth_provider = EXCLUDED.auth_provider`,
-      [TEST_USER_ID, `test-${Date.now()}-1@example.com`, 'Test User 1', 'google-test-1', 'google']
+      [TEST_USER_ID, `test-cb-${Date.now()}-1@example.com`, 'Test User 1', `google-cb-test-${Date.now()}-1`, 'google']
     );
     await pool.query(
       `INSERT INTO users (id, email, name, google_id, auth_provider, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, google_id = EXCLUDED.google_id, auth_provider = EXCLUDED.auth_provider`,
-      [TEST_USER_ID_2, `test-${Date.now()}-2@example.com`, 'Test User 2', 'google-test-2', 'google']
+      [TEST_USER_ID_2, `test-cb-${Date.now()}-2@example.com`, 'Test User 2', `google-cb-test-${Date.now()}-2`, 'google']
     );
 
     // Clean up test data

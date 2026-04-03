@@ -306,14 +306,24 @@
 
 /* Push top-right buttons down when sync warning banner is visible */
 body.sync-warning-visible .theme-toggle {
-  top: 72px !important;
+  top: calc(var(--banner-height, 0px) + 28px) !important;
 }
 body.sync-warning-visible #notification-bell-fixed {
-  top: 72px !important;
+  top: calc(var(--banner-height, 0px) + 28px) !important;
 }
 
 /* Ensure buttons are above the sync warning banner */
 .theme-toggle,
 #notification-bell-fixed {
-  z-index: 10000 !important;
+  z-index: 1000;
+}
+
+/* Mobile: account for taller stacked banner */
+@media (max-width: 768px) {
+  body.sync-warning-visible .theme-toggle {
+    top: calc(var(--banner-height, 0px) + 28px) !important;
+  }
+  body.sync-warning-visible #notification-bell-fixed {
+    top: calc(var(--banner-height, 0px) + 28px) !important;
+  }
 }

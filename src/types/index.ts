@@ -5,6 +5,8 @@
  * used across the CatchUp application.
  */
 
+import type { SignalContribution } from '../matching/suggestion-service';
+
 // Enums
 export enum FrequencyOption {
   DAILY = 'daily',
@@ -438,4 +440,55 @@ export interface DetectedEdit {
   value: any;
   confidence: number;
   sourceSegment: TranscriptSegment;
+}
+
+// ============================================
+// Smart Suggestions Redesign Types
+// Requirements: 4.5, 13.3, 15.3, 16.8
+// ============================================
+
+/**
+ * Preset feedback options for suggestion dismissal
+ */
+export type FeedbackPreset =
+  | 'already_in_touch'
+  | 'not_relevant'
+  | 'timing_off'
+  | 'dont_suggest_contact'
+  | 'other';
+
+/**
+ * Outcome options for post-interaction reviews
+ */
+export type ReviewOutcome = 'went_well' | 'not_great' | 'not_yet' | 'skip';
+
+/**
+ * User-defined connection goal that influences suggestion scoring
+ */
+export interface ConnectionGoal {
+  id: string;
+  userId: string;
+  text: string;
+  keywords: string[];
+  status: 'active' | 'completed' | 'archived';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Temporary pause on suggestion generation
+ */
+export interface SuggestionPause {
+  id: string;
+  userId: string;
+  pauseStart: Date;
+  pauseEnd: Date;
+  createdAt: Date;
+}
+
+/**
+ * Extended signal contribution with goal relevance scoring
+ */
+export interface ExtendedSignalContribution extends SignalContribution {
+  goalRelevanceScore: number;
 }

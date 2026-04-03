@@ -2,10 +2,12 @@ import { Router, Response } from 'express';
 import * as suggestionService from '../../matching/suggestion-service';
 import pool from '../../db/connection';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
+import { FeedbackService } from '../../matching/feedback-service';
 
 const router = Router();
 
 // GET /suggestions/all - Get ALL suggestions regardless of status
+// Augmented with signalContribution field for backward compatibility (Req 9.2)
 router.get('/all', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
@@ -16,7 +18,24 @@ router.get('/all', authenticate, async (req: AuthenticatedRequest, res: Response
     }
 
     const suggestions = await suggestionService.getAllSuggestions(userId);
-    res.json(suggestions);
+
+    // Augment each suggestion with signalContribution if not already present (Req 9.2)
+    const augmented = suggestions.map((s: any) => ({
+      ...s,
+      signalContribution: s.signalContribution ?? {
+        enrichmentScore: 0,
+        interactionLogScore: 0,
+        calendarScore: 0,
+        metadataScore: 0,
+        weights: {},
+        hasEnrichmentData: false,
+        decliningFrequency: false,
+        negativeSentiment: false,
+        goalRelevanceScore: 0,
+      },
+    }));
+
+    res.json(augmented);
   } catch (error) {
     console.error('Error fetching all suggestions:', error);
     res.status(500).json({ error: 'Failed to fetch suggestions' });
@@ -77,6 +96,31 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response): 
   }
 });
 
+// POST /suggestions/generate - Generate new suggestions for the user
+// Scores contacts using enrichment signals and creates suggestions for top contacts
+// No calendar/timeslot dependency (v1 redesign per spec 032)
+router.post('/generate', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.userId;
+
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const maxSuggestions = Math.min(parseInt(String(req.body?.maxSuggestions)) || 10, 20);
+    const suggestions = await suggestionService.generateContactSuggestions(userId, maxSuggestions);
+
+    res.json({
+      message: 'Suggestions generated',
+      count: suggestions.length,
+    });
+  } catch (error) {
+    console.error('Error generating suggestions:', error);
+    res.status(500).json({ error: 'Failed to generate suggestions' });
+  }
+});
+
 // POST /suggestions/:id/accept - Accept a suggestion
 router.post('/:id/accept', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
@@ -96,6 +140,7 @@ router.post('/:id/accept', authenticate, async (req: AuthenticatedRequest, res: 
 });
 
 // POST /suggestions/:id/dismiss - Dismiss a suggestion
+// Backward compatible: creates FeedbackRecord with 'not_relevant' when no preset provided (Req 9.1)
 router.post('/:id/dismiss', authenticate, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
@@ -107,6 +152,16 @@ router.post('/:id/dismiss', authenticate, async (req: AuthenticatedRequest, res:
     }
 
     await suggestionService.dismissSuggestion(req.params.id, userId, reason);
+
+    // Create a FeedbackRecord with preset 'not_relevant' for backward compatibility (Req 9.1)
+    try {
+      const feedbackService = new FeedbackService();
+      await feedbackService.submitFeedback(req.params.id, userId, 'not_relevant', reason || undefined);
+    } catch {
+      // Feedback table may not exist yet or suggestion already dismissed by submitFeedback;
+      // the primary dismiss operation above already succeeded, so we don't fail the request.
+    }
+
     res.status(204).send();
   } catch (error) {
     console.error('Error dismissing suggestion:', error);

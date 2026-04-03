@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sync Warning Banner — Z-Index & Responsive Test</title>
+    <style>
+        :root {
+            --bg-surface: #fff;
+            --bg-hover: #e7e5e4;
+            --border-subtle: #a8a29e;
+            --text-primary: #1c1917;
+            --status-warning-bg: #fff3cd;
+            --status-warning-text: #856404;
+            --status-warning: #ffc107;
+            --accent-primary: #4a90e2;
+            --accent-primary-hover: #357abd;
+            --status-error: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+        /* === Sync Warning Banner (z-index: 900) === */
+        .sync-warning-banner {
+            position: fixed; top: 0; left: 0; right: 0;
+            z-index: 900;
+            background: var(--status-warning-bg);
+            color: var(--status-warning-text);
+            border-bottom: 2px solid var(--status-warning);
+            padding: 18px 20px;
+            display: flex; align-items: center; justify-content: space-between; gap: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .sync-warning-banner.hidden { display: none; }
+        .sync-warning-content { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .sync-warning-text { display: flex; flex-direction: column; gap: 4px; }
+        .sync-warning-title { font-weight: 600; font-size: 14px; }
+        .sync-warning-subtitle { font-size: 12px; opacity: 0.9; }
+        .sync-warning-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .sync-warning-reconnect-btn {
+            background: var(--accent-primary); color: white; border: none;
+            border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+        }
+        .sync-warning-dismiss-btn {
+            background: transparent; color: var(--status-warning-text);
+            border: 1px solid currentColor; border-radius: 6px;
+            padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+        }
+
+        /* === Header Controls (z-index: 1000) === */
+        .theme-toggle {
+            position: fixed; top: 20px; right: 20px; z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            width: 44px; height: 44px;
+            background: var(--bg-surface); border: 1px solid var(--border-subtle);
+            border-radius: 50%; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 20px; transition: top 0.3s ease;
+        }
+        #notification-bell-fixed {
+            position: fixed; top: 20px; right: 74px; z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            width: 44px; height: 44px;
+            background: var(--bg-surface); border: 1px solid var(--border-subtle);
+            border-radius: 50%; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 18px; transition: top 0.3s ease;
+        }
+        .top-action-btn__badge {
+            position: absolute; top: -2px; right: -2px;
+            background: var(--status-error); color: white;
+            font-size: 10px; font-weight: 700;
+            min-width: 16px; height: 16px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 4px;
+        }
+
+        /* Dynamic offset via CSS custom property */
+        body.sync-warning-visible .theme-toggle {
+            top: calc(var(--banner-height, 0px) + 28px) !important;
+        }
+        body.sync-warning-visible #notification-bell-fixed {
+            top: calc(var(--banner-height, 0px) + 28px) !important;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .sync-warning-banner {
+                padding: 10px 16px; flex-direction: column;
+                align-items: stretch; gap: 12px;
+            }
+            .sync-warning-content { flex-direction: column; align-items: flex-start; gap: 8px; }
+            body.sync-warning-visible .theme-toggle {
+                top: calc(var(--banner-height, 0px) + 28px) !important;
+            }
+            body.sync-warning-visible #notification-bell-fixed {
+                top: calc(var(--banner-height, 0px) + 28px) !important;
+            }
+        }
+
+        /* Test UI */
+        .test-panel {
+            margin: 120px 20px 20px; padding: 20px;
+            border: 2px solid #ddd; border-radius: 8px; background: #f9f9f9;
+        }
+        .test-panel h2 { margin-bottom: 12px; }
+        .test-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+        .test-btn {
+            padding: 8px 16px; border: none; border-radius: 6px;
+            background: #4a90e2; color: white; font-weight: 600; cursor: pointer;
+        }
+        .test-btn.danger { background: #ef4444; }
+        .test-btn.success { background: #10b981; }
+        .test-info { font-family: monospace; font-size: 13px; background: #e9ecef; padding: 12px; border-radius: 6px; }
+
+        /* Dark mode variant */
+        body.dark { background: #1c1917; color: #e7e5e4; }
+        body.dark .sync-warning-banner { background: #3d2e0a; color: #ffc107; border-bottom-color: #ffc107; }
+        body.dark .theme-toggle, body.dark #notification-bell-fixed {
+            background: #292524; border-color: #57534e; color: #e7e5e4;
+        }
+        body.dark .test-panel { background: #292524; border-color: #57534e; }
+        body.dark .test-info { background: #1c1917; color: #e7e5e4; }
+    </style>
+</head>
+<body>
+    <!-- Sync Warning Banner -->
+    <div class="sync-warning-banner hidden" id="test-banner" role="alert">
+        <div class="sync-warning-content">
+            <span aria-hidden="true">⚠️</span>
+            <div class="sync-warning-text">
+                <div class="sync-warning-title">Contacts sync unavailable - Reconnection required</div>
+                <div class="sync-warning-subtitle">Your Google connection has expired. Please reconnect to resume syncing.</div>
+            </div>
+        </div>
+        <div class="sync-warning-actions">
+            <button class="sync-warning-reconnect-btn">Reconnect</button>
+            <button class="sync-warning-dismiss-btn" onclick="hideBanner()">Dismiss</button>
+        </div>
+    </div>
+
+    <!-- Header Controls -->
+    <button class="theme-toggle" id="theme-toggle" title="Toggle theme">🌙</button>
+    <button id="notification-bell-fixed" title="Notifications">
+        🔔
+        <span class="top-action-btn__badge">3</span>
+    </button>
+
+    <!-- Test Panel -->
+    <div class="test-panel">
+        <h2>Banner / Header Z-Index & Responsive Test</h2>
+        <p style="margin-bottom:12px;">Verify: header controls (🌙 and 🔔) always render <strong>above</strong> the banner and reposition correctly.</p>
+
+        <div class="test-controls">
+            <button class="test-btn" onclick="showBanner()">Show Banner</button>
+            <button class="test-btn success" onclick="hideBanner()">Hide Banner</button>
+            <button class="test-btn" onclick="toggleDark()">Toggle Dark Mode</button>
+            <button class="test-btn danger" onclick="showTallBanner()">Show Tall Banner (multi-line)</button>
+        </div>
+
+        <div class="test-info" id="info">
+            Status: Banner hidden | Theme toggle top: 20px | Bell top: 20px | --banner-height: not set
+        </div>
+
+        <h3 style="margin-top:16px;">Checklist</h3>
+        <ul style="margin-top:8px; padding-left:20px; line-height:1.8;">
+            <li>✅ Banner z-index (900) &lt; Header controls z-index (1000)</li>
+            <li>✅ Header controls clickable when banner is visible</li>
+            <li>✅ Header controls reposition below banner with ≥8px gap</li>
+            <li>✅ Header controls return to top:20px when banner hidden</li>
+            <li>✅ Resize to ≤768px — banner stacks vertically, controls adjust</li>
+            <li>✅ Dark mode banner variant renders correctly</li>
+        </ul>
+    </div>
+
+    <script>
+        const banner = document.getElementById('test-banner');
+        const themeBtn = document.getElementById('theme-toggle');
+        const bellBtn = document.getElementById('notification-bell-fixed');
+
+        function adjustTopButtonsForBanner() {
+            if (banner && !banner.classList.contains('hidden') && banner.offsetHeight > 0) {
+                const bannerHeight = banner.offsetHeight;
+                const offset = Math.max(bannerHeight + 8, 20) + 'px';
+                document.documentElement.style.setProperty('--banner-height', bannerHeight + 'px');
+                themeBtn.style.top = offset;
+                bellBtn.style.top = offset;
+                document.body.classList.add('sync-warning-visible');
+                updateInfo(bannerHeight, offset);
+            } else {
+                document.documentElement.style.removeProperty('--banner-height');
+                themeBtn.style.top = '20px';
+                bellBtn.style.top = '20px';
+                document.body.classList.remove('sync-warning-visible');
+                updateInfo(0, '20px');
+            }
+        }
+
+        function showBanner() {
+            banner.querySelector('.sync-warning-title').textContent = 'Contacts sync unavailable - Reconnection required';
+            banner.querySelector('.sync-warning-subtitle').textContent = 'Your Google connection has expired. Please reconnect.';
+            banner.classList.remove('hidden');
+            requestAnimationFrame(adjustTopButtonsForBanner);
+        }
+
+        function showTallBanner() {
+            banner.querySelector('.sync-warning-title').textContent = 'Contacts and Calendar sync unavailable - Reconnection required';
+            banner.querySelector('.sync-warning-subtitle').textContent =
+                'Your Google connection has expired. Please reconnect to resume syncing your contacts and calendar events. Last synced: Contacts: 3 days ago, Calendar: 2 hours ago.';
+            banner.classList.remove('hidden');
+            requestAnimationFrame(adjustTopButtonsForBanner);
+        }
+
+        function hideBanner() {
+            banner.classList.add('hidden');
+            adjustTopButtonsForBanner();
+        }
+
+        function toggleDark() {
+            document.body.classList.toggle('dark');
+        }
+
+        function updateInfo(bannerHeight, offset) {
+            document.getElementById('info').textContent =
+                `Status: Banner ${bannerHeight > 0 ? 'visible' : 'hidden'} | ` +
+                `Theme toggle top: ${offset} | Bell top: ${offset} | ` +
+                `--banner-height: ${bannerHeight > 0 ? bannerHeight + 'px' : 'not set'}`;
+        }
+
+        // Re-adjust on resize (for responsive testing)
+        window.addEventListener('resize', adjustTopButtonsForBanner);
+    </script>
+</body>
+</html>

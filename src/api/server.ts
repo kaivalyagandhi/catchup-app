@@ -11,6 +11,9 @@ import contactsRouter from './routes/contacts';
 import contactsArchiveRouter from './routes/contacts-archive';
 import contactGroupsRouter from './routes/contact-groups';
 import groupsTagsRouter from './routes/groups-tags';
+import suggestionFeedbackRouter from './routes/suggestion-feedback';
+import suggestionGoalsRouter from './routes/suggestion-goals';
+import suggestionPauseRouter from './routes/suggestion-pause';
 import suggestionsRouter from './routes/suggestions';
 import calendarRouter from './routes/calendar';
 import googleCalendarOAuthRouter from './routes/google-calendar-oauth';
@@ -161,6 +164,10 @@ export function createServer(): Express {
   app.use('/api/auth/google', googleSSORouter);
   app.use('/api/auth/statistics', authStatisticsRouter);
   app.use('/api/audit', auditRouter);
+  // OAuth routes MUST come before general contacts/calendar routes to avoid /:id param matching
+  app.use('/api/contacts/oauth', googleContactsOAuthRouter);
+  app.use('/api/contacts/sync', googleContactsSyncRouter);
+  app.use('/api/calendar/oauth', googleCalendarOAuthRouter);
   // Specific contacts sub-routes must come before general contacts routes to avoid /:id matching
   app.use('/api/contacts', contactsArchiveRouter);
   app.use('/api/contacts', contactsBulkRouter);
@@ -169,11 +176,12 @@ export function createServer(): Express {
   app.use('/api/contacts', contactsEnrichmentColumnsRouter);
   app.use('/api/contacts', contactsRouter);
   app.use('/api/groups-tags', groupsTagsRouter);
+  // New suggestion sub-routes registered BEFORE suggestionsRouter to avoid /:id param conflicts
+  app.use('/api/suggestions', suggestionFeedbackRouter);
+  app.use('/api/suggestions', suggestionGoalsRouter);
+  app.use('/api/suggestions', suggestionPauseRouter);
   app.use('/api/suggestions', suggestionsRouter);
-  app.use('/api/calendar/oauth', googleCalendarOAuthRouter);
   app.use('/api/calendar', calendarRouter);
-  app.use('/api/contacts/oauth', googleContactsOAuthRouter);
-  app.use('/api/contacts/sync', googleContactsSyncRouter);
   // Alias for google-contacts routes (for backward compatibility)
   app.use('/api/google-contacts', googleContactsSyncRouter);
   app.use('/api/voice-notes', voiceNotesRouter);

@@ -13,7 +13,7 @@ import { CircuitBreakerManager } from './circuit-breaker-manager';
 import { AdaptiveSyncScheduler } from './adaptive-sync-scheduler';
 import pool from '../db/connection';
 
-const TEST_USER_ID = '00000000-0000-0000-0000-000000000001';
+const TEST_USER_ID = '00000000-0000-0000-0000-0000000e0001';
 
 describe('Sync Orchestrator', () => {
   let orchestrator: SyncOrchestrator;

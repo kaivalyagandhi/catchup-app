@@ -11,8 +11,8 @@ import { tokenHealthMonitor, TokenHealthMonitor } from './token-health-monitor';
 import pool from '../db/connection';
 import { upsertToken, deleteToken } from './oauth-repository';
 
-const TEST_USER_ID = '00000000-0000-0000-0000-000000000001';
-const TEST_USER_ID_2 = '00000000-0000-0000-0000-000000000002';
+const TEST_USER_ID = '00000000-0000-0000-0000-0000000a0001';
+const TEST_USER_ID_2 = '00000000-0000-0000-0000-0000000a0002';
 
 describe('Token Health Monitor', () => {
   beforeEach(async () => {
@@ -21,13 +21,13 @@ describe('Token Health Monitor', () => {
       `INSERT INTO users (id, email, name, google_id, auth_provider, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, google_id = EXCLUDED.google_id, auth_provider = EXCLUDED.auth_provider`,
-      [TEST_USER_ID, `test-${Date.now()}@example.com`, 'Test User', 'google-test-id-1', 'google']
+      [TEST_USER_ID, `test-thm-${Date.now()}@example.com`, 'Test User', `google-thm-test-${Date.now()}-1`, 'google']
     );
     await pool.query(
       `INSERT INTO users (id, email, name, google_id, auth_provider, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, google_id = EXCLUDED.google_id, auth_provider = EXCLUDED.auth_provider`,
-      [TEST_USER_ID_2, `test2-${Date.now()}@example.com`, 'Test User 2', 'google-test-id-2', 'google']
+      [TEST_USER_ID_2, `test2-thm-${Date.now()}@example.com`, 'Test User 2', `google-thm-test-${Date.now()}-2`, 'google']
     );
   });
 
@@ -144,11 +144,14 @@ describe('Token Health Monitor', () => {
      * 
      * Validates: Requirements 1.2
      */
-    it('Property 2: should classify tokens expiring within 24 hours as expiring_soon', () => {
-      fc.assert(
+    it('Property 2: should classify tokens expiring within 24 hours as expiring_soon', async () => {
+      await fc.assert(
         fc.asyncProperty(
           fc.integer({ min: 1, max: 23 }), // hours until expiry (within 24 hours)
           async (hoursUntilExpiry) => {
+            // Clean up previous iteration's state to avoid stale revoked/expired status
+            await pool.query('DELETE FROM token_health WHERE user_id = $1', [TEST_USER_ID]);
+
             const expiryDate = new Date(Date.now() + hoursUntilExpiry * 60 * 60 * 1000);
             
             await upsertToken(
@@ -177,11 +180,14 @@ describe('Token Health Monitor', () => {
      * 
      * Validates: Requirements 1.3
      */
-    it('Property 3: should mark token as revoked and store error message', () => {
-      fc.assert(
+    it('Property 3: should mark token as revoked and store error message', async () => {
+      await fc.assert(
         fc.asyncProperty(
           fc.string({ minLength: 10, maxLength: 100 }), // error message
           async (errorMessage) => {
+            // Clean up previous iteration's state
+            await pool.query('DELETE FROM token_health WHERE user_id = $1', [TEST_USER_ID]);
+
             const futureDate = new Date(Date.now() + 48 * 60 * 60 * 1000);
             
             await upsertToken(
@@ -216,12 +222,15 @@ describe('Token Health Monitor', () => {
      * 
      * Validates: Requirements 1.5
      */
-    it('Property 4: should persist token health status to database', () => {
-      fc.assert(
+    it('Property 4: should persist token health status to database', async () => {
+      await fc.assert(
         fc.asyncProperty(
           fc.constantFrom('google_contacts', 'google_calendar'),
           fc.integer({ min: 25, max: 72 }), // hours until expiry (valid token)
           async (integrationType, hoursUntilExpiry) => {
+            // Clean up previous iteration's state
+            await pool.query('DELETE FROM token_health WHERE user_id = $1', [TEST_USER_ID]);
+
             const expiryDate = new Date(Date.now() + hoursUntilExpiry * 60 * 60 * 1000);
             const provider = integrationType === 'google_contacts' ? 'google_contacts' : 'google_calendar';
             
@@ -364,11 +373,14 @@ describe('Token Health Monitor', () => {
      * 
      * Validates: Requirements 8.1
      */
-    it('Property 36: should attempt refresh for tokens expiring within 48 hours', () => {
-      fc.assert(
+    it('Property 36: should attempt refresh for tokens expiring within 48 hours', async () => {
+      await fc.assert(
         fc.asyncProperty(
           fc.integer({ min: 1, max: 47 }), // hours until expiry (within 48 hours)
           async (hoursUntilExpiry) => {
+            // Clean up previous iteration's state
+            await pool.query('DELETE FROM token_health WHERE user_id = $1', [TEST_USER_ID]);
+
             const expiryDate = new Date(Date.now() + hoursUntilExpiry * 60 * 60 * 1000);
             
             await upsertToken(
@@ -424,11 +436,15 @@ describe('Token Health Monitor', () => {
      * 
      * Validates: Requirements 8.4
      */
-    it('Property 38: should mark token as revoked on refresh failure', () => {
-      fc.assert(
+    it('Property 38: should mark token as revoked on refresh failure', async () => {
+      await fc.assert(
         fc.asyncProperty(
           fc.integer({ min: 1, max: 47 }), // hours until expiry
           async (hoursUntilExpiry) => {
+            // Clean up previous iteration's state
+            await pool.query('DELETE FROM token_health WHERE user_id = $1', [TEST_USER_ID]);
+            await pool.query('DELETE FROM oauth_tokens WHERE user_id = $1', [TEST_USER_ID]);
+
             const expiryDate = new Date(Date.now() + hoursUntilExpiry * 60 * 60 * 1000);
             
             // Create token without refresh token to simulate failure

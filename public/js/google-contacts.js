@@ -229,12 +229,10 @@ async function syncGoogleContactsNow() {
                 showToast('Contacts sync failed. Please reconnect your Google Contacts.', 'error');
                 // Show reconnect option
                 if (result.reauthUrl) {
+                    showToast('Reconnecting Google Contacts...', 'info');
                     setTimeout(() => {
-                        const reconnect = confirm('Would you like to reconnect your Google Contacts now?');
-                        if (reconnect) {
-                            window.location.href = result.reauthUrl;
-                        }
-                    }, 1000);
+                        window.location.href = result.reauthUrl;
+                    }, 1500);
                 }
                 return;
             } else if (response.status === 429) {

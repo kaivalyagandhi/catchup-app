@@ -2816,7 +2816,8 @@ async function deleteGroup(groupId) {
         ? `Are you sure you want to delete "${escapeHtml(group.name)}"? This will remove ${group.contactCount} contact(s) from this group, but the contacts themselves will be preserved.`
         : `Are you sure you want to delete "${escapeHtml(group.name)}"?`;
     
-    if (!confirm(confirmMessage)) {
+    const confirmed = await showConfirm(confirmMessage, { title: 'Delete Group', confirmText: 'Delete', type: 'danger' });
+    if (!confirmed) {
         return;
     }
     
@@ -3208,7 +3209,8 @@ async function removeContactFromGroup(contactId) {
     }
     
     // Confirmation dialog
-    if (!confirm(`Are you sure you want to remove ${escapeHtml(contact.name)} from this group?`)) {
+    const confirmed = await showConfirm(`Are you sure you want to remove ${escapeHtml(contact.name)} from this group?`, { title: 'Remove from Group', confirmText: 'Remove', type: 'danger' });
+    if (!confirmed) {
         return;
     }
     
@@ -3398,7 +3400,8 @@ async function deleteTag(tagId) {
         ? `Are you sure you want to delete "${escapeHtml(tag.text)}"? This will remove the tag from ${tag.contactCount} contact(s), but the contacts themselves will be preserved.`
         : `Are you sure you want to delete "${escapeHtml(tag.text)}"?`;
     
-    if (!confirm(confirmMessage)) {
+    const confirmed = await showConfirm(confirmMessage, { title: 'Delete Tag', confirmText: 'Delete', type: 'danger' });
+    if (!confirmed) {
         return;
     }
     
@@ -3790,7 +3793,8 @@ async function removeContactFromTag(contactId) {
     }
     
     // Confirmation dialog
-    if (!confirm(`Are you sure you want to remove ${escapeHtml(contact.name)} from this tag?`)) {
+    const confirmed = await showConfirm(`Are you sure you want to remove ${escapeHtml(contact.name)} from this tag?`, { title: 'Remove Tag', confirmText: 'Remove', type: 'danger' });
+    if (!confirmed) {
         return;
     }
     
@@ -4399,7 +4403,7 @@ async function acceptSuggestion(id) {
 }
 
 async function dismissSuggestion(id) {
-    const reason = prompt('Reason for dismissing (optional):');
+    const reason = 'not_relevant';
     
     const loadingToastId = showToast('Dismissing suggestion...', 'loading');
     
@@ -4433,11 +4437,8 @@ async function dismissSuggestion(id) {
 }
 
 async function snoozeSuggestion(id) {
-    const days = prompt('Snooze for how many days?', '7');
-    if (!days) return;
-    
-    // Convert days to hours (service expects hours)
-    const hours = parseInt(days) * 24;
+    // Default to 7 days (168 hours) — the new dashboard UI has an inline picker
+    const hours = 168;
     
     const loadingToastId = showToast('Snoozing suggestion...', 'loading');
     
@@ -4749,8 +4750,8 @@ async function refreshCalendar() {
                 showToast('Calendar sync failed. Please reconnect your calendar.', 'error');
                 // Show reconnect option
                 if (errorData.reauthUrl) {
-                    setTimeout(() => {
-                        const reconnect = confirm('Would you like to reconnect your calendar now?');
+                    setTimeout(async () => {
+                        const reconnect = await showConfirm('Would you like to reconnect your calendar now?', { title: 'Reconnect Calendar', confirmText: 'Reconnect', type: 'info' });
                         if (reconnect) {
                             window.location.href = errorData.reauthUrl;
                         }
@@ -4844,8 +4845,8 @@ async function syncCalendarNow() {
                 showToast('Calendar sync failed. Please reconnect your calendar.', 'error');
                 // Show reconnect option
                 if (data.reauthUrl) {
-                    setTimeout(() => {
-                        const reconnect = confirm('Would you like to reconnect your calendar now?');
+                    setTimeout(async () => {
+                        const reconnect = await showConfirm('Would you like to reconnect your calendar now?', { title: 'Reconnect Calendar', confirmText: 'Reconnect', type: 'info' });
                         if (reconnect) {
                             window.location.href = data.reauthUrl;
                         }
@@ -7020,7 +7021,8 @@ async function generateTestData(dataType) {
 }
 
 async function removeTestData(dataType) {
-    if (!confirm(`Are you sure you want to remove all test ${dataType}?`)) {
+    const confirmed = await showConfirm(`Are you sure you want to remove all test ${dataType}?`, { title: 'Remove Test Data', confirmText: 'Remove', type: 'danger' });
+    if (!confirmed) {
         return;
     }
     
@@ -7075,11 +7077,8 @@ async function removeTestData(dataType) {
 }
 
 async function clearAllTestData() {
-    if (!confirm('Are you sure you want to permanently delete ALL test data? This action cannot be undone.')) {
-        return;
-    }
-    
-    if (!confirm('This will delete all test contacts, calendar events, suggestions, and voice notes. Are you absolutely sure?')) {
+    const confirmed = await showConfirm('This will permanently delete ALL test data including contacts, events, suggestions, and voice notes. This cannot be undone.', { title: 'Delete All Test Data', confirmText: 'Delete All', type: 'danger' });
+    if (!confirmed) {
         return;
     }
     
@@ -7225,11 +7224,8 @@ async function bulkAddTestData() {
 }
 
 async function deleteAllUserData() {
-    if (!confirm('Are you sure you want to delete all your data? This action cannot be undone.')) {
-        return;
-    }
-    
-    if (!confirm('This will permanently delete all your contacts, events, suggestions, and voice notes. Your account will remain active. Are you absolutely sure?')) {
+    const confirmed = await showConfirm('This will permanently delete all your contacts, events, suggestions, and voice notes. Your account will remain active. This cannot be undone.', { title: 'Delete All Data', confirmText: 'Delete Everything', type: 'danger' });
+    if (!confirmed) {
         return;
     }
     
@@ -7313,7 +7309,8 @@ async function deleteAllUserData() {
 
 // Test Data Functions
 async function seedTestData() {
-    if (!confirm('This will create test contacts with tags, groups, calendar events, and suggestions. Continue?')) {
+    const confirmed = await showConfirm('This will create test contacts with tags, groups, calendar events, and suggestions. Continue?', { title: 'Seed Test Data', confirmText: 'Continue', type: 'info' });
+    if (!confirmed) {
         return;
     }
     
@@ -7368,7 +7365,8 @@ async function seedTestData() {
 }
 
 async function generateSuggestions() {
-    if (!confirm('This will generate new suggestions based on your existing contacts and calendar. Continue?')) {
+    const confirmed = await showConfirm('This will generate new suggestions based on your existing contacts and calendar. Continue?', { title: 'Generate Suggestions', confirmText: 'Generate', type: 'info' });
+    if (!confirmed) {
         return;
     }
     
@@ -7418,7 +7416,8 @@ async function generateSuggestions() {
 }
 
 async function clearTestData() {
-    if (!confirm('This will delete ALL test data including contacts, groups, tags, calendar events, and suggestions. This action cannot be undone. Continue?')) {
+    const confirmed = await showConfirm('This will delete ALL test data including contacts, groups, tags, calendar events, and suggestions. This cannot be undone.', { title: 'Clear Test Data', confirmText: 'Clear All', type: 'danger' });
+    if (!confirmed) {
         return;
     }
     
@@ -7934,8 +7933,9 @@ async function openOnboardingManagement() {
         
         // Check if user has any contacts
         if (contacts.length === 0) {
-            const shouldImport = confirm(
-                'You don\'t have any contacts yet. Would you like to import contacts from Google first?'
+            const shouldImport = await showConfirm(
+                'You don\'t have any contacts yet. Would you like to import contacts from Google first?',
+                { title: 'Import Contacts', confirmText: 'Import', type: 'info' }
             );
             
             if (shouldImport) {
@@ -8393,8 +8393,9 @@ async function triggerPostImportOnboarding(contactCount) {
         }
         
         // Show prompt to organize imported contacts
-        const shouldOrganize = confirm(
-            `Successfully imported ${contactCount} contact${contactCount > 1 ? 's' : ''} from Google!\n\nWould you like to organize them into social circles now?`
+        const shouldOrganize = await showConfirm(
+            `Successfully imported ${contactCount} contact${contactCount > 1 ? 's' : ''} from Google! Would you like to organize them into social circles now?`,
+            { title: 'Organize Contacts', confirmText: 'Organize', type: 'info' }
         );
         
         if (shouldOrganize) {
@@ -8437,8 +8438,9 @@ async function checkNewUserOnboarding() {
         
         // If user has zero contacts, offer onboarding
         if (contacts.length === 0) {
-            const shouldStart = confirm(
-                'Welcome to CatchUp!\n\nWould you like to import and organize your contacts to get started?'
+            const shouldStart = await showConfirm(
+                'Welcome to CatchUp! Would you like to import and organize your contacts to get started?',
+                { title: 'Get Started', confirmText: 'Import Contacts', type: 'info' }
             );
             
             if (shouldStart) {

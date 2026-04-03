@@ -11,7 +11,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 9999;
+  z-index: 900;
   background: var(--status-warning-bg, #fff3cd);
   color: var(--status-warning-text, #856404);
   border-bottom: 2px solid var(--status-warning, #ffc107);

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Tabs Test</title>
+  <style>
+    /* CSS Variables the dashboard-tabs.css depends on */
+    :root {
+      --bg-primary: #f9fafb;
+      --bg-secondary: #f3f4f6;
+      --bg-surface: #ffffff;
+      --bg-hover: #e5e7eb;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --text-tertiary: #9ca3af;
+      --accent-primary: #10b981;
+      --accent-hover: #059669;
+      --border-subtle: #e5e7eb;
+      --border-default: #d1d5db;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .test-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 { margin-bottom: 0.25rem; }
+
+    .test-description {
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Dashboard Tabs (inline from dashboard-tabs.css) */
+    .dashboard-tabs {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 4px;
+      background: var(--bg-secondary);
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      width: fit-content;
+    }
+
+    .dashboard-tab {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .dashboard-tab:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+
+    .dashboard-tab.active {
+      background: var(--bg-surface);
+      color: var(--accent-primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .dashboard-tab svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+    }
+
+    .dashboard-tab-content {
+      display: block;
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    .dashboard-tab-content.hidden {
+      display: none;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Mock content styling */
+    .mock-section {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .mock-section h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .mock-section p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* Test status panel */
+    .test-panel {
+      background: #1f2937;
+      color: #f3f4f6;
+      padding: 16px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      margin-top: 2rem;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .test-panel .log { margin: 4px 0; }
+    .test-panel .pass { color: #10b981; }
+    .test-panel .fail { color: #ef4444; }
+    .test-panel .info { color: #60a5fa; }
+
+    .test-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .test-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      transition: all 0.15s ease;
+    }
+
+    .test-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-default);
+    }
+
+    .test-btn--primary {
+      background: var(--accent-primary);
+      color: #fff;
+      border-color: var(--accent-primary);
+    }
+
+    .test-btn--primary:hover {
+      background: var(--accent-hover);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Dashboard Tabs — Manual Test Page</h1>
+    <p class="test-description">
+      Tests tab switching, localStorage persistence, and URL hash synchronization.
+      <br>Requirements: 1.1 (tab bar), 1.4 (localStorage persistence), 1.5 (URL hash sync).
+    </p>
+
+    <!-- Tab bar -->
+    <div id="dashboard-content">
+      <div class="dashboard-tabs" role="tablist" aria-label="Dashboard tabs">
+        <button class="dashboard-tab active"
+                data-tab="overview"
+                role="tab"
+                aria-selected="true"
+                aria-controls="dashboard-overview-tab"
+                onclick="switchDashboardTab('overview')">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          Overview
+        </button>
+        <button class="dashboard-tab"
+                data-tab="suggestions"
+                role="tab"
+                aria-selected="false"
+                aria-controls="dashboard-suggestions-tab"
+                onclick="switchDashboardTab('suggestions')">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+          </svg>
+          Suggestions
+        </button>
+      </div>
+
+      <!-- Overview tab content -->
+      <div id="dashboard-overview-tab" class="dashboard-tab-content">
+        <div class="mock-section">
+          <h3>📋 Action Items</h3>
+          <p>3 contacts to follow up with this week.</p>
+        </div>
+        <div class="mock-section">
+          <h3>📊 Relationship Insights</h3>
+          <p>You've enriched 42 contacts. Inner circle: 8 contacts.</p>
+        </div>
+        <div class="mock-section">
+          <h3>⚡ Quick Actions</h3>
+          <p>Import contacts · Schedule a catch-up · Review suggestions</p>
+        </div>
+      </div>
+
+      <!-- Suggestions tab content -->
+      <div id="dashboard-suggestions-tab" class="dashboard-tab-content hidden">
+        <div class="mock-section">
+          <h3>🎯 Set a goal</h3>
+          <p>Set a goal to get more relevant suggestions.</p>
+        </div>
+        <div class="mock-section">
+          <h3>⭐ Suggestion: Alice Johnson</h3>
+          <p>You usually catch up monthly, but it's been 47 days.</p>
+        </div>
+        <div class="mock-section">
+          <h3>⭐ Suggestion: Bob Smith</h3>
+          <p>Relevant to your goal: Grow professional network.</p>
+        </div>
+        <div class="mock-section">
+          <h3>⭐ Suggestion: Carol Williams</h3>
+          <p>Your WhatsApp messages dropped from 12/month to 3/month.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Test controls -->
+    <div class="test-actions">
+      <button class="test-btn test-btn--primary" onclick="runAllTests()">Run All Tests</button>
+      <button class="test-btn" onclick="testTabSwitch()">Test Tab Switch</button>
+      <button class="test-btn" onclick="testLocalStorage()">Test localStorage</button>
+      <button class="test-btn" onclick="testUrlHash()">Test URL Hash</button>
+      <button class="test-btn" onclick="testHashRestore()">Test Hash Restore</button>
+      <button class="test-btn" onclick="clearState()">Clear State</button>
+    </div>
+
+    <div class="test-panel" id="test-output">
+      <div class="log info">Click "Run All Tests" or individual test buttons above.</div>
+    </div>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------------------
+    // Tab state — mirrors home-dashboard.js logic
+    // ---------------------------------------------------------------------------
+    const VALID_DASHBOARD_TABS = ['overview', 'suggestions'];
+    let currentDashboardTab = 'overview';
+
+    function switchDashboardTab(tabName) {
+      if (!VALID_DASHBOARD_TABS.includes(tabName)) return;
+
+      currentDashboardTab = tabName;
+      localStorage.setItem('currentDashboardTab', tabName);
+      window.history.replaceState(null, '', `#dashboard/${tabName}`);
+
+      applyDashboardTab(tabName);
+    }
+
+    function applyDashboardTab(tabName) {
+      document.querySelectorAll('.dashboard-tab').forEach(btn => {
+        const isActive = btn.dataset.tab === tabName;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', String(isActive));
+      });
+
+      document.querySelectorAll('.dashboard-tab-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+
+      const tabEl = document.getElementById(`dashboard-${tabName}-tab`);
+      if (tabEl) tabEl.classList.remove('hidden');
+    }
+
+    // Restore tab on load from hash or localStorage
+    function restoreTab() {
+      const hash = window.location.hash;
+      const tabMatch = hash.match(/#dashboard\/(overview|suggestions)/);
+      if (tabMatch) {
+        currentDashboardTab = tabMatch[1];
+      } else {
+        const saved = localStorage.getItem('currentDashboardTab');
+        if (saved && VALID_DASHBOARD_TABS.includes(saved)) {
+          currentDashboardTab = saved;
+        }
+      }
+      applyDashboardTab(currentDashboardTab);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Test helpers
+    // ---------------------------------------------------------------------------
+    function log(msg, type) {
+      const panel = document.getElementById('test-output');
+      const entry = document.createElement('div');
+      entry.className = `log ${type || ''}`;
+      const prefix = type === 'pass' ? '✅' : type === 'fail' ? '❌' : 'ℹ️';
+      entry.textContent = `${prefix} ${msg}`;
+      panel.appendChild(entry);
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    function assert(condition, passMsg, failMsg) {
+      if (condition) {
+        log(passMsg, 'pass');
+        return true;
+      } else {
+        log(failMsg, 'fail');
+        return false;
+      }
+    }
+
+    function clearOutput() {
+      document.getElementById('test-output').innerHTML = '';
+    }
+
+    // ---------------------------------------------------------------------------
+    // Individual tests
+    // ---------------------------------------------------------------------------
+
+    /** Req 1.1 — Tab bar renders with Overview and Suggestions */
+    function testTabSwitch() {
+      log('--- Tab Switching (Req 1.1) ---', 'info');
+
+      // Switch to suggestions
+      switchDashboardTab('suggestions');
+      const sugTab = document.getElementById('dashboard-suggestions-tab');
+      const ovTab = document.getElementById('dashboard-overview-tab');
+      assert(
+        !sugTab.classList.contains('hidden') && ovTab.classList.contains('hidden'),
+        'Suggestions tab visible, Overview hidden after switching to suggestions',
+        'Tab content visibility incorrect after switching to suggestions'
+      );
+
+      // Active button state
+      const activeBtn = document.querySelector('.dashboard-tab.active');
+      assert(
+        activeBtn && activeBtn.dataset.tab === 'suggestions',
+        'Suggestions tab button has active class',
+        'Active class not on suggestions button'
+      );
+
+      // aria-selected
+      assert(
+        activeBtn.getAttribute('aria-selected') === 'true',
+        'aria-selected="true" on active tab',
+        'aria-selected not set correctly'
+      );
+
+      // Switch back to overview
+      switchDashboardTab('overview');
+      assert(
+        !ovTab.classList.contains('hidden') && sugTab.classList.contains('hidden'),
+        'Overview tab visible, Suggestions hidden after switching back',
+        'Tab content visibility incorrect after switching to overview'
+      );
+
+      // Invalid tab name is ignored
+      switchDashboardTab('invalid');
+      assert(
+        currentDashboardTab === 'overview',
+        'Invalid tab name ignored — still on overview',
+        'Invalid tab name was accepted'
+      );
+    }
+
+    /** Req 1.4 — localStorage persistence */
+    function testLocalStorage() {
+      log('--- localStorage Persistence (Req 1.4) ---', 'info');
+
+      // Switch to suggestions and check localStorage
+      switchDashboardTab('suggestions');
+      assert(
+        localStorage.getItem('currentDashboardTab') === 'suggestions',
+        'localStorage stores "suggestions" after switching',
+        'localStorage value incorrect after switching to suggestions'
+      );
+
+      // Switch to overview and check
+      switchDashboardTab('overview');
+      assert(
+        localStorage.getItem('currentDashboardTab') === 'overview',
+        'localStorage stores "overview" after switching back',
+        'localStorage value incorrect after switching to overview'
+      );
+
+      // Simulate restore from localStorage (clear hash first)
+      localStorage.setItem('currentDashboardTab', 'suggestions');
+      window.history.replaceState(null, '', window.location.pathname);
+      restoreTab();
+      assert(
+        currentDashboardTab === 'suggestions',
+        'Tab restored from localStorage when no hash present',
+        'Tab not restored from localStorage'
+      );
+
+      // Clean up
+      switchDashboardTab('overview');
+    }
+
+    /** Req 1.5 — URL hash updates */
+    function testUrlHash() {
+      log('--- URL Hash Sync (Req 1.5) ---', 'info');
+
+      switchDashboardTab('suggestions');
+      assert(
+        window.location.hash === '#dashboard/suggestions',
+        'Hash is #dashboard/suggestions after switching',
+        `Hash is "${window.location.hash}" — expected #dashboard/suggestions`
+      );
+
+      switchDashboardTab('overview');
+      assert(
+        window.location.hash === '#dashboard/overview',
+        'Hash is #dashboard/overview after switching back',
+        `Hash is "${window.location.hash}" — expected #dashboard/overview`
+      );
+    }
+
+    /** Req 1.5 + 1.6 — Loading page with hash restores correct tab */
+    function testHashRestore() {
+      log('--- Hash Restore on Load (Req 1.5, 1.6) ---', 'info');
+
+      // Set hash to suggestions and restore
+      window.history.replaceState(null, '', '#dashboard/suggestions');
+      restoreTab();
+      const sugTab = document.getElementById('dashboard-suggestions-tab');
+      assert(
+        currentDashboardTab === 'suggestions' && !sugTab.classList.contains('hidden'),
+        'Suggestions tab activated from #dashboard/suggestions hash',
+        'Tab not restored from URL hash'
+      );
+
+      // Hash takes priority over localStorage
+      localStorage.setItem('currentDashboardTab', 'overview');
+      window.history.replaceState(null, '', '#dashboard/suggestions');
+      restoreTab();
+      assert(
+        currentDashboardTab === 'suggestions',
+        'URL hash takes priority over localStorage',
+        'localStorage overrode URL hash'
+      );
+
+      // Clean up
+      switchDashboardTab('overview');
+    }
+
+    /** Run all tests sequentially */
+    function runAllTests() {
+      clearOutput();
+      log('Running all dashboard tab tests...', 'info');
+      testTabSwitch();
+      testLocalStorage();
+      testUrlHash();
+      testHashRestore();
+      log('--- All tests complete ---', 'info');
+    }
+
+    /** Reset state */
+    function clearState() {
+      localStorage.removeItem('currentDashboardTab');
+      window.history.replaceState(null, '', window.location.pathname);
+      currentDashboardTab = 'overview';
+      applyDashboardTab('overview');
+      clearOutput();
+      log('State cleared — localStorage removed, hash cleared, tab reset to overview.', 'info');
+    }
+
+    // Restore tab on initial load
+    restoreTab();
+  </script>
+</body>
+</html>

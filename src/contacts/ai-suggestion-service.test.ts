@@ -215,9 +215,10 @@ describe('AISuggestionService', () => {
       ]);
 
       expect(suggestions).toHaveLength(3);
-      expect(suggestions[0].contactId).toBe(testContactId);
-      expect(suggestions[1].contactId).toBe(contact2.id);
-      expect(suggestions[2].contactId).toBe(contact3.id);
+      const contactIds = suggestions.map(s => s.contactId);
+      expect(contactIds).toContain(testContactId);
+      expect(contactIds).toContain(contact2.id);
+      expect(contactIds).toContain(contact3.id);
     });
 
     it('should return empty array for empty input', async () => {

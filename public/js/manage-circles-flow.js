@@ -595,18 +595,17 @@ class ManageCirclesFlow {
         showToast('Circles organized! Ready to review group mappings.', 'success');
       }
       
-      // Prompt to continue to Step 3
+      // Auto-navigate to Step 3 after a brief delay
       setTimeout(() => {
-        if (confirm('Would you like to review group mapping suggestions now?')) {
-          window.location.hash = '#directory/groups';
-          if (typeof navigateTo === 'function') {
-            navigateTo('directory');
-            setTimeout(() => {
-              if (typeof switchDirectoryTab === 'function') {
-                switchDirectoryTab('groups');
-              }
-            }, 100);
-          }
+        showToast('Navigating to group mappings...', 'info');
+        window.location.hash = '#directory/groups';
+        if (typeof navigateTo === 'function') {
+          navigateTo('directory');
+          setTimeout(() => {
+            if (typeof switchDirectoryTab === 'function') {
+              switchDirectoryTab('groups');
+            }
+          }, 100);
         }
       }, 1500);
     } else {

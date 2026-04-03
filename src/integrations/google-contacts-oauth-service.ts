@@ -64,6 +64,19 @@ export class GoogleContactsOAuthService {
       profile.email
     );
 
+    // Warn and create notification if refresh_token is missing from callback
+    if (!credentials.refresh_token) {
+      console.warn(
+        `[GoogleContactsOAuthService] OAuth callback for user ${userId} did not include a refresh_token. Offline access may not have been granted.`
+      );
+      try {
+        const { tokenHealthNotificationService } = await import('./token-health-notification-service');
+        await tokenHealthNotificationService.createNotification(userId, 'google_contacts', 'token_invalid');
+      } catch (notifError) {
+        console.error('[GoogleContactsOAuthService] Failed to create missing refresh token notification:', notifError);
+      }
+    }
+
     // Clear token health status so it gets rechecked with new token
     try {
       const { TokenHealthMonitor } = await import('./token-health-monitor');
@@ -212,12 +225,12 @@ export class GoogleContactsOAuthService {
       throw new Error('User has not connected Google Contacts');
     }
 
-    // Check if token is expired or about to expire (within 5 minutes)
+    // Check if token is expired or about to expire (within 10 minutes)
     const now = new Date();
     const expiresAt = token.expiresAt;
-    const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+    const tenMinutesFromNow = new Date(now.getTime() + 10 * 60 * 1000);
 
-    if (expiresAt && expiresAt < fiveMinutesFromNow) {
+    if (expiresAt && expiresAt < tenMinutesFromNow) {
       // Token is expired or about to expire, refresh it
       return await this.refreshAccessToken(userId);
     }

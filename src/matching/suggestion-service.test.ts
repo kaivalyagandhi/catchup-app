@@ -10,6 +10,11 @@ import {
   applyRecencyDecay,
   matchContactsToTimeslot,
   generateDismissalReasonTemplates,
+  generateConversationStarter,
+  computeWeightedScore,
+  computeGoalAwareScore,
+  DEFAULT_SIGNAL_WEIGHTS,
+  EnrichmentSignal,
 } from './suggestion-service';
 import {
   Contact,
@@ -19,6 +24,7 @@ import {
   Suggestion,
   SuggestionStatus,
   TriggerType,
+  ConnectionGoal,
 } from '../types';
 
 describe('Suggestion Service', () => {
@@ -429,5 +435,295 @@ describe('Suggestion Lifecycle Integration', () => {
       expect(message).toContain('Concert at Madison Square Garden');
       expect(message).toContain('join');
     });
+  });
+});
+
+describe('generateConversationStarter', () => {
+  const baseContact: Contact = {
+    id: '1',
+    userId: 'user1',
+    name: 'Test Contact',
+    groups: [],
+    tags: [],
+    sources: [],
+    archived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const baseSuggestion: Suggestion = {
+    id: 's1',
+    userId: 'user1',
+    contactId: '1',
+    contacts: [],
+    type: 'individual',
+    triggerType: TriggerType.TIMEBOUND,
+    proposedTimeslot: {
+      start: new Date('2024-01-15T10:00:00Z'),
+      end: new Date('2024-01-15T11:00:00Z'),
+      timezone: 'UTC',
+    },
+    reasoning: 'It has been a while',
+    status: SuggestionStatus.PENDING,
+    priority: 100,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  it('should reference shared tags when contact has tags', () => {
+    const contact: Contact = {
+      ...baseContact,
+      tags: [
+        { id: 't1', text: 'hiking', source: TagSource.MANUAL, createdAt: new Date() },
+      ],
+    };
+
+    const starter = generateConversationStarter(contact, baseSuggestion, null);
+
+    expect(starter).toContain('hiking');
+    expect(starter).toContain('You both follow');
+  });
+
+  it('should reference calendar event for shared activity suggestions', () => {
+    const suggestion: Suggestion = {
+      ...baseSuggestion,
+      triggerType: TriggerType.SHARED_ACTIVITY,
+      calendarEventId: 'cal-123',
+      reasoning: 'Product Meetup Thursday: Shared interests: tech',
+    };
+
+    const starter = generateConversationStarter(baseContact, suggestion, null);
+
+    expect(starter).toContain('Product Meetup Thursday');
+    expect(starter).toContain('attending');
+  });
+
+  it('should reference enrichment platform when frequency is declining', () => {
+    const enrichment: EnrichmentSignal = {
+      contactId: '1',
+      avgMessagesPerMonth: 5,
+      lastMessageDate: new Date('2024-01-01'),
+      sentimentTrend: 'neutral',
+      frequencyTrend: 'declining',
+      topPlatform: 'WhatsApp',
+      totalMessageCount: 50,
+    };
+
+    const starter = generateConversationStarter(baseContact, baseSuggestion, enrichment);
+
+    expect(starter).toContain('WhatsApp');
+  });
+
+  it('should reference enrichment platform when enrichment data exists', () => {
+    const enrichment: EnrichmentSignal = {
+      contactId: '1',
+      avgMessagesPerMonth: 10,
+      lastMessageDate: new Date('2024-01-10'),
+      sentimentTrend: 'positive',
+      frequencyTrend: 'stable',
+      topPlatform: 'iMessage',
+      totalMessageCount: 100,
+    };
+
+    const starter = generateConversationStarter(baseContact, baseSuggestion, enrichment);
+
+    expect(starter).toContain('iMessage');
+  });
+
+  it('should return a fallback from the pool when no context is available', () => {
+    const starter = generateConversationStarter(baseContact, baseSuggestion, null);
+
+    // Should be a non-empty string from the fallback pool (not the old hardcoded string)
+    expect(starter).toBeTruthy();
+    expect(starter.length).toBeGreaterThan(0);
+  });
+
+  it('should always return a non-empty string', () => {
+    const starter = generateConversationStarter(baseContact, baseSuggestion, null);
+
+    expect(typeof starter).toBe('string');
+    expect(starter.length).toBeGreaterThan(0);
+  });
+
+  it('should prioritize tags over calendar event context', () => {
+    const contact: Contact = {
+      ...baseContact,
+      tags: [
+        { id: 't1', text: 'tech', source: TagSource.MANUAL, createdAt: new Date() },
+      ],
+    };
+
+    const suggestion: Suggestion = {
+      ...baseSuggestion,
+      triggerType: TriggerType.SHARED_ACTIVITY,
+      calendarEventId: 'cal-123',
+      reasoning: 'Tech Meetup: Shared interests: tech',
+    };
+
+    const starter = generateConversationStarter(contact, suggestion, null);
+
+    // Tags take priority — should reference the tag
+    expect(starter).toContain('tech');
+    expect(starter).toContain('You both follow');
+  });
+
+  it('should prioritize tags over enrichment data', () => {
+    const contact: Contact = {
+      ...baseContact,
+      tags: [
+        { id: 't1', text: 'cooking', source: TagSource.MANUAL, createdAt: new Date() },
+      ],
+    };
+
+    const enrichment: EnrichmentSignal = {
+      contactId: '1',
+      avgMessagesPerMonth: 5,
+      lastMessageDate: new Date('2024-01-01'),
+      sentimentTrend: 'neutral',
+      frequencyTrend: 'declining',
+      topPlatform: 'WhatsApp',
+      totalMessageCount: 50,
+    };
+
+    const starter = generateConversationStarter(contact, baseSuggestion, enrichment);
+
+    expect(starter).toContain('cooking');
+    expect(starter).toContain('You both follow');
+  });
+});
+
+describe('computeWeightedScore reasoning', () => {
+  const currentDate = new Date('2024-06-15T12:00:00Z');
+
+  const baseContact: Contact = {
+    id: '1',
+    userId: 'user1',
+    name: 'Test Contact',
+    groups: [],
+    tags: [],
+    sources: [],
+    archived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  it('should include frequency preference and days since last contact when frequency decay is primary signal', () => {
+    const lastContactDate = new Date('2024-05-01T12:00:00Z'); // 45 days ago
+    const contact: Contact = {
+      ...baseContact,
+      frequencyPreference: FrequencyOption.MONTHLY,
+      lastContactDate,
+    };
+
+    const { reasoning } = computeWeightedScore(contact, null, DEFAULT_SIGNAL_WEIGHTS, currentDate);
+
+    expect(reasoning).toContain('monthly');
+    expect(reasoning).toContain('45 days');
+  });
+
+  it('should state messaging frequency has dropped when declining frequency', () => {
+    const enrichment: EnrichmentSignal = {
+      contactId: '1',
+      avgMessagesPerMonth: 3,
+      lastMessageDate: new Date('2024-06-01'),
+      sentimentTrend: 'neutral',
+      frequencyTrend: 'declining',
+      topPlatform: 'WhatsApp',
+      totalMessageCount: 50,
+    };
+
+    const { reasoning } = computeWeightedScore(baseContact, enrichment, DEFAULT_SIGNAL_WEIGHTS, currentDate);
+
+    expect(reasoning).toContain('messaging frequency');
+    expect(reasoning).toContain('dropped');
+  });
+
+  it('should include platform name in declining frequency reasoning when available', () => {
+    const enrichment: EnrichmentSignal = {
+      contactId: '1',
+      avgMessagesPerMonth: 3,
+      lastMessageDate: new Date('2024-06-01'),
+      sentimentTrend: 'neutral',
+      frequencyTrend: 'declining',
+      topPlatform: 'iMessage',
+      totalMessageCount: 30,
+    };
+
+    const { reasoning } = computeWeightedScore(baseContact, enrichment, DEFAULT_SIGNAL_WEIGHTS, currentDate);
+
+    expect(reasoning).toContain('iMessage');
+    expect(reasoning).toContain('dropped');
+  });
+
+  it('should fall back to generic reasoning when no frequency preference or last contact date', () => {
+    const { reasoning } = computeWeightedScore(baseContact, null, DEFAULT_SIGNAL_WEIGHTS, currentDate);
+
+    expect(reasoning).toContain("It's been a while since you connected");
+  });
+});
+
+describe('computeGoalAwareScore reasoning', () => {
+  const currentDate = new Date('2024-06-15T12:00:00Z');
+
+  const baseContact: Contact = {
+    id: '1',
+    userId: 'user1',
+    name: 'Test Contact',
+    groups: [],
+    tags: [],
+    sources: [],
+    archived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  it('should append goal reference to reasoning when goalRelevanceScore > 0', () => {
+    const contact: Contact = {
+      ...baseContact,
+      tags: [{ id: 't1', text: 'network', source: TagSource.MANUAL, createdAt: new Date() }],
+    };
+
+    const goal: ConnectionGoal = {
+      id: 'g1',
+      userId: 'user1',
+      text: 'Grow professional network',
+      keywords: ['professional', 'network'],
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const { reasoning } = computeGoalAwareScore(
+      contact, null, DEFAULT_SIGNAL_WEIGHTS, [goal], currentDate,
+    );
+
+    expect(reasoning).toContain('Relevant to your goal');
+    expect(reasoning).toContain('Grow professional network');
+  });
+
+  it('should not append goal reference when goalRelevanceScore is 0', () => {
+    const goal: ConnectionGoal = {
+      id: 'g1',
+      userId: 'user1',
+      text: 'Learn cooking',
+      keywords: ['cooking', 'recipes'],
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const { reasoning } = computeGoalAwareScore(
+      baseContact, null, DEFAULT_SIGNAL_WEIGHTS, [goal], currentDate,
+    );
+
+    expect(reasoning).not.toContain('Relevant to your goal');
+  });
+
+  it('should not append goal reference when no goals are active', () => {
+    const { reasoning } = computeGoalAwareScore(
+      baseContact, null, DEFAULT_SIGNAL_WEIGHTS, [], currentDate,
+    );
+
+    expect(reasoning).not.toContain('Relevant to your goal');
   });
 });

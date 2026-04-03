@@ -15,7 +15,7 @@ import {
 } from './adaptive-sync-scheduler';
 import { IntegrationType } from './token-health-monitor';
 
-const TEST_USER_ID = '00000000-0000-0000-0000-000000000001';
+const TEST_USER_ID = '00000000-0000-0000-0000-0000000b0001';
 
 describe('AdaptiveSyncScheduler', () => {
   beforeEach(async () => {
@@ -24,7 +24,7 @@ describe('AdaptiveSyncScheduler', () => {
       `INSERT INTO users (id, email, name, google_id, auth_provider, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, google_id = EXCLUDED.google_id, auth_provider = EXCLUDED.auth_provider`,
-      [TEST_USER_ID, `test-${Date.now()}@example.com`, 'Test User', 'google-test-id', 'google']
+      [TEST_USER_ID, `test-ass-${Date.now()}@example.com`, 'Test User', `google-ass-test-${Date.now()}`, 'google']
     );
 
     // Clean up any existing schedules

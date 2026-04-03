@@ -1,26 +1,43 @@
 /**
  * Dashboard API Routes
  *
- * GET /api/dashboard — Home dashboard data (action items, insights, quick actions, nudges)
+ * GET /api/dashboard — Home dashboard data (action items, insights, quick actions, nudges,
+ *   suggestions, goals, pause state, pending reviews, weekly digest)
  *
- * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.9
+ * Requirements: 2.1, 2.3, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.9, 14.1, 14.2, 14.5, 14.6
  */
 
 import { Router, Response } from 'express';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import pool from '../../db/connection';
 import { getVisibleNudges } from '../../contacts/nudge-service';
+import { SuggestionPauseService } from '../../matching/suggestion-pause-service';
+import { ConnectionGoalService } from '../../matching/connection-goal-service';
+import { FeedbackService } from '../../matching/feedback-service';
+import { getPendingSuggestions } from '../../matching/suggestion-service';
 
 const router = Router();
+
+/**
+ * Get the most recent Monday at 00:00 UTC.
+ * If today is Monday, returns today at 00:00 UTC.
+ */
+function getMostRecentMondayUTC(now: Date = new Date()): Date {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const day = d.getUTCDay(); // 0=Sun, 1=Mon, ...
+  const diff = day === 0 ? 6 : day - 1; // days since last Monday
+  d.setUTCDate(d.getUTCDate() - diff);
+  return d;
+}
 
 /**
  * GET /
  *
  * Returns dashboard data including action items, relationship insights,
- * quick action links, and visible nudge cards.
- * Handles zero state when user has no enrichment data.
+ * quick action links, visible nudge cards, suggestions, active goals,
+ * pause state, pending reviews, and weekly digest.
  *
- * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.9
+ * Requirements: 2.1, 2.3, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.9, 14.1, 14.2, 14.5, 14.6
  */
 router.get(
   '/',
@@ -149,12 +166,123 @@ router.get(
         };
       }
 
+      // --- Suggestions, Goals, Pause, Reviews, Digest (Req 2.1, 2.3, 3.5, 3.6, 14.1, 14.2, 14.5, 14.6) ---
+      const pauseService = new SuggestionPauseService();
+      const goalService = new ConnectionGoalService();
+      const feedbackService = new FeedbackService();
+
+      let pauseState = null;
+      let activeGoals: any[] = [];
+      try {
+        [pauseState, activeGoals] = await Promise.all([
+          pauseService.getActivePause(userId),
+          goalService.getActiveGoals(userId),
+        ]);
+      } catch {
+        // New tables may not exist yet
+      }
+
+      const isPaused = pauseState !== null;
+
+      // Fetch pending suggestions (returns [] if paused) — sorted by score descending (Req 2.3)
+      let suggestions: any[] = [];
+      try {
+        suggestions = await getPendingSuggestions(userId);
+      } catch {
+        // Suggestion tables may not exist yet
+      }
+
+      // Map suggestions to include signalContribution, conversationStarter, goalRelevanceScore (Req 3.5, 3.6)
+      const topSuggestions = suggestions.map((s: any) => ({
+        id: s.id,
+        contactId: s.contactId,
+        contacts: s.contacts,
+        type: s.type,
+        triggerType: s.triggerType,
+        reasoning: s.reasoning,
+        status: s.status,
+        priority: s.priority,
+        proposedTimeslot: s.proposedTimeslot,
+        signalContribution: s.signalContribution || null,
+        conversationStarter: s.conversationStarter || null,
+        goalRelevanceScore: s.signalContribution?.goalRelevanceScore ?? 0,
+      }));
+
+      // Fetch pending reviews
+      let pendingReviews: any[] = [];
+      try {
+        pendingReviews = await feedbackService.getPendingReviews(userId);
+      } catch {
+        // Review tables may not exist yet
+      }
+
+      // --- Weekly Digest (Req 14.1, 14.2, 14.5, 14.6) ---
+      let weeklyDigest: {
+        show: boolean;
+        summaries: Array<{ contactName: string; reasoning: string }>;
+      } | null = null;
+
+      const pendingCount = topSuggestions.filter((s: any) => s.status === 'pending').length;
+
+      if (!isPaused && pendingCount > 0) {
+        // Check last_digest_viewed_at against most recent Monday 00:00 UTC
+        const mostRecentMonday = getMostRecentMondayUTC();
+        let lastDigestViewedAt: Date | null = null;
+
+        try {
+          const prefResult = await pool.query(
+            `SELECT last_digest_viewed_at FROM user_preferences WHERE user_id = $1`,
+            [userId],
+          );
+          if (prefResult.rows.length > 0 && prefResult.rows[0].last_digest_viewed_at) {
+            lastDigestViewedAt = new Date(prefResult.rows[0].last_digest_viewed_at);
+          }
+        } catch {
+          // Column or table may not exist yet
+        }
+
+        const shouldShowDigest =
+          lastDigestViewedAt === null || lastDigestViewedAt < mostRecentMonday;
+
+        if (shouldShowDigest) {
+          // Top 3 suggestion summaries (Req 14.2)
+          const digestSuggestions = topSuggestions.slice(0, 3);
+          const summaries = digestSuggestions.map((s: any) => {
+            const contactName =
+              s.contacts?.[0]?.name || 'Unknown';
+            return {
+              contactName,
+              reasoning: s.reasoning || '',
+            };
+          });
+
+          weeklyDigest = { show: true, summaries };
+
+          // Update last_digest_viewed_at (Req 14.5)
+          try {
+            await pool.query(
+              `UPDATE user_preferences SET last_digest_viewed_at = NOW() WHERE user_id = $1`,
+              [userId],
+            );
+          } catch {
+            // Column may not exist yet
+          }
+        }
+      }
+
       res.json({
         actionItems,
         insights,
         quickActions,
         nudges,
         zeroState,
+        suggestions: topSuggestions,
+        activeGoals,
+        pauseState: pauseState
+          ? { active: true, pauseEnd: pauseState.pauseEnd, pauseStart: pauseState.pauseStart }
+          : { active: false },
+        pendingReviews,
+        weeklyDigest,
       });
     } catch (error) {
       console.error('[Dashboard] Error:', error);

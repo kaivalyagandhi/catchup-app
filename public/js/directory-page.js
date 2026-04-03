@@ -18,6 +18,7 @@ import {
   escapeHtml,
   showToast,
   showConfirm,
+  showPrompt,
   fetchWithAuth,
   API_BASE,
   formatRelativeTime,
@@ -1533,15 +1534,19 @@ async function bulkAction(operation) {
   let params = {};
 
   if (operation === 'add_tag') {
-    const tag = prompt('Enter tag name:');
+    const tag = await showPrompt('Enter tag name:', { title: 'Add Tag', placeholder: 'e.g. hiking, work, college' });
     if (!tag) return;
     params = { tag };
   } else if (operation === 'assign_group') {
-    const groupName = prompt('Enter group name:');
+    const groupName = await showPrompt('Enter group name:', { title: 'Assign Group', placeholder: 'e.g. Close Friends, Work Team' });
     if (!groupName) return;
     params = { groupName };
   } else if (operation === 'assign_circle') {
-    const circle = prompt('Enter circle (inner, close, active, casual):');
+    const circle = await showPrompt('Select a circle:', {
+      title: 'Assign Circle',
+      placeholder: 'inner, close, active, or casual',
+      suggestions: ['inner', 'close', 'active', 'casual'],
+    });
     if (!circle) return;
     params = { circle };
   }
@@ -1678,7 +1683,7 @@ function renderPendingEnrichments(items) {
 }
 
 async function linkPendingEnrichment(enrichmentId) {
-  const contactName = prompt('Search for contact (enter name):');
+  const contactName = await showPrompt('Search for contact:', { title: 'Link to Contact', placeholder: 'Enter contact name' });
   if (!contactName) return;
 
   const match = contacts.find(c => c.name.toLowerCase().includes(contactName.toLowerCase()));

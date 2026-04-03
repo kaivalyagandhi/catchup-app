@@ -45,9 +45,10 @@ export class GracefulDegradationService {
         return { available: false, reason: 'circuit_breaker_open' };
       }
 
-      // Check token health
+      // Check token health — only treat 'revoked' as invalid_token
+      // 'expired' tokens can be refreshed automatically by TokenHealthMonitor
       const tokenHealth = await this.tokenHealthMonitor.getTokenHealth(userId, integrationType);
-      if (tokenHealth && ['expired', 'revoked'].includes(tokenHealth.status)) {
+      if (tokenHealth && tokenHealth.status === 'revoked') {
         return { available: false, reason: 'invalid_token' };
       }
 
@@ -157,9 +158,16 @@ export class GracefulDegradationService {
     lastSuccessfulSync: Date | null;
     requiresReauth: boolean;
     reauthUrl?: string;
+    tokenStatus?: 'valid' | 'expiring_soon' | 'expired' | 'revoked';
   }> {
     try {
       const availability = await this.checkSyncAvailability(userId, integrationType);
+
+      // Get token health status
+      const tokenHealth = await this.tokenHealthMonitor.getTokenHealth(userId, integrationType);
+      const tokenStatus = (tokenHealth?.status === 'valid' || tokenHealth?.status === 'expiring_soon' || tokenHealth?.status === 'expired' || tokenHealth?.status === 'revoked')
+        ? tokenHealth.status
+        : undefined;
 
       // Get last successful sync time
       let lastSuccessfulSync: Date | null = null;
@@ -206,6 +214,7 @@ export class GracefulDegradationService {
         lastSuccessfulSync,
         requiresReauth,
         reauthUrl,
+        tokenStatus,
       };
     } catch (error) {
       // If anything fails, return a safe default
@@ -230,6 +239,7 @@ export class GracefulDegradationService {
       lastSuccessfulSync: Date | null;
       requiresReauth: boolean;
       reauthUrl?: string;
+      tokenStatus?: 'valid' | 'expiring_soon' | 'expired' | 'revoked';
     };
     calendar: {
       available: boolean;
@@ -237,6 +247,7 @@ export class GracefulDegradationService {
       lastSuccessfulSync: Date | null;
       requiresReauth: boolean;
       reauthUrl?: string;
+      tokenStatus?: 'valid' | 'expiring_soon' | 'expired' | 'revoked';
     };
   }> {
     const [contactsStatus, calendarStatus] = await Promise.all([

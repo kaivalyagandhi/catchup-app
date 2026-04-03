@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suggestion Actions — Manual Test Page</title>
+  <style>
+    :root {
+      --bg-primary: #f9fafb;
+      --bg-secondary: #f3f4f6;
+      --bg-surface: #ffffff;
+      --bg-hover: #e5e7eb;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --text-tertiary: #9ca3af;
+      --accent-primary: #10b981;
+      --accent-hover: #059669;
+      --border-subtle: #e5e7eb;
+      --border-default: #d1d5db;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0; padding: 2rem; background: var(--bg-primary); color: var(--text-primary);
+    }
+    .test-container { max-width: 640px; margin: 0 auto; }
+    h1 { margin-bottom: 0.25rem; }
+    .test-description { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .section-label {
+      font-size: 12px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--text-tertiary); margin: 24px 0 8px;
+    }
+
+    /* Suggestion card styles (inline from dashboard-tabs.css) */
+    .suggestion-card {
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: 12px; padding: 16px; margin-bottom: 12px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .suggestion-card:hover { border-color: var(--border-default); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .suggestion-card__header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .suggestion-card__avatar {
+      width: 40px; height: 40px; border-radius: 50%; background: var(--accent-primary);
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600; flex-shrink: 0;
+    }
+    .suggestion-card__info { flex: 1; min-width: 0; }
+    .suggestion-card__name { font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0 0 2px 0; }
+    .suggestion-card__type-label { font-size: 12px; color: var(--text-tertiary); font-weight: 500; }
+    .suggestion-card__reasoning { font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px; }
+    .suggestion-card__actions { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border-subtle); }
+    .suggestion-card__btn {
+      padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1px solid transparent; transition: all 0.15s ease;
+    }
+    .suggestion-card__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .suggestion-card__btn--primary { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+    .suggestion-card__btn--primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .suggestion-card__btn--secondary { background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-subtle); }
+    .suggestion-card__btn--secondary:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-default); }
+    .suggestion-card--exiting { opacity: 0; transform: translateX(-20px); transition: opacity 0.25s ease, transform 0.25s ease; }
+
+    /* Snooze picker */
+    .snooze-picker { padding: 12px 0 0; border-top: 1px solid var(--border-subtle); margin-top: 12px; }
+    .snooze-picker__prompt { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin: 0 0 8px; }
+    .snooze-picker__options { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .snooze-picker__option {
+      padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 500;
+      cursor: pointer; border: 1px solid var(--border-subtle); background: var(--bg-secondary);
+      color: var(--text-primary); transition: all 0.15s ease; white-space: nowrap;
+    }
+    .snooze-picker__option:hover:not(:disabled) { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+    .snooze-picker__option:disabled { opacity: 0.5; cursor: not-allowed; }
+    .snooze-picker__cancel {
+      background: none; border: none; padding: 4px 0; font-size: 12px;
+      color: var(--text-tertiary); cursor: pointer; transition: color 0.15s ease;
+    }
+    .snooze-picker__cancel:hover { color: var(--text-secondary); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500;
+      color: #fff; z-index: 1000; opacity: 0; transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .toast.visible { opacity: 1; }
+    .toast--success { background: #10b981; }
+    .toast--warning { background: #f59e0b; }
+    .toast--error { background: #ef4444; }
+
+    /* Test panel */
+    .test-panel {
+      background: #1f2937; color: #f3f4f6; padding: 16px; border-radius: 10px;
+      font-family: 'Courier New', monospace; font-size: 13px; margin-top: 2rem;
+      max-height: 320px; overflow-y: auto;
+    }
+    .test-panel .log { margin: 4px 0; }
+    .test-panel .pass { color: #10b981; }
+    .test-panel .fail { color: #ef4444; }
+    .test-panel .info { color: #60a5fa; }
+    .test-actions { display: flex; gap: 8px; margin-top: 1.5rem; flex-wrap: wrap; }
+    .test-btn {
+      padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border-subtle); background: var(--bg-surface);
+      color: var(--text-primary); transition: all 0.15s ease;
+    }
+    .test-btn:hover { background: var(--bg-hover); border-color: var(--border-default); }
+    .test-btn--primary { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+    .test-btn--primary:hover { background: var(--accent-hover); }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Suggestion Actions — Manual Test Page</h1>
+    <p class="test-description">
+      Tests reach-out channel resolution, snooze duration picker, and dismissal toast messages.
+      <br>Requirements: 1.x (reach out), 3.x (snooze picker), 5.x (dismissal toasts), 6.x (toast feedback).
+    </p>
+
+    <div id="cards-root"></div>
+
+    <div class="test-actions">
+      <button class="test-btn test-btn--primary" onclick="runAllTests()">Run All Tests</button>
+      <button class="test-btn" onclick="testReachOutPhone()">Test Reach Out (Phone)</button>
+      <button class="test-btn" onclick="testReachOutEmail()">Test Reach Out (Email)</button>
+      <button class="test-btn" onclick="testReachOutNone()">Test Reach Out (None)</button>
+      <button class="test-btn" onclick="testSnoozePicker()">Test Snooze Picker</button>
+      <button class="test-btn" onclick="testSnoozeCancel()">Test Snooze Cancel</button>
+      <button class="test-btn" onclick="testSnoozeToggle()">Test Snooze Toggle</button>
+      <button class="test-btn" onclick="resetCards()">Reset</button>
+    </div>
+
+    <div class="test-panel" id="test-output">
+      <div class="log info">Click "Run All Tests" or individual test buttons above.</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast-el"></div>
+
+  <script>
+    // -----------------------------------------------------------------------
+    // Mock data — contacts with various phone/email combos
+    // -----------------------------------------------------------------------
+    const MOCK_SUGGESTIONS = [
+      {
+        id: 'sug-phone',
+        type: 'individual',
+        contacts: [{ name: 'Alice Johnson', phone: '+15551234567', email: 'alice@example.com' }],
+        reasoning: 'Has both phone and email — should prefer SMS.',
+        status: 'pending',
+      },
+      {
+        id: 'sug-email',
+        type: 'individual',
+        contacts: [{ name: 'Bob Smith', email: 'bob@example.com' }],
+        reasoning: 'Has email only — should open mailto.',
+        status: 'pending',
+      },
+      {
+        id: 'sug-none',
+        type: 'individual',
+        contacts: [{ name: 'Carol Williams' }],
+        reasoning: 'Has no contact info — should show warning toast.',
+        status: 'pending',
+      },
+    ];
+
+    const SNOOZE_DURATIONS = [
+      { label: '3 days', hours: 72 },
+      { label: '1 week', hours: 168 },
+      { label: '2 weeks', hours: 336 },
+    ];
+
+    // -----------------------------------------------------------------------
+    // Utility functions (mirrors home-dashboard.js)
+    // -----------------------------------------------------------------------
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    function resolveContactChannel(suggestion) {
+      const contacts = suggestion.contacts || [];
+      const contact = contacts[0];
+      if (!contact) return { type: 'none', value: '', contactName: 'Unknown' };
+      const contactName = contact.name || 'Unknown';
+      if (contact.phone) return { type: 'sms', value: contact.phone, contactName };
+      if (contact.email) return { type: 'email', value: contact.email, contactName };
+      return { type: 'none', value: '', contactName };
+    }
+
+    function getDismissalToastMessage(preset) {
+      if (preset === 'dont_suggest_contact') return "Got it, we won't suggest this contact again";
+      return "Got it, we'll adjust future suggestions";
+    }
+
+    let toastTimer;
+    function showToast(message, type) {
+      const el = document.getElementById('toast-el');
+      el.textContent = message;
+      el.className = `toast toast--${type} visible`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.classList.remove('visible'); }, 2500);
+      logAction(`Toast [${type}]: ${message}`);
+    }
+
+    function setCardButtonsDisabled(card, disabled) {
+      card.querySelectorAll('.suggestion-card__btn').forEach(btn => { btn.disabled = disabled; });
+    }
+
+    // -----------------------------------------------------------------------
+    // Rendering
+    // -----------------------------------------------------------------------
+
+    function renderCard(suggestion) {
+      const contact = (suggestion.contacts || [])[0] || {};
+      const name = escapeHtml(contact.name || 'Unknown');
+      const initial = name.charAt(0).toUpperCase();
+      return `
+        <div class="suggestion-card" data-suggestion-id="${escapeHtml(suggestion.id)}" role="article" aria-label="Suggestion for ${name}">
+          <div class="suggestion-card__header">
+            <div class="suggestion-card__avatar">${initial}</div>
+            <div class="suggestion-card__info">
+              <div class="suggestion-card__name">${name}</div>
+              <div class="suggestion-card__type-label">One-on-One</div>
+            </div>
+          </div>
+          <div class="suggestion-card__reasoning">${escapeHtml(suggestion.reasoning)}</div>
+          <div class="suggestion-card__actions">
+            <button class="suggestion-card__btn suggestion-card__btn--primary" onclick="handleAccept('${escapeHtml(suggestion.id)}')">Reach out</button>
+            <button class="suggestion-card__btn suggestion-card__btn--secondary" onclick="handleDismiss('${escapeHtml(suggestion.id)}')">Not now</button>
+            <button class="suggestion-card__btn suggestion-card__btn--secondary" onclick="handleSnooze('${escapeHtml(suggestion.id)}')">Snooze</button>
+          </div>
+        </div>`;
+    }
+
+    function renderSnoozePicker(suggestionId) {
+      const buttonsHtml = SNOOZE_DURATIONS.map(d =>
+        `<button class="snooze-picker__option" onclick="handleSnoozeSelect('${suggestionId}', ${d.hours}, '${d.label}')">${d.label}</button>`
+      ).join('');
+      return `
+        <div class="snooze-picker" role="group" aria-label="Snooze duration options">
+          <p class="snooze-picker__prompt">Snooze for how long?</p>
+          <div class="snooze-picker__options">${buttonsHtml}</div>
+          <button class="snooze-picker__cancel" onclick="cancelSnooze('${suggestionId}')">Cancel</button>
+        </div>`;
+    }
+
+    function renderAllCards() {
+      const root = document.getElementById('cards-root');
+      root.innerHTML = MOCK_SUGGESTIONS.map((s, i) => {
+        const labels = ['Phone + Email Contact', 'Email-Only Contact', 'No Contact Info'];
+        return `<div class="section-label">${labels[i]}</div>` + renderCard(s);
+      }).join('');
+    }
+
+    // -----------------------------------------------------------------------
+    // Action handlers
+    // -----------------------------------------------------------------------
+
+    function handleAccept(id) {
+      const suggestion = MOCK_SUGGESTIONS.find(s => s.id === id);
+      const channel = suggestion ? resolveContactChannel(suggestion) : { type: 'none', value: '', contactName: 'Unknown' };
+
+      if (channel.type === 'sms') {
+        logAction(`Would open sms:${channel.value}`);
+        showToast(`Reaching out to ${channel.contactName}`, 'success');
+      } else if (channel.type === 'email') {
+        logAction(`Would open mailto:${channel.value}`);
+        showToast(`Reaching out to ${channel.contactName}`, 'success');
+      } else {
+        showToast('No contact info available', 'warning');
+      }
+    }
+
+    function handleDismiss(id) {
+      showToast(getDismissalToastMessage('not_relevant'), 'success');
+      const card = document.querySelector(`[data-suggestion-id="${id}"]`);
+      if (card) { card.classList.add('suggestion-card--exiting'); setTimeout(() => card.remove(), 260); }
+    }
+
+    function handleSnooze(id) {
+      const card = document.querySelector(`[data-suggestion-id="${id}"]`);
+      if (!card) return;
+      const existing = card.querySelector('.snooze-picker');
+      if (existing) { cancelSnooze(id); return; }
+      setCardButtonsDisabled(card, true);
+      const actionsEl = card.querySelector('.suggestion-card__actions');
+      if (actionsEl) actionsEl.insertAdjacentHTML('afterend', renderSnoozePicker(id));
+    }
+
+    function handleSnoozeSelect(id, hours, label) {
+      showToast(`Snoozed for ${label}`, 'success');
+      logAction(`Snooze API: POST /api/suggestions/${id}/snooze { duration: ${hours} }`);
+      const card = document.querySelector(`[data-suggestion-id="${id}"]`);
+      if (card) { card.classList.add('suggestion-card--exiting'); setTimeout(() => card.remove(), 260); }
+    }
+
+    function cancelSnooze(id) {
+      const card = document.querySelector(`[data-suggestion-id="${id}"]`);
+      if (!card) return;
+      const picker = card.querySelector('.snooze-picker');
+      if (picker) picker.remove();
+      setCardButtonsDisabled(card, false);
+    }
+
+    // -----------------------------------------------------------------------
+    // Test helpers
+    // -----------------------------------------------------------------------
+
+    function logAction(msg) {
+      const panel = document.getElementById('test-output');
+      const entry = document.createElement('div');
+      entry.className = 'log info';
+      entry.textContent = `🔔 ${msg}`;
+      panel.appendChild(entry);
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    function log(msg, type) {
+      const panel = document.getElementById('test-output');
+      const entry = document.createElement('div');
+      entry.className = `log ${type || ''}`;
+      const prefix = type === 'pass' ? '✅' : type === 'fail' ? '❌' : 'ℹ️';
+      entry.textContent = `${prefix} ${msg}`;
+      panel.appendChild(entry);
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    function assert(condition, passMsg, failMsg) {
+      if (condition) { log(passMsg, 'pass'); return true; }
+      log(failMsg, 'fail'); return false;
+    }
+
+    function clearOutput() { document.getElementById('test-output').innerHTML = ''; }
+    function resetCards() { renderAllCards(); clearOutput(); log('Cards reset.', 'info'); }
+
+    // -----------------------------------------------------------------------
+    // Tests
+    // -----------------------------------------------------------------------
+
+    function testReachOutPhone() {
+      renderAllCards(); log('--- Reach Out: Phone Contact ---', 'info');
+      const ch = resolveContactChannel(MOCK_SUGGESTIONS[0]);
+      assert(ch.type === 'sms', 'Channel type is sms', `Expected sms, got ${ch.type}`);
+      assert(ch.value === '+15551234567', 'Phone value correct', `Got ${ch.value}`);
+      assert(ch.contactName === 'Alice Johnson', 'Contact name correct', `Got ${ch.contactName}`);
+    }
+
+    function testReachOutEmail() {
+      renderAllCards(); log('--- Reach Out: Email Contact ---', 'info');
+      const ch = resolveContactChannel(MOCK_SUGGESTIONS[1]);
+      assert(ch.type === 'email', 'Channel type is email', `Expected email, got ${ch.type}`);
+      assert(ch.value === 'bob@example.com', 'Email value correct', `Got ${ch.value}`);
+    }
+
+    function testReachOutNone() {
+      renderAllCards(); log('--- Reach Out: No Contact Info ---', 'info');
+      const ch = resolveContactChannel(MOCK_SUGGESTIONS[2]);
+      assert(ch.type === 'none', 'Channel type is none', `Expected none, got ${ch.type}`);
+      assert(ch.value === '', 'Value is empty', `Got "${ch.value}"`);
+    }
+
+    function testSnoozePicker() {
+      renderAllCards(); log('--- Snooze Picker ---', 'info');
+      handleSnooze('sug-phone');
+      const card = document.querySelector('[data-suggestion-id="sug-phone"]');
+      const picker = card.querySelector('.snooze-picker');
+      assert(!!picker, 'Snooze picker rendered', 'Picker not found');
+      assert(picker.getAttribute('role') === 'group', 'Has role="group"', 'Missing role');
+      assert(picker.getAttribute('aria-label') === 'Snooze duration options', 'Has aria-label', 'Missing aria-label');
+      const prompt = picker.querySelector('.snooze-picker__prompt');
+      assert(prompt && prompt.textContent.includes('Snooze for how long?'), 'Prompt text present', 'Prompt missing');
+      const options = picker.querySelectorAll('.snooze-picker__option');
+      assert(options.length === 3, '3 duration options', `Got ${options.length}`);
+      assert(options[0].textContent === '3 days', 'First option is "3 days"', `Got "${options[0].textContent}"`);
+      assert(options[1].textContent === '1 week', 'Second option is "1 week"', `Got "${options[1].textContent}"`);
+      assert(options[2].textContent === '2 weeks', 'Third option is "2 weeks"', `Got "${options[2].textContent}"`);
+      const btns = card.querySelectorAll('.suggestion-card__btn');
+      const allDisabled = Array.from(btns).every(b => b.disabled);
+      assert(allDisabled, 'Action buttons disabled while picker visible', 'Buttons not disabled');
+    }
+
+    function testSnoozeCancel() {
+      renderAllCards(); log('--- Snooze Cancel ---', 'info');
+      handleSnooze('sug-phone');
+      cancelSnooze('sug-phone');
+      const card = document.querySelector('[data-suggestion-id="sug-phone"]');
+      const picker = card.querySelector('.snooze-picker');
+      assert(!picker, 'Picker removed after cancel', 'Picker still present');
+      const btns = card.querySelectorAll('.suggestion-card__btn');
+      const allEnabled = Array.from(btns).every(b => !b.disabled);
+      assert(allEnabled, 'Action buttons re-enabled after cancel', 'Buttons still disabled');
+    }
+
+    function testSnoozeToggle() {
+      renderAllCards(); log('--- Snooze Toggle ---', 'info');
+      handleSnooze('sug-phone');
+      let card = document.querySelector('[data-suggestion-id="sug-phone"]');
+      assert(!!card.querySelector('.snooze-picker'), 'Picker shown on first click', 'Picker not shown');
+      handleSnooze('sug-phone');
+      assert(!card.querySelector('.snooze-picker'), 'Picker hidden on second click', 'Picker still shown');
+    }
+
+    function runAllTests() {
+      clearOutput();
+      log('=== Running All Suggestion Action Tests ===', 'info');
+      testReachOutPhone();
+      testReachOutEmail();
+      testReachOutNone();
+      testSnoozePicker();
+      testSnoozeCancel();
+      testSnoozeToggle();
+      log('=== All tests complete ===', 'info');
+    }
+
+    // Initial render
+    renderAllCards();
+  </script>
+</body>
+</html>

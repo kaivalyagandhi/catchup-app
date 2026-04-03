@@ -1088,7 +1088,8 @@ async function generateTestData(dataType) {
 }
 
 async function removeTestData(dataType) {
-  if (!confirm(`Are you sure you want to remove all test ${dataType}?`)) {
+  const confirmed = await showConfirm(`Are you sure you want to remove all test ${dataType}?`, { title: 'Remove Test Data', confirmText: 'Remove', type: 'danger' });
+  if (!confirmed) {
     return;
   }
 
@@ -1136,19 +1137,11 @@ async function removeTestData(dataType) {
 }
 
 async function clearAllTestData() {
-  if (
-    !confirm(
-      'Are you sure you want to permanently delete ALL test data? This action cannot be undone.',
-    )
-  ) {
-    return;
-  }
-
-  if (
-    !confirm(
-      'This will delete all test contacts, calendar events, suggestions, and voice notes. Are you absolutely sure?',
-    )
-  ) {
+  const confirmed = await showConfirm(
+    'This will permanently delete ALL test data including contacts, events, suggestions, and voice notes. This cannot be undone.',
+    { title: 'Delete All Test Data', confirmText: 'Delete All', type: 'danger' }
+  );
+  if (!confirmed) {
     return;
   }
 
@@ -1270,15 +1263,11 @@ async function bulkAddTestData() {
 }
 
 async function deleteAllUserData() {
-  if (!confirm('Are you sure you want to delete all your data? This action cannot be undone.')) {
-    return;
-  }
-
-  if (
-    !confirm(
-      'This will permanently delete all your contacts, events, suggestions, and voice notes. Your account will remain active. Are you absolutely sure?',
-    )
-  ) {
+  const confirmed = await showConfirm(
+    'This will permanently delete all your contacts, events, suggestions, and voice notes. Your account will remain active. This cannot be undone.',
+    { title: 'Delete All Data', confirmText: 'Delete Everything', type: 'danger' }
+  );
+  if (!confirmed) {
     return;
   }
 
@@ -1334,11 +1323,11 @@ async function deleteAllUserData() {
 }
 
 async function seedTestData() {
-  if (
-    !confirm(
-      'This will create test contacts with tags, groups, calendar events, and suggestions. Continue?',
-    )
-  ) {
+  const confirmed = await showConfirm(
+    'This will create test contacts with tags, groups, calendar events, and suggestions. Continue?',
+    { title: 'Seed Test Data', confirmText: 'Continue', type: 'info' }
+  );
+  if (!confirmed) {
     return;
   }
 
@@ -1387,11 +1376,11 @@ async function seedTestData() {
 }
 
 async function generateSuggestions() {
-  if (
-    !confirm(
-      'This will generate new suggestions based on your existing contacts and calendar. Continue?',
-    )
-  ) {
+  const confirmed = await showConfirm(
+    'This will generate new suggestions based on your existing contacts and calendar. Continue?',
+    { title: 'Generate Suggestions', confirmText: 'Generate', type: 'info' }
+  );
+  if (!confirmed) {
     return;
   }
 
@@ -1436,11 +1425,11 @@ async function generateSuggestions() {
 }
 
 async function clearTestData() {
-  if (
-    !confirm(
-      'This will delete ALL test data including contacts, groups, tags, calendar events, and suggestions. This action cannot be undone. Continue?',
-    )
-  ) {
+  const confirmed = await showConfirm(
+    'This will delete ALL test data including contacts, groups, tags, calendar events, and suggestions. This cannot be undone.',
+    { title: 'Clear Test Data', confirmText: 'Clear All', type: 'danger' }
+  );
+  if (!confirmed) {
     return;
   }
 
@@ -1598,7 +1587,7 @@ async function loadImportHistory() {
 }
 
 async function deleteImport(importId) {
-  const confirmed = confirm('Delete this import? All enrichment records from this import will be removed and contact data will be recalculated.');
+  const confirmed = await showConfirm('Delete this import? All enrichment records from this import will be removed and contact data will be recalculated.', { title: 'Delete Import', confirmText: 'Delete', type: 'danger' });
   if (!confirmed) return;
 
   try {

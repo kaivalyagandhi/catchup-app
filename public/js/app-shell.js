@@ -112,7 +112,7 @@ function showMainApp() {
   const userAvatarEl = document.getElementById('user-avatar-initials');
 
   if (userNameEl) {
-    userNameEl.textContent = 'Preferences';
+    userNameEl.textContent = 'Settings';
   }
 
   if (userAvatarEl && userEmail) {
@@ -380,7 +380,7 @@ function setupNavigation() {
  */
 function getPageFromPath(path) {
   const cleanPath = path.replace(/^\/app\/?/, '').replace(/\/$/, '');
-  const validPages = ['dashboard', 'directory', 'suggestions', 'preferences'];
+  const validPages = ['dashboard', 'directory', 'preferences'];
 
   if (!cleanPath || cleanPath === '') return 'dashboard';
   if (validPages.includes(cleanPath)) return cleanPath;

@@ -52,7 +52,7 @@ function initNotificationCenter() {
 
   // Start polling
   fetchUnreadCount();
-  pollInterval = setInterval(fetchUnreadCount, 30000);
+  pollInterval = setInterval(fetchUnreadCount, 300000);
 }
 
 // ---------------------------------------------------------------------------
@@ -229,11 +229,14 @@ function adjustTopButtonsForBanner() {
   const bellBtn = document.getElementById('notification-bell-fixed');
   
   if (banner && banner.offsetHeight > 0) {
-    const offset = (banner.offsetHeight + 20) + 'px';
+    const bannerHeight = banner.offsetHeight;
+    const offset = Math.max(bannerHeight + 8, 20) + 'px';
+    document.documentElement.style.setProperty('--banner-height', bannerHeight + 'px');
     if (themeBtn) themeBtn.style.top = offset;
     if (bellBtn) bellBtn.style.top = offset;
     document.body.classList.add('sync-warning-visible');
   } else {
+    document.documentElement.style.removeProperty('--banner-height');
     if (themeBtn) themeBtn.style.top = '20px';
     if (bellBtn) bellBtn.style.top = '20px';
     document.body.classList.remove('sync-warning-visible');
@@ -245,7 +248,7 @@ window.addEventListener('app:ready', () => {
   setTimeout(adjustTopButtonsForBanner, 300);
   setTimeout(adjustTopButtonsForBanner, 1000);
   setTimeout(adjustTopButtonsForBanner, 2000);
-  setInterval(adjustTopButtonsForBanner, 3000);
+  setInterval(adjustTopButtonsForBanner, 10000);
 });
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {

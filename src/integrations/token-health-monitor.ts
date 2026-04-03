@@ -32,6 +32,7 @@ interface TokenHealthRow {
   last_checked: Date;
   expiry_date: Date | null;
   error_message: string | null;
+  consecutive_failures: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -170,10 +171,11 @@ export class TokenHealthMonitor extends EventEmitter {
   }
 
   /**
-   * Proactively refresh tokens expiring within 48 hours
-   * Runs every 6 hours via cron job
+   * Proactively refresh tokens that are expiring soon or already expired.
+   * Uses error classification to distinguish transient vs non-recoverable failures.
+   * Implements 3-strike escalation for consecutive transient failures.
    *
-   * Requirements: 8.1, 8.3, 8.4
+   * Requirements: 8.1, 8.3, 8.4, 5.1, 5.2, 5.3, 5.5
    */
   async refreshExpiringTokens(): Promise<{
     refreshed: number;
@@ -181,12 +183,12 @@ export class TokenHealthMonitor extends EventEmitter {
   }> {
     const fortyEightHoursFromNow = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
-    // Find all tokens expiring within 48 hours
+    // Find all tokens expiring within 48 hours OR already expired (not just valid/expiring_soon)
     const result = await pool.query<TokenHealthRow>(
       `SELECT * FROM token_health 
        WHERE expiry_date IS NOT NULL 
        AND expiry_date < $1 
-       AND status IN ('valid', 'expiring_soon')`,
+       AND status IN ('valid', 'expiring_soon', 'expired')`,
       [fortyEightHoursFromNow]
     );
 
@@ -211,6 +213,13 @@ export class TokenHealthMonitor extends EventEmitter {
             row.expiry_date,
             'Missing refresh token - re-authentication required'
           );
+          // Create notification for missing refresh token
+          try {
+            const { tokenHealthNotificationService } = await import('./token-health-notification-service');
+            await tokenHealthNotificationService.createNotification(userId, integrationType, 'token_invalid');
+          } catch (notifError) {
+            console.error(`[TokenHealthMonitor] Failed to create notification for user ${userId}:`, notifError);
+          }
           failed++;
           continue;
         }
@@ -223,8 +232,12 @@ export class TokenHealthMonitor extends EventEmitter {
           throw new Error('Calendar token refresh not yet implemented');
         }
 
-        // Update token health to valid
+        // Update token health to valid and reset consecutive_failures
         await this.checkTokenHealth(userId, integrationType);
+        await pool.query(
+          `UPDATE token_health SET consecutive_failures = 0 WHERE user_id = $1 AND integration_type = $2`,
+          [userId, integrationType]
+        );
         refreshed++;
 
         // Requirement 8.5: Token refresh audit logging
@@ -233,21 +246,69 @@ export class TokenHealthMonitor extends EventEmitter {
         );
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
+        const userId = row.user_id;
+        const integrationType = row.integration_type as IntegrationType;
+        const classification = this.classifyRefreshError(error);
 
-        // Requirement 8.4: Token refresh failure handling
-        await this.updateTokenHealth(
-          row.user_id,
-          row.integration_type as IntegrationType,
-          'revoked',
-          row.expiry_date,
-          `Token refresh failed: ${errorMsg}`
-        );
+        if (classification === 'non-recoverable') {
+          // Non-recoverable: mark revoked + create notification
+          await this.updateTokenHealth(
+            userId,
+            integrationType,
+            'revoked',
+            row.expiry_date,
+            `Token refresh failed (non-recoverable): ${errorMsg}`
+          );
+          // Create reconnection notification
+          try {
+            const { tokenHealthNotificationService } = await import('./token-health-notification-service');
+            await tokenHealthNotificationService.createNotification(userId, integrationType, 'token_invalid');
+          } catch (notifError) {
+            console.error(`[TokenHealthMonitor] Failed to create notification for user ${userId}:`, notifError);
+          }
+        } else {
+          // Transient: retain status, increment consecutive_failures, log details
+          const currentFailures = (row as any).consecutive_failures ?? 0;
+          const newFailures = currentFailures + 1;
+
+          console.warn(
+            `[TokenHealthMonitor] Transient refresh failure for user ${userId}, integration ${integrationType}: ${errorMsg} (consecutive_failures: ${newFailures})`
+          );
+
+          if (newFailures >= 3) {
+            // 3-strike escalation: mark as revoked
+            await this.updateTokenHealth(
+              userId,
+              integrationType,
+              'revoked',
+              row.expiry_date,
+              `Token refresh failed after 3 consecutive transient failures: ${errorMsg}`
+            );
+            await pool.query(
+              `UPDATE token_health SET consecutive_failures = $1 WHERE user_id = $2 AND integration_type = $3`,
+              [newFailures, userId, integrationType]
+            );
+            // Create reconnection notification
+            try {
+              const { tokenHealthNotificationService } = await import('./token-health-notification-service');
+              await tokenHealthNotificationService.createNotification(userId, integrationType, 'token_invalid');
+            } catch (notifError) {
+              console.error(`[TokenHealthMonitor] Failed to create notification for user ${userId}:`, notifError);
+            }
+          } else {
+            // Retain current status, just increment failures
+            await pool.query(
+              `UPDATE token_health SET consecutive_failures = $1 WHERE user_id = $2 AND integration_type = $3`,
+              [newFailures, userId, integrationType]
+            );
+          }
+        }
 
         failed++;
 
         // Requirement 8.5: Token refresh audit logging
         console.error(
-          `[TokenHealthMonitor] Failed to refresh token for user ${row.user_id}, integration ${row.integration_type}: ${errorMsg}`
+          `[TokenHealthMonitor] Failed to refresh token for user ${userId}, integration ${integrationType} (${classification}): ${errorMsg}`
         );
       }
     }
@@ -340,6 +401,68 @@ export class TokenHealthMonitor extends EventEmitter {
        WHERE user_id = $1 AND integration_type = $2`,
       [userId, integrationType]
     );
+  }
+
+  /**
+   * Classify a token refresh error as non-recoverable or transient.
+   * - HTTP 400 with invalid_grant → non-recoverable
+   * - HTTP 401 → non-recoverable
+   * - HTTP 5xx → transient
+   * - Network errors / timeouts → transient
+   *
+   * Requirements: 5.1, 5.2, 5.3
+   */
+  classifyRefreshError(error: unknown): 'non-recoverable' | 'transient' {
+    if (error && typeof error === 'object') {
+      const err = error as any;
+
+      // Check for HTTP status code (Google API errors often have response.status or code)
+      const status = err.response?.status ?? err.code ?? err.status;
+
+      if (status === 401) {
+        return 'non-recoverable';
+      }
+
+      if (status === 400) {
+        // Check for invalid_grant in error body/message
+        const message = err.response?.data?.error ?? err.message ?? '';
+        if (typeof message === 'string' && message.includes('invalid_grant')) {
+          return 'non-recoverable';
+        }
+        // 400 without invalid_grant could be transient (malformed request edge case)
+        return 'non-recoverable';
+      }
+
+      // HTTP 5xx errors are transient
+      if (typeof status === 'number' && status >= 500 && status < 600) {
+        return 'transient';
+      }
+
+      // Network errors (ECONNREFUSED, ETIMEDOUT, ENOTFOUND, etc.)
+      const errorCode = err.code;
+      if (typeof errorCode === 'string') {
+        const networkCodes = ['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ENETUNREACH', 'ECONNRESET', 'EPIPE', 'EAI_AGAIN'];
+        if (networkCodes.includes(errorCode)) {
+          return 'transient';
+        }
+      }
+
+      // Check message for network/timeout indicators
+      const errorMessage = err.message ?? '';
+      if (typeof errorMessage === 'string') {
+        const transientPatterns = ['timeout', 'network', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'socket hang up'];
+        if (transientPatterns.some(p => errorMessage.toLowerCase().includes(p.toLowerCase()))) {
+          return 'transient';
+        }
+        // invalid_grant in message
+        if (errorMessage.includes('invalid_grant')) {
+          return 'non-recoverable';
+        }
+      }
+    }
+
+    // Default: treat unknown errors as non-recoverable to be safe
+    return 'non-recoverable';
   }
 }
 

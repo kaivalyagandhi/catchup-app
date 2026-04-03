@@ -374,9 +374,15 @@ export class IncrementalEnrichmentAnalyzer {
       const existingIds = new Set(state.suggestions.map((s) => s.id));
       const existingValues = new Set(state.suggestions.map((s) => this.getSuggestionKey(s)));
 
+      // Also deduplicate within the new batch itself
+      const seenKeys = new Set<string>();
       const newSuggestions = suggestions.filter((s) => {
         const suggestionKey = this.getSuggestionKey(s);
-        return !existingIds.has(s.id) && !existingValues.has(suggestionKey);
+        if (existingIds.has(s.id) || existingValues.has(suggestionKey) || seenKeys.has(suggestionKey)) {
+          return false;
+        }
+        seenKeys.add(suggestionKey);
+        return true;
       });
 
       state.suggestions.push(...newSuggestions);

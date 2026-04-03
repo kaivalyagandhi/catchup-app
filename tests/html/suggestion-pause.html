@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suggestion Pause/Resume Test</title>
+  <style>
+    /* CSS Variables the dashboard-tabs.css depends on */
+    :root {
+      --bg-primary: #f9fafb;
+      --bg-secondary: #f3f4f6;
+      --bg-surface: #ffffff;
+      --bg-hover: #e5e7eb;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --text-tertiary: #9ca3af;
+      --accent-primary: #10b981;
+      --accent-hover: #059669;
+      --border-subtle: #e5e7eb;
+      --border-default: #d1d5db;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .test-container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    h1 { margin-bottom: 0.25rem; }
+
+    .test-description {
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    /* ============================================
+       SUGGESTIONS TAB HEADER CONTROLS
+       ============================================ */
+
+    .suggestions-tab-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .suggestions-tab-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .suggestions-tab-header__controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+
+    .suggestions-header-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .suggestions-header-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-default);
+      color: var(--text-primary);
+    }
+
+    /* ============================================
+       PAUSE PICKER DROPDOWN
+       ============================================ */
+
+    .pause-picker {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      padding: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      z-index: 20;
+      min-width: 180px;
+    }
+
+    .pause-picker.hidden {
+      display: none;
+    }
+
+    .pause-picker__title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 8px;
+    }
+
+    .pause-picker__options {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .pause-picker__option {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+
+    .pause-picker__option:hover {
+      background: var(--accent-primary);
+      color: #fff;
+    }
+
+    .pause-picker__cancel {
+      background: none;
+      border: none;
+      padding: 4px 0;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+    }
+
+    .pause-picker__cancel:hover {
+      color: var(--text-secondary);
+    }
+
+    /* ============================================
+       PAUSED STATE BANNER
+       ============================================ */
+
+    .pause-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+
+    .pause-banner__content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pause-banner__icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .pause-banner__info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .pause-banner__title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .pause-banner__duration {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .pause-banner__resume {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--accent-primary);
+      background: var(--accent-primary);
+      color: #fff;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .pause-banner__resume:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    /* ============================================
+       SUGGESTION CARD (minimal for context)
+       ============================================ */
+
+    .suggestion-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .suggestion-card__name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 4px;
+    }
+
+    .suggestion-card__reasoning {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Empty state */
+    .suggestions-empty {
+      text-align: center;
+      padding: 48px 16px;
+      color: var(--text-tertiary);
+      font-size: 15px;
+    }
+
+    .suggestions-empty__icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    /* ============================================
+       TEST PANEL
+       ============================================ */
+
+    .test-panel {
+      background: #1f2937;
+      color: #f3f4f6;
+      padding: 16px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      margin-top: 2rem;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .test-panel .log { margin: 4px 0; }
+    .test-panel .pass { color: #10b981; }
+    .test-panel .fail { color: #ef4444; }
+    .test-panel .info { color: #60a5fa; }
+
+    .test-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .test-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      transition: all 0.15s ease;
+    }
+
+    .test-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-default);
+    }
+
+    .test-btn--primary {
+      background: var(--accent-primary);
+      color: #fff;
+      border-color: var(--accent-primary);
+    }
+
+    .test-btn--primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      margin: 24px 0 8px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .suggestions-header-btn,
+      .pause-picker__option,
+      .pause-banner__resume,
+      .test-btn {
+        transition: none;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .pause-banner {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+
+      .pause-banner__resume {
+        min-height: 44px;
+        width: 100%;
+        text-align: center;
+      }
+
+      .pause-picker {
+        right: auto;
+        left: 0;
+      }
+
+      .suggestions-tab-header {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .suggestions-tab-header__controls {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Suggestion Pause/Resume — Manual Test Page</h1>
+    <p class="test-description">
+      Tests pause/resume flow, paused banner display, duration countdown, and picker toggle.
+      <br>Requirements: 11.1 (pause control), 11.5 (paused banner with duration and resume).
+    </p>
+
+    <div id="pause-root"></div>
+
+    <!-- Test controls -->
+    <div class="test-actions">
+      <button class="test-btn test-btn--primary" onclick="runAllTests()">Run All Tests</button>
+      <button class="test-btn" onclick="testPausePickerToggle()">Test Picker Toggle</button>
+      <button class="test-btn" onclick="testPauseFlow()">Test Pause Flow</button>
+      <button class="test-btn" onclick="testResumeFlow()">Test Resume Flow</button>
+      <button class="test-btn" onclick="testDurationCountdown()">Test Countdown</button>
+      <button class="test-btn" onclick="testDurationOptions()">Test Duration Opts</button>
+      <button class="test-btn" onclick="resetState()">Reset</button>
+    </div>
+
+    <div class="test-panel" id="test-output">
+      <div class="log info">Click "Run All Tests" or individual test buttons above.</div>
+    </div>
+  </div>
+
+  <script>
+    // -----------------------------------------------------------------------
+    // Mock state — mirrors home-dashboard.js pause logic
+    // -----------------------------------------------------------------------
+
+    let pausePickerVisible = false;
+    let pauseState = null; // { active: true, pauseStart: Date, pauseEnd: Date } or null
+
+    const MOCK_SUGGESTIONS = [
+      { name: 'Alice Johnson', reasoning: "You usually catch up monthly, but it's been 47 days." },
+      { name: 'Bob Smith', reasoning: 'Relevant to your goal: Grow professional network.' },
+      { name: 'Carol Williams', reasoning: 'Your WhatsApp messages dropped from 12/month to 3/month.' },
+    ];
+
+    // -----------------------------------------------------------------------
+    // Rendering
+    // -----------------------------------------------------------------------
+
+    function render() {
+      const root = document.getElementById('pause-root');
+      const isPaused = pauseState && pauseState.active && pauseState.pauseEnd;
+
+      root.innerHTML = renderHeader(isPaused) +
+        (isPaused ? renderPausedBanner(pauseState) : renderSuggestionCards());
+    }
+
+    function renderHeader(isPaused) {
+      return `
+        <div class="suggestions-tab-header">
+          <h2>Suggestions</h2>
+          <div class="suggestions-tab-header__controls">
+            ${!isPaused ? `
+              <button class="suggestions-header-btn" onclick="togglePausePicker()" aria-label="Pause suggestions">
+                ⏸ Pause suggestions
+              </button>
+              <div id="pause-picker-dropdown" class="pause-picker ${pausePickerVisible ? '' : 'hidden'}" role="dialog" aria-label="Select pause duration">
+                <p class="pause-picker__title">Pause for how long?</p>
+                <div class="pause-picker__options">
+                  <button class="pause-picker__option" onclick="handlePause(1)">1 week</button>
+                  <button class="pause-picker__option" onclick="handlePause(2)">2 weeks</button>
+                  <button class="pause-picker__option" onclick="handlePause(3)">3 weeks</button>
+                  <button class="pause-picker__option" onclick="handlePause(4)">4 weeks</button>
+                </div>
+                <button class="pause-picker__cancel" onclick="togglePausePicker()">Cancel</button>
+              </div>
+            ` : ''}
+          </div>
+        </div>`;
+    }
+
+    function renderPausedBanner(state) {
+      const endDate = new Date(state.pauseEnd);
+      const now = new Date();
+      const diffMs = endDate - now;
+      const diffDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      let durationText;
+      if (diffDays >= 7) {
+        const weeks = Math.round(diffDays / 7);
+        durationText = `${weeks} week${weeks !== 1 ? 's' : ''} remaining`;
+      } else {
+        durationText = `${diffDays} day${diffDays !== 1 ? 's' : ''} remaining`;
+      }
+
+      return `
+        <div class="pause-banner" id="pause-banner" role="status" aria-label="Suggestions paused">
+          <div class="pause-banner__content">
+            <span class="pause-banner__icon">⏸️</span>
+            <div class="pause-banner__info">
+              <span class="pause-banner__title">Suggestions are paused</span>
+              <span class="pause-banner__duration" id="pause-duration">${durationText}</span>
+            </div>
+          </div>
+          <button class="pause-banner__resume" onclick="handleResume()">Resume suggestions</button>
+        </div>
+        <div class="suggestions-empty">
+          <div class="suggestions-empty__icon">⏸️</div>
+          <p>Suggestions are paused. Resume to see new suggestions.</p>
+        </div>`;
+    }
+
+    function renderSuggestionCards() {
+      return MOCK_SUGGESTIONS.map(s => `
+        <div class="suggestion-card">
+          <div class="suggestion-card__name">${escapeHtml(s.name)}</div>
+          <div class="suggestion-card__reasoning">${escapeHtml(s.reasoning)}</div>
+        </div>`).join('');
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    // -----------------------------------------------------------------------
+    // Action handlers
+    // -----------------------------------------------------------------------
+
+    function togglePausePicker() {
+      pausePickerVisible = !pausePickerVisible;
+      const picker = document.getElementById('pause-picker-dropdown');
+      if (picker) {
+        picker.classList.toggle('hidden', !pausePickerVisible);
+      }
+    }
+
+    function handlePause(weeks) {
+      const now = new Date();
+      const end = new Date(now.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
+      pauseState = { active: true, pauseStart: now, pauseEnd: end };
+      pausePickerVisible = false;
+      render();
+      logAction(`Paused suggestions for ${weeks} week${weeks !== 1 ? 's' : ''}`);
+    }
+
+    function handleResume() {
+      pauseState = null;
+      render();
+      logAction('Resumed suggestions');
+    }
+
+    function logAction(msg) {
+      const panel = document.getElementById('test-output');
+      const entry = document.createElement('div');
+      entry.className = 'log info';
+      entry.textContent = `🔔 ${msg}`;
+      panel.appendChild(entry);
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    // -----------------------------------------------------------------------
+    // Test helpers
+    // -----------------------------------------------------------------------
+
+    function log(msg, type) {
+      const panel = document.getElementById('test-output');
+      const entry = document.createElement('div');
+      entry.className = `log ${type || ''}`;
+      const prefix = type === 'pass' ? '✅' : type === 'fail' ? '❌' : 'ℹ️';
+      entry.textContent = `${prefix} ${msg}`;
+      panel.appendChild(entry);
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    function assert(condition, passMsg, failMsg) {
+      if (condition) { log(passMsg, 'pass'); return true; }
+      log(failMsg, 'fail'); return false;
+    }
+
+    function clearOutput() {
+      document.getElementById('test-output').innerHTML = '';
+    }
+
+    // -----------------------------------------------------------------------
+    // Tests
+    // -----------------------------------------------------------------------
+
+    /** Req 11.1 — Pause picker toggle show/hide */
+    function testPausePickerToggle() {
+      pauseState = null;
+      pausePickerVisible = false;
+      render();
+      log('--- Pause Picker Toggle (Req 11.1) ---', 'info');
+
+      // Picker should be hidden initially
+      let picker = document.getElementById('pause-picker-dropdown');
+      assert(
+        picker && picker.classList.contains('hidden'),
+        'Pause picker hidden initially',
+        'Pause picker should be hidden initially'
+      );
+
+      // Toggle open
+      togglePausePicker();
+      picker = document.getElementById('pause-picker-dropdown');
+      assert(
+        picker && !picker.classList.contains('hidden'),
+        'Pause picker visible after toggle',
+        'Pause picker should be visible after toggle'
+      );
+
+      // Toggle closed
+      togglePausePicker();
+      picker = document.getElementById('pause-picker-dropdown');
+      assert(
+        picker && picker.classList.contains('hidden'),
+        'Pause picker hidden after second toggle',
+        'Pause picker should be hidden after second toggle'
+      );
+
+      // Pause button present in header
+      const pauseBtn = document.querySelector('.suggestions-header-btn');
+      assert(
+        pauseBtn && pauseBtn.textContent.includes('Pause suggestions'),
+        '"Pause suggestions" button present in header',
+        '"Pause suggestions" button missing'
+      );
+    }
+
+    /** Req 11.1, 11.2 — Duration options 1-4 weeks */
+    function testDurationOptions() {
+      pauseState = null;
+      pausePickerVisible = true;
+      render();
+      log('--- Duration Options (Req 11.2) ---', 'info');
+
+      const options = document.querySelectorAll('.pause-picker__option');
+      assert(
+        options.length === 4,
+        '4 duration options rendered (1-4 weeks)',
+        `Expected 4 options, got ${options.length}`
+      );
+
+      const labels = Array.from(options).map(o => o.textContent.trim());
+      assert(
+        labels[0] === '1 week',
+        'First option is "1 week"',
+        `First option is "${labels[0]}"`
+      );
+      assert(
+        labels[1] === '2 weeks',
+        'Second option is "2 weeks"',
+        `Second option is "${labels[1]}"`
+      );
+      assert(
+        labels[2] === '3 weeks',
+        'Third option is "3 weeks"',
+        `Third option is "${labels[2]}"`
+      );
+      assert(
+        labels[3] === '4 weeks',
+        'Fourth option is "4 weeks"',
+        `Fourth option is "${labels[3]}"`
+      );
+
+      // Cancel button present
+      const cancel = document.querySelector('.pause-picker__cancel');
+      assert(
+        cancel && cancel.textContent.trim() === 'Cancel',
+        'Cancel button present in picker',
+        'Cancel button missing'
+      );
+    }
+
+    /** Req 11.1, 11.5 — Pause flow: select duration → banner appears */
+    function testPauseFlow() {
+      pauseState = null;
+      pausePickerVisible = false;
+      render();
+      log('--- Pause Flow (Req 11.1, 11.5) ---', 'info');
+
+      // Cards visible before pause
+      let cards = document.querySelectorAll('.suggestion-card');
+      assert(
+        cards.length === 3,
+        '3 suggestion cards visible before pause',
+        `Expected 3 cards, got ${cards.length}`
+      );
+
+      // No pause banner before pause
+      let banner = document.getElementById('pause-banner');
+      assert(
+        !banner,
+        'No pause banner before pausing',
+        'Pause banner should not exist before pausing'
+      );
+
+      // Pause for 2 weeks
+      handlePause(2);
+
+      // Banner should appear
+      banner = document.getElementById('pause-banner');
+      assert(
+        !!banner,
+        'Pause banner appears after pausing',
+        'Pause banner missing after pausing'
+      );
+
+      // Banner has correct role and aria-label
+      assert(
+        banner.getAttribute('role') === 'status',
+        'Pause banner has role="status"',
+        'Pause banner missing role="status"'
+      );
+      assert(
+        banner.getAttribute('aria-label') === 'Suggestions paused',
+        'Pause banner has aria-label="Suggestions paused"',
+        'Pause banner missing aria-label'
+      );
+
+      // Duration text shows weeks
+      const duration = document.getElementById('pause-duration');
+      assert(
+        duration && duration.textContent.includes('2 weeks'),
+        'Duration shows "2 weeks remaining"',
+        `Duration text: "${duration ? duration.textContent : 'missing'}"`
+      );
+
+      // Suggestion cards hidden
+      cards = document.querySelectorAll('.suggestion-card');
+      assert(
+        cards.length === 0,
+        'Suggestion cards hidden while paused',
+        `Expected 0 cards, got ${cards.length}`
+      );
+
+      // Resume button present
+      const resumeBtn = document.querySelector('.pause-banner__resume');
+      assert(
+        resumeBtn && resumeBtn.textContent.trim() === 'Resume suggestions',
+        '"Resume suggestions" button present on banner',
+        '"Resume suggestions" button missing'
+      );
+
+      // Pause button hidden while paused
+      const pauseBtn = document.querySelector('.suggestions-header-btn');
+      assert(
+        !pauseBtn,
+        '"Pause suggestions" button hidden while paused',
+        '"Pause suggestions" button should be hidden while paused'
+      );
+    }
+
+    /** Req 11.5, 11.6 — Resume flow: click resume → normal state restored */
+    function testResumeFlow() {
+      // Start in paused state
+      const now = new Date();
+      pauseState = {
+        active: true,
+        pauseStart: now,
+        pauseEnd: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+      };
+      pausePickerVisible = false;
+      render();
+      log('--- Resume Flow (Req 11.5, 11.6) ---', 'info');
+
+      // Verify paused state
+      let banner = document.getElementById('pause-banner');
+      assert(!!banner, 'Pause banner present before resume', 'Pause banner missing');
+
+      // Resume
+      handleResume();
+
+      // Banner gone
+      banner = document.getElementById('pause-banner');
+      assert(!banner, 'Pause banner removed after resume', 'Pause banner still present');
+
+      // Cards restored
+      const cards = document.querySelectorAll('.suggestion-card');
+      assert(
+        cards.length === 3,
+        '3 suggestion cards restored after resume',
+        `Expected 3 cards, got ${cards.length}`
+      );
+
+      // Pause button restored
+      const pauseBtn = document.querySelector('.suggestions-header-btn');
+      assert(
+        pauseBtn && pauseBtn.textContent.includes('Pause suggestions'),
+        '"Pause suggestions" button restored after resume',
+        '"Pause suggestions" button missing after resume'
+      );
+
+      // State cleared
+      assert(
+        pauseState === null,
+        'Pause state is null after resume',
+        'Pause state should be null after resume'
+      );
+    }
+
+    /** Req 11.5 — Duration countdown display (weeks vs days) */
+    function testDurationCountdown() {
+      log('--- Duration Countdown (Req 11.5) ---', 'info');
+      const now = new Date();
+
+      // Test 3 weeks remaining → shows weeks
+      pauseState = {
+        active: true,
+        pauseStart: now,
+        pauseEnd: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000),
+      };
+      render();
+      let duration = document.getElementById('pause-duration');
+      assert(
+        duration && duration.textContent.includes('3 weeks'),
+        '21 days shows "3 weeks remaining"',
+        `Expected "3 weeks", got "${duration ? duration.textContent : 'missing'}"`
+      );
+
+      // Test 1 week remaining → shows "1 week"
+      pauseState = {
+        active: true,
+        pauseStart: now,
+        pauseEnd: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+      };
+      render();
+      duration = document.getElementById('pause-duration');
+      assert(
+        duration && duration.textContent.includes('1 week') && !duration.textContent.includes('weeks'),
+        '7 days shows "1 week remaining" (singular)',
+        `Expected "1 week", got "${duration ? duration.textContent : 'missing'}"`
+      );
+
+      // Test 5 days remaining → shows days
+      pauseState = {
+        active: true,
+        pauseStart: now,
+        pauseEnd: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+      };
+      render();
+      duration = document.getElementById('pause-duration');
+      assert(
+        duration && duration.textContent.includes('5 days'),
+        '5 days shows "5 days remaining"',
+        `Expected "5 days", got "${duration ? duration.textContent : 'missing'}"`
+      );
+
+      // Test 1 day remaining → singular
+      pauseState = {
+        active: true,
+        pauseStart: now,
+        pauseEnd: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000),
+      };
+      render();
+      duration = document.getElementById('pause-duration');
+      assert(
+        duration && duration.textContent.includes('1 day') && !duration.textContent.includes('days'),
+        '1 day shows "1 day remaining" (singular)',
+        `Expected "1 day", got "${duration ? duration.textContent : 'missing'}"`
+      );
+
+      // Test 0 days (expired) → shows "0 days"
+      pauseState = {
+        active: true,
+        pauseStart: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+        pauseEnd: new Date(now.getTime() - 1000),
+      };
+      render();
+      duration = document.getElementById('pause-duration');
+      assert(
+        duration && duration.textContent.includes('0 days'),
+        'Expired pause shows "0 days remaining"',
+        `Expected "0 days", got "${duration ? duration.textContent : 'missing'}"`
+      );
+
+      // Reset
+      pauseState = null;
+      render();
+    }
+
+    /** Run all tests sequentially */
+    function runAllTests() {
+      clearOutput();
+      log('Running all pause/resume tests...', 'info');
+      testPausePickerToggle();
+      testDurationOptions();
+      testPauseFlow();
+      testResumeFlow();
+      testDurationCountdown();
+      log('--- All tests complete ---', 'info');
+    }
+
+    /** Reset to initial state */
+    function resetState() {
+      pauseState = null;
+      pausePickerVisible = false;
+      render();
+      clearOutput();
+      log('State reset — not paused, picker hidden.', 'info');
+    }
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>

@@ -4,6 +4,16 @@
  * Data access layer for onboarding state operations.
  * Manages user progress through the contact onboarding flow.
  *
+ * The actual database schema (migration 030) uses a simplified 3-step model:
+ *   user_id (PK), is_complete, current_step (integer 1-3), dismissed_at,
+ *   integrations_complete, google_calendar_connected, google_contacts_connected,
+ *   circles_complete, contacts_categorized, total_contacts,
+ *   groups_complete, mappings_reviewed, total_mappings,
+ *   created_at, updated_at
+ *
+ * This repository maps between the simplified schema and the OnboardingStateRecord
+ * interface expected by the rest of the application.
+ *
  * Requirements: 1.5, 3.3, 7.1, 8.3, 12.2, 12.5
  */
 
@@ -80,8 +90,67 @@ export interface OnboardingRepository {
   markComplete(userId: string): Promise<void>;
 }
 
+// --- Mapping helpers between string steps and integer steps ---
+
+/** Map string step name to integer step number (1-3). */
+function stepNameToNumber(step: OnboardingStep): number {
+  switch (step) {
+    case 'welcome':
+    case 'import_contacts':
+      return 1; // Step 1: Integrations
+    case 'circle_assignment':
+    case 'preference_setting':
+      return 2; // Step 2: Circles
+    case 'group_overlay':
+      return 3; // Step 3: Groups
+    case 'completion':
+      return 3;
+    default:
+      return 1;
+  }
+}
+
+/**
+ * Map integer step number to string step name.
+ * Uses integrations_complete to distinguish welcome from import_contacts
+ * (both map to step 1).
+ */
+function stepNumberToName(step: number, isComplete: boolean, integrationsComplete: boolean): OnboardingStep {
+  if (isComplete) return 'completion';
+  switch (step) {
+    case 1:
+      return integrationsComplete ? 'circle_assignment' : 'welcome';
+    case 2:
+      return 'circle_assignment';
+    case 3:
+      return 'group_overlay';
+    default:
+      return 'welcome';
+  }
+}
+
+/** Derive completed steps from the boolean flags in the DB row */
+function deriveCompletedSteps(row: any): string[] {
+  const steps: string[] = [];
+  if (row.integrations_complete) {
+    steps.push('welcome', 'import_contacts');
+  }
+  if (row.circles_complete) {
+    steps.push('circle_assignment', 'preference_setting');
+  }
+  if (row.groups_complete) {
+    steps.push('group_overlay');
+  }
+  if (row.is_complete) {
+    steps.push('completion');
+  }
+  return steps;
+}
+
 /**
  * PostgreSQL Onboarding Repository Implementation
+ *
+ * Works with the simplified 3-step schema from migration 030.
  */
 export class PostgresOnboardingRepository implements OnboardingRepository {
   /**
@@ -90,29 +159,25 @@ export class PostgresOnboardingRepository implements OnboardingRepository {
    */
   async create(data: OnboardingStateCreateData): Promise<OnboardingStateRecord> {
     const currentStep = data.currentStep || 'welcome';
-    const progressData = {
-      categorizedCount: 0,
-      totalCount: 0,
-      milestonesReached: [],
-      timeSpent: 0,
-      ...data.progressData,
-    };
+    const stepNum = stepNameToNumber(currentStep);
+    const categorizedCount = data.progressData?.categorizedCount ?? 0;
+    const totalCount = data.progressData?.totalCount ?? 0;
 
     const result = await pool.query(
       `INSERT INTO onboarding_state (
-        user_id, current_step, trigger_type, progress_data
+        user_id, current_step, contacts_categorized, total_contacts
       ) VALUES ($1, $2, $3, $4)
-      ON CONFLICT (user_id) 
-      DO UPDATE SET 
+      ON CONFLICT (user_id)
+      DO UPDATE SET
         current_step = EXCLUDED.current_step,
-        trigger_type = EXCLUDED.trigger_type,
-        progress_data = EXCLUDED.progress_data,
-        last_updated_at = CURRENT_TIMESTAMP
+        contacts_categorized = EXCLUDED.contacts_categorized,
+        total_contacts = EXCLUDED.total_contacts,
+        updated_at = CURRENT_TIMESTAMP
       RETURNING *`,
-      [data.userId, currentStep, data.triggerType, JSON.stringify(progressData)]
+      [data.userId, stepNum, categorizedCount, totalCount],
     );
 
-    return this.mapRowToOnboardingState(result.rows[0]);
+    return this.mapRowToOnboardingState(result.rows[0], data.triggerType);
   }
 
   /**
@@ -127,14 +192,14 @@ export class PostgresOnboardingRepository implements OnboardingRepository {
       // Get current state
       const currentResult = await client.query(
         'SELECT * FROM onboarding_state WHERE user_id = $1',
-        [userId]
+        [userId],
       );
 
       if (currentResult.rows.length === 0) {
         throw new Error('Onboarding state not found');
       }
 
-      const current = this.mapRowToOnboardingState(currentResult.rows[0]);
+      const row = currentResult.rows[0];
 
       // Build update query dynamically
       const updates: string[] = [];
@@ -143,40 +208,55 @@ export class PostgresOnboardingRepository implements OnboardingRepository {
 
       if (data.currentStep !== undefined) {
         updates.push(`current_step = $${paramCount++}`);
-        values.push(data.currentStep);
+        values.push(stepNameToNumber(data.currentStep));
       }
 
       if (data.completedSteps !== undefined) {
-        updates.push(`completed_steps = $${paramCount++}`);
-        values.push(JSON.stringify(data.completedSteps));
+        // Map completed steps to boolean flags
+        if (data.completedSteps.includes('import_contacts') || data.completedSteps.includes('welcome')) {
+          updates.push(`integrations_complete = $${paramCount++}`);
+          values.push(true);
+        }
+        if (data.completedSteps.includes('circle_assignment') || data.completedSteps.includes('preference_setting')) {
+          updates.push(`circles_complete = $${paramCount++}`);
+          values.push(true);
+        }
+        if (data.completedSteps.includes('group_overlay')) {
+          updates.push(`groups_complete = $${paramCount++}`);
+          values.push(true);
+        }
       }
 
       if (data.progressData !== undefined) {
-        const mergedProgressData = {
-          ...current.progressData,
-          ...data.progressData,
-        };
-        updates.push(`progress_data = $${paramCount++}`);
-        values.push(JSON.stringify(mergedProgressData));
+        if (data.progressData.categorizedCount !== undefined) {
+          updates.push(`contacts_categorized = $${paramCount++}`);
+          values.push(data.progressData.categorizedCount);
+        }
+        if (data.progressData.totalCount !== undefined) {
+          updates.push(`total_contacts = $${paramCount++}`);
+          values.push(data.progressData.totalCount);
+        }
       }
 
       if (data.completedAt !== undefined) {
-        updates.push(`completed_at = $${paramCount++}`);
-        values.push(data.completedAt);
+        updates.push(`is_complete = $${paramCount++}`);
+        values.push(true);
       }
 
       if (updates.length === 0) {
         await client.query('COMMIT');
-        return current;
+        return this.mapRowToOnboardingState(row);
       }
+
+      updates.push(`updated_at = CURRENT_TIMESTAMP`);
 
       values.push(userId);
       const result = await client.query(
-        `UPDATE onboarding_state 
+        `UPDATE onboarding_state
          SET ${updates.join(', ')}
          WHERE user_id = $${paramCount}
          RETURNING *`,
-        values
+        values,
       );
 
       await client.query('COMMIT');
@@ -220,16 +300,27 @@ export class PostgresOnboardingRepository implements OnboardingRepository {
     try {
       await client.query('BEGIN');
 
+      // Map step name to the corresponding boolean column
+      let column: string | null = null;
+      if (step === 'welcome' || step === 'import_contacts') {
+        column = 'integrations_complete';
+      } else if (step === 'circle_assignment' || step === 'preference_setting') {
+        column = 'circles_complete';
+      } else if (step === 'group_overlay') {
+        column = 'groups_complete';
+      }
+
+      if (!column) {
+        await client.query('COMMIT');
+        return;
+      }
+
       const result = await client.query(
         `UPDATE onboarding_state
-         SET completed_steps = 
-           CASE 
-             WHEN completed_steps @> $2::jsonb THEN completed_steps
-             ELSE completed_steps || $2::jsonb
-           END
+         SET ${column} = TRUE, updated_at = CURRENT_TIMESTAMP
          WHERE user_id = $1
          RETURNING *`,
-        [userId, JSON.stringify([step])]
+        [userId],
       );
 
       if (result.rows.length === 0) {
@@ -252,10 +343,14 @@ export class PostgresOnboardingRepository implements OnboardingRepository {
   async markComplete(userId: string): Promise<void> {
     const result = await pool.query(
       `UPDATE onboarding_state
-       SET completed_at = CURRENT_TIMESTAMP,
-           current_step = 'completion'
+       SET is_complete = TRUE,
+           current_step = 3,
+           integrations_complete = TRUE,
+           circles_complete = TRUE,
+           groups_complete = TRUE,
+           updated_at = CURRENT_TIMESTAMP
        WHERE user_id = $1`,
-      [userId]
+      [userId],
     );
 
     if (result.rowCount === 0) {
@@ -264,22 +359,29 @@ export class PostgresOnboardingRepository implements OnboardingRepository {
   }
 
   /**
-   * Map database row to OnboardingStateRecord
+   * Map database row to OnboardingStateRecord.
+   * Translates the simplified 3-step schema to the application interface.
    */
-  private mapRowToOnboardingState(row: any): OnboardingStateRecord {
+  private mapRowToOnboardingState(
+    row: any,
+    triggerType?: OnboardingTriggerType,
+  ): OnboardingStateRecord {
+    const completedSteps = deriveCompletedSteps(row);
+    const isComplete = !!row.is_complete;
+
     return {
-      id: row.id,
+      id: row.user_id, // PK is user_id in the simplified schema
       userId: row.user_id,
-      currentStep: row.current_step as OnboardingStep,
-      completedSteps: row.completed_steps || [],
-      triggerType: row.trigger_type as OnboardingTriggerType,
-      startedAt: new Date(row.started_at),
-      lastUpdatedAt: new Date(row.last_updated_at),
-      completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
-      progressData: row.progress_data || {
-        categorizedCount: 0,
-        totalCount: 0,
-        milestonesReached: [],
+      currentStep: stepNumberToName(row.current_step, isComplete, !!row.integrations_complete),
+      completedSteps,
+      triggerType: triggerType || 'new_user',
+      startedAt: new Date(row.created_at),
+      lastUpdatedAt: new Date(row.updated_at),
+      completedAt: isComplete ? new Date(row.updated_at) : undefined,
+      progressData: {
+        categorizedCount: row.contacts_categorized || 0,
+        totalCount: row.total_contacts || 0,
+        milestonesReached: isComplete ? ['completion'] : [],
         timeSpent: 0,
       },
     };

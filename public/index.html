@@ -38,6 +38,9 @@
     <link rel="stylesheet" href="/css/google-mappings-review.css">
     <link rel="stylesheet" href="/css/timezone-selector.css">
     <link rel="stylesheet" href="/css/archived-contacts.css">
+
+    <!-- Dashboard Page Stylesheets -->
+    <link rel="stylesheet" href="/css/dashboard-tabs.css">
     <link rel="stylesheet" href="/css/notification-center.css">
     <link rel="stylesheet" href="/css/settings-page.css">
     <link rel="stylesheet" href="/css/contact-detail-panel.css">
@@ -3166,27 +3169,13 @@
                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                         <polyline points="9 22 9 12 15 12 15 22"/>
                     </svg>
-                    <span>Home</span>
+                    <span>Dashboard</span>
                 </a>
                 <a href="#directory" class="nav-item" data-page="directory">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
                     </svg>
                     <span>Directory</span>
-                </a>
-                <a href="#suggestions" class="nav-item" data-page="suggestions">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
-                    </svg>
-                    <span>Suggestions</span>
-                    <span id="suggestions-badge" class="nav-badge hidden">0</span>
-                </a>
-                <a href="#preferences" class="nav-item" data-page="preferences">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    <span>Settings</span>
                 </a>
             </nav>
             
@@ -3204,7 +3193,7 @@
             <!-- Dashboard Page -->
             <div id="dashboard-page" class="page hidden">
                 <div class="page-header">
-                    <h1 class="page-header-title">Home</h1>
+                    <h1 class="page-header-title">Dashboard</h1>
                 </div>
                 <div id="dashboard-content"></div>
             </div>
@@ -3313,20 +3302,13 @@
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                     <polyline points="9 22 9 12 15 12 15 22"/>
                 </svg>
-                <span class="mobile-nav__label">Home</span>
+                <span class="mobile-nav__label">Dashboard</span>
             </a>
             <a href="#directory" class="mobile-nav__item" data-page="directory" onclick="navigateToPage('directory'); return false;">
                 <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
                 </svg>
                 <span class="mobile-nav__label">Directory</span>
-            </a>
-            <a href="#suggestions" class="mobile-nav__item" data-page="suggestions" onclick="navigateToPage('suggestions'); return false;">
-                <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
-                </svg>
-                <span class="mobile-nav__label">Suggestions</span>
-                <span id="mobile-suggestions-badge" class="mobile-nav__badge hidden">0</span>
             </a>
             <a href="#preferences" class="mobile-nav__item" data-page="preferences" onclick="navigateToPage('preferences'); return false;">
                 <svg class="mobile-nav__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3585,7 +3567,6 @@
     <script src="/js/voice-notes.js"></script>
     <script src="/js/contact-selector.js"></script>
     <script src="/js/enrichment-review.js"></script>
-    <script src="/js/schedule-preview.js"></script>
     <script src="/js/onboarding-controller.js"></script>
     <script src="/js/google-contacts.js"></script>
     <script src="/js/floating-chat-icon.js"></script>

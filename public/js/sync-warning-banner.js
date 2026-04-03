@@ -28,10 +28,9 @@ class SyncWarningBanner {
     // Check if we just returned from OAuth reconnection
     if (sessionStorage.getItem('recheckSyncHealth') === 'true') {
       sessionStorage.removeItem('recheckSyncHealth');
-      // Wait a moment for the OAuth callback to complete, then recheck
-      setTimeout(() => {
-        this.checkSyncHealth();
-      }, 2000);
+      // Poll health endpoint every 1 second for up to 5 seconds
+      // Hide banner when tokenStatus changes from 'revoked'
+      this.pollHealthAfterReconnect();
     }
 
     // Check if we just completed OAuth successfully (calendar_success or contacts_success in URL)
@@ -131,6 +130,21 @@ class SyncWarningBanner {
       }
 
       const health = await response.json();
+
+      // Check tokenStatus — only show reconnection banner for 'revoked' status
+      // Hide banner for 'expired' and 'expiring_soon' since background refresh handles those
+      const contactsTokenStatus = health.contacts.tokenStatus;
+      const calendarTokenStatus = health.calendar.tokenStatus;
+
+      // Skip showing banner if token status is expired or expiring_soon (auto-refreshable)
+      if (contactsTokenStatus === 'expired' || contactsTokenStatus === 'expiring_soon') {
+        health.contacts.available = true;
+        health.contacts.requiresReauth = false;
+      }
+      if (calendarTokenStatus === 'expired' || calendarTokenStatus === 'expiring_soon') {
+        health.calendar.available = true;
+        health.calendar.requiresReauth = false;
+      }
 
       // Determine if we should show a warning
       const contactsUnavailable = !health.contacts.available;
@@ -289,6 +303,49 @@ class SyncWarningBanner {
    */
   handleClose() {
     this.hideWarning();
+  }
+
+  /**
+   * Poll health endpoint after OAuth reconnection.
+   * Checks every 1 second for up to 5 seconds, hiding banner when tokenStatus changes from revoked.
+   */
+  pollHealthAfterReconnect() {
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const response = await fetch('/api/contacts/sync/comprehensive-health', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          },
+        });
+
+        if (response.ok) {
+          const health = await response.json();
+          const contactsRevoked = health.contacts.tokenStatus === 'revoked';
+          const calendarRevoked = health.calendar.tokenStatus === 'revoked';
+
+          if (!contactsRevoked && !calendarRevoked) {
+            this.hideWarning();
+            return; // Stop polling
+          }
+        }
+      } catch (error) {
+        console.error('Error polling health after reconnect:', error);
+      }
+
+      if (attempts < maxAttempts) {
+        setTimeout(poll, 1000);
+      } else {
+        // Final check via normal flow
+        this.checkSyncHealth();
+      }
+    };
+
+    // Start polling after a brief delay for OAuth callback to complete
+    setTimeout(poll, 1000);
   }
 
   /**

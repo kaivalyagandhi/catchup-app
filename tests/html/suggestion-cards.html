@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suggestion Cards Test</title>
+  <style>
+    /* CSS Variables the dashboard-tabs.css depends on */
+    :root {
+      --bg-primary: #f9fafb;
+      --bg-secondary: #f3f4f6;
+      --bg-surface: #ffffff;
+      --bg-hover: #e5e7eb;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --text-tertiary: #9ca3af;
+      --accent-primary: #10b981;
+      --accent-hover: #059669;
+      --border-subtle: #e5e7eb;
+      --border-default: #d1d5db;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .test-container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    h1 { margin-bottom: 0.25rem; }
+
+    .test-description {
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    /* ============================================
+       SUGGESTION CARDS (inline from dashboard-tabs.css)
+       ============================================ */
+
+    .suggestion-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .suggestion-card:hover {
+      border-color: var(--border-default);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .suggestion-card__header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .suggestion-card__avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .suggestion-card__group-avatars {
+      display: flex;
+      flex-shrink: 0;
+    }
+
+    .suggestion-card__group-avatars .suggestion-card__avatar {
+      width: 32px;
+      height: 32px;
+      font-size: 13px;
+      border: 2px solid var(--bg-surface);
+      margin-left: -10px;
+    }
+
+    .suggestion-card__group-avatars .suggestion-card__avatar:first-child {
+      margin-left: 0;
+    }
+
+    .suggestion-card__group-avatars .suggestion-card__avatar--more {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .suggestion-card__info { flex: 1; min-width: 0; }
+
+    .suggestion-card__name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 2px 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .suggestion-card__type-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+
+    .suggestion-card__reasoning {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .suggestion-card__starter {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-style: italic;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .suggestion-card__starter-icon {
+      font-style: normal;
+      margin-right: 4px;
+    }
+
+    /* Expandable details */
+    .suggestion-card__details-toggle {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 8px;
+      transition: color 0.2s ease;
+    }
+
+    .suggestion-card__details-toggle:hover {
+      color: var(--text-secondary);
+    }
+
+    .suggestion-card__details-toggle svg {
+      width: 14px;
+      height: 14px;
+      transition: transform 0.2s ease;
+    }
+
+    .suggestion-card__details-toggle[aria-expanded="true"] svg {
+      transform: rotate(180deg);
+    }
+
+    .suggestion-card__details {
+      display: none;
+      padding: 10px 0 4px;
+    }
+
+    .suggestion-card__details.open {
+      display: block;
+    }
+
+    /* Signal bars */
+    .signal-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .signal-bar__label {
+      width: 100px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .signal-bar__track {
+      flex: 1;
+      height: 6px;
+      background: var(--bg-secondary);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .signal-bar__fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .signal-bar__fill--enrichment { background: #86efac; }
+    .signal-bar__fill--interaction { background: #93c5fd; }
+    .signal-bar__fill--calendar { background: #fcd34d; }
+    .signal-bar__fill--metadata { background: #f9a8d4; }
+    .signal-bar__fill--goal { background: #c4b5fd; }
+
+    .signal-bar__value {
+      width: 36px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Action buttons */
+    .suggestion-card__actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .suggestion-card__btn {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .suggestion-card__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .suggestion-card__btn--primary {
+      background: var(--accent-primary);
+      color: #fff;
+      border-color: var(--accent-primary);
+    }
+
+    .suggestion-card__btn--primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .suggestion-card__btn--secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border-color: var(--border-subtle);
+    }
+
+    .suggestion-card__btn--secondary:hover:not(:disabled) {
+      background: var(--bg-hover);
+      border-color: var(--border-default);
+    }
+
+    /* Card exit animation */
+    .suggestion-card--exiting {
+      opacity: 0;
+      transform: translateX(-20px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    /* ============================================
+       STRUCTURED FEEDBACK UI
+       ============================================ */
+
+    .suggestion-feedback {
+      padding: 12px 0 0;
+      border-top: 1px solid var(--border-subtle);
+      margin-top: 12px;
+    }
+
+    .suggestion-feedback__prompt {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin: 0 0 8px;
+    }
+
+    .suggestion-feedback__options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .suggestion-feedback__option {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .suggestion-feedback__option:hover:not(:disabled) {
+      background: var(--accent-primary);
+      color: #fff;
+      border-color: var(--accent-primary);
+    }
+
+    .suggestion-feedback__option:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .suggestion-feedback__other-input {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .suggestion-feedback__other-input.hidden { display: none; }
+
+    .suggestion-feedback__text {
+      flex: 1;
+      padding: 7px 10px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-primary);
+      background: var(--bg-surface);
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .suggestion-feedback__text:focus { border-color: var(--accent-primary); }
+    .suggestion-feedback__text::placeholder { color: var(--text-tertiary); }
+
+    .suggestion-feedback__submit {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--accent-primary);
+      background: var(--accent-primary);
+      color: #fff;
+      transition: all 0.15s ease;
+    }
+
+    .suggestion-feedback__submit:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .suggestion-feedback__cancel {
+      background: none;
+      border: none;
+      padding: 4px 0;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: color 0.15s ease;
+    }
+
+    .suggestion-feedback__cancel:hover { color: var(--text-secondary); }
+
+    /* Empty state */
+    .suggestions-empty {
+      text-align: center;
+      padding: 48px 16px;
+      color: var(--text-tertiary);
+      font-size: 15px;
+    }
+
+    .suggestions-empty__icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    /* Show more */
+    .suggestions-show-more {
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    .suggestions-show-more button {
+      background: none;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .suggestions-show-more button:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-default);
+      color: var(--text-primary);
+    }
+
+    /* ============================================
+       TEST PANEL
+       ============================================ */
+
+    .test-panel {
+      background: #1f2937;
+      color: #f3f4f6;
+      padding: 16px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      margin-top: 2rem;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .test-panel .log { margin: 4px 0; }
+    .test-panel .pass { color: #10b981; }
+    .test-panel .fail { color: #ef4444; }
+    .test-panel .info { color: #60a5fa; }
+
+    .test-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .test-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      transition: all 0.15s ease;
+    }
+
+    .test-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-default);
+    }
+
+    .test-btn--primary {
+      background: var(--accent-primary);
+      color: #fff;
+      border-color: var(--accent-primary);
+    }
+
+    .test-btn--primary:hover {
+      background: var(--accent-hover);
+    }
+
+    /* Section divider */
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      margin: 24px 0 8px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .suggestion-card,
+      .suggestion-card__btn,
+      .suggestion-card__details-toggle svg,
+      .signal-bar__fill,
+      .suggestion-card--exiting,
+      .suggestion-feedback__option,
+      .suggestion-feedback__submit,
+      .suggestion-feedback__text {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Suggestion Cards — Manual Test Page</h1>
+    <p class="test-description">
+      Tests card rendering, feedback flow, conversation starters, signal details expansion, and exit animations.
+      <br>Requirements: 3.1 (reasoning), 4.1 (feedback presets), 6.1 (card layout), 12.1 (conversation starters).
+    </p>
+
+    <div id="cards-root"></div>
+
+    <!-- Test controls -->
+    <div class="test-actions">
+      <button class="test-btn test-btn--primary" onclick="runAllTests()">Run All Tests</button>
+      <button class="test-btn" onclick="testCardRendering()">Test Card Rendering</button>
+      <button class="test-btn" onclick="testGroupCard()">Test Group Card</button>
+      <button class="test-btn" onclick="testDetailsExpansion()">Test Details</button>
+      <button class="test-btn" onclick="testFeedbackFlow()">Test Feedback</button>
+      <button class="test-btn" onclick="testOtherFeedback()">Test "Other" Input</button>
+      <button class="test-btn" onclick="testExitAnimation()">Test Exit Anim</button>
+      <button class="test-btn" onclick="testEmptyState()">Test Empty State</button>
+      <button class="test-btn" onclick="resetCards()">Reset</button>
+    </div>
+
+    <div class="test-panel" id="test-output">
+      <div class="log info">Click "Run All Tests" or individual test buttons above.</div>
+    </div>
+  </div>
+
+  <script>
+    // -----------------------------------------------------------------------
+    // Mock suggestion data
+    // -----------------------------------------------------------------------
+    const MOCK_SUGGESTIONS = [
+      {
+        id: 'sug-001',
+        type: 'one-on-one',
+        contactName: 'Alice Johnson',
+        contacts: [{ name: 'Alice Johnson' }],
+        reasoning: "You usually catch up monthly, but it's been 47 days.",
+        conversationStarter: "You both follow hiking — ask about their recent trail.",
+        signalContribution: {
+          enrichmentScore: 72,
+          interactionScore: 45,
+          calendarScore: 20,
+          contactMetadataScore: 58,
+        },
+        goalRelevanceScore: 0,
+        status: 'pending',
+      },
+      {
+        id: 'sug-002',
+        type: 'one-on-one',
+        contactName: 'Bob Smith',
+        contacts: [{ name: 'Bob Smith' }],
+        reasoning: "Relevant to your goal: Grow professional network — they work in your target industry.",
+        conversationStarter: "Last time you talked about their job search — check in on how it's going.",
+        signalContribution: {
+          enrichmentScore: 55,
+          interactionScore: 30,
+          calendarScore: 10,
+          contactMetadataScore: 40,
+        },
+        goalRelevanceScore: 65,
+        status: 'pending',
+      },
+      {
+        id: 'sug-003',
+        type: 'group',
+        contactName: 'Carol, Dave, Eve, Frank, Grace',
+        contacts: [
+          { name: 'Carol Williams' },
+          { name: 'Dave Chen' },
+          { name: 'Eve Martinez' },
+          { name: 'Frank Lee' },
+          { name: 'Grace Kim' },
+        ],
+        reasoning: "Your WhatsApp messages with this group dropped from 12/month to 3/month.",
+        conversationStarter: "You're all attending the product meetup Thursday — suggest grabbing coffee after.",
+        signalContribution: {
+          enrichmentScore: 40,
+          interactionScore: 80,
+          calendarScore: 65,
+          contactMetadataScore: 25,
+        },
+        goalRelevanceScore: 0,
+        status: 'pending',
+      },
+      {
+        id: 'sug-004',
+        type: 'one-on-one',
+        contactName: 'Hannah Park',
+        contacts: [{ name: 'Hannah Park' }],
+        reasoning: "It's been a while since you last connected.",
+        conversationStarter: "It's been a while — a simple 'how are you?' goes a long way.",
+        signalContribution: {
+          enrichmentScore: 15,
+          interactionScore: 10,
+          calendarScore: 5,
+          contactMetadataScore: 20,
+        },
+        goalRelevanceScore: 0,
+        status: 'pending',
+      },
+    ];
+
+    const FEEDBACK_PRESETS = [
+      { key: 'already_in_touch', label: 'Already in touch' },
+      { key: 'not_relevant', label: 'Not relevant right now' },
+      { key: 'timing_off', label: 'Timing is off' },
+      { key: 'dont_suggest_contact', label: "Don't suggest this contact" },
+      { key: 'other', label: 'Other' },
+    ];
+
+    // -----------------------------------------------------------------------
+    // Rendering helpers (mirrors home-dashboard.js logic)
+    // -----------------------------------------------------------------------
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    function renderSingleAvatar(contact) {
+      const initial = ((contact && contact.name) || '?').charAt(0).toUpperCase();
+      return `<div class="suggestion-card__avatar">${initial}</div>`;
+    }
+
+    function renderGroupAvatars(contacts) {
+      const maxShow = 3;
+      const shown = contacts.slice(0, maxShow);
+      const extra = contacts.length - maxShow;
+      let html = '<div class="suggestion-card__group-avatars">';
+      shown.forEach(c => {
+        const initial = ((c && c.name) || '?').charAt(0).toUpperCase();
+        html += `<div class="suggestion-card__avatar">${initial}</div>`;
+      });
+      if (extra > 0) {
+        html += `<div class="suggestion-card__avatar suggestion-card__avatar--more">+${extra}</div>`;
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function renderSignalDetails(suggestion) {
+      const sc = suggestion.signalContribution || {};
+      const signals = [
+        { label: 'Enrichment', key: 'enrichmentScore', cls: 'enrichment' },
+        { label: 'Interaction', key: 'interactionScore', cls: 'interaction' },
+        { label: 'Calendar', key: 'calendarScore', cls: 'calendar' },
+        { label: 'Metadata', key: 'contactMetadataScore', cls: 'metadata' },
+      ];
+      if (suggestion.goalRelevanceScore > 0) {
+        signals.push({ label: 'Goal', key: 'goalRelevanceScore', cls: 'goal' });
+      }
+      return signals.map(s => {
+        const value = s.key === 'goalRelevanceScore'
+          ? (suggestion.goalRelevanceScore || 0)
+          : (sc[s.key] || 0);
+        const pct = Math.min(Math.round(value), 100);
+        return `
+          <div class="signal-bar">
+            <span class="signal-bar__label">${s.label}</span>
+            <div class="signal-bar__track">
+              <div class="signal-bar__fill signal-bar__fill--${s.cls}" style="width: ${pct}%"></div>
+            </div>
+            <span class="signal-bar__value">${pct}%</span>
+          </div>`;
+      }).join('');
+    }
+
+    function renderSuggestionCard(suggestion) {
+      const isGroup = suggestion.type === 'group';
+      const contacts = suggestion.contacts || [];
+      const displayName = isGroup
+        ? contacts.map(c => escapeHtml(c.name)).join(', ')
+        : escapeHtml(contacts[0]?.name || suggestion.contactName || 'Unknown');
+
+      const avatarHtml = isGroup
+        ? renderGroupAvatars(contacts)
+        : renderSingleAvatar(contacts[0] || { name: suggestion.contactName || '?' });
+
+      const typeLabel = isGroup ? 'Group Catchup' : 'One-on-One';
+      const reasoning = escapeHtml(suggestion.reasoning || '');
+      const starter = suggestion.conversationStarter
+        ? `<div class="suggestion-card__starter"><span class="suggestion-card__starter-icon">💬</span> ${escapeHtml(suggestion.conversationStarter)}</div>`
+        : '';
+
+      return `
+        <div class="suggestion-card" data-suggestion-id="${escapeHtml(suggestion.id)}" role="article" aria-label="Suggestion for ${escapeHtml(displayName)}">
+          <div class="suggestion-card__header">
+            ${avatarHtml}
+            <div class="suggestion-card__info">
+              <div class="suggestion-card__name">${escapeHtml(isGroup ? contacts.map(c => c.name).join(', ') : (contacts[0]?.name || suggestion.contactName || 'Unknown'))}</div>
+              <div class="suggestion-card__type-label">${typeLabel}</div>
+            </div>
+          </div>
+          <div class="suggestion-card__reasoning">${reasoning}</div>
+          ${starter}
+          <button class="suggestion-card__details-toggle" aria-expanded="false" onclick="toggleDetails(this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            Details
+          </button>
+          <div class="suggestion-card__details">
+            ${renderSignalDetails(suggestion)}
+          </div>
+          <div class="suggestion-card__actions" id="actions-${escapeHtml(suggestion.id)}">
+            <button class="suggestion-card__btn suggestion-card__btn--primary" onclick="handleAccept('${escapeHtml(suggestion.id)}')">Reach out</button>
+            <button class="suggestion-card__btn suggestion-card__btn--secondary" onclick="handleDismiss('${escapeHtml(suggestion.id)}')">Not now</button>
+            <button class="suggestion-card__btn suggestion-card__btn--secondary" onclick="handleSnooze('${escapeHtml(suggestion.id)}')">Snooze</button>
+          </div>
+          <div id="feedback-${escapeHtml(suggestion.id)}" style="display:none;"></div>
+        </div>`;
+    }
+
+    function renderEmptyState() {
+      return `
+        <div class="suggestions-empty">
+          <div class="suggestions-empty__icon">✅</div>
+          <p>You're all caught up. No suggestions right now.</p>
+        </div>`;
+    }
+
+    // -----------------------------------------------------------------------
+    // Interaction handlers
+    // -----------------------------------------------------------------------
+
+    function toggleDetails(btn) {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      const details = btn.nextElementSibling;
+      if (details) details.classList.toggle('open', !expanded);
+    }
+
+    function handleAccept(id) {
+      const card = document.querySelector(`[data-suggestion-id="${id}"]`);
+      if (!card) return;
+      card.classList.add('suggestion-card--exiting');
+      setTimeout(() => card.remove(), 260);
+      logAction(`Accepted suggestion ${id}`);
+    }
+
+    function handleSnooze(id) {
+      const card = document.querySelector(`[data-suggestion-id="${id}"]`);
+      if (!card) return;
+      card.classList.add('suggestion-card--exiting');
+      setTimeout(() => card.remove(), 260);
+      logAction(`Snoozed suggestion ${id}`);
+    }
+
+    function handleDismiss(id) {
+      // Show inline feedback presets (Req 4.1)
+      const actionsEl = document.getElementById(`actions-${id}`);
+      const feedbackEl = document.getElementById(`feedback-${id}`);
+      if (!actionsEl || !feedbackEl) return;
+
+      actionsEl.style.display = 'none';
+      feedbackEl.style.display = 'block';
+      feedbackEl.innerHTML = `
+        <div class="suggestion-feedback">
+          <p class="suggestion-feedback__prompt">Why not now?</p>
+          <div class="suggestion-feedback__options">
+            ${FEEDBACK_PRESETS.map(p =>
+              `<button class="suggestion-feedback__option" data-preset="${p.key}" onclick="handleFeedbackSelect('${id}', '${p.key}')">${escapeHtml(p.label)}</button>`
+            ).join('')}
+          </div>
+          <div class="suggestion-feedback__other-input hidden" id="other-input-${id}">
+            <input type="text" class="suggestion-feedback__text" placeholder="Tell us more..." id="other-text-${id}" />
+            <button class="suggestion-feedback__submit" onclick="submitOtherFeedback('${id}')">Send</button>
+          </div>
+          <button class="suggestion-feedback__cancel" onclick="cancelFeedback('${id}')">Cancel</button>
+        </div>`;
+    }
+
+    function handleFeedbackSelect(id, preset) {
+      if (preset === 'other') {
+        const otherInput = document.getElementById(`other-input-${id}`);
+        if (otherInput) otherInput.classList.remove('hidden');
+        return;
+      }
+      // Dismiss card with preset
+      const card = document.querySelector(`[data-suggestion-id="${id}"]`);
+      if (card) {
+        card.classList.add('suggestion-card--exiting');
+        setTimeout(() => card.remove(), 260);
+      }
+      logAction(`Feedback "${preset}" submitted for ${id}`);
+    }
+
+    function submitOtherFeedback(id) {
+      const text = document.getElementById(`other-text-${id}`)?.value || '';
+      const card = document.querySelector(`[data-suggestion-id="${id}"]`);
+      if (card) {
+        card.classList.add('suggestion-card--exiting');
+        setTimeout(() => card.remove(), 260);
+      }
+      logAction(`Feedback "other" submitted for ${id}: "${text}"`);
+    }
+
+    function cancelFeedback(id) {
+      const actionsEl = document.getElementById(`actions-${id}`);
+      const feedbackEl = document.getElementById(`feedback-${id}`);
+      if (actionsEl) actionsEl.style.display = 'flex';
+      if (feedbackEl) { feedbackEl.style.display = 'none'; feedbackEl.innerHTML = ''; }
+    }
+
+    function logAction(msg) {
+      const panel = document.getElementById('test-output');
+      const entry = document.createElement('div');
+      entry.className = 'log info';
+      entry.textContent = `🔔 ${msg}`;
+      panel.appendChild(entry);
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    // -----------------------------------------------------------------------
+    // Render all cards
+    // -----------------------------------------------------------------------
+
+    function renderAllCards() {
+      const root = document.getElementById('cards-root');
+      root.innerHTML =
+        '<div class="section-label">Individual Card (One-on-One)</div>' +
+        renderSuggestionCard(MOCK_SUGGESTIONS[0]) +
+        '<div class="section-label">Goal-Boosted Card</div>' +
+        renderSuggestionCard(MOCK_SUGGESTIONS[1]) +
+        '<div class="section-label">Group Card (5 contacts, +2 overflow)</div>' +
+        renderSuggestionCard(MOCK_SUGGESTIONS[2]) +
+        '<div class="section-label">Fallback Conversation Starter</div>' +
+        renderSuggestionCard(MOCK_SUGGESTIONS[3]);
+    }
+
+    function resetCards() {
+      renderAllCards();
+      clearOutput();
+      log('Cards reset to initial state.', 'info');
+    }
+
+    // -----------------------------------------------------------------------
+    // Test helpers
+    // -----------------------------------------------------------------------
+
+    function log(msg, type) {
+      const panel = document.getElementById('test-output');
+      const entry = document.createElement('div');
+      entry.className = `log ${type || ''}`;
+      const prefix = type === 'pass' ? '✅' : type === 'fail' ? '❌' : 'ℹ️';
+      entry.textContent = `${prefix} ${msg}`;
+      panel.appendChild(entry);
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    function assert(condition, passMsg, failMsg) {
+      if (condition) { log(passMsg, 'pass'); return true; }
+      log(failMsg, 'fail'); return false;
+    }
+
+    function clearOutput() {
+      document.getElementById('test-output').innerHTML = '';
+    }
+
+    // -----------------------------------------------------------------------
+    // Tests
+    // -----------------------------------------------------------------------
+
+    /** Req 6.1 — Card renders avatar, name, type label, reasoning, actions */
+    function testCardRendering() {
+      renderAllCards();
+      log('--- Card Rendering (Req 3.1, 6.1, 12.1) ---', 'info');
+
+      const card1 = document.querySelector('[data-suggestion-id="sug-001"]');
+      assert(!!card1, 'Card sug-001 rendered', 'Card sug-001 missing');
+
+      // Avatar
+      const avatar = card1.querySelector('.suggestion-card__avatar');
+      assert(avatar && avatar.textContent.trim() === 'A', 'Avatar shows initial "A"', 'Avatar initial incorrect');
+
+      // Name
+      const name = card1.querySelector('.suggestion-card__name');
+      assert(name && name.textContent.includes('Alice Johnson'), 'Name "Alice Johnson" displayed', 'Name missing');
+
+      // Type label
+      const typeLabel = card1.querySelector('.suggestion-card__type-label');
+      assert(typeLabel && typeLabel.textContent === 'One-on-One', 'Type label "One-on-One" shown', 'Type label incorrect');
+
+      // Reasoning (Req 3.1)
+      const reasoning = card1.querySelector('.suggestion-card__reasoning');
+      assert(reasoning && reasoning.textContent.includes('47 days'), 'Reasoning mentions "47 days"', 'Reasoning text missing');
+
+      // Conversation starter (Req 12.1)
+      const starter = card1.querySelector('.suggestion-card__starter');
+      assert(starter && starter.textContent.includes('hiking'), 'Conversation starter mentions "hiking"', 'Starter missing');
+
+      const starterIcon = card1.querySelector('.suggestion-card__starter-icon');
+      assert(starterIcon && starterIcon.textContent.includes('💬'), 'Starter has 💬 icon', 'Starter icon missing');
+
+      // Action buttons (Req 6.5, 6.6)
+      const actions = card1.querySelectorAll('.suggestion-card__btn');
+      assert(actions.length === 3, '3 action buttons rendered', `Expected 3 buttons, got ${actions.length}`);
+
+      const primaryBtn = card1.querySelector('.suggestion-card__btn--primary');
+      assert(primaryBtn && primaryBtn.textContent.trim() === 'Reach out', '"Reach out" is primary button', 'Primary button incorrect');
+    }
+
+    /** Req 6.4 — Group card with overlapping avatars and +N */
+    function testGroupCard() {
+      renderAllCards();
+      log('--- Group Card (Req 6.4) ---', 'info');
+
+      const card3 = document.querySelector('[data-suggestion-id="sug-003"]');
+      assert(!!card3, 'Group card sug-003 rendered', 'Group card missing');
+
+      const groupAvatars = card3.querySelector('.suggestion-card__group-avatars');
+      assert(!!groupAvatars, 'Group avatars container present', 'Group avatars container missing');
+
+      const avatars = groupAvatars.querySelectorAll('.suggestion-card__avatar');
+      assert(avatars.length === 4, '4 avatar elements (3 shown + 1 overflow)', `Expected 4 avatars, got ${avatars.length}`);
+
+      const moreAvatar = groupAvatars.querySelector('.suggestion-card__avatar--more');
+      assert(moreAvatar && moreAvatar.textContent.trim() === '+2', '"+2" overflow indicator shown', 'Overflow indicator incorrect');
+
+      const typeLabel = card3.querySelector('.suggestion-card__type-label');
+      assert(typeLabel && typeLabel.textContent === 'Group Catchup', 'Type label "Group Catchup"', 'Group type label incorrect');
+    }
+
+    /** Req 3.5 — Expandable details with signal bars */
+    function testDetailsExpansion() {
+      renderAllCards();
+      log('--- Details Expansion (Req 3.5) ---', 'info');
+
+      const card1 = document.querySelector('[data-suggestion-id="sug-001"]');
+      const toggle = card1.querySelector('.suggestion-card__details-toggle');
+      const details = card1.querySelector('.suggestion-card__details');
+
+      assert(toggle.getAttribute('aria-expanded') === 'false', 'Details initially collapsed', 'Details should start collapsed');
+      assert(!details.classList.contains('open'), 'Details div hidden initially', 'Details div should be hidden');
+
+      // Expand
+      toggle.click();
+      assert(toggle.getAttribute('aria-expanded') === 'true', 'aria-expanded="true" after click', 'aria-expanded not updated');
+      assert(details.classList.contains('open'), 'Details div visible after click', 'Details div not visible');
+
+      // Check signal bars
+      const bars = details.querySelectorAll('.signal-bar');
+      assert(bars.length === 4, '4 signal bars for non-goal card', `Expected 4 bars, got ${bars.length}`);
+
+      // Collapse
+      toggle.click();
+      assert(toggle.getAttribute('aria-expanded') === 'false', 'Collapsed again after second click', 'Not collapsed');
+      assert(!details.classList.contains('open'), 'Details hidden again', 'Details still visible');
+
+      // Goal card should have 5 bars
+      const card2 = document.querySelector('[data-suggestion-id="sug-002"]');
+      const toggle2 = card2.querySelector('.suggestion-card__details-toggle');
+      toggle2.click();
+      const details2 = card2.querySelector('.suggestion-card__details');
+      const bars2 = details2.querySelectorAll('.signal-bar');
+      assert(bars2.length === 5, '5 signal bars for goal-boosted card (includes Goal)', `Expected 5 bars, got ${bars2.length}`);
+
+      const goalBar = details2.querySelector('.signal-bar__fill--goal');
+      assert(!!goalBar, 'Goal signal bar present', 'Goal signal bar missing');
+      toggle2.click();
+    }
+
+    /** Req 4.1 — "Not now" triggers inline feedback presets */
+    function testFeedbackFlow() {
+      renderAllCards();
+      log('--- Feedback Flow (Req 4.1, 4.2) ---', 'info');
+
+      const card1 = document.querySelector('[data-suggestion-id="sug-001"]');
+      const notNowBtn = card1.querySelectorAll('.suggestion-card__btn--secondary')[0];
+      assert(notNowBtn && notNowBtn.textContent.trim() === 'Not now', '"Not now" button found', '"Not now" button missing');
+
+      // Click "Not now"
+      notNowBtn.click();
+
+      const feedbackEl = document.getElementById('feedback-sug-001');
+      assert(feedbackEl && feedbackEl.style.display === 'block', 'Feedback section visible after "Not now"', 'Feedback section not shown');
+
+      const actionsEl = document.getElementById('actions-sug-001');
+      assert(actionsEl && actionsEl.style.display === 'none', 'Action buttons hidden during feedback', 'Action buttons still visible');
+
+      // Check preset options (Req 4.2)
+      const options = feedbackEl.querySelectorAll('.suggestion-feedback__option');
+      assert(options.length === 5, '5 feedback preset options rendered', `Expected 5 options, got ${options.length}`);
+
+      const labels = Array.from(options).map(o => o.textContent.trim());
+      assert(labels.includes('Already in touch'), '"Already in touch" option present', 'Missing "Already in touch"');
+      assert(labels.includes("Don't suggest this contact"), '"Don\'t suggest this contact" option present', 'Missing "Don\'t suggest this contact"');
+      assert(labels.includes('Other'), '"Other" option present', 'Missing "Other"');
+
+      // Cancel returns to actions
+      const cancelBtn = feedbackEl.querySelector('.suggestion-feedback__cancel');
+      cancelBtn.click();
+      assert(actionsEl.style.display === 'flex', 'Actions restored after cancel', 'Actions not restored');
+      assert(feedbackEl.style.display === 'none', 'Feedback hidden after cancel', 'Feedback still visible');
+
+      // Select a preset — card should exit
+      notNowBtn.click();
+      const presetBtn = feedbackEl.querySelector('[data-preset="not_relevant"]');
+      presetBtn.click();
+      assert(card1.classList.contains('suggestion-card--exiting'), 'Card has exiting class after preset selection', 'Exit class not applied');
+    }
+
+    /** Req 4.3 — "Other" reveals text input */
+    function testOtherFeedback() {
+      renderAllCards();
+      log('--- "Other" Feedback Input (Req 4.3) ---', 'info');
+
+      // Trigger feedback on card 4
+      handleDismiss('sug-004');
+
+      const feedbackEl = document.getElementById('feedback-sug-004');
+      const otherBtn = feedbackEl.querySelector('[data-preset="other"]');
+      assert(!!otherBtn, '"Other" button found', '"Other" button missing');
+
+      const otherInput = document.getElementById('other-input-sug-004');
+      assert(otherInput && otherInput.classList.contains('hidden'), 'Other input hidden initially', 'Other input should be hidden');
+
+      // Click "Other"
+      otherBtn.click();
+      assert(!otherInput.classList.contains('hidden'), 'Other input revealed after clicking "Other"', 'Other input not revealed');
+
+      const textField = document.getElementById('other-text-sug-004');
+      assert(!!textField, 'Text input field present', 'Text input missing');
+
+      const submitBtn = otherInput.querySelector('.suggestion-feedback__submit');
+      assert(!!submitBtn, 'Submit button present', 'Submit button missing');
+    }
+
+    /** Req 6.5 — Card exit animation on accept */
+    function testExitAnimation() {
+      renderAllCards();
+      log('--- Exit Animation ---', 'info');
+
+      const card = document.querySelector('[data-suggestion-id="sug-001"]');
+      assert(!!card, 'Card present before accept', 'Card missing');
+      assert(!card.classList.contains('suggestion-card--exiting'), 'No exit class initially', 'Exit class present too early');
+
+      handleAccept('sug-001');
+      assert(card.classList.contains('suggestion-card--exiting'), 'Exit class applied after accept', 'Exit class not applied');
+
+      // After animation, card should be removed
+      setTimeout(() => {
+        const removed = !document.querySelector('[data-suggestion-id="sug-001"]');
+        assert(removed, 'Card removed from DOM after animation', 'Card still in DOM');
+      }, 300);
+    }
+
+    /** Req 2.5 — Empty state display */
+    function testEmptyState() {
+      log('--- Empty State (Req 2.5) ---', 'info');
+
+      const root = document.getElementById('cards-root');
+      root.innerHTML = renderEmptyState();
+
+      const empty = root.querySelector('.suggestions-empty');
+      assert(!!empty, 'Empty state rendered', 'Empty state missing');
+      assert(empty.textContent.includes("You're all caught up"), 'Empty state message correct', 'Empty state message wrong');
+
+      const icon = root.querySelector('.suggestions-empty__icon');
+      assert(icon && icon.textContent.includes('✅'), 'Empty state icon present', 'Empty state icon missing');
+    }
+
+    /** Run all tests */
+    function runAllTests() {
+      clearOutput();
+      log('Running all suggestion card tests...', 'info');
+      testCardRendering();
+      testGroupCard();
+      testDetailsExpansion();
+      testFeedbackFlow();
+      testOtherFeedback();
+      testExitAnimation();
+      testEmptyState();
+      // Restore cards after empty state test
+      setTimeout(() => {
+        renderAllCards();
+        log('--- All tests complete ---', 'info');
+      }, 350);
+    }
+
+    // Initial render
+    renderAllCards();
+  </script>
+</body>
+</html>

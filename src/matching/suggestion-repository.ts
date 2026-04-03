@@ -24,7 +24,7 @@ export interface SuggestionCreateData {
   contactIds?: string[]; // Array of contact IDs for group suggestions
   type?: 'individual' | 'group';
   triggerType: TriggerType;
-  proposedTimeslot: TimeSlot;
+  proposedTimeslot?: TimeSlot; // Optional — not used in v1 (no scheduling)
   reasoning: string;
   priority?: number;
   sharedContext?: SharedContextScore;
@@ -142,9 +142,9 @@ export async function create(data: SuggestionCreateData): Promise<Suggestion> {
         primaryContactId,
         type,
         data.triggerType,
-        data.proposedTimeslot.start,
-        data.proposedTimeslot.end,
-        data.proposedTimeslot.timezone,
+        data.proposedTimeslot?.start || null,
+        data.proposedTimeslot?.end || null,
+        data.proposedTimeslot?.timezone || null,
         data.reasoning,
         data.priority || 0,
         data.sharedContext ? JSON.stringify(data.sharedContext) : null,

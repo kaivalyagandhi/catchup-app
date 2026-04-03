@@ -201,9 +201,8 @@ describe('CalendarWebhookManager - Registration Retry', () => {
         TEST_REFRESH_TOKEN
       );
 
-      // Fast-forward through backoff delays
-      await vi.advanceTimersByTimeAsync(2000); // First retry
-      await vi.advanceTimersByTimeAsync(4000); // Second retry
+      // Fast-forward through all backoff delays
+      await vi.runAllTimersAsync();
 
       // Wait for completion (should throw)
       await expect(promise).rejects.toThrow('Webhook registration failed after 3 attempts');
@@ -244,9 +243,8 @@ describe('CalendarWebhookManager - Registration Retry', () => {
         TEST_REFRESH_TOKEN
       );
 
-      // Fast-forward through delays
-      await vi.advanceTimersByTimeAsync(2000); // First retry delay
-      await vi.advanceTimersByTimeAsync(4000); // Second retry delay
+      // Fast-forward through all delays
+      await vi.runAllTimersAsync();
 
       // Wait for completion
       await expect(promise).rejects.toThrow();
@@ -336,9 +334,8 @@ describe('CalendarWebhookManager - Registration Retry', () => {
         TEST_REFRESH_TOKEN
       );
 
-      // Fast-forward through delays
-      await vi.advanceTimersByTimeAsync(2000);
-      await vi.advanceTimersByTimeAsync(4000);
+      // Fast-forward through all delays
+      await vi.runAllTimersAsync();
 
       // Wait for completion
       await expect(promise).rejects.toThrow();

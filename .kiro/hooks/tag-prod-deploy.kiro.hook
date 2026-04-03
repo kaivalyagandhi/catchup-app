@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Tag & Deploy to GCP",
+  "description": "Creates the next prod-vX.Y tag based on existing tags and pushes it to origin, triggering GCP Cloud Build deployment. Click to run after pushing to main.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "bash -c 'LATEST=$(git tag --sort=-v:refname | grep \"^prod-v\" | head -1); if [ -z \"$LATEST\" ]; then NEXT=\"prod-v1.0.0\"; else MAJOR=$(echo $LATEST | sed \"s/prod-v//\" | cut -d. -f1); MINOR=$(echo $LATEST | sed \"s/prod-v//\" | cut -d. -f2); PATCH=$(echo $LATEST | sed \"s/prod-v//\" | cut -d. -f3); PATCH=$((PATCH + 1)); NEXT=\"prod-v${MAJOR}.${MINOR}.${PATCH}\"; fi; echo \"Creating tag: $NEXT\"; git tag \"$NEXT\" && git push origin \"$NEXT\" && echo \"Deployed: $NEXT\"'",
+    "timeout": 30
+  },
+  "workspaceFolderName": "catchup-app",
+  "shortName": "tag-prod-deploy"
+}

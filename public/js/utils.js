@@ -300,3 +300,106 @@ export function showConfirm(message, options = {}) {
     }
   });
 }
+
+// ---------------------------------------------------------------------------
+// Prompt dialog (replaces window.prompt)
+// ---------------------------------------------------------------------------
+
+/**
+ * Show a non-blocking prompt dialog with an input field (replaces window.prompt).
+ *
+ * @param {string} message
+ * @param {Object} [options]
+ * @param {string} [options.title='Input']
+ * @param {string} [options.placeholder='']
+ * @param {string} [options.defaultValue='']
+ * @param {string} [options.confirmText='OK']
+ * @param {string} [options.cancelText='Cancel']
+ * @param {string[]} [options.suggestions] — optional list of quick-pick options
+ * @returns {Promise<string|null>} resolves to the input value, or null on cancel
+ */
+export function showPrompt(message, options = {}) {
+  return new Promise((resolve) => {
+    const {
+      title = 'Input',
+      placeholder = '',
+      defaultValue = '',
+      confirmText = 'OK',
+      cancelText = 'Cancel',
+      suggestions = [],
+    } = options;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const suggestionsHtml = suggestions.length > 0
+      ? `<div class="prompt-suggestions">${suggestions.map(s =>
+          `<button type="button" class="prompt-suggestion-btn">${escapeHtml(s)}</button>`
+        ).join('')}</div>`
+      : '';
+
+    const dialog = document.createElement('div');
+    dialog.className = 'modal modal-sm';
+    dialog.innerHTML = `
+      <div class="modal-header">
+        <h2 class="modal-title">${escapeHtml(title)}</h2>
+        <button class="modal-close prompt-dialog-close" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0 0 10px;font-size:14px;color:var(--text-secondary);">${escapeHtml(message)}</p>
+        ${suggestionsHtml}
+        <input type="text" class="prompt-dialog-input" placeholder="${escapeHtml(placeholder)}" value="${escapeHtml(defaultValue)}" style="width:100%;padding:8px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-size:14px;color:var(--text-primary);background:var(--bg-surface);outline:none;box-sizing:border-box;" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary prompt-dialog-cancel">${escapeHtml(cancelText)}</button>
+        <button class="btn-primary prompt-dialog-confirm">${escapeHtml(confirmText)}</button>
+      </div>
+    `;
+
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+
+    setTimeout(() => overlay.classList.add('show'), 10);
+
+    const input = dialog.querySelector('.prompt-dialog-input');
+    input.focus();
+    input.select();
+
+    // Quick-pick suggestion buttons
+    dialog.querySelectorAll('.prompt-suggestion-btn').forEach(btn => {
+      btn.onclick = () => {
+        input.value = btn.textContent;
+        input.focus();
+      };
+    });
+
+    const submit = () => {
+      const value = input.value.trim();
+      if (!value) return; // Don't submit empty
+      cleanup();
+      resolve(value);
+    };
+
+    dialog.querySelector('.prompt-dialog-confirm').onclick = submit;
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submit();
+    });
+
+    dialog.querySelector('.prompt-dialog-cancel').onclick = () => { cleanup(); resolve(null); };
+    dialog.querySelector('.prompt-dialog-close').onclick = () => { cleanup(); resolve(null); };
+    overlay.onclick = (e) => { if (e.target === overlay) { cleanup(); resolve(null); } };
+
+    const escapeHandler = (e) => { if (e.key === 'Escape') { cleanup(); resolve(null); } };
+    document.addEventListener('keydown', escapeHandler);
+
+    function cleanup() {
+      document.removeEventListener('keydown', escapeHandler);
+      overlay.classList.remove('show');
+      setTimeout(() => {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+      }, 300);
+    }
+  });
+}

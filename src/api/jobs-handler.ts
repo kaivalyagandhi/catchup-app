@@ -71,13 +71,13 @@ function logCloudTasksHeaders(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-// Apply middleware
-router.use(validateOIDCToken);
-router.use(logCloudTasksHeaders);
-router.use(checkIdempotency);
+// Apply middleware only to the jobs route, not as catch-all
+// router.use(validateOIDCToken);
+// router.use(logCloudTasksHeaders);
+// router.use(checkIdempotency);
 
 // Job handler endpoint
-router.post('/jobs/:jobName', async (req: Request, res: Response) => {
+router.post('/jobs/:jobName', validateOIDCToken, logCloudTasksHeaders, checkIdempotency, async (req: Request, res: Response) => {
   const { jobName } = req.params;
   const { data, idempotencyKey } = req.body;
   const startTime = Date.now();

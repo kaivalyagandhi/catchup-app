@@ -97,9 +97,12 @@ export class PrivacyService {
       // Export onboarding state
       if (options.includeOnboardingData !== false) {
         const onboardingResult = await pool.query(
-          `SELECT id, current_step, completed_steps, trigger_type,
-                  started_at, last_updated_at, completed_at, progress_data
-           FROM onboarding_state 
+          `SELECT user_id, current_step, is_complete,
+                  integrations_complete, circles_complete, groups_complete,
+                  contacts_categorized, total_contacts,
+                  mappings_reviewed, total_mappings,
+                  created_at, updated_at
+           FROM onboarding_state
            WHERE user_id = $1`,
           [userId]
         );

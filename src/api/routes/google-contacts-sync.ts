@@ -704,6 +704,17 @@ router.get(
         tokenHealthMonitor
       );
 
+      // Trigger token health check (and potential refresh) for expired tokens before returning status
+      try {
+        await Promise.all([
+          tokenHealthMonitor.checkTokenHealth(req.userId, 'google_contacts'),
+          tokenHealthMonitor.checkTokenHealth(req.userId, 'google_calendar'),
+        ]);
+      } catch (refreshError) {
+        // If refresh fails, continue with pre-refresh status
+        console.warn('[comprehensive-health] Token refresh attempt failed, returning pre-refresh status:', refreshError);
+      }
+
       const comprehensiveHealth = await gracefulDegradationService.getComprehensiveSyncHealth(
         req.userId
       );

@@ -17,6 +17,8 @@ import {
   TimeSlot,
   FrequencyOption,
   InteractionType,
+  ConnectionGoal,
+  ExtendedSignalContribution,
 } from '../types';
 import * as suggestionRepository from './suggestion-repository';
 import { SuggestionCreateData, SuggestionFilters } from './suggestion-repository';
@@ -25,6 +27,8 @@ import { interactionService } from '../contacts/interaction-service';
 // import { frequencyService } from '../contacts/frequency-service';
 import { getOrSetCache, CacheKeys, CacheTTL, invalidateSuggestionCache } from '../utils/cache';
 import pool from '../db/connection';
+import { ConnectionGoalService } from './connection-goal-service';
+import { SuggestionPauseService } from './suggestion-pause-service';
 
 // ============================================
 // Enrichment Signal Types & Weights
@@ -314,10 +318,22 @@ export function computeWeightedScore(
   }
 
   // Build reasoning
+  // Compute days since last contact for reasoning (Req 3.2)
+  const lastContactForReasoning = contact.lastContactDate ? new Date(contact.lastContactDate) : null;
+  const daysSinceLastContact = lastContactForReasoning
+    ? Math.floor((currentDate.getTime() - lastContactForReasoning.getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
   const reasonParts: string[] = [];
-  reasonParts.push(`It's been a while since you connected`);
-  if (contact.frequencyPreference) {
-    reasonParts.push(`(${contact.frequencyPreference} preference)`);
+
+  // When frequency decay is primary signal, include preference and days (Req 3.2)
+  if (contact.frequencyPreference && contact.frequencyPreference !== FrequencyOption.NA && daysSinceLastContact !== null) {
+    reasonParts.push(`You usually catch up ${contact.frequencyPreference}, but it's been ${daysSinceLastContact} days`);
+  } else {
+    reasonParts.push(`It's been a while since you connected`);
+    if (contact.frequencyPreference && contact.frequencyPreference !== FrequencyOption.NA) {
+      reasonParts.push(`(${contact.frequencyPreference} preference)`);
+    }
   }
 
   // Include sentiment context in reasoning (Req 17.3)
@@ -326,11 +342,16 @@ export function computeWeightedScore(
     reasonParts.push(`— recent conversations had a negative tone, might be worth checking in`);
   }
 
+  // When declining frequency, state that messaging frequency has dropped (Req 3.3)
   if (decliningFrequency && hasEnrichment) {
-    reasonParts.push(`— communication frequency has been declining`);
+    if (enrichment!.topPlatform) {
+      reasonParts.push(`— messaging frequency on ${enrichment!.topPlatform} has dropped`);
+    } else {
+      reasonParts.push(`— messaging frequency has dropped`);
+    }
   }
 
-  if (hasEnrichment && enrichment!.topPlatform) {
+  if (hasEnrichment && enrichment!.topPlatform && !decliningFrequency) {
     reasonParts.push(`(${enrichment!.totalMessageCount} messages via ${enrichment!.topPlatform})`);
   }
 
@@ -354,6 +375,86 @@ export function computeWeightedScore(
     `hasEnrichment=${hasEnrichment}, declining=${decliningFrequency}, negSentiment=${negativeSentiment}`);
 
   return { score, reasoning: reasonParts.join(' '), contribution };
+}
+
+/**
+ * Compute a goal-aware weighted suggestion score.
+ * When goals are active, redistributes existing 4 weights (each × 0.80)
+ * and adds a goalRelevance weight of 0.20 as a 5th signal.
+ * When no goals are active, delegates to the original 4-signal computeWeightedScore.
+ *
+ * Requirements: 8.2, 16.1, 16.2, 16.8, 16.9
+ * Property 39: Five-signal weight redistribution when goals active
+ */
+export function computeGoalAwareScore(
+  contact: Contact,
+  enrichment: EnrichmentSignal | null,
+  weights: SuggestionSignalWeights,
+  goals: ConnectionGoal[],
+  currentDate: Date = new Date(),
+): { score: number; reasoning: string; contribution: ExtendedSignalContribution } {
+  const goalService = new ConnectionGoalService();
+
+  // No active goals — use original 4-signal scoring
+  if (goals.length === 0) {
+    const result = computeWeightedScore(contact, enrichment, weights, currentDate);
+    return {
+      score: result.score,
+      reasoning: result.reasoning,
+      contribution: {
+        ...result.contribution,
+        goalRelevanceScore: 0,
+      },
+    };
+  }
+
+  // Redistribute weights: each original × 0.80, goalRelevance = 0.20
+  const redistributedWeights: SuggestionSignalWeights = {
+    enrichmentData: weights.enrichmentData * 0.80,
+    interactionLogs: weights.interactionLogs * 0.80,
+    calendarData: weights.calendarData * 0.80,
+    contactMetadata: weights.contactMetadata * 0.80,
+  };
+
+  // Compute the base 4-signal score with redistributed weights
+  const baseResult = computeWeightedScore(contact, enrichment, redistributedWeights, currentDate);
+
+  // Compute goal relevance (0–100)
+  const goalRelevanceRaw = goalService.computeGoalRelevance(contact, goals);
+
+  // The base result score was computed with weights summing to 0.80.
+  // We need to add the goal relevance contribution (weight 0.20) and re-clamp.
+  const goalContribution = goalRelevanceRaw * 0.20;
+  let finalScore = baseResult.score + goalContribution;
+
+  // Apply the same declining frequency boost as computeWeightedScore
+  // (already applied in baseResult.score, no need to re-apply)
+
+  // Clamp to 0-100
+  finalScore = Math.max(0, Math.min(100, finalScore));
+
+  const contribution: ExtendedSignalContribution = {
+    ...baseResult.contribution,
+    goalRelevanceScore: goalContribution,
+  };
+
+  // When goalRelevanceScore > 0, append goal reference to reasoning (Req 16.7)
+  let reasoning = baseResult.reasoning;
+  if (goalContribution > 0) {
+    // Find the first goal that contributed to the score
+    const matchingGoal = goals.find(
+      (g) => goalService.computeGoalRelevance(contact, [g]) > 0,
+    );
+    if (matchingGoal) {
+      reasoning += ` — Relevant to your goal: ${matchingGoal.text}`;
+    }
+  }
+
+  return {
+    score: finalScore,
+    reasoning,
+    contribution,
+  };
 }
 
 /**
@@ -778,6 +879,12 @@ export async function acceptSuggestion(
     status: SuggestionStatus.ACCEPTED,
   });
 
+  // Schedule post-interaction review prompt 48 hours after acceptance (Req 13.1)
+  await pool.query(
+    `UPDATE suggestions SET review_prompt_after = NOW() + INTERVAL '48 hours' WHERE id = $1 AND user_id = $2`,
+    [suggestionId, userId],
+  );
+
   // Invalidate suggestion cache
   await invalidateSuggestionCache(userId);
 
@@ -928,16 +1035,28 @@ export async function getAllSuggestions(
 /**
  * Get pending suggestions for a user
  *
- * Requirements: 15.1, 15.2, 15.3, 15.4, 15.5
+ * Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 11.4, 8.2, 16.8
  * Property 54: Feed displays pending suggestions
  * Property 56: Suggestion snooze behavior
+ * Property 19: Paused users receive no suggestions
+ * Property 12: Excluded contacts never appear in suggestions
  *
  * Returns pending suggestions, handling snoozed suggestions that should resurface.
+ * Returns empty array if suggestions are paused.
+ * Filters out excluded contacts.
+ * Adds signalContribution with goalRelevanceScore to each suggestion.
  */
 export async function getPendingSuggestions(
   userId: string,
   filters?: SuggestionFilters
 ): Promise<Suggestion[]> {
+  // Check if suggestions are paused (Req 11.4)
+  const pauseService = new SuggestionPauseService();
+  const paused = await pauseService.isPaused(userId);
+  if (paused) {
+    return [];
+  }
+
   // Only cache if no filters are applied
   if (!filters || Object.keys(filters).length === 0) {
     return await getOrSetCache(
@@ -961,10 +1080,27 @@ async function loadPendingSuggestions(
   // Get all suggestions with filters
   const allSuggestions = await suggestionRepository.findAll(userId, filters);
 
+  // Fetch excluded contact IDs (Req 8.2)
+  let excludedContactIds = new Set<string>();
+  try {
+    const { rows } = await pool.query(
+      `SELECT contact_id FROM suggestion_exclusions WHERE user_id = $1`,
+      [userId],
+    );
+    excludedContactIds = new Set(rows.map((r: any) => r.contact_id));
+  } catch {
+    // Table may not exist yet; proceed without exclusions
+  }
+
   const now = new Date();
 
   // Filter and process suggestions
   const pendingSuggestions = allSuggestions.filter((suggestion) => {
+    // Filter out excluded contacts (Req 8.2)
+    if (excludedContactIds.has(suggestion.contactId)) {
+      return false;
+    }
+
     // Include pending suggestions
     if (suggestion.status === SuggestionStatus.PENDING) {
       return true;
@@ -990,7 +1126,504 @@ async function loadPendingSuggestions(
     return false;
   });
 
+  // Add signalContribution with goalRelevanceScore to each suggestion (Req 16.8)
+  const goalService = new ConnectionGoalService();
+  let activeGoals: ConnectionGoal[] = [];
+  try {
+    activeGoals = await goalService.getActiveGoals(userId);
+  } catch {
+    // Goals table may not exist yet
+  }
+
+  let weights: SuggestionSignalWeights = { ...DEFAULT_SIGNAL_WEIGHTS };
+  try {
+    weights = await getSignalWeights(userId);
+  } catch {
+    // Use defaults
+  }
+
+  for (const suggestion of pendingSuggestions) {
+    // Find the contact from the suggestion's contacts array
+    const contact = suggestion.contacts?.[0];
+    if (contact) {
+      let enrichment: EnrichmentSignal | null = null;
+      try {
+        enrichment = await getEnrichmentSignal(contact.id, userId);
+      } catch {
+        // Enrichment not available
+      }
+
+      const { contribution } = computeGoalAwareScore(
+        contact,
+        enrichment,
+        weights,
+        activeGoals,
+        now,
+      );
+
+      // Attach signalContribution to the suggestion object
+      (suggestion as any).signalContribution = contribution;
+
+      // Generate and attach conversationStarter (Req 12.6)
+      try {
+        const starter = await generateConversationStarterWithTopics(
+          contact,
+          suggestion,
+          enrichment,
+          userId,
+          activeGoals,
+        );
+        (suggestion as any).conversationStarter = starter;
+      } catch {
+        (suggestion as any).conversationStarter = interpolateName(
+          selectFromPool(FALLBACK_POOL, contact.id),
+          contact.name,
+        );
+      }
+    } else {
+      // No contact data available, attach default contribution
+      (suggestion as any).signalContribution = {
+        enrichmentScore: 0,
+        interactionLogScore: 0,
+        calendarScore: 0,
+        metadataScore: 0,
+        weights: weights,
+        hasEnrichmentData: false,
+        decliningFrequency: false,
+        negativeSentiment: false,
+        goalRelevanceScore: 0,
+      } as ExtendedSignalContribution;
+      (suggestion as any).conversationStarter = interpolateName(
+        selectFromPool(FALLBACK_POOL, suggestion.contactId || ''),
+        '',
+      );
+    }
+  }
+
   return pendingSuggestions;
+}
+
+// ============================================
+// Context-Aware Conversation Starter Utilities
+// Requirements: 036-ui-suggestion-starters
+// ============================================
+
+/**
+ * DJB2 hash of a contact ID string to a non-negative integer.
+ * Pure, deterministic, no side effects.
+ */
+export function contactIdHash(id: string): number {
+  let hash = 5381;
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) + hash + id.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+/**
+ * Select an item from a pool using contactIdHash for deterministic selection.
+ */
+export function selectFromPool<T>(pool: T[], contactId: string): T {
+  if (pool.length === 0) return undefined as unknown as T;
+  return pool[contactIdHash(contactId) % pool.length];
+}
+
+/**
+ * Replace all [name] placeholders with the contact's name, or "them" if empty.
+ */
+export function interpolateName(template: string, name: string): string {
+  const replacement = name && name.trim() ? name.trim() : 'them';
+  return template.split('[name]').join(replacement);
+}
+
+/**
+ * Categorize time since last contact into buckets.
+ * <14d = recent, 14-28d = moderate, 29-90d = long, >90d = significant
+ */
+export function getTimeGapBucket(
+  lastContactDate: Date,
+  now: Date = new Date(),
+): 'recent' | 'moderate' | 'long' | 'significant' | undefined {
+  const diffMs = now.getTime() - lastContactDate.getTime();
+  if (isNaN(diffMs)) return undefined;
+  const days = diffMs / (1000 * 60 * 60 * 24);
+  if (days < 14) return 'recent';
+  if (days <= 28) return 'moderate';
+  if (days <= 90) return 'long';
+  return 'significant';
+}
+
+/**
+ * Check if reasoning string contains any of the given signal keywords (case-insensitive).
+ */
+export function isReasoningSignal(reasoning: string | undefined, signals: string[]): boolean {
+  if (!reasoning) return false;
+  const lower = reasoning.toLowerCase();
+  return signals.some((s) => lower.includes(s.toLowerCase()));
+}
+
+// ============================================
+// Starter Template Constants
+// ============================================
+
+export const FALLBACK_POOL: string[] = [
+  "A quick hello to [name] could brighten both your days",
+  "Drop [name] a line — no reason needed",
+  "Thinking of [name]? That's reason enough to reach out",
+  "A short message to [name] can go a long way",
+  "Why not check in on [name] today?",
+  "Send [name] a quick note — small gestures matter",
+  "Reach out to [name] — you never know what they're going through",
+  "A simple 'hey' to [name] keeps the connection alive",
+  "Take a moment to reconnect with [name]",
+  "It costs nothing to say hi to [name]",
+  "Show [name] you're thinking of them with a quick message",
+  "Life gets busy — [name] would appreciate hearing from you",
+  "A little effort goes a long way — drop [name] a note",
+  "Surprise [name] with a friendly check-in",
+  "You don't need a reason to reach out to [name]",
+  "Keep the connection warm — send [name] a quick hello",
+  "Even a short message to [name] can make their day",
+];
+
+export const CIRCLE_STARTERS: Record<string, string[]> = {
+  inner: [
+    "Check in on how [name]'s doing — you two go way back",
+    "Life's too short — catch up with [name] today",
+    "[name] is one of your closest — make time for them",
+  ],
+  close: [
+    "It's been a minute — drop [name] a quick hello",
+    "Reach out to [name] — good friends stay in touch",
+    "[name] would love to hear from you — send a quick note",
+  ],
+  active: [
+    "Haven't heard from [name] in a while — worth a quick catch-up",
+    "Keep the momentum going — check in with [name]",
+    "A quick message to [name] keeps the friendship fresh",
+  ],
+  casual: [
+    "Touch base with [name] — keep the connection alive",
+    "A brief hello to [name] goes a long way",
+    "Stay on [name]'s radar with a quick check-in",
+  ],
+};
+
+export const TIME_GAP_STARTERS: Record<string, string[]> = {
+  recent: [
+    "You chatted recently — keep the momentum going with [name]",
+    "Great timing — follow up with [name] while it's fresh",
+  ],
+  moderate: [
+    "It's been a couple weeks — a quick message to [name] would be nice",
+    "Two weeks since you last connected — drop [name] a line",
+  ],
+  long: [
+    "It's been over a month — [name] would probably love to hear from you",
+    "Time flies — reconnect with [name] before too long",
+  ],
+  significant: [
+    "It's been a while — even a simple hello can rekindle the connection with [name]",
+    "It's been too long — [name] would appreciate hearing from you",
+  ],
+};
+
+export const COMBINED_STARTERS: Record<string, Record<string, string[]>> = {
+  inner: {
+    recent: [
+      "You just caught up with [name] — keep the good vibes going",
+    ],
+    moderate: [
+      "It's been a couple weeks since you talked to [name] — check in on them",
+    ],
+    long: [
+      "Over a month since you caught up with [name] — they'd love to hear from you",
+    ],
+    significant: [
+      "It's been too long since you caught up with [name] — they'd love to hear from you",
+    ],
+  },
+  close: {
+    recent: [
+      "You connected with [name] recently — a quick follow-up keeps it going",
+    ],
+    moderate: [
+      "A couple weeks since you talked to [name] — drop them a note",
+    ],
+    long: [
+      "It's been over a month — [name] would appreciate a catch-up",
+    ],
+    significant: [
+      "Way too long since you talked to [name] — time to reconnect",
+    ],
+  },
+  active: {
+    recent: [
+      "You spoke with [name] recently — keep the conversation going",
+    ],
+    moderate: [
+      "It's been a few weeks — check in with [name]",
+    ],
+    long: [
+      "Over a month since you connected with [name] — worth reaching out",
+    ],
+    significant: [
+      "It's been a while since you heard from [name] — a quick hello goes far",
+    ],
+  },
+  casual: {
+    recent: [
+      "You connected with [name] recently — a quick follow-up keeps it going",
+    ],
+    moderate: [
+      "A couple weeks since you touched base with [name] — stay connected",
+    ],
+    long: [
+      "It's been over a month — a brief note to [name] keeps the connection warm",
+    ],
+    significant: [
+      "It's been a while since you connected with [name] — even a short hello helps",
+    ],
+  },
+};
+
+export const GOAL_STARTERS: { network: string[]; reconnect: string[]; generic: string[] } = {
+  network: [
+    "They could be a great connection for your networking goal — reach out to [name]",
+    "[name] fits your professional networking goal — say hello",
+    "Your networking goal aligns well with [name] — make the connection",
+  ],
+  reconnect: [
+    "Perfect time to reconnect — [name] is exactly who your goal is about",
+    "Your reconnection goal is calling — reach out to [name]",
+    "[name] is a key part of your reconnect goal — check in today",
+  ],
+  generic: [
+    "Reaching out to [name] supports your connection goal",
+    "[name] aligns with one of your active goals — say hi",
+    "Your goal to stay connected applies here — message [name]",
+  ],
+};
+
+/**
+ * Generate a conversation starter for a suggestion card.
+ *
+ * Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6
+ * Requirements: 036-ui-suggestion-starters (all)
+ *
+ * Priority order:
+ * 1. Shared interests/tags (skip if reasoning mentions shared activity)
+ * 2. Calendar event context (skip if reasoning mentions shared activity)
+ * 3. Enrichment signal context (skip if reasoning mentions frequency/declining)
+ * 4. Goal-aware starter (skip if reasoning mentions a goal)
+ * 5. Combined Dunbar circle + time-gap (or single dimension)
+ * 6. Fallback pool via contactIdHash
+ *
+ * All results pass through interpolateName before return.
+ */
+export function generateConversationStarter(
+  contact: Contact,
+  suggestion: Suggestion,
+  enrichment: EnrichmentSignal | null,
+  goals?: ConnectionGoal[],
+): string {
+  const reasoning = suggestion.reasoning;
+
+  // Reasoning signal checks
+  const hasSharedActivitySignal = isReasoningSignal(reasoning, ['shared activity']);
+  const hasFrequencySignal = isReasoningSignal(reasoning, ['frequency decay', 'declining']);
+  const hasGoalSignal = isReasoningSignal(reasoning, ['connection goal', 'goal']);
+
+  // 1. Shared interests/tags (Req 12.2) — skip if reasoning mentions shared activity
+  if (!hasSharedActivitySignal && contact.tags && contact.tags.length > 0) {
+    if (suggestion.triggerType === TriggerType.SHARED_ACTIVITY && suggestion.reasoning) {
+      const reasoningLower = suggestion.reasoning.toLowerCase();
+      const matchingTags = contact.tags.filter((t) =>
+        reasoningLower.includes(t.text.toLowerCase()),
+      );
+      if (matchingTags.length > 0) {
+        const tagText = matchingTags[0].text;
+        return interpolateName(
+          `You both follow ${tagText} — ask about their recent experience`,
+          contact.name,
+        );
+      }
+    }
+
+    if (contact.tags.length > 0) {
+      const tagText = contact.tags[0].text;
+      return interpolateName(
+        `You both follow ${tagText} — ask about their recent experience`,
+        contact.name,
+      );
+    }
+  }
+
+  // 2. Calendar event context (Req 12.3) — skip if reasoning mentions shared activity
+  if (
+    !hasSharedActivitySignal &&
+    suggestion.triggerType === TriggerType.SHARED_ACTIVITY &&
+    suggestion.calendarEventId
+  ) {
+    const eventTitle = suggestion.reasoning?.split(':')[0]?.trim();
+    if (eventTitle) {
+      return interpolateName(
+        `You're both attending ${eventTitle} — suggest grabbing coffee after`,
+        contact.name,
+      );
+    }
+  }
+
+  // 3. Enrichment signal context (Req 12.4) — skip if reasoning mentions frequency/declining
+  if (!hasFrequencySignal) {
+    if (enrichment && enrichment.frequencyTrend === 'declining' && enrichment.topPlatform) {
+      return interpolateName(
+        `Last time you talked about catching up via ${enrichment.topPlatform} — check in on how things are going`,
+        contact.name,
+      );
+    }
+
+    if (enrichment && enrichment.lastMessageDate && enrichment.topPlatform) {
+      return interpolateName(
+        `You last connected via ${enrichment.topPlatform} — pick up where you left off`,
+        contact.name,
+      );
+    }
+  }
+
+  // 4. Goal-aware starter — skip if reasoning already mentions a goal
+  if (!hasGoalSignal && goals && goals.length > 0) {
+    const goalService = new ConnectionGoalService();
+    const relevance = goalService.computeGoalRelevance(contact, goals);
+    if (relevance > 0) {
+      // Find the best matching goal
+      const matchingGoal = goals[0];
+      const goalKeywords = matchingGoal.keywords.map((k) => k.toLowerCase());
+
+      let starterPool: string[];
+      if (goalKeywords.some((k) => k === 'network' || k === 'professional')) {
+        starterPool = GOAL_STARTERS.network;
+      } else if (
+        goalKeywords.some((k) => k === 'reconnect') &&
+        (contact.dunbarCircle === 'inner' || contact.dunbarCircle === 'close')
+      ) {
+        starterPool = GOAL_STARTERS.reconnect;
+      } else {
+        starterPool = GOAL_STARTERS.generic;
+      }
+
+      const starter = selectFromPool(starterPool, contact.id);
+      if (starter) {
+        return interpolateName(starter, contact.name);
+      }
+    }
+  }
+
+  // 5. Combined Dunbar circle + time-gap (or single dimension)
+  const circle = contact.dunbarCircle;
+  const lastDate = contact.lastContactDate;
+  const bucket = lastDate ? getTimeGapBucket(lastDate) : undefined;
+
+  if (circle && bucket) {
+    // Combined starter
+    const combinedForCircle = COMBINED_STARTERS[circle];
+    if (combinedForCircle && combinedForCircle[bucket] && combinedForCircle[bucket].length > 0) {
+      const starter = selectFromPool(combinedForCircle[bucket], contact.id);
+      if (starter) {
+        return interpolateName(starter, contact.name);
+      }
+    }
+  }
+
+  if (circle && CIRCLE_STARTERS[circle] && CIRCLE_STARTERS[circle].length > 0) {
+    const starter = selectFromPool(CIRCLE_STARTERS[circle], contact.id);
+    if (starter) {
+      return interpolateName(starter, contact.name);
+    }
+  }
+
+  if (bucket && TIME_GAP_STARTERS[bucket] && TIME_GAP_STARTERS[bucket].length > 0) {
+    const starter = selectFromPool(TIME_GAP_STARTERS[bucket], contact.id);
+    if (starter) {
+      return interpolateName(starter, contact.name);
+    }
+  }
+
+  // 6. Fallback pool
+  const fallback = selectFromPool(FALLBACK_POOL, contact.id);
+  return interpolateName(fallback, contact.name);
+}
+
+/**
+ * Fetch enrichment topics for a contact from enrichment_records.
+ * Returns the first non-empty topics array found.
+ */
+async function getEnrichmentTopics(contactId: string, userId: string): Promise<string[]> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT topics FROM enrichment_records
+       WHERE contact_id = $1 AND user_id = $2
+       AND topics IS NOT NULL AND topics != '[]'::jsonb
+       ORDER BY last_message_date DESC NULLS LAST
+       LIMIT 1`,
+      [contactId, userId],
+    );
+    if (rows.length > 0 && Array.isArray(rows[0].topics)) {
+      return rows[0].topics;
+    }
+  } catch {
+    // Table may not exist yet
+  }
+  return [];
+}
+
+/**
+ * Generate a conversation starter with enrichment topics from the database.
+ * This is the async version that fetches topics for richer starters.
+ *
+ * Requirements: 12.4, 12.6, 036-ui-suggestion-starters
+ */
+async function generateConversationStarterWithTopics(
+  contact: Contact,
+  suggestion: Suggestion,
+  enrichment: EnrichmentSignal | null,
+  userId: string,
+  goals?: ConnectionGoal[],
+): Promise<string> {
+  // Fetch goals if not provided
+  let activeGoals = goals;
+  if (!activeGoals) {
+    try {
+      const goalService = new ConnectionGoalService();
+      activeGoals = await goalService.getActiveGoals(userId);
+    } catch {
+      activeGoals = [];
+    }
+  }
+
+  // First try the synchronous version for tags, calendar, enrichment, goals, circle, time-gap
+  const syncStarter = generateConversationStarter(contact, suggestion, enrichment, activeGoals);
+
+  // If we got a non-fallback result (not from the pool), use it
+  const isFromFallbackPool = FALLBACK_POOL.some(
+    (tpl) => interpolateName(tpl, contact.name) === syncStarter,
+  );
+  if (!isFromFallbackPool) {
+    return syncStarter;
+  }
+
+  // Try enrichment topics from DB (Req 12.4) — sits between enrichment and goal-aware
+  if (enrichment) {
+    const topics = await getEnrichmentTopics(contact.id, userId);
+    if (topics.length > 0) {
+      return interpolateName(
+        `Last time you talked about ${topics[0]} — check in on how it's going`,
+        contact.name,
+      );
+    }
+  }
+
+  return syncStarter;
 }
 
 /**
@@ -1161,6 +1794,88 @@ export function balanceSuggestions(
   }
 
   return balancedSuggestions;
+}
+
+/**
+ * Generate contact-based suggestions without timeslots.
+ * V1 approach: scores all contacts using enrichment signals and creates
+ * suggestions for the top contacts that need a catch-up.
+ * No calendar scheduling dependency.
+ *
+ * Requirements: 17.1, 17.2, 032-v1-contact-enrichment-redesign
+ */
+export async function generateContactSuggestions(
+  userId: string,
+  maxSuggestions: number = 10,
+  currentDate: Date = new Date(),
+): Promise<Suggestion[]> {
+  // Get all contacts
+  const contacts = await contactService.listContacts(userId);
+
+  // Get signal weights and active goals
+  let weights: SuggestionSignalWeights = { ...DEFAULT_SIGNAL_WEIGHTS };
+  try { weights = await getSignalWeights(userId); } catch { /* use defaults */ }
+
+  const goalService = new ConnectionGoalService();
+  let activeGoals: ConnectionGoal[] = [];
+  try { activeGoals = await goalService.getActiveGoals(userId); } catch { /* no goals */ }
+
+  // Fetch excluded contacts
+  let excludedContactIds = new Set<string>();
+  try {
+    const { rows } = await pool.query(
+      `SELECT contact_id FROM suggestion_exclusions WHERE user_id = $1`,
+      [userId],
+    );
+    excludedContactIds = new Set(rows.map((r: any) => r.contact_id));
+  } catch { /* table may not exist */ }
+
+  // Fetch existing pending suggestion contact IDs to avoid duplicates
+  let existingPendingContactIds = new Set<string>();
+  try {
+    const { rows } = await pool.query(
+      `SELECT contact_id FROM suggestions WHERE user_id = $1 AND status = 'pending'`,
+      [userId],
+    );
+    existingPendingContactIds = new Set(rows.map((r: any) => r.contact_id));
+  } catch { /* ok */ }
+
+  // Score all eligible contacts
+  const scored: Array<{ contact: Contact; score: number; reasoning: string }> = [];
+
+  for (const contact of contacts) {
+    if (contact.archived) continue;
+    if (excludedContactIds.has(contact.id)) continue;
+    if (existingPendingContactIds.has(contact.id)) continue;
+
+    let enrichment: EnrichmentSignal | null = null;
+    try { enrichment = await getEnrichmentSignal(contact.id, userId); } catch { /* ok */ }
+
+    const { score, reasoning } = computeGoalAwareScore(contact, enrichment, weights, activeGoals, currentDate);
+    scored.push({ contact, score, reasoning });
+  }
+
+  // Sort by score descending, take top N
+  scored.sort((a, b) => b.score - a.score);
+  const topContacts = scored.slice(0, maxSuggestions);
+
+  // Create suggestions
+  const suggestions: Suggestion[] = [];
+  for (const { contact, reasoning } of topContacts) {
+    try {
+      const suggestion = await suggestionRepository.create({
+        userId,
+        contactId: contact.id,
+        triggerType: TriggerType.TIMEBOUND,
+        reasoning,
+      });
+      suggestions.push(suggestion);
+    } catch (err) {
+      console.error(`[generateContactSuggestions] Failed to create suggestion for contact ${contact.id}:`, err);
+    }
+  }
+
+  return suggestions;
 }
 
 /**
